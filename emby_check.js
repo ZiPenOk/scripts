@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      1.0.0
+// @version      1.0.1
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
-// @author       cgkings
+// @author       ZiPenOk
 // @match        *://www.javbus.com/*
 // @match        *://javdb*.com/v/*
 // @match        *://javdb*.com/search?q=*
