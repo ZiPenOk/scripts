@@ -14,7 +14,6 @@
 // @grant        GM_setValue
 // @supportURL   https://github.com/ZiPenOk/scripts/issues
 // @homepageURL  https://github.com/ZiPenOk/scripts
-// @icon         https://img.icons8.com/fluency/96/emby.png
 // @updateURL    https://raw.githubusercontent.com/ZiPenOk/scripts/main/m3u8_download.js
 // @downloadURL  https://raw.githubusercontent.com/ZiPenOk/scripts/main/m3u8_download.js
 // ==/UserScript==
