@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      1.0.1
+// @version      1.0.2
 // @description  给sukebei 169bbs添加番号跳转到javbus javdb 按钮,以及预览图功能
 // @author       ZiPenOk
 // @match        https://*.nyaa.si/*
 // @match        *://169bbs.com/*
+// @match        *://*169bbs*.*/*
 // @grant        GM_xmlhttpRequest
 // @connect      *
 // @updateURL    https://raw.githubusercontent.com/ZiPenOk/scripts/main/jav_jump.js
