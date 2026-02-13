@@ -30,6 +30,9 @@
 // @supportURL   https://github.com/ZiPenOk/scripts/issues
 // @homepageURL  https://github.com/ZiPenOk/scripts
 // @icon         https://img.icons8.com/fluency/96/emby.png
+// @updateURL    https://raw.githubusercontent.com/ZiPenOk/scripts/main/emby_check.js
+// @downloadURL  https://raw.githubusercontent.com/ZiPenOk/scripts/main/emby_check.js
+
 // ==/UserScript==
 
 (function () {
