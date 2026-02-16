@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         test跳转到Emby播放(改)
+// @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
 // @version      0.1.4
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
