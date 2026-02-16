@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         跳转到Emby播放(改)
+// @name         test跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      1.0.2
+// @version      0.1.4
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -63,6 +63,26 @@
         },
         get badgeSize() {
             return GM_getValue('badgeSize', 'medium'); // small, medium, large
+        },
+
+        /* ===== 新增：站点开关控制 ===== */
+
+        get enabledSites() {
+            return GM_getValue('enabledSites', {
+                javbus: { list: true, detail: true },
+                javdb: { list: true, detail: true },
+                supjav: { list: true, detail: true },
+                sehuatang: { list: false, detail: true },
+                sukebeiNyaa: { list: true, detail: true },
+                javlibrary: { list: false, detail: true },
+                madou: { list: false, detail: true },
+                javrate: { list: false, detail: true },
+                '169bbs': { list: true, detail: true }
+            });
+        },
+
+        set enabledSites(val) {
+            GM_setValue('enabledSites', val);
         },
 
         set embyAPI(val) {
@@ -399,11 +419,46 @@
                     <input type="color" id="badge-text-color" value="${Config.badgeTextColor}">
                 </div>
 
+                <hr>
+                <h4>站点功能开关</h4>
+                <div id="site-toggle-container"></div>
+
                 <div class="emby-jump-settings-buttons">
                     <button class="emby-jump-settings-cancel">取消</button>
                     <button class="emby-jump-settings-save">保存</button>
                 </div>
             `;
+
+            /* ===== 动态生成站点开关 ===== */
+
+            const siteContainer = panel.querySelector('#site-toggle-container');
+            const sites = Config.enabledSites;
+
+            for (const site in sites) {
+
+                const wrapper = document.createElement('div');
+                wrapper.style.marginBottom = '6px';
+
+                wrapper.innerHTML = `
+                    <strong style="display:inline-block;width:110px">${site}</strong>
+                    <label>
+                        <input type="checkbox"
+                            data-site="${site}"
+                            data-type="list"
+                            ${sites[site].list ? 'checked' : ''}>
+                        列表
+                    </label>
+                    <label style="margin-left:10px;">
+                        <input type="checkbox"
+                            data-site="${site}"
+                            data-type="detail"
+                            ${sites[site].detail ? 'checked' : ''}>
+                        详情
+                    </label>
+                `;
+
+                siteContainer.appendChild(wrapper);
+            }
 
             document.body.appendChild(panel);
 
@@ -434,6 +489,23 @@
                     Config.badgeSize = document.getElementById('badge-size').value;
                     Config.badgeColor = document.getElementById('badge-color').value;
                     Config.badgeTextColor = document.getElementById('badge-text-color').value;
+                    Config.badgeTextColor = document.getElementById('badge-text-color').value;
+                    /* ===== 保存站点开关 ===== */
+
+                    const updatedSites = { ...Config.enabledSites };
+
+                    panel.querySelectorAll('[data-site]').forEach(input => {
+                        const site = input.dataset.site;
+                        const type = input.dataset.type;
+
+                        if (!updatedSites[site]) {
+                            updatedSites[site] = { list: false, detail: false };
+                        }
+
+                        updatedSites[site][type] = input.checked;
+                    });
+
+                    Config.enabledSites = updatedSites;
 
                     closePanel();
                     alert('设置已保存！请刷新页面以应用更改。');
@@ -850,13 +922,23 @@
         },
 
         async process() {
-            const items = document.querySelectorAll(this.listSelector);
 
-            if (items.length > 0) {
-                await this.processItemsWithBadge(items);
+            const siteConfig = this.__siteConfig;
+            if (!siteConfig) return;
+
+            /* 列表页控制 */
+            if (siteConfig.list && this.listSelector) {
+                const items = document.querySelectorAll(this.listSelector);
+                if (items.length > 0) {
+                    await this.processItemsWithBadge(items);
+                }
             }
 
-            await this.processDetailPage();
+            /* 详情页控制 */
+            if (siteConfig.detail && this.processDetailPage) {
+                await this.processDetailPage();
+            }
+
             this.setupObserver();
         },
 
@@ -876,6 +958,13 @@
             let timer = null;
 
             const processMutations = () => {
+
+                // ===== 新增：站点列表开关判断 =====
+                if (!this.__siteConfig || !this.__siteConfig.list) {
+                    pending = [];
+                    timer = null;
+                    return;
+                }
                 const newElements = [];
 
                 for (const mutation of pending) {
@@ -1032,6 +1121,8 @@
             listSelector: '',
 
             async process() {
+                const siteConfig = this.__siteConfig;
+                if (!siteConfig || !siteConfig.detail) return;
                 if (document.querySelector('.emby-jump-link, .emby-badge')) return;
 
                 const title = document.title.trim();
@@ -1094,14 +1185,21 @@
 
             async process() {
 
+                const siteConfig = this.__siteConfig;
+                if (!siteConfig) return;
+
                 // 详情页
                 if (location.pathname.startsWith('/view/')) {
-                    await this.processDetailPage();
+                    if (siteConfig.detail) {
+                        await this.processDetailPage();
+                    }
                     return;
                 }
 
                 // 列表页
-                await this.processListPage();
+                if (siteConfig.list) {
+                    await this.processListPage();
+                }
             },
 
             // =====================
@@ -1220,6 +1318,9 @@
             listSelector: '',
 
             async process() {
+                const siteConfig = this.__siteConfig;
+                if (!siteConfig || !siteConfig.detail) return;
+
                 await this.processDetailPage();
             },
 
@@ -1255,6 +1356,9 @@
             listSelector: '',
 
             async process() {
+                const siteConfig = this.__siteConfig;
+                if (!siteConfig || !siteConfig.detail) return;
+
                 await this.processDetailPage();
             },
 
@@ -1310,6 +1414,9 @@
             listSelector: '',
 
             async process() {
+                const siteConfig = this.__siteConfig;
+                if (!siteConfig || !siteConfig.detail) return;
+
                 await this.processDetailPage();
             },
 
@@ -1354,34 +1461,45 @@
             getElement: item => item.querySelector('a.xst'),
 
             async process() {
-                // 1. 列表模式：直接查找页面是否存在帖子列表
-                const items = document.querySelectorAll(this.listSelector);
-                if (items.length > 0) {
-                    await this.processItemsWithLink(items);
+
+                const siteConfig = this.__siteConfig;
+                if (!siteConfig) return;
+
+                // =====================
+                // 1. 列表模式
+                // =====================
+                if (siteConfig.list) {
+                    const items = document.querySelectorAll(this.listSelector);
+                    if (items.length > 0) {
+                        await this.processItemsWithLink(items);
+                    }
                 }
 
-                // 2. 详情页模式：直接查找页面是否存在标题 ID
-                const titleEl = document.querySelector('#thread_subject');
-                if (titleEl) {
-                    const match = titleEl.textContent.match(this.codeRegex);
-                    if (match) {
-                        Status.show('正在查询 Emby...');
-                        const code = match[0].toUpperCase();
-                        const data = await this.api.fetchData(code);
+                // =====================
+                // 2. 详情页模式
+                // =====================
+                if (siteConfig.detail) {
+                    const titleEl = document.querySelector('#thread_subject');
+                    if (titleEl) {
+                        const match = titleEl.textContent.match(this.codeRegex);
+                        if (match) {
+                            Status.show('正在查询 Emby...');
+                            const code = match[0].toUpperCase();
+                            const data = await this.api.fetchData(code);
 
-                        if (data && data.Items && data.Items.length > 0) {
-                            const link = this.api.createLink(data);
-                            if (link) {
-                                titleEl.after(link);
-                                Status.success(`已找到: ${code}`, true);
+                            if (data?.Items?.length > 0) {
+                                const link = this.api.createLink(data);
+                                if (link) {
+                                    titleEl.after(link);
+                                    Status.success(`已找到: ${code}`, true);
+                                }
+                            } else {
+                                Status.error('未找到匹配项', true);
                             }
-                        } else {
-                            Status.error('未找到匹配项', true);
                         }
                     }
                 }
 
-                // 3. 开启观察器（应对 Discuz 的异步加载或翻页）
                 this.setupObserver();
             }
         })
@@ -1439,8 +1557,14 @@
 
         console.log('Emby 跳转脚本启动，识别站点:', site);
 
+        const siteConfig = Config.enabledSites[site];
+        if (!siteConfig) return;
+
         const processor = Processors[site].init(new EmbyAPI());
-        if (processor) await processor.process();
+        if (processor) {
+            processor.__siteConfig = siteConfig;
+            await processor.process();
+        }
     }
 
     // 确保这部分在脚本最底部
