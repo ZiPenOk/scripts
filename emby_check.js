@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      3.4
+// @version      3.5
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -33,13 +33,12 @@
 // @icon         https://img.icons8.com/fluency/96/emby.png
 // @updateURL    https://raw.githubusercontent.com/ZiPenOk/scripts/main/emby_check.js
 // @downloadURL  https://raw.githubusercontent.com/ZiPenOk/scripts/main/emby_check.js
-
 // ==/UserScript==
 
 (function () {
     'use strict';
 
-    // 全局配置对象（多服务器版）
+    // 全局配置对象（多服务器版）—— 新增 darkMode 配置
     const Config = {
         // 服务器列表
         get embyServers() {
@@ -95,7 +94,7 @@
             }
         },
 
-        // 徽章相关配置（保持不变）
+        // 徽章相关配置
         get highlightColor() {
             return GM_getValue('highlightColor', '#52b54b');
         },
@@ -124,6 +123,13 @@
                 '169bbs': { list: true, detail: true }
             });
         },
+        // ===== 新增深色模式配置 =====
+        get darkMode() {
+            return GM_getValue('darkMode', false);
+        },
+        set darkMode(val) {
+            GM_setValue('darkMode', val);
+        },
 
         // Setters
         set highlightColor(val) { GM_setValue('highlightColor', val); },
@@ -145,9 +151,6 @@
                     apiKey: oldApiKey
                 }];
                 this.activeServerIndex = 0;
-                // 可选：删除旧配置项
-                // GM_deleteValue('embyBaseUrl');
-                // GM_deleteValue('embyAPI');
             }
         },
 
@@ -276,10 +279,10 @@
             transition: width 0.3s;
         }
         .emby-jump-status-indicator.success {
-            background-color: rgba(40, 167, 69, 0.9) !important; /* 确认为绿色 */
+            background-color: rgba(40, 167, 69, 0.9) !important;
         }
         .emby-jump-status-indicator.error {
-            background-color: rgba(220, 53, 69, 0.9) !important; /* 确认为红色 */
+            background-color: rgba(220, 53, 69, 0.9) !important;
         }
         .emby-jump-status-indicator .close-btn {
             margin-left: 10px;
@@ -334,9 +337,9 @@
         /* 现代化设置面板 */
         .emby-jump-settings-panel.modern {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #eef2f5;  /* 柔和的灰蓝色背景 */
+            background: #eef2f5;
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);  /* 减淡阴影 */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             padding: 0;
             width: 900px;
             max-width: 95vw;
@@ -348,7 +351,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
-            background: #ffffffd9;  /* 半透明白色，降低突兀感 */
+            background: #ffffffd9;
             backdrop-filter: blur(4px);
             border-bottom: 1px solid #d0d7dd;
         }
@@ -357,7 +360,7 @@
             margin: 0;
             font-size: 22px;
             font-weight: 600;
-            color: #1e2a3a;  /* 深灰蓝，更柔和 */
+            color: #1e2a3a;
         }
 
         .modern .settings-header .close-btn {
@@ -386,7 +389,7 @@
         }
 
         .modern .settings-card {
-            background: #ffffffde;  /* 柔和半透明白 */
+            background: #ffffffde;
             backdrop-filter: blur(2px);
             border-radius: 12px;
             padding: 16px;
@@ -397,7 +400,7 @@
         .modern .card-title {
             font-weight: 600;
             margin-bottom: 12px;
-            color: #2c3e50;  /* 深灰蓝 */
+            color: #2c3e50;
             display: flex;
             align-items: center;
             gap: 6px;
@@ -426,7 +429,7 @@
         .modern .field label {
             font-size: 16px;
             font-weight: 500;
-            color: #4a5a6e;  /* 中灰蓝 */
+            color: #4a5a6e;
         }
 
         .modern .field input,
@@ -681,7 +684,8 @@
             backdrop-filter: blur(4px);
             border-top: 1px solid #d0d7dd;
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;  /* 改为 space-between 使左右分离 */
+            align-items: center;
             gap: 12px;
         }
 
@@ -708,7 +712,111 @@
         .modern .btn.save:hover {
             background: #3e9e37;
         }
-        `);
+
+        /* ===== 新增深色模式切换图标样式 ===== */
+        .modern .dark-mode-toggle {
+            font-size: 26px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 4px;
+            user-select: none;
+            transition: transform 0.2s;
+        }
+        .modern .dark-mode-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        /* ===== 深色模式样式定义 ===== */
+        .emby-jump-settings-panel.modern.dark-mode {
+            background: #1a1a2a;
+            color: #c0c0d0;
+        }
+        .modern.dark-mode .settings-header {
+            background: #242435;
+            border-bottom-color: #3a3a50;
+        }
+        .modern.dark-mode .settings-header h3 {
+            color: #fff;
+        }
+        .modern.dark-mode .settings-card {
+            background: #242435;
+            border-color: #3a3a50;
+        }
+        .modern.dark-mode .card-title {
+            color: #d0d0e0;
+        }
+        .modern.dark-mode .field label {
+            color: #b0b0c0;
+        }
+        .modern.dark-mode .field input,
+        .modern.dark-mode .field select {
+            background-color: #1e1e30;
+            border-color: #4a4a60;
+            color: #e0e0f0;
+        }
+        .modern.dark-mode .field input:focus,
+        .modern.dark-mode .field select:focus {
+            border-color: #52b54b;
+        }
+        .modern.dark-mode .servers-table-header {
+            background-color: #2a2a40;
+            border-bottom-color: #4a4a60;
+            color: #ccc;
+        }
+        .modern.dark-mode .server-row {
+            border-bottom-color: #3a3a50;
+        }
+        .modern.dark-mode .server-name {
+            color: #d0d0e0;
+        }
+        .modern.dark-mode .server-url,
+        .modern.dark-mode .server-api {
+            color: #a0a0b8;
+        }
+        .modern.dark-mode .server-btn:hover:not(:disabled) {
+            background-color: #3a3a50;
+        }
+        .modern.dark-mode .btn.secondary {
+            background: #2e2e42;
+            border-color: #5a5a78;
+            color: #ddd;
+        }
+        .modern.dark-mode .btn.secondary:hover {
+            background: #3e3e58;
+        }
+        .modern.dark-mode .test-btn {
+            background: #2e2e42;
+            border-color: #5a5a78;
+            color: #ddd;
+        }
+        .modern.dark-mode .test-btn:hover {
+            background: #3e3e58;
+        }
+        .modern.dark-mode .settings-footer {
+            background: #242435;
+            border-top-color: #3a3a50;
+        }
+        .modern.dark-mode .btn.cancel {
+            background: #3a3a50;
+            color: #ddd;
+            border-color: #5a5a78;
+        }
+        .modern.dark-mode .btn.save {
+            background: #3e9e37;
+        }
+        .modern.dark-mode .close-btn {
+            color: #aaa;
+        }
+        .modern.dark-mode .sites-table-header {
+            background-color: #2a2a40;
+        }
+        .modern.dark-mode .sites-row {
+            border-bottom-color: #3a3a50;
+        }
+        .modern.dark-mode .site-name {
+            color: #d0d0e0;
+        }
+    `);
 
     // 单例状态指示器
     const Status = (() => {
@@ -741,7 +849,6 @@
         const show = (msg, type = '') => {
             createUI();
             if (timeout) clearTimeout(timeout);
-            // 关键修复：确保切换时移除旧的颜色类，添加新的类
             el.classList.remove('success', 'error');
             if (type) el.classList.add(type);
 
@@ -780,7 +887,7 @@
         };
     })();
 
-    // 设置面板 - 多服务器版
+    // 设置面板 - 多服务器版（新增深色模式切换）
     const SettingsUI = {
         show() {
             let panel = document.getElementById('emby-jump-settings-panel');
@@ -792,6 +899,10 @@
             panel = document.createElement('div');
             panel.id = 'emby-jump-settings-panel';
             panel.className = 'emby-jump-settings-panel modern';
+            // 根据保存的深色模式设置初始类
+            if (Config.darkMode) {
+                panel.classList.add('dark-mode');
+            }
 
             // 读取当前配置
             const currentConfig = {
@@ -802,10 +913,11 @@
                 badgeSize: Config.badgeSize,
                 badgeColor: Config.badgeColor,
                 badgeTextColor: Config.badgeTextColor,
-                enabledSites: Config.enabledSites
+                enabledSites: Config.enabledSites,
+                darkMode: Config.darkMode
             };
 
-            // 生成服务器列表HTML（弹窗编辑方式）
+            // 生成服务器列表HTML
             function generateServersHTML() {
                 const servers = Config.embyServers;
                 if (!servers || servers.length === 0) {
@@ -857,6 +969,9 @@
                 }
                 return rows;
             }
+
+            // 图标显示：深色模式开启时显示☀️（点击切回浅色），关闭时显示🌙（点击切深色）
+            const darkModeIcon = Config.darkMode ? '☀️' : '🌙';
 
             panel.innerHTML = `
                 <div class="settings-header">
@@ -950,14 +1065,19 @@
                     </div>
                 </div>
                 <div class="settings-footer">
-                    <button class="btn cancel">取消</button>
-                    <button class="btn save">保存</button>
+                    <!-- 左侧：深色模式切换图标 -->
+                    <div class="dark-mode-toggle" id="dark-mode-toggle" title="切换深色模式">${darkModeIcon}</div>
+                    <!-- 右侧：按钮组 -->
+                    <div>
+                        <button class="btn cancel">取消</button>
+                        <button class="btn save">保存</button>
+                    </div>
                 </div>
             `;
 
             document.body.appendChild(panel);
 
-            // 服务器卡片折叠/展开功能（默认折叠）
+            // 服务器卡片折叠/展开功能
             const serversHeader = panel.querySelector('#servers-toggle-header');
             const serversGrid = panel.querySelector('#servers-grid');
             const serversIcon = panel.querySelector('#servers-toggle-icon');
@@ -974,7 +1094,7 @@
                 serversVisible = !serversVisible;
             });
 
-            // 服务器管理功能（弹窗编辑）
+            // 服务器管理功能
             const serversListContainer = panel.querySelector('#servers-list-container');
 
             function refreshServersList() {
@@ -993,7 +1113,7 @@
                     });
                 });
 
-                // 编辑服务器（弹窗）
+                // 编辑服务器
                 panel.querySelectorAll('.edit-server').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const row = e.target.closest('.server-row');
@@ -1113,6 +1233,21 @@
                 }
             });
 
+            // ===== 深色模式切换逻辑 =====
+            const darkModeToggle = panel.querySelector('#dark-mode-toggle');
+            darkModeToggle.addEventListener('click', () => {
+                const isDark = panel.classList.contains('dark-mode');
+                if (isDark) {
+                    panel.classList.remove('dark-mode');
+                    darkModeToggle.textContent = '🌙';
+                    Config.darkMode = false;
+                } else {
+                    panel.classList.add('dark-mode');
+                    darkModeToggle.textContent = '☀️';
+                    Config.darkMode = true;
+                }
+            });
+
             // 关闭面板
             const closePanel = () => {
                 panel.style.display = 'none';
@@ -1147,7 +1282,7 @@
         }
     };
 
-    /* ========= Emby 查询缓存（工业级） ========= */
+    /* ========= Emby 查询缓存 ========= */
     const EmbyCache = {
         KEY: 'emby_query_cache_v1',
         TTL: 7 * 24 * 60 * 60 * 1000, // 7天
@@ -1256,34 +1391,28 @@
 
         /**
          * 检查指定番号在 Emby 中是否存在，返回最佳匹配项（或 null）
-         * @param {string} code - 番号
-         * @returns {Promise<object|null>}
          */
         async checkExists(code) {
             if (!code) return null;
 
             const clean = code.trim().toUpperCase();
 
-            // 尝试可能的番号变体
             const tryCodes = [clean];
             const mainMatch = clean.match(/^([A-Z]+-\d+)/);
             if (mainMatch && mainMatch[1] !== clean) {
                 tryCodes.push(mainMatch[1]);
             }
 
-            // 先查缓存（对每个尝试的番号）
+            // 先查缓存
             for (const c of tryCodes) {
                 const cached = EmbyCache.get(c);
                 if (cached && !EmbyCache.isExpired(cached)) {
                     try {
-                        // 验证缓存项是否仍有效
                         const checkUrl = `${Config.embyBaseUrl}emby/Items/${cached.itemId}?api_key=${Config.embyAPI}`;
                         const res = await this.request(checkUrl);
                         const item = JSON.parse(res.responseText);
-                        // 验证通过，返回该项
                         return item;
                     } catch {
-                        // 缓存失效，移除
                         EmbyCache.remove(c);
                     }
                 }
@@ -1305,7 +1434,6 @@
                     if (items.length) {
                         const best = this.findBestMatch(items, c);
                         if (best) {
-                            // 缓存最佳匹配项
                             EmbyCache.set(c, best);
                             return best;
                         }
@@ -1344,7 +1472,7 @@
                     Status.updateProgressDebounced(this.completed, this.total);
 
                     this.checkExists(code).then(best => {
-                        results[index] = best; // 直接存储最佳匹配项或 null
+                        results[index] = best;
                         this.active--;
                         this.completed++;
 
@@ -1384,7 +1512,7 @@
             });
         }
 
-        // 核心修改：使用内联样式强制覆盖，并优化边距适应新位置
+        // 创建跳转链接（内联样式强制覆盖）
         createLink(item) {
             if (!item) return null;
 
@@ -1438,7 +1566,7 @@
 
             const target = code.trim().toUpperCase();
             const targetClean = target.replace(/[-_]/g, '');
-            const mainTarget = target.replace(/-\d+$/, ''); // MDSR-0005
+            const mainTarget = target.replace(/-\d+$/, '');
 
             const cleanStr = s => (s || '').toUpperCase().replace(/[-_]/g, '');
 
@@ -1498,13 +1626,13 @@
             }
 
             if (codes.length > 0) {
-                const bestItems = await this.api.batchQuery(codes); // 直接返回最佳匹配项数组
+                const bestItems = await this.api.batchQuery(codes);
                 const operations = [];
 
                 for (let i = 0; i < bestItems.length; i++) {
-                    if (bestItems[i]) { // 存在最佳匹配
+                    if (bestItems[i]) {
                         const { item, imgContainer } = toProcess[i];
-                        const badge = this.api.createBadge(bestItems[i]); // 传入 item
+                        const badge = this.api.createBadge(bestItems[i]);
 
                         if (badge) {
                             operations.push(() => {
@@ -1558,7 +1686,7 @@
 
                         if (item) item.classList.add('emby-processed');
 
-                        const link = this.api.createLink(bestItems[i]); // 传入 item
+                        const link = this.api.createLink(bestItems[i]);
 
                         if (link) {
                             const target = element.parentNode || element;
@@ -1640,7 +1768,6 @@
 
             const processMutations = () => {
 
-                // ===== 新增：站点列表开关判断 =====
                 if (!this.__siteConfig || !this.__siteConfig.list) {
                     pending = [];
                     timer = null;
@@ -1815,11 +1942,10 @@
                     const bestItems = await this.api.batchQuery(codes);
                     let foundAny = false;
 
-                    // 找到合适的容器元素
                     const container = document.querySelector('#thread_subject') ||
                                       document.querySelector('h1.ts') ||
                                       document.querySelector('h1');
-                    if (!container) return; // 没有容器则退出
+                    if (!container) return;
 
                     for (const bestItem of bestItems) {
                         if (bestItem) {
@@ -1860,7 +1986,6 @@
 
         sukebeiNyaa: Object.assign(Object.create(BaseProcessor), {
 
-            // 列表页每一行
             listSelector: 'table tbody tr',
 
             async process() {
@@ -1868,7 +1993,6 @@
                 const siteConfig = this.__siteConfig;
                 if (!siteConfig) return;
 
-                // 详情页
                 if (location.pathname.startsWith('/view/')) {
                     if (siteConfig.detail) {
                         await this.processDetailPage();
@@ -1876,15 +2000,11 @@
                     return;
                 }
 
-                // 列表页
                 if (siteConfig.list) {
                     await this.processListPage();
                 }
             },
 
-            // =====================
-            // 详情页
-            // =====================
             async processDetailPage() {
 
                 if (document.querySelector('.emby-jump-link, .emby-badge')) return;
@@ -1905,7 +2025,6 @@
                 if (bestItem) {
                     const link = this.api.createLink(bestItem);
 
-                    // 👇 关键修复
                     if (!link) {
                         Status.error('未找到精确匹配', true);
                         return;
@@ -1924,9 +2043,6 @@
                 }
             },
 
-            // =====================
-            // 列表页
-            // =====================
             async processListPage() {
 
                 const rows = document.querySelectorAll(this.listSelector);
@@ -1935,7 +2051,6 @@
                 let totalChecked = 0;
                 let completed = 0;
 
-                // 👇 用来收集要变色的元素
                 const pendingHighlight = [];
 
                 for (const row of rows) {
@@ -1964,7 +2079,6 @@
                     });
                 }
 
-                // 等待结束（软收尾）
                 const startTime = Date.now();
                 const checker = setInterval(() => {
 
@@ -1974,7 +2088,6 @@
 
                         clearInterval(checker);
 
-                        // 👇 批量一次性渲染
                         requestAnimationFrame(() => {
                             for (const el of pendingHighlight) {
                                 el.classList.add('emby-exists');
@@ -1994,7 +2107,6 @@
 
         }),
 
-        // JavLibrary
         javlibrary: Object.assign(Object.create(BaseProcessor), {
             listSelector: '',
 
@@ -2031,7 +2143,6 @@
             }
         }),
 
-        // Madou
         madou: Object.assign(Object.create(BaseProcessor), {
             listSelector: '',
 
@@ -2088,7 +2199,6 @@
             }
         }),
 
-        // JavRate
         javrate: Object.assign(Object.create(BaseProcessor), {
             listSelector: '',
 
@@ -2143,9 +2253,6 @@
                 const siteConfig = this.__siteConfig;
                 if (!siteConfig) return;
 
-                // =====================
-                // 1. 列表模式
-                // =====================
                 if (siteConfig.list) {
                     const items = document.querySelectorAll(this.listSelector);
                     if (items.length > 0) {
@@ -2153,9 +2260,6 @@
                     }
                 }
 
-                // =====================
-                // 2. 详情页模式
-                // =====================
                 if (siteConfig.detail) {
                     const titleEl = document.querySelector('#thread_subject');
                     if (titleEl) {
@@ -2244,7 +2348,6 @@
         }
     }
 
-    // 确保这部分在脚本最底部
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', main);
     } else {
