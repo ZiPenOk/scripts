@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      0.1.8
+// @version      2.0
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -613,8 +613,8 @@
         };
     })();
 
-        // 设置面板 - 现代化UI（含表格滑动开关）
-        const SettingsUI = {
+    // 设置面板 - 现代化UI
+    const SettingsUI = {
         show() {
             let panel = document.getElementById('emby-jump-settings-panel');
             if (panel) {
@@ -682,7 +682,10 @@
                             <div class="field">
                                 <label for="emby-api">API 密钥</label>
                                 <input type="text" id="emby-api" placeholder="在 Emby 设置中获取" value="${currentConfig.embyAPI}">
-                                <button class="test-btn" id="test-connection" type="button">测试连接</button>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <button class="test-btn" id="test-connection" type="button">测试连接</button>
+                                    <span id="test-result" style="font-size: 0.9rem; color: #666;"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -763,9 +766,8 @@
             const sitesHeader = panel.querySelector('#sites-toggle-header');
             const sitesGrid = panel.querySelector('#sites-grid');
             const toggleIcon = panel.querySelector('#sites-toggle-icon');
-            let sitesVisible = false; // 默认折叠
+            let sitesVisible = false;
 
-            // 初始状态：折叠
             sitesGrid.style.display = 'none';
             toggleIcon.textContent = '▶';
 
@@ -788,9 +790,64 @@
             panel.querySelector('.close-btn').addEventListener('click', closePanel);
             panel.querySelector('.btn.cancel').addEventListener('click', closePanel);
 
-            // 测试连接按钮（简单提示，可扩展）
-            panel.querySelector('#test-connection').addEventListener('click', () => {
-                alert('此功能暂未实现，请手动测试您的API密钥是否有效。');
+            // 测试连接按钮
+            panel.querySelector('#test-connection').addEventListener('click', async () => {
+                const url = document.getElementById('emby-url').value.trim();
+                const apiKey = document.getElementById('emby-api').value.trim();
+                const testResultSpan = panel.querySelector('#test-result');
+
+                // 重置结果样式
+                testResultSpan.textContent = '';
+                testResultSpan.style.color = '#666';
+
+                if (!url.match(/^https?:\/\/.+\/$/)) {
+                    testResultSpan.textContent = '❌ 地址格式不正确';
+                    testResultSpan.style.color = '#dc3545';
+                    return;
+                }
+                if (!apiKey) {
+                    testResultSpan.textContent = '❌ 请输入API密钥';
+                    testResultSpan.style.color = '#dc3545';
+                    return;
+                }
+
+                const testBtn = panel.querySelector('#test-connection');
+                testBtn.disabled = true;
+                testResultSpan.textContent = '⏳ 测试中...';
+                testResultSpan.style.color = '#6c757d';
+
+                try {
+                    const response = await new Promise((resolve, reject) => {
+                        GM_xmlhttpRequest({
+                            method: 'GET',
+                            url: `${url}emby/System/Info?api_key=${apiKey}`,
+                            timeout: 10000,
+                            onload: (res) => {
+                                if (res.status >= 200 && res.status < 300) {
+                                    resolve(res);
+                                } else {
+                                    reject(new Error(`HTTP ${res.status}`));
+                                }
+                            },
+                            onerror: () => reject(new Error('网络错误')),
+                            ontimeout: () => reject(new Error('请求超时'))
+                        });
+                    });
+
+                    let serverName = 'Emby服务器';
+                    try {
+                        const data = JSON.parse(response.responseText);
+                        if (data.ServerName) serverName = data.ServerName;
+                    } catch (e) {}
+
+                    testResultSpan.textContent = `✅ 连接成功 (${serverName})`;
+                    testResultSpan.style.color = '#28a745';
+                } catch (error) {
+                    testResultSpan.textContent = `❌ 连接失败: ${error.message}`;
+                    testResultSpan.style.color = '#dc3545';
+                } finally {
+                    testBtn.disabled = false;
+                }
             });
 
             // 保存设置
