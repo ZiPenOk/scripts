@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      3.2
+// @version      3.3
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -799,15 +799,15 @@
                 enabledSites: Config.enabledSites
             };
 
-            // 生成服务器列表HTML
+            // 生成服务器列表HTML（弹窗编辑方式）
             function generateServersHTML() {
-                const servers = Config.embyServers;  // 直接读取最新配置
+                const servers = Config.embyServers;
                 if (!servers || servers.length === 0) {
                     return '<div style="padding: 12px; text-align: center; color: #999;">暂无服务器，请添加</div>';
                 }
                 let rows = '';
                 servers.forEach((server, index) => {
-                    const isActive = index === Config.activeServerIndex;  // 使用最新活动索引
+                    const isActive = index === Config.activeServerIndex;
                     rows += `
                         <div class="server-row" data-index="${index}">
                             <div class="server-info">
@@ -858,13 +858,13 @@
                     <span class="close-btn">&times;</span>
                 </div>
                 <div class="settings-content">
-                    <!-- 服务器管理卡片（跨列） -->
+                    <!-- 服务器管理卡片（跨列，默认折叠） -->
                     <div class="settings-card" style="grid-column: 1 / -1;">
                         <div class="card-title collapsible" id="servers-toggle-header">
                             <span>🖥️ 服务器管理</span>
-                            <span class="toggle-icon" id="servers-toggle-icon">▼</span>
+                            <span class="toggle-icon" id="servers-toggle-icon">▶</span>
                         </div>
-                        <div class="card-body" id="servers-grid" style="display: block;">
+                        <div class="card-body" id="servers-grid" style="display: none;">
                             <div class="servers-table">
                                 <div class="servers-table-header">
                                     <div>服务器列表</div>
@@ -951,11 +951,11 @@
 
             document.body.appendChild(panel);
 
-            // 服务器卡片折叠/展开功能
+            // 服务器卡片折叠/展开功能（默认折叠）
             const serversHeader = panel.querySelector('#servers-toggle-header');
             const serversGrid = panel.querySelector('#servers-grid');
             const serversIcon = panel.querySelector('#servers-toggle-icon');
-            let serversVisible = true;
+            let serversVisible = false; // 默认折叠
 
             serversHeader.addEventListener('click', () => {
                 if (serversVisible) {
@@ -968,22 +968,12 @@
                 serversVisible = !serversVisible;
             });
 
-            // 服务器管理功能
+            // 服务器管理功能（弹窗编辑）
             const serversListContainer = panel.querySelector('#servers-list-container');
 
             function refreshServersList() {
                 serversListContainer.innerHTML = generateServersHTML();
                 attachServerEvents();
-                // 可选：显示一个短暂的成功提示
-                const tempTip = document.createElement('div');
-                tempTip.textContent = '✓ 列表已更新';
-                tempTip.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; z-index: 10001; opacity: 0; transition: opacity 0.3s;';
-                document.body.appendChild(tempTip);
-                setTimeout(() => tempTip.style.opacity = '1', 10);
-                setTimeout(() => {
-                    tempTip.style.opacity = '0';
-                    setTimeout(() => tempTip.remove(), 300);
-                }, 1500);
             }
 
             function attachServerEvents() {
@@ -997,12 +987,12 @@
                     });
                 });
 
-                // 编辑服务器
+                // 编辑服务器（弹窗）
                 panel.querySelectorAll('.edit-server').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const row = e.target.closest('.server-row');
                         const index = parseInt(row.dataset.index);
-                        const servers = Config.embyServers;  // 获取最新数组（注意这是引用）
+                        const servers = Config.embyServers;
                         const server = servers[index];
                         const newName = prompt('请输入服务器名称', server.name || '');
                         if (newName === null) return;
@@ -1016,8 +1006,8 @@
                             baseUrl: newUrl.trim(),
                             apiKey: newApi.trim()
                         };
-                        Config.embyServers = servers;  // 触发存储更新
-                        refreshServersList();  // 立即刷新列表
+                        Config.embyServers = servers;
+                        refreshServersList();
                     });
                 });
 
@@ -1060,7 +1050,7 @@
                     apiKey: api.trim()
                 });
                 Config.embyServers = servers;
-                refreshServersList();  // 立即刷新
+                refreshServersList();
             });
 
             attachServerEvents();
