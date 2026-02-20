@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      3.1
+// @version      3.2
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -801,13 +801,13 @@
 
             // 生成服务器列表HTML
             function generateServersHTML() {
-                const servers = currentConfig.embyServers;
+                const servers = Config.embyServers;  // 直接读取最新配置
                 if (!servers || servers.length === 0) {
                     return '<div style="padding: 12px; text-align: center; color: #999;">暂无服务器，请添加</div>';
                 }
                 let rows = '';
                 servers.forEach((server, index) => {
-                    const isActive = index === currentConfig.activeServerIndex;
+                    const isActive = index === Config.activeServerIndex;  // 使用最新活动索引
                     rows += `
                         <div class="server-row" data-index="${index}">
                             <div class="server-info">
@@ -974,6 +974,16 @@
             function refreshServersList() {
                 serversListContainer.innerHTML = generateServersHTML();
                 attachServerEvents();
+                // 可选：显示一个短暂的成功提示
+                const tempTip = document.createElement('div');
+                tempTip.textContent = '✓ 列表已更新';
+                tempTip.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #28a745; color: white; padding: 6px 12px; border-radius: 20px; font-size: 14px; z-index: 10001; opacity: 0; transition: opacity 0.3s;';
+                document.body.appendChild(tempTip);
+                setTimeout(() => tempTip.style.opacity = '1', 10);
+                setTimeout(() => {
+                    tempTip.style.opacity = '0';
+                    setTimeout(() => tempTip.remove(), 300);
+                }, 1500);
             }
 
             function attachServerEvents() {
@@ -992,7 +1002,7 @@
                     btn.addEventListener('click', (e) => {
                         const row = e.target.closest('.server-row');
                         const index = parseInt(row.dataset.index);
-                        const servers = Config.embyServers;
+                        const servers = Config.embyServers;  // 获取最新数组（注意这是引用）
                         const server = servers[index];
                         const newName = prompt('请输入服务器名称', server.name || '');
                         if (newName === null) return;
@@ -1006,8 +1016,8 @@
                             baseUrl: newUrl.trim(),
                             apiKey: newApi.trim()
                         };
-                        Config.embyServers = servers;
-                        refreshServersList();
+                        Config.embyServers = servers;  // 触发存储更新
+                        refreshServersList();  // 立即刷新列表
                     });
                 });
 
@@ -1050,7 +1060,7 @@
                     apiKey: api.trim()
                 });
                 Config.embyServers = servers;
-                refreshServersList();
+                refreshServersList();  // 立即刷新
             });
 
             attachServerEvents();
