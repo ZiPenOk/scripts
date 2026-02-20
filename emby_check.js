@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      3.3
+// @version      3.4
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -331,17 +331,16 @@
             to { opacity: 1; }
         }
 
-        /* 现代化设置面板完整样式 */
+        /* 现代化设置面板 */
         .emby-jump-settings-panel.modern {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #f8f9fa;
+            background: #eef2f5;  /* 柔和的灰蓝色背景 */
             border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);  /* 减淡阴影 */
             padding: 0;
             width: 900px;
             max-width: 95vw;
             overflow: hidden;
-            /* 此处font-size不再影响子元素，可忽略或留作备用 */
         }
 
         .modern .settings-header {
@@ -349,15 +348,16 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
-            background: #ffffff;
-            border-bottom: 1px solid #e9ecef;
+            background: #ffffffd9;  /* 半透明白色，降低突兀感 */
+            backdrop-filter: blur(4px);
+            border-bottom: 1px solid #d0d7dd;
         }
 
         .modern .settings-header h3 {
             margin: 0;
             font-size: 22px;
             font-weight: 600;
-            color: #212529;
+            color: #1e2a3a;  /* 深灰蓝，更柔和 */
         }
 
         .modern .settings-header .close-btn {
@@ -365,7 +365,7 @@
             border: none;
             font-size: 26px;
             cursor: pointer;
-            color: #868e96;
+            color: #6c7a8a;
             line-height: 1;
         }
 
@@ -386,16 +386,18 @@
         }
 
         .modern .settings-card {
-            background: #ffffff;
+            background: #ffffffde;  /* 柔和半透明白 */
+            backdrop-filter: blur(2px);
             border-radius: 12px;
             padding: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            border: 1px solid #d9e1e8;
         }
 
         .modern .card-title {
             font-weight: 600;
             margin-bottom: 12px;
-            color: #495057;
+            color: #2c3e50;  /* 深灰蓝 */
             display: flex;
             align-items: center;
             gap: 6px;
@@ -424,29 +426,30 @@
         .modern .field label {
             font-size: 16px;
             font-weight: 500;
-            color: #6c757d;
+            color: #4a5a6e;  /* 中灰蓝 */
         }
 
         .modern .field input,
         .modern .field select {
             padding: 10px 12px;
-            border: 1px solid #dee2e6;
+            border: 1px solid #cbd5e1;
             border-radius: 8px;
             font-size: 16px;
             transition: border-color 0.15s;
             box-sizing: border-box;
+            background-color: #ffffff;
         }
 
         .modern .field input:focus,
         .modern .field select:focus {
             outline: none;
             border-color: #52b54b;
-            box-shadow: 0 0 0 3px rgba(82,181,75,0.1);
+            box-shadow: 0 0 0 3px rgba(82,181,75,0.15);
         }
 
         .modern .field small {
             font-size: 14px;
-            color: #adb5bd;
+            color: #7c8b9c;
         }
 
         .modern .color-field {
@@ -467,19 +470,21 @@
             height: 36px;
             padding: 2px;
             border-radius: 6px;
+            border: 1px solid #cbd5e1;
         }
 
         .modern .test-btn {
-            background: #e9ecef;
-            border: 1px solid #ced4da;
+            background: #e2e8f0;
+            border: 1px solid #b9c7d9;
             border-radius: 30px;
             padding: 8px 16px;
             font-size: 15px;
             cursor: pointer;
+            color: #1e293b;
         }
 
         .modern .test-btn:hover {
-            background: #dee2e6;
+            background: #d1dbe8;
         }
 
         /* 服务器管理表格 */
@@ -491,8 +496,8 @@
         .modern .servers-table-header {
             display: flex;
             font-weight: 600;
-            background-color: #f1f3f5;
-            border-bottom: 2px solid #dee2e6;
+            background-color: #e6edf5;
+            border-bottom: 2px solid #b9c7d9;
             padding: 8px 12px;
         }
 
@@ -508,7 +513,7 @@
             display: flex;
             align-items: center;
             padding: 8px 12px;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid #d9e1e8;
         }
 
         .modern .server-info {
@@ -520,19 +525,19 @@
 
         .modern .server-name {
             font-weight: 500;
-            color: #212529;
+            color: #1e293b;
             font-size: 16px;
         }
 
         .modern .server-url {
             font-size: 14px;
-            color: #6c757d;
+            color: #5a6f88;
             word-break: break-all;
         }
 
         .modern .server-api {
             font-size: 14px;
-            color: #6c757d;
+            color: #5a6f88;
             font-family: monospace;
         }
 
@@ -554,7 +559,7 @@
         }
 
         .modern .server-btn:hover:not(:disabled) {
-            background-color: #e9ecef;
+            background-color: #d9e1e8;
         }
 
         .modern .server-btn:disabled {
@@ -569,18 +574,18 @@
         }
 
         .modern .btn.secondary {
-            background: #e9ecef;
-            color: #495057;
-            border: 1px solid #ced4da;
+            background: #e2e8f0;
+            color: #1e293b;
+            border: 1px solid #b9c7d9;
             padding: 8px 16px;
             border-radius: 30px;
             font-weight: 500;
             cursor: pointer;
-            font-size: 0.95rem;
+            font-size: 15px;
         }
 
         .modern .btn.secondary:hover {
-            background: #dee2e6;
+            background: #d1dbe8;
         }
 
         /* 滑动开关 */
@@ -604,7 +609,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #ccc;
+            background-color: #b9c7d9;
             transition: .2s;
             border-radius: 24px;
         }
@@ -629,7 +634,7 @@
             transform: translateX(20px);
         }
 
-        /* 站点表格（内部滚动） */
+        /* 站点表格 */
         .modern .sites-table {
             display: table;
             width: 100%;
@@ -639,8 +644,8 @@
         .modern .sites-table-header {
             display: table-row;
             font-weight: 600;
-            background-color: #f1f3f5;
-            border-bottom: 2px solid #dee2e6;
+            background-color: #e6edf5;
+            border-bottom: 2px solid #b9c7d9;
         }
 
         .modern .sites-table-header > div {
@@ -651,7 +656,7 @@
 
         .modern .sites-row {
             display: table-row;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid #d9e1e8;
         }
 
         .modern .sites-row > div {
@@ -662,7 +667,7 @@
 
         .modern .site-name {
             font-weight: 500;
-            color: #495057;
+            color: #2c3e50;
             font-size: 16px;
         }
 
@@ -672,8 +677,9 @@
 
         .modern .settings-footer {
             padding: 16px 20px;
-            background: #ffffff;
-            border-top: 1px solid #e9ecef;
+            background: #ffffffd9;
+            backdrop-filter: blur(4px);
+            border-top: 1px solid #d0d7dd;
             display: flex;
             justify-content: flex-end;
             gap: 12px;
@@ -685,13 +691,13 @@
             border: none;
             font-weight: 500;
             cursor: pointer;
-            transition: background 0.15s;
             font-size: 15px;
         }
 
         .modern .btn.cancel {
-            background: #e9ecef;
-            color: #495057;
+            background: #e2e8f0;
+            color: #1e293b;
+            border: 1px solid #b9c7d9;
         }
 
         .modern .btn.save {
