@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      0.1.7
+// @version      0.1.8
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -280,7 +280,268 @@
         @keyframes embyFadeIn {
             to { opacity: 1; }
         }
-    `);
+
+        /* 现代化设置面板完整样式 - 字体放大版（px单位，确保生效） */
+        .emby-jump-settings-panel.modern {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            padding: 0;
+            width: 700px;
+            max-width: 95vw;
+            overflow: hidden;
+            /* 不再设置整体字体大小，各元素独立控制 */
+        }
+
+        .modern .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modern .settings-header h3 {
+            margin: 0;
+            font-size: 22px; /* 放大标题 */
+            font-weight: 600;
+            color: #212529;
+        }
+
+        .modern .settings-header .close-btn {
+            background: none;
+            border: none;
+            font-size: 26px; /* 放大关闭按钮 */
+            cursor: pointer;
+            color: #868e96;
+            line-height: 1;
+        }
+
+        .modern .settings-content {
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modern .settings-card {
+            background: #ffffff;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .modern .card-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 18px; /* 放大卡片标题 */
+        }
+
+        .modern .card-title.collapsible {
+            cursor: pointer;
+            user-select: none;
+            justify-content: space-between;
+            margin-bottom: 0;
+        }
+
+        .modern .card-body.two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .modern .field {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .modern .field label {
+            font-size: 16px; /* 放大标签 */
+            font-weight: 500;
+            color: #6c757d;
+        }
+
+        .modern .field input,
+        .modern .field select {
+            padding: 12px 14px; /* 增加内边距，使输入框更大 */
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 18px; /* 放大输入框文字 */
+            transition: border-color 0.15s;
+            box-sizing: border-box;
+        }
+
+        .modern .field input:focus,
+        .modern .field select:focus {
+            outline: none;
+            border-color: #52b54b;
+            box-shadow: 0 0 0 3px rgba(82,181,75,0.1);
+        }
+
+        .modern .field small {
+            font-size: 14px; /* 放大提示文字 */
+            color: #adb5bd;
+        }
+
+        .modern .color-field {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modern .color-field label {
+            width: 80px;
+            flex-shrink: 0;
+            font-size: 16px;
+        }
+
+        .modern .color-field input[type="color"] {
+            width: 70px;
+            height: 44px; /* 放大颜色选择器高度 */
+            padding: 2px;
+            border-radius: 6px;
+        }
+
+        .modern .test-btn {
+            background: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            padding: 10px 16px; /* 增大按钮 */
+            font-size: 15px;
+            cursor: pointer;
+            align-self: flex-start;
+            margin-top: 4px;
+        }
+
+        /* 滑动开关样式（不变，因为大小合适） */
+        .modern .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .modern .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .modern .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .2s;
+            border-radius: 24px;
+        }
+
+        .modern .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .2s;
+            border-radius: 50%;
+        }
+
+        .modern input:checked + .slider {
+            background-color: #52b54b;
+        }
+
+        .modern input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* 站点表格样式 */
+        .modern .sites-table {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .modern .sites-table-header {
+            display: table-row;
+            font-weight: 600;
+            background-color: #f1f3f5;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .modern .sites-table-header > div {
+            display: table-cell;
+            padding: 8px 12px;
+            font-size: 16px; /* 放大表头 */
+        }
+
+        .modern .sites-row {
+            display: table-row;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modern .sites-row > div {
+            display: table-cell;
+            padding: 10px 12px;
+            vertical-align: middle;
+        }
+
+        .modern .site-name {
+            font-weight: 500;
+            color: #495057;
+            font-size: 16px; /* 放大站点名称 */
+        }
+
+        .modern .site-toggle {
+            text-align: center;
+        }
+
+        .modern .settings-footer {
+            padding: 16px 20px;
+            background: #ffffff;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .modern .btn {
+            padding: 10px 22px; /* 增大按钮 */
+            border-radius: 30px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s;
+            font-size: 16px; /* 放大按钮文字 */
+        }
+
+        .modern .btn.cancel {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .modern .btn.save {
+            background: #52b54b;
+            color: white;
+        }
+
+        .modern .btn.save:hover {
+            background: #3e9e37;
+        }
+        `);
 
     // 单例状态指示器
     const Status = (() => {
@@ -352,8 +613,8 @@
         };
     })();
 
-    // 设置面板
-    const SettingsUI = {
+        // 设置面板 - 现代化UI（含表格滑动开关）
+        const SettingsUI = {
         show() {
             let panel = document.getElementById('emby-jump-settings-panel');
             if (panel) {
@@ -363,153 +624,206 @@
 
             panel = document.createElement('div');
             panel.id = 'emby-jump-settings-panel';
-            panel.className = 'emby-jump-settings-panel';
+            panel.className = 'emby-jump-settings-panel modern';
+
+            // 读取当前配置
+            const currentConfig = {
+                embyBaseUrl: Config.embyBaseUrl,
+                embyAPI: Config.embyAPI,
+                highlightColor: Config.highlightColor,
+                maxConcurrentRequests: Config.maxConcurrentRequests,
+                badgeSize: Config.badgeSize,
+                badgeColor: Config.badgeColor,
+                badgeTextColor: Config.badgeTextColor,
+                enabledSites: Config.enabledSites
+            };
+
+            // 生成站点开关表格行
+            function generateSitesRows() {
+                const sites = currentConfig.enabledSites;
+                let rows = '';
+                for (const site in sites) {
+                    rows += `
+                        <div class="sites-row">
+                            <div class="site-name">${site}</div>
+                            <div class="site-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" data-site="${site}" data-type="list" ${sites[site].list ? 'checked' : ''}>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="site-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" data-site="${site}" data-type="detail" ${sites[site].detail ? 'checked' : ''}>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                }
+                return rows;
+            }
+
             panel.innerHTML = `
-                <div class="emby-jump-settings-header">
-                    <h3 style="margin:0">Emby 设置</h3>
-                    <span class="emby-jump-settings-close">&times;</span>
+                <div class="settings-header">
+                    <h3><span class="icon">⚙️</span> Emby 设置</h3>
+                    <span class="close-btn">&times;</span>
                 </div>
+                <div class="settings-content">
+                    <!-- 基础连接卡片 -->
+                    <div class="settings-card">
+                        <div class="card-title">🔌 基础连接</div>
+                        <div class="card-body two-columns">
+                            <div class="field">
+                                <label for="emby-url">Emby 服务器地址</label>
+                                <input type="url" id="emby-url" placeholder="http://192.168.1.100:8096/" value="${currentConfig.embyBaseUrl}">
+                                <small>必须以 http:// 或 https:// 开头，以 / 结尾</small>
+                            </div>
+                            <div class="field">
+                                <label for="emby-api">API 密钥</label>
+                                <input type="text" id="emby-api" placeholder="在 Emby 设置中获取" value="${currentConfig.embyAPI}">
+                                <button class="test-btn" id="test-connection" type="button">测试连接</button>
+                            </div>
+                        </div>
+                    </div>
 
-                <div class="emby-jump-settings-field">
-                    <label for="emby-url">Emby 服务器地址</label>
-                    <input type="text" id="emby-url"
-                        placeholder="例如: http://192.168.1.100:8096/"
-                        value="${Config.embyBaseUrl}">
-                    <small style="color:#666">
-                        请确保包含 http:// 或 https:// 前缀和最后的斜杠 /
-                    </small>
+                    <!-- 外观设置卡片 -->
+                    <div class="settings-card">
+                        <div class="card-title">🎨 外观设置</div>
+                        <div class="card-body two-columns">
+                            <div class="field color-field">
+                                <label for="highlight-color">高亮颜色</label>
+                                <input type="color" id="highlight-color" value="${currentConfig.highlightColor}">
+                            </div>
+                            <div class="field color-field">
+                                <label for="badge-color">徽章背景</label>
+                                <input type="color" id="badge-color" value="${currentConfig.badgeColor}">
+                            </div>
+                            <div class="field color-field">
+                                <label for="badge-text-color">徽章文字颜色</label>
+                                <input type="color" id="badge-text-color" value="${currentConfig.badgeTextColor}">
+                            </div>
+                            <div class="field">
+                                <label for="badge-size">徽章大小</label>
+                                <select id="badge-size">
+                                    <option value="small" ${currentConfig.badgeSize === 'small' ? 'selected' : ''}>小</option>
+                                    <option value="medium" ${currentConfig.badgeSize === 'medium' ? 'selected' : ''}>中</option>
+                                    <option value="large" ${currentConfig.badgeSize === 'large' ? 'selected' : ''}>大</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 高级选项卡片 -->
+                    <div class="settings-card">
+                        <div class="card-title">⚡ 高级选项</div>
+                        <div class="card-body two-columns">
+                            <div class="field">
+                                <label for="max-requests">最大并发请求数</label>
+                                <input type="number" id="max-requests" min="1" max="100" value="${currentConfig.maxConcurrentRequests}">
+                                <small>建议 20-50</small>
+                            </div>
+                            <!-- 预留缓存时间字段，暂不启用
+                            <div class="field">
+                                <label for="cache-ttl">缓存过期时间（天）</label>
+                                <input type="number" id="cache-ttl" min="0" max="30" value="7">
+                                <small>0 表示禁用缓存</small>
+                            </div>
+                            -->
+                        </div>
+                    </div>
+
+                    <!-- 站点开关卡片（可折叠） -->
+                    <div class="settings-card">
+                        <div class="card-title collapsible" id="sites-toggle-header">
+                            <span>🌐 站点开关</span>
+                            <span class="toggle-icon" id="sites-toggle-icon">▼</span>
+                        </div>
+                        <div class="card-body" id="sites-grid" style="display: block;">
+                            <div class="sites-table">
+                                <div class="sites-table-header">
+                                    <div>站点</div>
+                                    <div>列表页</div>
+                                    <div>详情页</div>
+                                </div>
+                                ${generateSitesRows()}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="emby-jump-settings-field">
-                    <label for="emby-api">Emby API 密钥</label>
-                    <input type="text" id="emby-api"
-                        placeholder="在 Emby 设置中获取 API 密钥"
-                        value="${Config.embyAPI}">
-                </div>
-
-                <div class="emby-jump-settings-field">
-                    <label for="highlight-color">高亮颜色</label>
-                    <input type="color" id="highlight-color" value="${Config.highlightColor}">
-                </div>
-
-                <div class="emby-jump-settings-field">
-                    <label for="max-requests">最大并发请求数</label>
-                    <input type="number" id="max-requests" min="1" max="100"
-                        value="${Config.maxConcurrentRequests}">
-                    <small style="color:#666">因为是本地请求，可以设置较大值</small>
-                </div>
-
-                <div class="emby-jump-settings-field">
-                    <label for="badge-size">徽章大小</label>
-                    <select id="badge-size">
-                        <option value="small" ${Config.badgeSize === 'small' ? 'selected' : ''}>小</option>
-                        <option value="medium" ${Config.badgeSize === 'medium' ? 'selected' : ''}>中</option>
-                        <option value="large" ${Config.badgeSize === 'large' ? 'selected' : ''}>大</option>
-                    </select>
-                </div>
-
-                <div class="emby-jump-settings-field">
-                    <label for="badge-color">徽章背景颜色</label>
-                    <input type="color" id="badge-color" value="${Config.badgeColor}">
-                    <small style="color:#666">背景颜色将与彩虹边框一起显示</small>
-                </div>
-
-                <div class="emby-jump-settings-field">
-                    <label for="badge-text-color">徽章文字颜色</label>
-                    <input type="color" id="badge-text-color" value="${Config.badgeTextColor}">
-                </div>
-
-                <hr>
-                <h4>站点功能开关</h4>
-                <div id="site-toggle-container"></div>
-
-                <div class="emby-jump-settings-buttons">
-                    <button class="emby-jump-settings-cancel">取消</button>
-                    <button class="emby-jump-settings-save">保存</button>
+                <div class="settings-footer">
+                    <button class="btn cancel">取消</button>
+                    <button class="btn save">保存</button>
                 </div>
             `;
 
-            /* ===== 动态生成站点开关 ===== */
-
-            const siteContainer = panel.querySelector('#site-toggle-container');
-            const sites = Config.enabledSites;
-
-            for (const site in sites) {
-
-                const wrapper = document.createElement('div');
-                wrapper.style.marginBottom = '6px';
-
-                wrapper.innerHTML = `
-                    <strong style="display:inline-block;width:110px">${site}</strong>
-                    <label>
-                        <input type="checkbox"
-                            data-site="${site}"
-                            data-type="list"
-                            ${sites[site].list ? 'checked' : ''}>
-                        列表
-                    </label>
-                    <label style="margin-left:10px;">
-                        <input type="checkbox"
-                            data-site="${site}"
-                            data-type="detail"
-                            ${sites[site].detail ? 'checked' : ''}>
-                        详情
-                    </label>
-                `;
-
-                siteContainer.appendChild(wrapper);
-            }
-
             document.body.appendChild(panel);
 
+            // 折叠/展开功能（默认折叠）
+            const sitesHeader = panel.querySelector('#sites-toggle-header');
+            const sitesGrid = panel.querySelector('#sites-grid');
+            const toggleIcon = panel.querySelector('#sites-toggle-icon');
+            let sitesVisible = false; // 默认折叠
+
+            // 初始状态：折叠
+            sitesGrid.style.display = 'none';
+            toggleIcon.textContent = '▶';
+
+            sitesHeader.addEventListener('click', () => {
+                if (sitesVisible) {
+                    sitesGrid.style.display = 'none';
+                    toggleIcon.textContent = '▶';
+                } else {
+                    sitesGrid.style.display = 'block';
+                    toggleIcon.textContent = '▼';
+                }
+                sitesVisible = !sitesVisible;
+            });
+
+            // 关闭面板
             const closePanel = () => {
                 panel.style.display = 'none';
             };
 
-            panel.querySelector('.emby-jump-settings-close')
-                .addEventListener('click', closePanel);
-            panel.querySelector('.emby-jump-settings-cancel')
-                .addEventListener('click', closePanel);
+            panel.querySelector('.close-btn').addEventListener('click', closePanel);
+            panel.querySelector('.btn.cancel').addEventListener('click', closePanel);
 
-            panel.querySelector('.emby-jump-settings-save')
-                .addEventListener('click', () => {
-                    const url = document.getElementById('emby-url').value;
-                    if (!url.match(/^https?:\/\/.+\/$/)) {
-                        alert('请输入有效的 Emby 服务器地址，包含 http:// 或 https:// 前缀和最后的斜杠 /');
-                        return;
+            // 测试连接按钮（简单提示，可扩展）
+            panel.querySelector('#test-connection').addEventListener('click', () => {
+                alert('此功能暂未实现，请手动测试您的API密钥是否有效。');
+            });
+
+            // 保存设置
+            panel.querySelector('.btn.save').addEventListener('click', () => {
+                const url = document.getElementById('emby-url').value.trim();
+                if (!url.match(/^https?:\/\/.+\/$/)) {
+                    alert('请输入有效的 Emby 服务器地址，包含 http:// 或 https:// 前缀和最后的斜杠 /');
+                    return;
+                }
+
+                Config.embyBaseUrl = url;
+                Config.embyAPI = document.getElementById('emby-api').value.trim();
+                Config.highlightColor = document.getElementById('highlight-color').value;
+                Config.maxConcurrentRequests = parseInt(document.getElementById('max-requests').value, 10);
+                Config.badgeSize = document.getElementById('badge-size').value;
+                Config.badgeColor = document.getElementById('badge-color').value;
+                Config.badgeTextColor = document.getElementById('badge-text-color').value;
+
+                // 保存站点开关
+                const updatedSites = { ...Config.enabledSites };
+                panel.querySelectorAll('[data-site]').forEach(input => {
+                    const site = input.dataset.site;
+                    const type = input.dataset.type;
+                    if (!updatedSites[site]) {
+                        updatedSites[site] = { list: false, detail: false };
                     }
-
-                    Config.embyBaseUrl = url;
-                    Config.embyAPI = document.getElementById('emby-api').value;
-                    Config.highlightColor = document.getElementById('highlight-color').value;
-                    Config.maxConcurrentRequests = parseInt(
-                        document.getElementById('max-requests').value,
-                        10
-                    );
-                    Config.badgeSize = document.getElementById('badge-size').value;
-                    Config.badgeColor = document.getElementById('badge-color').value;
-                    Config.badgeTextColor = document.getElementById('badge-text-color').value;
-                    Config.badgeTextColor = document.getElementById('badge-text-color').value;
-                    /* ===== 保存站点开关 ===== */
-
-                    const updatedSites = { ...Config.enabledSites };
-
-                    panel.querySelectorAll('[data-site]').forEach(input => {
-                        const site = input.dataset.site;
-                        const type = input.dataset.type;
-
-                        if (!updatedSites[site]) {
-                            updatedSites[site] = { list: false, detail: false };
-                        }
-
-                        updatedSites[site][type] = input.checked;
-                    });
-
-                    Config.enabledSites = updatedSites;
-
-                    closePanel();
-                    alert('设置已保存！请刷新页面以应用更改。');
+                    updatedSites[site][type] = input.checked;
                 });
+                Config.enabledSites = updatedSites;
+
+                closePanel();
+                alert('设置已保存！请刷新页面以应用更改。');
+            });
 
             panel.style.display = 'block';
         }
