@@ -622,18 +622,84 @@
             return { Items: [] };
         }
 
+        /**
+         * 检查指定番号在 Emby 中是否存在，返回最佳匹配项（或 null）
+         * @param {string} code - 番号
+         * @returns {Promise<object|null>}
+         */
+        async checkExists(code) {
+            if (!code) return null;
+
+            const clean = code.trim().toUpperCase();
+
+            // 尝试可能的番号变体
+            const tryCodes = [clean];
+            const mainMatch = clean.match(/^([A-Z]+-\d+)/);
+            if (mainMatch && mainMatch[1] !== clean) {
+                tryCodes.push(mainMatch[1]);
+            }
+
+            // 先查缓存（对每个尝试的番号）
+            for (const c of tryCodes) {
+                const cached = EmbyCache.get(c);
+                if (cached && !EmbyCache.isExpired(cached)) {
+                    try {
+                        // 验证缓存项是否仍有效
+                        const checkUrl = `${Config.embyBaseUrl}emby/Items/${cached.itemId}?api_key=${Config.embyAPI}`;
+                        const res = await this.request(checkUrl);
+                        const item = JSON.parse(res.responseText);
+                        // 验证通过，返回该项
+                        return item;
+                    } catch {
+                        // 缓存失效，移除
+                        EmbyCache.remove(c);
+                    }
+                }
+            }
+
+            // 缓存未命中，执行搜索
+            for (const c of tryCodes) {
+                try {
+                    const url = `${Config.embyBaseUrl}emby/Users/${Config.embyAPI}/Items` +
+                        `?api_key=${Config.embyAPI}` +
+                        `&Recursive=true&IncludeItemTypes=Movie` +
+                        `&SearchTerm=${encodeURIComponent(c)}` +
+                        `&Fields=Name,Id,ServerId`;
+
+                    const response = await this.request(url);
+                    const data = JSON.parse(response.responseText);
+                    const items = data.Items || [];
+
+                    if (items.length) {
+                        const best = this.findBestMatch(items, c);
+                        if (best) {
+                            // 缓存最佳匹配项
+                            EmbyCache.set(c, best);
+                            return best;
+                        }
+                    }
+                } catch (e) {
+                    console.error(`Emby 查询失败 ${c}`, e);
+                }
+            }
+
+            return null;
+        }
+
         async batchQuery(codes) {
             if (!codes || codes.length === 0) return [];
 
             this.total = codes.length;
             this.completed = 0;
+            this.active = 0;
+            this.waiting = [];
 
             const results = new Array(this.total);
 
             return new Promise(resolve => {
                 const checkComplete = () => {
                     if (this.completed >= this.total && this.active === 0) {
-                        const found = results.filter(r => r?.Items?.length > 0).length;
+                        const found = results.filter(r => r !== null).length;
                         Status.success(`查询完成: 找到 ${found} 个匹配项`, true);
                         resolve(results);
                     }
@@ -645,8 +711,8 @@
 
                     Status.updateProgressDebounced(this.completed, this.total);
 
-                    this.fetchData(code).then(result => {
-                        results[index] = result;
+                    this.checkExists(code).then(best => {
+                        results[index] = best; // 直接存储最佳匹配项或 null
                         this.active--;
                         this.completed++;
 
@@ -687,18 +753,13 @@
         }
 
         // 核心修改：使用内联样式强制覆盖，并优化边距适应新位置
-        createLink(data) {
-            if (!data?.Items?.length) return null;
-
-            const item = this.findBestMatch(data.Items, data._searchCode);
+        createLink(item) {
             if (!item) return null;
 
-            const embyUrl =
-                `${Config.embyBaseUrl}web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}`;
+            const embyUrl = `${Config.embyBaseUrl}web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}`;
 
             const el = document.createElement('div');
             el.className = 'emby-jump-link';
-
             el.style.cssText = `
                 background: ${Config.highlightColor} !important;
                 border-radius: 3px !important;
@@ -724,25 +785,19 @@
                     <b>跳转到emby</b>
                 </a>
             `;
-
             return el;
         }
 
-        createBadge(data) {
-            if (!data?.Items?.length) return null;
-
-            const item = this.findBestMatch(data.Items, data._searchCode);
+        createBadge(item) {
             if (!item) return null;
 
-            const embyUrl =
-                `${Config.embyBaseUrl}web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}`;
+            const embyUrl = `${Config.embyBaseUrl}web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}`;
 
             const el = document.createElement('a');
             el.className = 'emby-badge';
             el.href = embyUrl;
             el.target = '_blank';
             el.textContent = 'Emby';
-
             return el;
         }
 
@@ -811,16 +866,13 @@
             }
 
             if (codes.length > 0) {
-                const results = await this.api.batchQuery(codes);
+                const bestItems = await this.api.batchQuery(codes); // 直接返回最佳匹配项数组
                 const operations = [];
 
-                for (let i = 0; i < results.length; i++) {
-                    if (
-                        i < toProcess.length &&
-                        this.api.findBestMatch(results[i].Items, results[i]._searchCode)
-                    ) {
+                for (let i = 0; i < bestItems.length; i++) {
+                    if (bestItems[i]) { // 存在最佳匹配
                         const { item, imgContainer } = toProcess[i];
-                        const badge = this.api.createBadge(results[i]);
+                        const badge = this.api.createBadge(bestItems[i]); // 传入 item
 
                         if (badge) {
                             operations.push(() => {
@@ -864,20 +916,17 @@
             }
 
             if (codes.length > 0) {
-                const results = await this.api.batchQuery(codes);
+                const bestItems = await this.api.batchQuery(codes);
                 const processedElements = [];
 
-                for (let i = 0; i < results.length; i++) {
-                    if (
-                        i < toProcess.length &&
-                        this.api.findBestMatch(results[i].Items, results[i]._searchCode)
-                    ) {
+                for (let i = 0; i < bestItems.length; i++) {
+                    if (bestItems[i]) {
                         const { element } = toProcess[i];
                         const item = items[i];
 
                         if (item) item.classList.add('emby-processed');
 
-                        const link = this.api.createLink(results[i]);
+                        const link = this.api.createLink(bestItems[i]); // 传入 item
 
                         if (link) {
                             const target = element.parentNode || element;
@@ -1019,10 +1068,10 @@
                     const code = spans[1].textContent?.trim();
                     if (code) {
                         Status.show('查询中...');
-                        const data = await this.api.fetchData(code);
+                        const bestItem = await this.api.checkExists(code);
+                        if (bestItem) {
+                            const link = this.api.createLink(bestItem);
 
-                        if (data.Items?.length > 0) {
-                            const link = this.api.createLink(data);
                             if (link) {
                                 spans[1].parentNode.insertBefore(link, spans[1].nextSibling);
                                 Status.success('找到匹配项', true);
@@ -1058,10 +1107,10 @@
 
                 if (code) {
                     Status.show('查询中...');
-                    const data = await this.api.fetchData(code);
+                    const bestItem = await this.api.checkExists(code);
+                    if (bestItem) {
+                        const link = this.api.createLink(bestItem);
 
-                    if (data.Items?.length > 0) {
-                        const link = this.api.createLink(data);
                         if (link) {
                             detailElement.parentNode.insertBefore(link, detailElement.nextSibling);
                             Status.success('找到匹配项', true);
@@ -1102,10 +1151,10 @@
 
                 if (code) {
                     Status.show('查询中...');
-                    const data = await this.api.fetchData(code);
+                    const bestItem = await this.api.checkExists(code);
+                    if (bestItem) {
+                        const link = this.api.createLink(bestItem);
 
-                    if (data.Items?.length > 0) {
-                        const link = this.api.createLink(data);
                         if (link) {
                             titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
                             Status.success('找到匹配项', true);
@@ -1131,22 +1180,21 @@
                 if (codes.length > 0) {
                     Status.show(`找到 ${codes.length} 个可能的番号，开始查询...`);
 
-                    const results = await this.api.batchQuery(codes);
+                    const bestItems = await this.api.batchQuery(codes);
                     let foundAny = false;
 
-                    for (const data of results) {
-                        if (data?.Items?.length > 0) {
-                            const container =
-                                document.querySelector('#thread_subject') ||
-                                document.querySelector('h1.ts') ||
-                                document.querySelector('h1');
+                    // 找到合适的容器元素
+                    const container = document.querySelector('#thread_subject') ||
+                                      document.querySelector('h1.ts') ||
+                                      document.querySelector('h1');
+                    if (!container) return; // 没有容器则退出
 
-                            if (container) {
-                                const link = this.api.createLink(data);
-                                if (link) {
-                                    container.parentNode.insertBefore(link, container.nextSibling);
-                                    foundAny = true;
-                                }
+                    for (const bestItem of bestItems) {
+                        if (bestItem) {
+                            const link = this.api.createLink(bestItem);
+                            if (link) {
+                                container.parentNode.insertBefore(link, container.nextSibling);
+                                foundAny = true;
                             }
                         }
                     }
@@ -1221,11 +1269,9 @@
 
                 Status.show(`查询番号 ${code} 中...`);
 
-                const data = await this.api.fetchData(code);
-
-                if (data.Items?.length > 0) {
-
-                    const link = this.api.createLink(data);
+                const bestItem = await this.api.checkExists(code);
+                if (bestItem) {
+                    const link = this.api.createLink(bestItem);
 
                     // 👇 关键修复
                     if (!link) {
@@ -1276,14 +1322,10 @@
 
                     const code = match[0].toUpperCase();
 
-                    this.api.fetchData(code).then(data => {
-                        if (data && data.Items && data.Items.length > 0) {
-                            // 使用原始 code 进行精确匹配验证
-                            const best = this.api.findBestMatch(data.Items, code);
-                            if (best) {
-                                foundCount++;
-                                pendingHighlight.push(linkEl);
-                            }
+                    this.api.checkExists(code).then(bestItem => {
+                        if (bestItem) {
+                            foundCount++;
+                            pendingHighlight.push(linkEl);
                         }
                     }).catch(() => {}).finally(() => {
                         completed++;
@@ -1343,10 +1385,9 @@
 
                 if (code) {
                     Status.show(`查询番号 ${code} 中...`);
-                    const data = await this.api.fetchData(code);
-
-                    if (data.Items?.length > 0) {
-                        const link = this.api.createLink(data);
+                    const bestItem = await this.api.checkExists(code);
+                    if (bestItem) {
+                        const link = this.api.createLink(bestItem);
                         if (link) {
                             idContainer.insertAdjacentElement('afterend', link);
                             Status.success('Emby 找到匹配项', true);
@@ -1398,10 +1439,9 @@
 
                 if (code) {
                     Status.show(`查询番号 ${code} 中...`);
-                    const data = await this.api.fetchData(code);
-
-                    if (data.Items?.length > 0) {
-                        const link = this.api.createLink(data);
+                    const bestItem = await this.api.checkExists(code);
+                    if (bestItem) {
+                        const link = this.api.createLink(bestItem);
                         if (link) {
                             const titleElement = document.querySelector('h1');
                             if (titleElement) {
@@ -1436,10 +1476,9 @@
 
                 if (code) {
                     Status.show(`查询番号 ${code} 中...`);
-                    const data = await this.api.fetchData(code);
-
-                    if (data.Items?.length > 0) {
-                        const link = this.api.createLink(data);
+                    const bestItem = await this.api.checkExists(code);
+                    if (bestItem) {
+                        const link = this.api.createLink(bestItem);
                         if (link) {
                             const titleElement = document.querySelector('h1');
                             if (titleElement) {
@@ -1492,10 +1531,9 @@
                         if (match) {
                             Status.show('正在查询 Emby...');
                             const code = match[0].toUpperCase();
-                            const data = await this.api.fetchData(code);
-
-                            if (data?.Items?.length > 0) {
-                                const link = this.api.createLink(data);
+                            const bestItem = await this.api.checkExists(code);
+                            if (bestItem) {
+                                const link = this.api.createLink(bestItem);
                                 if (link) {
                                     titleEl.after(link);
                                     Status.success(`已找到: ${code}`, true);
