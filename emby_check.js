@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      0.1.6
+// @version      0.1.7
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -1277,12 +1277,14 @@
                     const code = match[0].toUpperCase();
 
                     this.api.fetchData(code).then(data => {
-
-                        if (data.Items?.length > 0) {
-                            foundCount++;
-                            pendingHighlight.push(linkEl); // 👈 不立即渲染
+                        if (data && data.Items && data.Items.length > 0) {
+                            // 使用原始 code 进行精确匹配验证
+                            const best = this.api.findBestMatch(data.Items, code);
+                            if (best) {
+                                foundCount++;
+                                pendingHighlight.push(linkEl);
+                            }
                         }
-
                     }).catch(() => {}).finally(() => {
                         completed++;
                     });
