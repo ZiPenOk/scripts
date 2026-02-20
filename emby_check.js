@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5
+// @version      3.7
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -972,6 +972,7 @@
 
             // 图标显示：深色模式开启时显示☀️（点击切回浅色），关闭时显示🌙（点击切深色）
             const darkModeIcon = Config.darkMode ? '☀️' : '🌙';
+            const darkModeTitle = Config.darkMode ? '切换浅色模式' : '切换深色模式';
 
             panel.innerHTML = `
                 <div class="settings-header">
@@ -1022,7 +1023,7 @@
                                     <label for="badge-text-color">徽章文字颜色</label>
                                     <input type="color" id="badge-text-color" value="${currentConfig.badgeTextColor}">
                                 </div>
-                                <div class="field">
+                                <div class="field color-field">
                                     <label for="badge-size">徽章大小</label>
                                     <select id="badge-size">
                                         <option value="small" ${currentConfig.badgeSize === 'small' ? 'selected' : ''}>小</option>
@@ -1066,7 +1067,7 @@
                 </div>
                 <div class="settings-footer">
                     <!-- 左侧：深色模式切换图标 -->
-                    <div class="dark-mode-toggle" id="dark-mode-toggle" title="切换深色模式">${darkModeIcon}</div>
+                    <div class="dark-mode-toggle" id="dark-mode-toggle" title="${darkModeTitle}">${darkModeIcon}</div>
                     <!-- 右侧：按钮组 -->
                     <div>
                         <button class="btn cancel">取消</button>
@@ -1241,10 +1242,12 @@
                     panel.classList.remove('dark-mode');
                     darkModeToggle.textContent = '🌙';
                     Config.darkMode = false;
+                    darkModeToggle.title = '切换深色模式';   // 切换后为浅色，提示可切回深色
                 } else {
                     panel.classList.add('dark-mode');
                     darkModeToggle.textContent = '☀️';
                     Config.darkMode = true;
+                    darkModeToggle.title = '切换浅色模式';   // 切换后为深色，提示可切回浅色
                 }
             });
 
