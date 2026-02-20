@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      2.0
+// @version      3.0
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -39,22 +39,69 @@
 (function () {
     'use strict';
 
-    // 全局配置对象
+    // 全局配置对象（多服务器版）
     const Config = {
-        get embyAPI() {
-            return GM_getValue('embyAPI', '');
+        // 服务器列表
+        get embyServers() {
+            return GM_getValue('embyServers', []);
         },
+        set embyServers(val) {
+            GM_setValue('embyServers', val);
+        },
+        // 当前活动服务器索引
+        get activeServerIndex() {
+            return GM_getValue('activeServerIndex', 0);
+        },
+        set activeServerIndex(val) {
+            GM_setValue('activeServerIndex', val);
+        },
+
+        // 兼容原有单服务器属性（从当前活动服务器读取）
         get embyBaseUrl() {
-            return GM_getValue('embyBaseUrl', '');
+            const servers = this.embyServers;
+            if (servers.length > 0 && this.activeServerIndex < servers.length) {
+                return servers[this.activeServerIndex].baseUrl;
+            }
+            return '';
         },
+        get embyAPI() {
+            const servers = this.embyServers;
+            if (servers.length > 0 && this.activeServerIndex < servers.length) {
+                return servers[this.activeServerIndex].apiKey;
+            }
+            return '';
+        },
+        // 设置时更新当前活动服务器
+        set embyBaseUrl(val) {
+            let servers = this.embyServers;
+            if (servers.length === 0) {
+                servers = [{ name: '默认服务器', baseUrl: val, apiKey: '' }];
+                this.embyServers = servers;
+                this.activeServerIndex = 0;
+            } else if (this.activeServerIndex < servers.length) {
+                servers[this.activeServerIndex].baseUrl = val;
+                this.embyServers = servers;
+            }
+        },
+        set embyAPI(val) {
+            let servers = this.embyServers;
+            if (servers.length === 0) {
+                servers = [{ name: '默认服务器', baseUrl: '', apiKey: val }];
+                this.embyServers = servers;
+                this.activeServerIndex = 0;
+            } else if (this.activeServerIndex < servers.length) {
+                servers[this.activeServerIndex].apiKey = val;
+                this.embyServers = servers;
+            }
+        },
+
+        // 徽章相关配置（保持不变）
         get highlightColor() {
             return GM_getValue('highlightColor', '#52b54b');
         },
         get maxConcurrentRequests() {
             return GM_getValue('maxConcurrentRequests', 50);
         },
-
-        // 徽章相关配置
         get badgeColor() {
             return GM_getValue('badgeColor', '#2ecc71');
         },
@@ -62,11 +109,8 @@
             return GM_getValue('badgeTextColor', '#fff');
         },
         get badgeSize() {
-            return GM_getValue('badgeSize', 'medium'); // small, medium, large
+            return GM_getValue('badgeSize', 'medium');
         },
-
-        /* ===== 新增：站点开关控制 ===== */
-
         get enabledSites() {
             return GM_getValue('enabledSites', {
                 javbus: { list: true, detail: true },
@@ -81,37 +125,43 @@
             });
         },
 
-        set enabledSites(val) {
-            GM_setValue('enabledSites', val);
-        },
+        // Setters
+        set highlightColor(val) { GM_setValue('highlightColor', val); },
+        set maxConcurrentRequests(val) { GM_setValue('maxConcurrentRequests', val); },
+        set badgeColor(val) { GM_setValue('badgeColor', val); },
+        set badgeTextColor(val) { GM_setValue('badgeTextColor', val); },
+        set badgeSize(val) { GM_setValue('badgeSize', val); },
+        set enabledSites(val) { GM_setValue('enabledSites', val); },
 
-        set embyAPI(val) {
-            GM_setValue('embyAPI', val);
-        },
-        set embyBaseUrl(val) {
-            GM_setValue('embyBaseUrl', val);
-        },
-        set highlightColor(val) {
-            GM_setValue('highlightColor', val);
-        },
-        set maxConcurrentRequests(val) {
-            GM_setValue('maxConcurrentRequests', val);
-        },
-
-        set badgeColor(val) {
-            GM_setValue('badgeColor', val);
-        },
-        set badgeTextColor(val) {
-            GM_setValue('badgeTextColor', val);
-        },
-        set badgeSize(val) {
-            GM_setValue('badgeSize', val);
+        // 迁移旧数据（如果存在）
+        _migrateOldConfig() {
+            const oldBaseUrl = GM_getValue('embyBaseUrl', '');
+            const oldApiKey = GM_getValue('embyAPI', '');
+            const servers = this.embyServers;
+            if ((oldBaseUrl || oldApiKey) && servers.length === 0) {
+                this.embyServers = [{
+                    name: '默认服务器',
+                    baseUrl: oldBaseUrl,
+                    apiKey: oldApiKey
+                }];
+                this.activeServerIndex = 0;
+                // 可选：删除旧配置项
+                // GM_deleteValue('embyBaseUrl');
+                // GM_deleteValue('embyAPI');
+            }
         },
 
         isValid() {
-            return !!this.embyAPI && !!this.embyBaseUrl;
+            const servers = this.embyServers;
+            return servers.length > 0 &&
+                   this.activeServerIndex < servers.length &&
+                   !!servers[this.activeServerIndex].baseUrl &&
+                   !!servers[this.activeServerIndex].apiKey;
         }
     };
+
+    // 立即执行迁移
+    Config._migrateOldConfig();
 
     // 获取徽章尺寸样式
     function getBadgeSizeStyle() {
@@ -541,6 +591,107 @@
         .modern .btn.save:hover {
             background: #3e9e37;
         }
+
+        /* 服务器管理表格样式 */
+        .modern .servers-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .modern .servers-table-header {
+            display: flex;
+            font-weight: 600;
+            background-color: #f1f3f5;
+            border-bottom: 2px solid #dee2e6;
+            padding: 8px 12px;
+        }
+
+        .modern .servers-table-header > div:first-child {
+            flex: 2;
+        }
+        .modern .servers-table-header > div:last-child {
+            flex: 1;
+            text-align: center;
+        }
+
+        .modern .server-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modern .server-info {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .modern .server-name {
+            font-weight: 500;
+            color: #212529;
+            font-size: 14px;
+        }
+
+        .modern .server-url {
+            font-size: 12px;
+            color: #6c757d;
+            word-break: break-all;
+        }
+
+        .modern .server-api {
+            font-size: 12px;
+            color: #6c757d;
+            font-family: monospace;
+        }
+
+        .modern .server-actions {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .modern .server-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+
+        .modern .server-btn:hover:not(:disabled) {
+            background-color: #e9ecef;
+        }
+
+        .modern .server-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .modern .active-badge {
+            font-size: 18px;
+            color: #52b54b;
+            padding: 4px;
+        }
+
+        .modern .btn.secondary {
+            background: #e9ecef;
+            color: #495057;
+            border: 1px solid #ced4da;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .modern .btn.secondary:hover {
+            background: #dee2e6;
+        }
         `);
 
     // 单例状态指示器
@@ -613,7 +764,7 @@
         };
     })();
 
-    // 设置面板 - 现代化UI
+    // 设置面板 - 多服务器版
     const SettingsUI = {
         show() {
             let panel = document.getElementById('emby-jump-settings-panel');
@@ -628,8 +779,8 @@
 
             // 读取当前配置
             const currentConfig = {
-                embyBaseUrl: Config.embyBaseUrl,
-                embyAPI: Config.embyAPI,
+                embyServers: Config.embyServers,
+                activeServerIndex: Config.activeServerIndex,
                 highlightColor: Config.highlightColor,
                 maxConcurrentRequests: Config.maxConcurrentRequests,
                 badgeSize: Config.badgeSize,
@@ -637,6 +788,33 @@
                 badgeTextColor: Config.badgeTextColor,
                 enabledSites: Config.enabledSites
             };
+
+            // 生成服务器列表HTML
+            function generateServersHTML() {
+                const servers = currentConfig.embyServers;
+                if (!servers || servers.length === 0) {
+                    return '<div style="padding: 12px; text-align: center; color: #999;">暂无服务器，请添加</div>';
+                }
+                let rows = '';
+                servers.forEach((server, index) => {
+                    const isActive = index === currentConfig.activeServerIndex;
+                    rows += `
+                        <div class="server-row" data-index="${index}">
+                            <div class="server-info">
+                                <span class="server-name">${server.name || '未命名'}</span>
+                                <span class="server-url">${server.baseUrl}</span>
+                                <span class="server-api">${server.apiKey ? '••••••' + server.apiKey.slice(-4) : '未设置'}</span>
+                            </div>
+                            <div class="server-actions">
+                                ${!isActive ? '<button class="server-btn set-active" title="设为默认">⭐</button>' : '<span class="active-badge" title="当前默认">✅</span>'}
+                                <button class="server-btn edit-server" title="编辑">✏️</button>
+                                <button class="server-btn delete-server" title="删除" ${servers.length === 1 ? 'disabled' : ''}>🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                return rows;
+            }
 
             // 生成站点开关表格行
             function generateSitesRows() {
@@ -670,23 +848,44 @@
                     <span class="close-btn">&times;</span>
                 </div>
                 <div class="settings-content">
-                    <!-- 基础连接卡片 -->
+                    <!-- 服务器管理卡片 -->
                     <div class="settings-card">
-                        <div class="card-title">🔌 基础连接</div>
-                        <div class="card-body two-columns">
-                            <div class="field">
-                                <label for="emby-url">Emby 服务器地址</label>
-                                <input type="url" id="emby-url" placeholder="http://192.168.1.100:8096/" value="${currentConfig.embyBaseUrl}">
-                                <small>必须以 http:// 或 https:// 开头，以 / 结尾</small>
-                            </div>
-                            <div class="field">
-                                <label for="emby-api">API 密钥</label>
-                                <input type="text" id="emby-api" placeholder="在 Emby 设置中获取" value="${currentConfig.embyAPI}">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <button class="test-btn" id="test-connection" type="button">测试连接</button>
-                                    <span id="test-result" style="font-size: 0.9rem; color: #666;"></span>
+                        <div class="card-title collapsible" id="servers-toggle-header">
+                            <span>🖥️ 服务器管理</span>
+                            <span class="toggle-icon" id="servers-toggle-icon">▼</span>
+                        </div>
+                        <div class="card-body" id="servers-grid" style="display: block;">
+                            <div class="servers-table">
+                                <div class="servers-table-header">
+                                    <div>服务器列表</div>
+                                    <div>操作</div>
+                                </div>
+                                <div id="servers-list-container">
+                                    ${generateServersHTML()}
                                 </div>
                             </div>
+                            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                                <button class="btn secondary" id="add-server-btn">➕ 添加服务器</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 基础连接卡片（简化，仅用于测试连接，但数据来自当前活动服务器） -->
+                    <div class="settings-card">
+                        <div class="card-title">🔌 测试当前服务器</div>
+                        <div class="card-body two-columns">
+                            <div class="field">
+                                <label>当前服务器地址</label>
+                                <input type="text" id="current-server-url" readonly value="${Config.embyBaseUrl}" style="background:#f1f3f5;">
+                            </div>
+                            <div class="field">
+                                <label>当前API密钥</label>
+                                <input type="text" id="current-server-api" readonly value="${Config.embyAPI ? '••••••' + Config.embyAPI.slice(-4) : ''}" style="background:#f1f3f5;">
+                            </div>
+                        </div>
+                        <div style="margin-top: 8px;">
+                            <button class="test-btn" id="test-connection" type="button">测试当前连接</button>
+                            <span id="test-result" style="margin-left: 12px; font-size: 0.9rem;"></span>
                         </div>
                     </div>
 
@@ -726,13 +925,6 @@
                                 <input type="number" id="max-requests" min="1" max="100" value="${currentConfig.maxConcurrentRequests}">
                                 <small>建议 20-50</small>
                             </div>
-                            <!-- 预留缓存时间字段，暂不启用
-                            <div class="field">
-                                <label for="cache-ttl">缓存过期时间（天）</label>
-                                <input type="number" id="cache-ttl" min="0" max="30" value="7">
-                                <small>0 表示禁用缓存</small>
-                            </div>
-                            -->
                         </div>
                     </div>
 
@@ -742,7 +934,7 @@
                             <span>🌐 站点开关</span>
                             <span class="toggle-icon" id="sites-toggle-icon">▼</span>
                         </div>
-                        <div class="card-body" id="sites-grid" style="display: block;">
+                        <div class="card-body" id="sites-grid" style="display: none;">
                             <div class="sites-table">
                                 <div class="sites-table-header">
                                     <div>站点</div>
@@ -762,51 +954,157 @@
 
             document.body.appendChild(panel);
 
-            // 折叠/展开功能（默认折叠）
+            // 折叠/展开功能：服务器卡片默认展开，站点卡片默认折叠
+            const serversHeader = panel.querySelector('#servers-toggle-header');
+            const serversGrid = panel.querySelector('#servers-grid');
+            const serversIcon = panel.querySelector('#servers-toggle-icon');
+            let serversVisible = true;
+
+            serversHeader.addEventListener('click', () => {
+                if (serversVisible) {
+                    serversGrid.style.display = 'none';
+                    serversIcon.textContent = '▶';
+                } else {
+                    serversGrid.style.display = 'block';
+                    serversIcon.textContent = '▼';
+                }
+                serversVisible = !serversVisible;
+            });
+
             const sitesHeader = panel.querySelector('#sites-toggle-header');
             const sitesGrid = panel.querySelector('#sites-grid');
-            const toggleIcon = panel.querySelector('#sites-toggle-icon');
+            const sitesIcon = panel.querySelector('#sites-toggle-icon');
             let sitesVisible = false;
 
             sitesGrid.style.display = 'none';
-            toggleIcon.textContent = '▶';
+            sitesIcon.textContent = '▶';
 
             sitesHeader.addEventListener('click', () => {
                 if (sitesVisible) {
                     sitesGrid.style.display = 'none';
-                    toggleIcon.textContent = '▶';
+                    sitesIcon.textContent = '▶';
                 } else {
                     sitesGrid.style.display = 'block';
-                    toggleIcon.textContent = '▼';
+                    sitesIcon.textContent = '▼';
                 }
                 sitesVisible = !sitesVisible;
             });
+
+            // 服务器管理功能
+            const serversListContainer = panel.querySelector('#servers-list-container');
+
+            // 刷新服务器列表显示
+            function refreshServersList() {
+                serversListContainer.innerHTML = generateServersHTML();
+                attachServerEvents();
+            }
+
+            // 绑定服务器行内按钮事件
+            function attachServerEvents() {
+                // 设为默认
+                panel.querySelectorAll('.set-active').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const row = e.target.closest('.server-row');
+                        const index = parseInt(row.dataset.index);
+                        Config.activeServerIndex = index;
+                        // 更新UI
+                        refreshServersList();
+                        // 更新当前服务器地址显示
+                        panel.querySelector('#current-server-url').value = Config.embyBaseUrl;
+                        panel.querySelector('#current-server-api').value = Config.embyAPI ? '••••••' + Config.embyAPI.slice(-4) : '';
+                    });
+                });
+
+                // 编辑服务器
+                panel.querySelectorAll('.edit-server').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const row = e.target.closest('.server-row');
+                        const index = parseInt(row.dataset.index);
+                        const servers = Config.embyServers;
+                        const server = servers[index];
+                        const newName = prompt('请输入服务器名称', server.name || '');
+                        if (newName === null) return;
+                        const newUrl = prompt('请输入服务器地址 (以/结尾)', server.baseUrl);
+                        if (newUrl === null) return;
+                        const newApi = prompt('请输入API密钥', server.apiKey);
+                        if (newApi === null) return;
+
+                        servers[index] = {
+                            name: newName.trim() || '未命名',
+                            baseUrl: newUrl.trim(),
+                            apiKey: newApi.trim()
+                        };
+                        Config.embyServers = servers;
+                        refreshServersList();
+                    });
+                });
+
+                // 删除服务器
+                panel.querySelectorAll('.delete-server').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        if (btn.disabled) return;
+                        const row = e.target.closest('.server-row');
+                        const index = parseInt(row.dataset.index);
+                        const servers = Config.embyServers;
+                        if (servers.length <= 1) {
+                            alert('至少保留一个服务器');
+                            return;
+                        }
+                        if (!confirm(`确定删除服务器 "${servers[index].name}" 吗？`)) return;
+                        servers.splice(index, 1);
+                        // 如果删除的是当前活动服务器，将活动索引设为0
+                        if (Config.activeServerIndex === index) {
+                            Config.activeServerIndex = 0;
+                        } else if (Config.activeServerIndex > index) {
+                            Config.activeServerIndex--;
+                        }
+                        Config.embyServers = servers;
+                        refreshServersList();
+                        // 更新当前服务器地址显示
+                        panel.querySelector('#current-server-url').value = Config.embyBaseUrl;
+                        panel.querySelector('#current-server-api').value = Config.embyAPI ? '••••••' + Config.embyAPI.slice(-4) : '';
+                    });
+                });
+            }
+
+            // 添加服务器
+            panel.querySelector('#add-server-btn').addEventListener('click', () => {
+                const name = prompt('请输入服务器名称', '新服务器');
+                if (!name) return;
+                const url = prompt('请输入服务器地址 (以/结尾)', 'http://');
+                if (!url) return;
+                const api = prompt('请输入API密钥', '');
+                if (api === null) return;
+
+                const servers = Config.embyServers;
+                servers.push({
+                    name: name.trim(),
+                    baseUrl: url.trim(),
+                    apiKey: api.trim()
+                });
+                Config.embyServers = servers;
+                refreshServersList();
+            });
+
+            // 初始化服务器事件
+            attachServerEvents();
 
             // 关闭面板
             const closePanel = () => {
                 panel.style.display = 'none';
             };
-
             panel.querySelector('.close-btn').addEventListener('click', closePanel);
             panel.querySelector('.btn.cancel').addEventListener('click', closePanel);
 
             // 测试连接按钮
             panel.querySelector('#test-connection').addEventListener('click', async () => {
-                const url = document.getElementById('emby-url').value.trim();
-                const apiKey = document.getElementById('emby-api').value.trim();
+                const url = Config.embyBaseUrl;
+                const apiKey = Config.embyAPI;
                 const testResultSpan = panel.querySelector('#test-result');
 
-                // 重置结果样式
                 testResultSpan.textContent = '';
-                testResultSpan.style.color = '#666';
-
-                if (!url.match(/^https?:\/\/.+\/$/)) {
-                    testResultSpan.textContent = '❌ 地址格式不正确';
-                    testResultSpan.style.color = '#dc3545';
-                    return;
-                }
-                if (!apiKey) {
-                    testResultSpan.textContent = '❌ 请输入API密钥';
+                if (!url || !apiKey) {
+                    testResultSpan.textContent = '❌ 当前服务器配置不完整';
                     testResultSpan.style.color = '#dc3545';
                     return;
                 }
@@ -852,14 +1150,7 @@
 
             // 保存设置
             panel.querySelector('.btn.save').addEventListener('click', () => {
-                const url = document.getElementById('emby-url').value.trim();
-                if (!url.match(/^https?:\/\/.+\/$/)) {
-                    alert('请输入有效的 Emby 服务器地址，包含 http:// 或 https:// 前缀和最后的斜杠 /');
-                    return;
-                }
-
-                Config.embyBaseUrl = url;
-                Config.embyAPI = document.getElementById('emby-api').value.trim();
+                // 外观设置保存
                 Config.highlightColor = document.getElementById('highlight-color').value;
                 Config.maxConcurrentRequests = parseInt(document.getElementById('max-requests').value, 10);
                 Config.badgeSize = document.getElementById('badge-size').value;
