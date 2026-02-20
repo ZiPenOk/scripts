@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      3.0
+// @version      3.1
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -331,17 +331,17 @@
             to { opacity: 1; }
         }
 
-        /* 现代化设置面板完整样式 - 字体放大版（px单位，确保生效） */
+        /* 现代化设置面板完整样式 */
         .emby-jump-settings-panel.modern {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
             background: #f8f9fa;
             border-radius: 16px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.2);
             padding: 0;
-            width: 700px;
+            width: 900px;
             max-width: 95vw;
             overflow: hidden;
-            /* 不再设置整体字体大小，各元素独立控制 */
+            /* 此处font-size不再影响子元素，可忽略或留作备用 */
         }
 
         .modern .settings-header {
@@ -355,7 +355,7 @@
 
         .modern .settings-header h3 {
             margin: 0;
-            font-size: 22px; /* 放大标题 */
+            font-size: 22px;
             font-weight: 600;
             color: #212529;
         }
@@ -363,7 +363,7 @@
         .modern .settings-header .close-btn {
             background: none;
             border: none;
-            font-size: 26px; /* 放大关闭按钮 */
+            font-size: 26px;
             cursor: pointer;
             color: #868e96;
             line-height: 1;
@@ -373,12 +373,21 @@
             padding: 20px;
             max-height: 70vh;
             overflow-y: auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .modern .left-column,
+        .modern .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .modern .settings-card {
             background: #ffffff;
             border-radius: 12px;
-            margin-bottom: 16px;
             padding: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04);
         }
@@ -390,7 +399,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 18px; /* 放大卡片标题 */
+            font-size: 18px;
         }
 
         .modern .card-title.collapsible {
@@ -413,17 +422,17 @@
         }
 
         .modern .field label {
-            font-size: 16px; /* 放大标签 */
+            font-size: 16px;
             font-weight: 500;
             color: #6c757d;
         }
 
         .modern .field input,
         .modern .field select {
-            padding: 12px 14px; /* 增加内边距，使输入框更大 */
+            padding: 10px 12px;
             border: 1px solid #dee2e6;
             border-radius: 8px;
-            font-size: 18px; /* 放大输入框文字 */
+            font-size: 16px;
             transition: border-color 0.15s;
             box-sizing: border-box;
         }
@@ -436,7 +445,7 @@
         }
 
         .modern .field small {
-            font-size: 14px; /* 放大提示文字 */
+            font-size: 14px;
             color: #adb5bd;
         }
 
@@ -448,14 +457,14 @@
         }
 
         .modern .color-field label {
-            width: 80px;
+            width: 70px;
             flex-shrink: 0;
             font-size: 16px;
         }
 
         .modern .color-field input[type="color"] {
-            width: 70px;
-            height: 44px; /* 放大颜色选择器高度 */
+            width: 60px;
+            height: 36px;
             padding: 2px;
             border-radius: 6px;
         }
@@ -463,15 +472,118 @@
         .modern .test-btn {
             background: #e9ecef;
             border: 1px solid #ced4da;
-            border-radius: 6px;
-            padding: 10px 16px; /* 增大按钮 */
+            border-radius: 30px;
+            padding: 8px 16px;
             font-size: 15px;
             cursor: pointer;
-            align-self: flex-start;
-            margin-top: 4px;
         }
 
-        /* 滑动开关样式（不变，因为大小合适） */
+        .modern .test-btn:hover {
+            background: #dee2e6;
+        }
+
+        /* 服务器管理表格 */
+        .modern .servers-table {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .modern .servers-table-header {
+            display: flex;
+            font-weight: 600;
+            background-color: #f1f3f5;
+            border-bottom: 2px solid #dee2e6;
+            padding: 8px 12px;
+        }
+
+        .modern .servers-table-header > div:first-child {
+            flex: 2;
+        }
+        .modern .servers-table-header > div:last-child {
+            flex: 1;
+            text-align: center;
+        }
+
+        .modern .server-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .modern .server-info {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .modern .server-name {
+            font-weight: 500;
+            color: #212529;
+            font-size: 16px;
+        }
+
+        .modern .server-url {
+            font-size: 14px;
+            color: #6c757d;
+            word-break: break-all;
+        }
+
+        .modern .server-api {
+            font-size: 14px;
+            color: #6c757d;
+            font-family: monospace;
+        }
+
+        .modern .server-actions {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .modern .server-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            line-height: 1;
+        }
+
+        .modern .server-btn:hover:not(:disabled) {
+            background-color: #e9ecef;
+        }
+
+        .modern .server-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .modern .active-badge {
+            font-size: 1.2rem;
+            color: #52b54b;
+            padding: 4px;
+        }
+
+        .modern .btn.secondary {
+            background: #e9ecef;
+            color: #495057;
+            border: 1px solid #ced4da;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .modern .btn.secondary:hover {
+            background: #dee2e6;
+        }
+
+        /* 滑动开关 */
         .modern .switch {
             position: relative;
             display: inline-block;
@@ -517,12 +629,11 @@
             transform: translateX(20px);
         }
 
-        /* 站点表格样式 */
+        /* 站点表格（内部滚动） */
         .modern .sites-table {
             display: table;
             width: 100%;
             border-collapse: collapse;
-            margin-top: 12px;
         }
 
         .modern .sites-table-header {
@@ -535,7 +646,7 @@
         .modern .sites-table-header > div {
             display: table-cell;
             padding: 8px 12px;
-            font-size: 16px; /* 放大表头 */
+            font-size: 16px;
         }
 
         .modern .sites-row {
@@ -552,7 +663,7 @@
         .modern .site-name {
             font-weight: 500;
             color: #495057;
-            font-size: 16px; /* 放大站点名称 */
+            font-size: 16px;
         }
 
         .modern .site-toggle {
@@ -569,13 +680,13 @@
         }
 
         .modern .btn {
-            padding: 10px 22px; /* 增大按钮 */
+            padding: 8px 20px;
             border-radius: 30px;
             border: none;
             font-weight: 500;
             cursor: pointer;
             transition: background 0.15s;
-            font-size: 16px; /* 放大按钮文字 */
+            font-size: 15px;
         }
 
         .modern .btn.cancel {
@@ -590,107 +701,6 @@
 
         .modern .btn.save:hover {
             background: #3e9e37;
-        }
-
-        /* 服务器管理表格样式 */
-        .modern .servers-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-        }
-
-        .modern .servers-table-header {
-            display: flex;
-            font-weight: 600;
-            background-color: #f1f3f5;
-            border-bottom: 2px solid #dee2e6;
-            padding: 8px 12px;
-        }
-
-        .modern .servers-table-header > div:first-child {
-            flex: 2;
-        }
-        .modern .servers-table-header > div:last-child {
-            flex: 1;
-            text-align: center;
-        }
-
-        .modern .server-row {
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .modern .server-info {
-            flex: 2;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .modern .server-name {
-            font-weight: 500;
-            color: #212529;
-            font-size: 14px;
-        }
-
-        .modern .server-url {
-            font-size: 12px;
-            color: #6c757d;
-            word-break: break-all;
-        }
-
-        .modern .server-api {
-            font-size: 12px;
-            color: #6c757d;
-            font-family: monospace;
-        }
-
-        .modern .server-actions {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .modern .server-btn {
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            padding: 4px;
-            border-radius: 4px;
-            line-height: 1;
-        }
-
-        .modern .server-btn:hover:not(:disabled) {
-            background-color: #e9ecef;
-        }
-
-        .modern .server-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        .modern .active-badge {
-            font-size: 18px;
-            color: #52b54b;
-            padding: 4px;
-        }
-
-        .modern .btn.secondary {
-            background: #e9ecef;
-            color: #495057;
-            border: 1px solid #ced4da;
-            padding: 8px 16px;
-            border-radius: 30px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        .modern .btn.secondary:hover {
-            background: #dee2e6;
         }
         `);
 
@@ -848,8 +858,8 @@
                     <span class="close-btn">&times;</span>
                 </div>
                 <div class="settings-content">
-                    <!-- 服务器管理卡片 -->
-                    <div class="settings-card">
+                    <!-- 服务器管理卡片（跨列） -->
+                    <div class="settings-card" style="grid-column: 1 / -1;">
                         <div class="card-title collapsible" id="servers-toggle-header">
                             <span>🖥️ 服务器管理</span>
                             <span class="toggle-icon" id="servers-toggle-icon">▼</span>
@@ -864,84 +874,71 @@
                                     ${generateServersHTML()}
                                 </div>
                             </div>
-                            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                            <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
                                 <button class="btn secondary" id="add-server-btn">➕ 添加服务器</button>
+                                <span style="flex:1;"></span>
+                                <button class="test-btn" id="test-connection" type="button">测试当前连接</button>
+                                <span id="test-result" style="font-size: 0.9rem;"></span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 基础连接卡片（简化，仅用于测试连接，但数据来自当前活动服务器） -->
-                    <div class="settings-card">
-                        <div class="card-title">🔌 测试当前服务器</div>
-                        <div class="card-body two-columns">
-                            <div class="field">
-                                <label>当前服务器地址</label>
-                                <input type="text" id="current-server-url" readonly value="${Config.embyBaseUrl}" style="background:#f1f3f5;">
-                            </div>
-                            <div class="field">
-                                <label>当前API密钥</label>
-                                <input type="text" id="current-server-api" readonly value="${Config.embyAPI ? '••••••' + Config.embyAPI.slice(-4) : ''}" style="background:#f1f3f5;">
-                            </div>
-                        </div>
-                        <div style="margin-top: 8px;">
-                            <button class="test-btn" id="test-connection" type="button">测试当前连接</button>
-                            <span id="test-result" style="margin-left: 12px; font-size: 0.9rem;"></span>
-                        </div>
-                    </div>
-
-                    <!-- 外观设置卡片 -->
-                    <div class="settings-card">
-                        <div class="card-title">🎨 外观设置</div>
-                        <div class="card-body two-columns">
-                            <div class="field color-field">
-                                <label for="highlight-color">高亮颜色</label>
-                                <input type="color" id="highlight-color" value="${currentConfig.highlightColor}">
-                            </div>
-                            <div class="field color-field">
-                                <label for="badge-color">徽章背景</label>
-                                <input type="color" id="badge-color" value="${currentConfig.badgeColor}">
-                            </div>
-                            <div class="field color-field">
-                                <label for="badge-text-color">徽章文字颜色</label>
-                                <input type="color" id="badge-text-color" value="${currentConfig.badgeTextColor}">
-                            </div>
-                            <div class="field">
-                                <label for="badge-size">徽章大小</label>
-                                <select id="badge-size">
-                                    <option value="small" ${currentConfig.badgeSize === 'small' ? 'selected' : ''}>小</option>
-                                    <option value="medium" ${currentConfig.badgeSize === 'medium' ? 'selected' : ''}>中</option>
-                                    <option value="large" ${currentConfig.badgeSize === 'large' ? 'selected' : ''}>大</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 高级选项卡片 -->
-                    <div class="settings-card">
-                        <div class="card-title">⚡ 高级选项</div>
-                        <div class="card-body two-columns">
-                            <div class="field">
-                                <label for="max-requests">最大并发请求数</label>
-                                <input type="number" id="max-requests" min="1" max="100" value="${currentConfig.maxConcurrentRequests}">
-                                <small>建议 20-50</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 站点开关卡片（可折叠） -->
-                    <div class="settings-card">
-                        <div class="card-title collapsible" id="sites-toggle-header">
-                            <span>🌐 站点开关</span>
-                            <span class="toggle-icon" id="sites-toggle-icon">▼</span>
-                        </div>
-                        <div class="card-body" id="sites-grid" style="display: none;">
-                            <div class="sites-table">
-                                <div class="sites-table-header">
-                                    <div>站点</div>
-                                    <div>列表页</div>
-                                    <div>详情页</div>
+                    <!-- 左列 -->
+                    <div class="left-column">
+                        <!-- 外观设置卡片 -->
+                        <div class="settings-card">
+                            <div class="card-title">🎨 外观设置</div>
+                            <div class="card-body two-columns">
+                                <div class="field color-field">
+                                    <label for="highlight-color">高亮颜色</label>
+                                    <input type="color" id="highlight-color" value="${currentConfig.highlightColor}">
                                 </div>
-                                ${generateSitesRows()}
+                                <div class="field color-field">
+                                    <label for="badge-color">徽章背景</label>
+                                    <input type="color" id="badge-color" value="${currentConfig.badgeColor}">
+                                </div>
+                                <div class="field color-field">
+                                    <label for="badge-text-color">徽章文字颜色</label>
+                                    <input type="color" id="badge-text-color" value="${currentConfig.badgeTextColor}">
+                                </div>
+                                <div class="field">
+                                    <label for="badge-size">徽章大小</label>
+                                    <select id="badge-size">
+                                        <option value="small" ${currentConfig.badgeSize === 'small' ? 'selected' : ''}>小</option>
+                                        <option value="medium" ${currentConfig.badgeSize === 'medium' ? 'selected' : ''}>中</option>
+                                        <option value="large" ${currentConfig.badgeSize === 'large' ? 'selected' : ''}>大</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 高级选项卡片 -->
+                        <div class="settings-card">
+                            <div class="card-title">⚡ 高级选项</div>
+                            <div class="card-body">
+                                <div class="field">
+                                    <label for="max-requests">最大并发请求数</label>
+                                    <input type="number" id="max-requests" min="1" max="100" value="${currentConfig.maxConcurrentRequests}">
+                                    <small>建议 20-50</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右列 -->
+                    <div class="right-column">
+                        <!-- 站点开关卡片（始终展开，内部滚动） -->
+                        <div class="settings-card">
+                            <div class="card-title">🌐 站点开关</div>
+                            <div class="card-body" id="sites-grid" style="display: block; max-height: 300px; overflow-y: auto; padding-right: 4px;">
+                                <div class="sites-table">
+                                    <div class="sites-table-header">
+                                        <div>站点</div>
+                                        <div>列表页</div>
+                                        <div>详情页</div>
+                                    </div>
+                                    ${generateSitesRows()}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -954,7 +951,7 @@
 
             document.body.appendChild(panel);
 
-            // 折叠/展开功能：服务器卡片默认展开，站点卡片默认折叠
+            // 服务器卡片折叠/展开功能
             const serversHeader = panel.querySelector('#servers-toggle-header');
             const serversGrid = panel.querySelector('#servers-grid');
             const serversIcon = panel.querySelector('#servers-toggle-icon');
@@ -971,35 +968,14 @@
                 serversVisible = !serversVisible;
             });
 
-            const sitesHeader = panel.querySelector('#sites-toggle-header');
-            const sitesGrid = panel.querySelector('#sites-grid');
-            const sitesIcon = panel.querySelector('#sites-toggle-icon');
-            let sitesVisible = false;
-
-            sitesGrid.style.display = 'none';
-            sitesIcon.textContent = '▶';
-
-            sitesHeader.addEventListener('click', () => {
-                if (sitesVisible) {
-                    sitesGrid.style.display = 'none';
-                    sitesIcon.textContent = '▶';
-                } else {
-                    sitesGrid.style.display = 'block';
-                    sitesIcon.textContent = '▼';
-                }
-                sitesVisible = !sitesVisible;
-            });
-
             // 服务器管理功能
             const serversListContainer = panel.querySelector('#servers-list-container');
 
-            // 刷新服务器列表显示
             function refreshServersList() {
                 serversListContainer.innerHTML = generateServersHTML();
                 attachServerEvents();
             }
 
-            // 绑定服务器行内按钮事件
             function attachServerEvents() {
                 // 设为默认
                 panel.querySelectorAll('.set-active').forEach(btn => {
@@ -1007,11 +983,7 @@
                         const row = e.target.closest('.server-row');
                         const index = parseInt(row.dataset.index);
                         Config.activeServerIndex = index;
-                        // 更新UI
                         refreshServersList();
-                        // 更新当前服务器地址显示
-                        panel.querySelector('#current-server-url').value = Config.embyBaseUrl;
-                        panel.querySelector('#current-server-api').value = Config.embyAPI ? '••••••' + Config.embyAPI.slice(-4) : '';
                     });
                 });
 
@@ -1052,7 +1024,6 @@
                         }
                         if (!confirm(`确定删除服务器 "${servers[index].name}" 吗？`)) return;
                         servers.splice(index, 1);
-                        // 如果删除的是当前活动服务器，将活动索引设为0
                         if (Config.activeServerIndex === index) {
                             Config.activeServerIndex = 0;
                         } else if (Config.activeServerIndex > index) {
@@ -1060,14 +1031,10 @@
                         }
                         Config.embyServers = servers;
                         refreshServersList();
-                        // 更新当前服务器地址显示
-                        panel.querySelector('#current-server-url').value = Config.embyBaseUrl;
-                        panel.querySelector('#current-server-api').value = Config.embyAPI ? '••••••' + Config.embyAPI.slice(-4) : '';
                     });
                 });
             }
 
-            // 添加服务器
             panel.querySelector('#add-server-btn').addEventListener('click', () => {
                 const name = prompt('请输入服务器名称', '新服务器');
                 if (!name) return;
@@ -1086,15 +1053,7 @@
                 refreshServersList();
             });
 
-            // 初始化服务器事件
             attachServerEvents();
-
-            // 关闭面板
-            const closePanel = () => {
-                panel.style.display = 'none';
-            };
-            panel.querySelector('.close-btn').addEventListener('click', closePanel);
-            panel.querySelector('.btn.cancel').addEventListener('click', closePanel);
 
             // 测试连接按钮
             panel.querySelector('#test-connection').addEventListener('click', async () => {
@@ -1148,16 +1107,21 @@
                 }
             });
 
+            // 关闭面板
+            const closePanel = () => {
+                panel.style.display = 'none';
+            };
+            panel.querySelector('.close-btn').addEventListener('click', closePanel);
+            panel.querySelector('.btn.cancel').addEventListener('click', closePanel);
+
             // 保存设置
             panel.querySelector('.btn.save').addEventListener('click', () => {
-                // 外观设置保存
                 Config.highlightColor = document.getElementById('highlight-color').value;
                 Config.maxConcurrentRequests = parseInt(document.getElementById('max-requests').value, 10);
                 Config.badgeSize = document.getElementById('badge-size').value;
                 Config.badgeColor = document.getElementById('badge-color').value;
                 Config.badgeTextColor = document.getElementById('badge-text-color').value;
 
-                // 保存站点开关
                 const updatedSites = { ...Config.enabledSites };
                 panel.querySelectorAll('[data-site]').forEach(input => {
                     const site = input.dataset.site;
