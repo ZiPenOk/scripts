@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      3.7
+// @version      3.8
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -12,7 +12,7 @@
 // @match        *://supjav.com/*
 // @match        *://*.nyaa.si/view/*
 // @match        *://*.nyaa.si/*
-// @match        *://www.javlibrary.com/*/?v=*
+// @match        *://www.javlibrary.com/*/*
 // @match        *://madou.com/archives/*
 // @match        *://*.madou.com/archives/*
 // @match        *://javrate.com/movie/*
@@ -117,7 +117,7 @@
                 supjav: { list: true, detail: true },
                 sehuatang: { list: false, detail: true },
                 sukebeiNyaa: { list: true, detail: true },
-                javlibrary: { list: false, detail: true },
+                javlibrary: { list: true, detail: true },
                 madou: { list: false, detail: true },
                 javrate: { list: false, detail: true },
                 '169bbs': { list: true, detail: true }
@@ -815,6 +815,16 @@
         }
         .modern.dark-mode .site-name {
             color: #d0d0e0;
+        }
+        
+        /* JAVLibrary特殊处理 */
+        .emby-title-exists {
+            color: #28a745 !important;
+            font-weight: bold !important;
+        }
+        .emby-id-exists {
+            color: #28a745 !important;
+            font-weight: bold !important;
         }
     `);
 
@@ -2110,41 +2120,168 @@
 
         }),
 
-        javlibrary: Object.assign(Object.create(BaseProcessor), {
-            listSelector: '',
+        javlibrary: (function() {
+            // 存储已查询成功的番号映射 { code: itemData }
+            const embyItemMap = new Map();
 
-            async process() {
-                const siteConfig = this.__siteConfig;
+            // 列表页：高亮标题和番号
+            function applyTitleHighlight(video) {
+                const titleEl = video.querySelector('.title') || video.querySelector('a');
+                if (!titleEl) return;
+
+                const idEl = video.querySelector('div.id');
+                if (!idEl) return;
+                const code = idEl.textContent.trim();
+                if (!code) return;
+
+                const item = embyItemMap.get(code);
+                if (!item) return;
+
+                titleEl.classList.add('emby-title-exists');
+                idEl.classList.add('emby-id-exists');
+            }
+
+            function scanAndRepair() {
+                document.querySelectorAll('.video').forEach(video => applyTitleHighlight(video));
+            }
+
+            // 详情页维护函数（带状态提示）
+            function maintainDetailPage(api) {
+                const siteConfig = typeof GM_getValue !== 'undefined' ? Config.enabledSites.javlibrary : { detail: true };
                 if (!siteConfig || !siteConfig.detail) return;
-
-                await this.processDetailPage();
-            },
-
-            async processDetailPage() {
-                if (document.querySelector('.emby-jump-link, .emby-badge')) return;
 
                 const idContainer = document.querySelector('#video_id');
                 const idCodeElement = document.querySelector('#video_id .text');
-
                 if (!idContainer || !idCodeElement) return;
 
                 const code = idCodeElement.textContent.trim();
+                if (!code) return;
 
-                if (code) {
-                    Status.show(`查询番号 ${code} 中...`);
-                    const bestItem = await this.api.checkExists(code);
+                // 如果链接已存在，跳过
+                if (document.querySelector('.emby-jump-link, .emby-badge')) return;
+
+                // 尝试从缓存获取
+                let item = embyItemMap.get(code);
+                if (item) {
+                    const link = api.createLink(item);
+                    if (link) {
+                        idContainer.insertAdjacentElement('afterend', link);
+                        Status.success('✅ 已从缓存添加Emby链接', true);
+                    }
+                    return;
+                }
+
+                // 缓存中没有，查询一次
+                Status.show(`⏳ 查询番号 ${code} 中...`);
+                api.checkExists(code).then(bestItem => {
                     if (bestItem) {
-                        const link = this.api.createLink(bestItem);
+                        embyItemMap.set(code, bestItem);
+                        const link = api.createLink(bestItem);
                         if (link) {
                             idContainer.insertAdjacentElement('afterend', link);
-                            Status.success('Emby 找到匹配项', true);
+                            Status.success(`✅ Emby 找到匹配项: ${code}`, true);
+                        } else {
+                            Status.error('❌ 创建链接失败', true);
                         }
                     } else {
-                        Status.error('Emby 未找到匹配项', true);
+                        Status.error(`❌ 未找到匹配项: ${code}`, true);
                     }
-                }
+                }).catch(e => {
+                    console.error('Emby查询失败', e);
+                    Status.error(`❌ 查询失败: ${e.message}`, true);
+                });
             }
-        }),
+
+            return Object.assign(Object.create(BaseProcessor), {
+                listSelector: '.video',
+
+                extractCode: function(item) {
+                    const idEl = item.querySelector('div.id');
+                    return idEl ? idEl.textContent.trim() : null;
+                },
+
+                async process() {
+                    const siteConfig = this.__siteConfig;
+                    if (!siteConfig) return;
+
+                    // ----- 列表页处理 -----
+                    if (siteConfig.list) {
+                        const items = document.querySelectorAll(this.listSelector);
+                        if (items.length > 0) {
+                            const videos = [], codes = [];
+                            items.forEach(item => {
+                                if (this.processed.has(item)) return;
+                                this.processed.add(item);
+                                const code = this.extractCode(item);
+                                if (code) {
+                                    videos.push(item);
+                                    codes.push(code);
+                                }
+                            });
+
+                            if (codes.length > 0) {
+                                const bestItems = await this.api.batchQuery(codes);
+                                for (let i = 0; i < bestItems.length; i++) {
+                                    if (bestItems[i]) {
+                                        const video = videos[i];
+                                        const code = codes[i];
+                                        embyItemMap.set(code, bestItems[i]);
+                                        applyTitleHighlight(video);
+                                    }
+                                }
+                            }
+                        }
+
+                        this.setupContainerObserver();
+                    }
+
+                    // ----- 详情页处理（定时器）-----
+                    if (siteConfig.detail) {
+                        this.startDetailMaintenance();
+                        maintainDetailPage(this.api); // 立即执行一次
+                    }
+
+                    this.setupObserver();
+                },
+
+                setupObserver() {
+                    let pending = [], timer = null;
+                    const processMutations = () => {
+                        const newItems = [];
+                        pending.forEach(m => {
+                            if (m.type === 'childList') {
+                                m.addedNodes.forEach(node => {
+                                    if (node.nodeType !== 1) return;
+                                    if (node.matches?.(this.listSelector)) newItems.push(node);
+                                    node.querySelectorAll?.(this.listSelector).forEach(el => newItems.push(el));
+                                });
+                            }
+                        });
+                        if (newItems.length) this.process();
+                        pending = []; timer = null;
+                    };
+                    new MutationObserver(mutations => {
+                        pending.push(...mutations);
+                        if (!timer) timer = setTimeout(processMutations.bind(this), 300);
+                    }).observe(document.body, { childList: true, subtree: true });
+                },
+
+                setupContainerObserver() {
+                    if (this._containerObserved) return;
+                    this._containerObserved = true;
+                    const container = document.querySelector('.videothumblist') || document.querySelector('#rightcolumn');
+                    if (!container) return;
+                    const observer = new MutationObserver(() => setTimeout(scanAndRepair, 50));
+                    observer.observe(container, { childList: true, subtree: true });
+                },
+
+                startDetailMaintenance() {
+                    if (this._detailMaintenanceStarted) return;
+                    this._detailMaintenanceStarted = true;
+                    setInterval(() => maintainDetailPage(this.api), 2000);
+                }
+            });
+        })(), 
 
         madou: Object.assign(Object.create(BaseProcessor), {
             listSelector: '',
