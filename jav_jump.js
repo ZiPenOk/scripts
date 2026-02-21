@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      2.1.0
-// @description  支持多站点（新增 SupJav），表格布局滑动开关面板，新增Google搜索，经典灰白配色，手动关闭。
+// @version      2.1.5
+// @description  支持多站点（新增 SupJav），表格布局滑动开关面板，经典灰白配色，手动关闭，修复 sukebei 按钮位置（改为第二行头部左对齐）。
 // @author       ZiPenOk
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
@@ -144,7 +144,7 @@
         defaults: {
             'sukebei':    { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
             '169bbs':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'supjav':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }  // 新增站点默认配置
+            'supjav':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
         },
 
         get(siteId) {
@@ -183,11 +183,28 @@
             match: (url) => /nyaa\.si/.test(url) && url.includes('/view/'),
             titleSelector: '.panel-title',
             enhance: (code, settings, titleElem) => {
-                if (settings.jumpNyaa) addNyaaBtn(code, titleElem);
-                if (settings.jumpJavbus) addJavbusBtn(code, titleElem);
-                if (settings.jumpJavdb) addJavdbBtn(code, titleElem);
-                if (settings.jumpGoogle) addGoogleBtn(code, titleElem);
-                if (settings.preview) addPreviewBtn(code, titleElem);
+                const container = titleElem.parentElement; // .panel-heading
+                if (!container) return;
+
+                if (container.querySelector('.jav-jump-btn-group')) return;
+
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'jav-jump-btn-group';
+                btnGroup.style.cssText = `
+                    margin-top: 8px;
+                    margin-bottom: 4px;
+                    clear: both;
+                    text-align: left;  /* 改为左对齐，使按钮在第二行头部 */
+                    width: 100%;
+                `;
+
+                if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
+                if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
+                if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
+                if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
+                if (settings.preview) addPreviewBtn(code, btnGroup);
+
+                container.appendChild(btnGroup);
             }
         },
         {
@@ -196,63 +213,68 @@
             match: (url) => /169bbs\.(com|net|org)/.test(url) && url.includes('mod=viewthread'),
             titleSelector: '#thread_subject, h1',
             enhance: (code, settings, titleElem) => {
-                if (settings.jumpNyaa) addNyaaBtn(code, titleElem);
-                if (settings.jumpJavbus) addJavbusBtn(code, titleElem);
-                if (settings.jumpJavdb) addJavdbBtn(code, titleElem);
-                if (settings.jumpGoogle) addGoogleBtn(code, titleElem);
-                if (settings.preview) addPreviewBtn(code, titleElem);
+                const btnGroup = document.createElement('span');
+                btnGroup.style.cssText = 'display: inline-block; white-space: nowrap; margin-left: 5px; vertical-align: middle;';
+                if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
+                if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
+                if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
+                if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
+                if (settings.preview) addPreviewBtn(code, btnGroup);
+                titleElem.appendChild(btnGroup);
             }
         },
-        // 新增 SupJav 站点
         {
             id: 'supjav',
             name: 'SupJav',
-            match: (url) => /supjav\.com/.test(url) && /\/\d+\.html$/.test(url), // 匹配文章详情页
+            match: (url) => /supjav\.com/.test(url) && /\/\d+\.html$/.test(url),
             titleSelector: '.archive-title h1',
             enhance: (code, settings, titleElem) => {
-                if (settings.jumpNyaa) addNyaaBtn(code, titleElem);
-                if (settings.jumpJavbus) addJavbusBtn(code, titleElem);
-                if (settings.jumpJavdb) addJavdbBtn(code, titleElem);
-                if (settings.jumpGoogle) addGoogleBtn(code, titleElem);
-                if (settings.preview) addPreviewBtn(code, titleElem);
+                const btnGroup = document.createElement('span');
+                btnGroup.style.cssText = 'display: inline-block; white-space: nowrap; margin-left: 5px; vertical-align: middle;';
+                if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
+                if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
+                if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
+                if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
+                if (settings.preview) addPreviewBtn(code, btnGroup);
+                titleElem.appendChild(btnGroup);
             }
         }
     ];
 
-    // ============================ 按钮创建辅助函数 ============================
-    function addNyaaBtn(code, parent) {
+    // ============================ 按钮创建辅助函数（接收容器） ============================
+    function addNyaaBtn(code, container) {
         const btn = Utils.createBtn('🔍 Sukebei', '#17a2b8', () => {
             window.open(`https://sukebei.nyaa.si/?f=0&c=0_0&q=${code}`);
         });
-        parent.appendChild(btn);
+        container.appendChild(btn);
     }
 
-    function addJavbusBtn(code, parent) {
+    function addJavbusBtn(code, container) {
         const btn = Utils.createBtn('🎬 JavBus', '#007bff', () => {
             window.open(`https://www.javbus.com/search/${code}`);
         });
-        parent.appendChild(btn);
+        container.appendChild(btn);
     }
 
-    function addJavdbBtn(code, parent) {
+    function addJavdbBtn(code, container) {
         const btn = Utils.createBtn('📀 JavDB', '#6f42c1', () => {
             window.open(`https://javdb.com/search?q=${code}`);
         });
-        parent.appendChild(btn);
+        container.appendChild(btn);
     }
 
-    function addGoogleBtn(code, parent) {
+    function addGoogleBtn(code, container) {
         const btn = Utils.createBtn('🔎 Google', '#4285F4', () => {
             window.open(`https://www.google.com/search?q=${code}`);
         });
-        parent.appendChild(btn);
+        container.appendChild(btn);
     }
 
-    function addPreviewBtn(code, parent) {
+    function addPreviewBtn(code, container) {
         const btn = Utils.createBtn('🖼️ 预览图', '#28a745', async () => {
             await Thumbnail.show(code);
         });
-        parent.appendChild(btn);
+        container.appendChild(btn);
     }
 
     // ============================ UI 渲染模块 ============================
@@ -307,7 +329,6 @@
 
         panel.innerHTML = '<h2 style="margin-top:0; text-align:center;">⚙️ 番号跳转设置</h2>';
 
-        // 经典灰白样式（2.1.0版本）
         const style = document.createElement('style');
         style.textContent = `
             .toggle-switch {
@@ -466,10 +487,6 @@
         panel.appendChild(btnDiv);
 
         overlay.appendChild(panel);
-
-        // 禁止点击遮罩关闭（手动关闭）
-        // 不设置 overlay.onclick
-
         document.body.appendChild(overlay);
     }
 
