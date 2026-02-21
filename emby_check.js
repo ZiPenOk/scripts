@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      3.8
+// @version      3.9
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -816,7 +816,7 @@
         .modern.dark-mode .site-name {
             color: #d0d0e0;
         }
-        
+
         /* JAVLibrary特殊处理 */
         .emby-title-exists {
             color: #28a745 !important;
@@ -825,6 +825,47 @@
         .emby-id-exists {
             color: #28a745 !important;
             font-weight: bold !important;
+        }
+
+        /* 站点开关固定表头样式 */
+        .modern .sites-header-fixed {
+            display: flex;
+            padding: 8px 12px;
+            background-color: #e6edf5;
+            border-bottom: 2px solid #b9c7d9;
+            font-weight: 600;
+        }
+        .modern .sites-header-fixed > div {
+            flex: 1;
+        }
+        .modern .sites-header-fixed > div:nth-child(2),
+        .modern .sites-header-fixed > div:nth-child(3) {
+            text-align: center;
+        }
+        .modern .sites-row-flex {
+            display: flex;
+            padding: 10px 12px;
+            border-bottom: 1px solid #d9e1e8;
+            align-items: center;
+        }
+        .modern .sites-row-flex > div {
+            flex: 1;
+        }
+        .modern .sites-row-flex > div:nth-child(2),
+        .modern .sites-row-flex > div:nth-child(3) {
+            text-align: center;
+        }
+        /* 深色模式适配 */
+        .modern.dark-mode .sites-header-fixed {
+            background-color: #2a2a40;
+            border-bottom-color: #4a4a60;
+            color: #ccc;
+        }
+        .modern.dark-mode .sites-row-flex {
+            border-bottom-color: #3a3a50;
+        }
+        .modern.dark-mode .sites-row-flex .site-name {
+            color: #d0d0e0;
         }
     `);
 
@@ -984,6 +1025,39 @@
             const darkModeIcon = Config.darkMode ? '☀️' : '🌙';
             const darkModeTitle = Config.darkMode ? '切换浅色模式' : '切换深色模式';
 
+            const sitesHeaderHTML = `
+                <div class="sites-header-fixed">
+                    <div>站点</div>
+                    <div>列表页</div>
+                    <div>详情页</div>
+                </div>
+            `;
+
+            function generateSitesRows() {
+                const sites = currentConfig.enabledSites;
+                let rows = '';
+                for (const site in sites) {
+                    rows += `
+                        <div class="sites-row-flex">
+                            <div class="site-name">${site}</div>
+                            <div class="site-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" data-site="${site}" data-type="list" ${sites[site].list ? 'checked' : ''}>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            <div class="site-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" data-site="${site}" data-type="detail" ${sites[site].detail ? 'checked' : ''}>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                }
+                return rows;
+            }
+
             panel.innerHTML = `
                 <div class="settings-header">
                     <h3><span class="icon">⚙️</span> Emby 设置</h3>
@@ -1059,18 +1133,12 @@
 
                     <!-- 右列 -->
                     <div class="right-column">
-                        <!-- 站点开关卡片（始终展开，内部滚动） -->
+                        <!-- 站点开关卡片（表头固定，内容滚动） -->
                         <div class="settings-card">
                             <div class="card-title">🌐 站点开关</div>
-                            <div class="card-body" id="sites-grid" style="display: block; max-height: 300px; overflow-y: auto; padding-right: 4px;">
-                                <div class="sites-table">
-                                    <div class="sites-table-header">
-                                        <div>站点</div>
-                                        <div>列表页</div>
-                                        <div>详情页</div>
-                                    </div>
-                                    ${generateSitesRows()}
-                                </div>
+                            ${sitesHeaderHTML}
+                            <div class="card-body" id="sites-grid" style="max-height: 300px; overflow-y: auto; padding: 0;">
+                                ${generateSitesRows()}
                             </div>
                         </div>
                     </div>
@@ -2281,7 +2349,7 @@
                     setInterval(() => maintainDetailPage(this.api), 2000);
                 }
             });
-        })(), 
+        })(),
 
         madou: Object.assign(Object.create(BaseProcessor), {
             listSelector: '',
