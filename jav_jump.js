@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      2.0.0
-// @description  支持多站点，表格布局滑动开关面板，新增Google搜索，经典灰白配色，手动关闭。
+// @version      2.1.0
+// @description  支持多站点（新增 SupJav），表格布局滑动开关面板，新增Google搜索，经典灰白配色，手动关闭。
 // @author       ZiPenOk
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
+// @match        *://supjav.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -142,7 +143,8 @@
     const Settings = {
         defaults: {
             'sukebei':    { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            '169bbs':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
+            '169bbs':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            'supjav':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }  // 新增站点默认配置
         },
 
         get(siteId) {
@@ -177,7 +179,7 @@
     const Sites = [
         {
             id: 'sukebei',
-            name: 'sukebei',
+            name: 'Sukebei',
             match: (url) => /nyaa\.si/.test(url) && url.includes('/view/'),
             titleSelector: '.panel-title',
             enhance: (code, settings, titleElem) => {
@@ -193,6 +195,20 @@
             name: '169bbs',
             match: (url) => /169bbs\.(com|net|org)/.test(url) && url.includes('mod=viewthread'),
             titleSelector: '#thread_subject, h1',
+            enhance: (code, settings, titleElem) => {
+                if (settings.jumpNyaa) addNyaaBtn(code, titleElem);
+                if (settings.jumpJavbus) addJavbusBtn(code, titleElem);
+                if (settings.jumpJavdb) addJavdbBtn(code, titleElem);
+                if (settings.jumpGoogle) addGoogleBtn(code, titleElem);
+                if (settings.preview) addPreviewBtn(code, titleElem);
+            }
+        },
+        // 新增 SupJav 站点
+        {
+            id: 'supjav',
+            name: 'SupJav',
+            match: (url) => /supjav\.com/.test(url) && /\/\d+\.html$/.test(url), // 匹配文章详情页
+            titleSelector: '.archive-title h1',
             enhance: (code, settings, titleElem) => {
                 if (settings.jumpNyaa) addNyaaBtn(code, titleElem);
                 if (settings.jumpJavbus) addJavbusBtn(code, titleElem);
