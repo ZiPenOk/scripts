@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      3.2.0
-// @description  所有站点统一使用强番号逻辑 + JavBus 有码/无码智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。
+// @version      3.4.0
+// @description  所有站点统一使用 强番号逻辑 + JavBus 有码/无码智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus 支持。
 // @author       ZiPenOk
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
@@ -10,6 +10,8 @@
 // @match        http://10.10.10.60:8097/web/index.html*
 // @match        https://emby.sh1nyan.fun/web/index.html*
 // @match        *://10.10.10.*:*/web/index.html*
+// @match        *://www.javbus.com/*
+// @match        *://javbus.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -74,7 +76,7 @@
 
     // ============================ 核心工具模块 ============================
     const Utils = {
-        // 统一使用 番号提取逻辑
+        // 统一使用 Emby 强大的番号提取逻辑
         extractCode(text) {
             if (!text) return null;
 
@@ -102,10 +104,20 @@
         createBtn(text, color, handler) {
             const btn = document.createElement('a');
             btn.textContent = text;
-            btn.style.cssText =
-                "padding:4px 8px;background:" +
-                color +
-                ";color:white;border-radius:4px;font-size:13px;font-weight:bold;cursor:pointer;text-decoration:none;display:inline-block;";
+            btn.style.cssText = `
+                padding:4px 8px;
+                background: ${color};
+                color: white;
+                border-radius: 4px;
+                font-size: 13px;
+                font-weight: bold;
+                cursor: pointer;
+                text-decoration: none;
+                display: inline-block;
+                border: none;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                box-sizing: border-box;
+            `;
             btn.onclick = (e) => {
                 e.preventDefault();
                 handler();
@@ -195,7 +207,8 @@
             'sukebei':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
             '169bbs':   { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
             'supjav':   { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'emby':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
+            'emby':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            'javbus':   { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
         },
 
         get(siteId) {
@@ -288,10 +301,17 @@
             name: 'Emby',
             match: (url) => /10\.10\.10\.\d+:\d+\/web\/index\.html/.test(url) || /emby\.sh1nyan\.fun\/web\/index\.html/.test(url),
             titleSelector: 'h1'
+        },
+        {
+            id: 'javbus',
+            name: 'JavBus',
+            // 匹配 javbus.com 详情页：排除常见列表页
+            match: (url) => /javbus\.com/.test(url) && !/search|genre|actresses|uncensored|forum|page|series|studio|label|director|star/.test(url),
+            titleSelector: 'h3' // 详情页标题为 <h3>
         }
     ];
 
-    // ============================ UI 渲染模块 (统一按钮插入方式) ============================
+    // ============================ UI 渲染模块 ============================
     function renderButtonsForCurrentPage() {
         const site = Sites.find(s => s.match(window.location.href));
         if (!site) return;
@@ -308,7 +328,7 @@
 
         const settings = Settings.get(site.id);
 
-        // 创建按钮组容器 (统一使用 div，放在标题下方新行)
+        // 创建按钮组容器 (统一放在标题下方新行)
         const btnGroup = document.createElement('div');
         btnGroup.className = 'jav-jump-btn-group';
 
@@ -318,7 +338,7 @@
         if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
         if (settings.preview) addPreviewBtn(code, btnGroup);
 
-        // 插入到标题元素之后 (即标题下方新行)
+        // 插入到标题元素之后
         titleElem.insertAdjacentElement('afterend', btnGroup);
     }
 
