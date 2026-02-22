@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.0
+// @version      4.1
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -1910,9 +1910,15 @@
                         const bestItem = await this.api.checkExists(code);
                         if (bestItem) {
                             const link = this.api.createLink(bestItem);
-
                             if (link) {
-                                spans[1].parentNode.insertBefore(link, spans[1].nextSibling);
+                                // 尝试插入按钮组
+                                const btnGroup = document.querySelector('.jav-jump-btn-group');
+                                if (btnGroup) {
+                                    link.style.marginLeft = '0';
+                                    btnGroup.appendChild(link);
+                                } else {
+                                    spans[1].parentNode.insertBefore(link, spans[1].nextSibling);
+                                }
                                 Status.success('找到匹配项', true);
                             }
                         } else {
@@ -1949,9 +1955,14 @@
                     const bestItem = await this.api.checkExists(code);
                     if (bestItem) {
                         const link = this.api.createLink(bestItem);
-
                         if (link) {
-                            detailElement.parentNode.insertBefore(link, detailElement.nextSibling);
+                            const btnGroup = document.querySelector('.jav-jump-btn-group');
+                            if (btnGroup) {
+                                link.style.marginLeft = '0';
+                                btnGroup.appendChild(link);
+                            } else {
+                                detailElement.parentNode.insertBefore(link, detailElement.nextSibling);
+                            }
                             Status.success('找到匹配项', true);
                         }
                     } else {
@@ -1993,9 +2004,15 @@
                     const bestItem = await this.api.checkExists(code);
                     if (bestItem) {
                         const link = this.api.createLink(bestItem);
-
                         if (link) {
-                            titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
+                            // 尝试插入按钮组
+                            const btnGroup = document.querySelector('.jav-jump-btn-group');
+                            if (btnGroup) {
+                                link.style.marginLeft = '0';
+                                btnGroup.appendChild(link);
+                            } else {
+                                titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
+                            }
                             Status.success('找到匹配项', true);
                         }
                     } else {
@@ -2031,7 +2048,14 @@
                         if (bestItem) {
                             const link = this.api.createLink(bestItem);
                             if (link) {
-                                container.parentNode.insertBefore(link, container.nextSibling);
+                                // 尝试插入按钮组
+                                const btnGroup = document.querySelector('.jav-jump-btn-group');
+                                if (btnGroup) {
+                                    link.style.marginLeft = '0';
+                                    btnGroup.appendChild(link);
+                                } else {
+                                    container.parentNode.insertBefore(link, container.nextSibling);
+                                }
                                 foundAny = true;
                             }
                         }
@@ -2040,7 +2064,7 @@
                     if (foundAny) Status.success('找到匹配项', true);
                     else Status.error('未找到匹配项', true);
                 }
-            },
+            }, 
 
             extractCodes(title) {
                 if (!title) return [];
@@ -2086,7 +2110,6 @@
             },
 
             async processDetailPage() {
-
                 if (document.querySelector('.emby-jump-link, .emby-badge')) return;
 
                 const titleElement = document.querySelector('.panel-heading .panel-title');
@@ -2094,34 +2117,38 @@
 
                 const titleText = titleElement.textContent;
                 const match = titleText.match(/[A-Z]{2,10}-\d+(?:-\d+)?/i);
-
                 if (!match) return;
 
                 const code = match[0].toUpperCase();
 
                 Status.show(`查询番号 ${code} 中...`);
-
                 const bestItem = await this.api.checkExists(code);
                 if (bestItem) {
                     const link = this.api.createLink(bestItem);
-
                     if (!link) {
                         Status.error('未找到精确匹配', true);
                         return;
                     }
 
-                    const container = document.createElement('span');
-                    container.style.marginLeft = '10px';
-                    container.appendChild(link);
-
-                    titleElement.appendChild(container);
+                    // 尝试插入到另一个脚本的按钮组
+                    const btnGroup = document.querySelector('.jav-jump-btn-group');
+                    if (btnGroup) {
+                        // 移除可能的多余左边距（因为按钮组本身有 gap 间距）
+                        link.style.marginLeft = '0';
+                        btnGroup.appendChild(link);
+                    } else {
+                        // 原有逻辑：创建容器并插入到标题后面
+                        const container = document.createElement('span');
+                        container.style.marginLeft = '10px';
+                        container.appendChild(link);
+                        titleElement.appendChild(container);
+                    }
 
                     Status.success('Emby 找到匹配项', true);
-
                 } else {
                     Status.error('Emby 未找到匹配项', true);
                 }
-            },
+            }, 
 
             async processListPage() {
 
@@ -2212,7 +2239,7 @@
                 document.querySelectorAll('.video').forEach(video => applyTitleHighlight(video));
             }
 
-            // 详情页维护函数（带状态提示）
+            // 详情页维护函数（带状态提示，并支持插入到另一个脚本的按钮组）
             function maintainDetailPage(api) {
                 const siteConfig = typeof GM_getValue !== 'undefined' ? Config.enabledSites.javlibrary : { detail: true };
                 if (!siteConfig || !siteConfig.detail) return;
@@ -2232,7 +2259,14 @@
                 if (item) {
                     const link = api.createLink(item);
                     if (link) {
-                        idContainer.insertAdjacentElement('afterend', link);
+                        // 尝试插入按钮组
+                        const btnGroup = document.querySelector('.jav-jump-btn-group');
+                        if (btnGroup) {
+                            link.style.marginLeft = '0'; // 按钮组内用 gap 控制间距
+                            btnGroup.appendChild(link);
+                        } else {
+                            idContainer.insertAdjacentElement('afterend', link);
+                        }
                         Status.success('✅ 已从缓存添加Emby链接', true);
                     }
                     return;
@@ -2245,7 +2279,13 @@
                         embyItemMap.set(code, bestItem);
                         const link = api.createLink(bestItem);
                         if (link) {
-                            idContainer.insertAdjacentElement('afterend', link);
+                            const btnGroup = document.querySelector('.jav-jump-btn-group');
+                            if (btnGroup) {
+                                link.style.marginLeft = '0';
+                                btnGroup.appendChild(link);
+                            } else {
+                                idContainer.insertAdjacentElement('afterend', link);
+                            }
                             Status.success(`✅ Emby 找到匹配项: ${code}`, true);
                         } else {
                             Status.error('❌ 创建链接失败', true);
@@ -2348,7 +2388,7 @@
                     setInterval(() => maintainDetailPage(this.api), 2000);
                 }
             });
-        })(),
+        })(), 
 
         madou: Object.assign(Object.create(BaseProcessor), {
             listSelector: '',
@@ -2367,7 +2407,6 @@
 
                 const keywords = document.querySelector('meta[name="keywords"]')?.content || "";
                 let match = keywords.match(/[A-Z]{2,10}-\d+(?:-\d+)?/i);
-
                 if (match) {
                     code = match[0].toUpperCase();
                 }
@@ -2395,7 +2434,13 @@
                         if (link) {
                             const titleElement = document.querySelector('h1');
                             if (titleElement) {
-                                titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
+                                const btnGroup = document.querySelector('.jav-jump-btn-group');
+                                if (btnGroup) {
+                                    link.style.marginLeft = '0';
+                                    btnGroup.appendChild(link);
+                                } else {
+                                    titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
+                                }
                                 Status.success('Emby 找到匹配项', true);
                             }
                         }
@@ -2431,7 +2476,13 @@
                         if (link) {
                             const titleElement = document.querySelector('h1');
                             if (titleElement) {
-                                titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
+                                const btnGroup = document.querySelector('.jav-jump-btn-group');
+                                if (btnGroup) {
+                                    link.style.marginLeft = '0';
+                                    btnGroup.appendChild(link);
+                                } else {
+                                    titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
+                                }
                                 Status.success('Emby 找到匹配项', true);
                             }
                         }
@@ -2478,7 +2529,14 @@
                             if (bestItem) {
                                 const link = this.api.createLink(bestItem);
                                 if (link) {
-                                    titleEl.after(link);
+                                    // 尝试插入按钮组
+                                    const btnGroup = document.querySelector('.jav-jump-btn-group');
+                                    if (btnGroup) {
+                                        link.style.marginLeft = '0'; // 移除左间距，使用按钮组gap
+                                        btnGroup.appendChild(link);
+                                    } else {
+                                        titleEl.after(link); // 原有方式
+                                    }
                                     Status.success(`已找到: ${code}`, true);
                                 }
                             } else {
