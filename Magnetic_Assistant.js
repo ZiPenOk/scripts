@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      2.5.6
-// @description  点击按钮显示绿色勾，同组按钮点击时互斥切换。支持复制、推送到qB/115，带现代化配置面板。
+// @version      2.6
+// @description  点击按钮显示绿色勾，同组按钮点击时互斥切换。支持复制、推送到qB/115，带现代化配置面板。优化与其他脚本共存，避免按钮重叠。
 // @author       ZiPenOk
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
@@ -149,6 +149,25 @@
         clickedBtn.classList.add('active');
     }
 
+    /**
+     * 检查目标元素附近是否已有其他脚本的磁力按钮（用于避让）
+     * @param {Element} target - 链接元素或文本节点父容器
+     * @returns {boolean} - true 表示已存在其他按钮，应跳过添加
+     */
+    function hasOtherMagnetButtons(target) {
+        // 检查父元素下是否存在已知的其他脚本按钮类
+        const parent = target.parentElement;
+        if (!parent) return false;
+        // yanche.js 的按钮类
+        const otherSelectors = [
+            '.magnet-combined-button',   // yanche.js 的组合按钮
+            '.magnet-button-part',        // yanche.js 的按钮部件
+            '.magnet-loading-btn',        // yanche.js 的加载按钮
+            '.check-car-panel'            // yanche.js 的面板（不太可能，但作为参考）
+        ];
+        return otherSelectors.some(sel => parent.querySelector(sel));
+    }
+
     function createBtnGroup(link) {
         const group = document.createElement('span');
         group.className = 'mag-btn-group';
@@ -227,19 +246,31 @@
         });
     }
 
-    // ================= 5. 页面扫描 =================
+    // ================= 5. 页面扫描（增强去重与避让）=================
     function processPage() {
         const regex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|)/gi;
 
+        // 收集已通过 <a> 标签处理的磁力链接
+        const processedHrefs = new Set();
+        document.querySelectorAll('a[data-mag-processed="true"]').forEach(a => {
+            if (a.href) processedHrefs.add(a.href);
+        });
+
+        // 处理 <a> 标签（排除 yanche.js 生成的 .magnet-link）
         document.querySelectorAll('a').forEach(a => {
             if (a.dataset.magProcessed) return;
+            if (a.classList.contains('magnet-link')) return;
             const href = a.href || '';
             if (href.match(regex)) {
+                if (a.nextElementSibling?.classList?.contains('mag-btn-group')) return;
+                if (hasOtherMagnetButtons(a)) return;
                 a.after(createBtnGroup(href));
                 a.dataset.magProcessed = 'true';
+                processedHrefs.add(href);
             }
         });
 
+        // 处理文本节点中的磁力链接
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
         let node;
         const textNodes = [];
@@ -264,15 +295,35 @@
                 span.textContent = link;
                 span.dataset.magProcessed = 'true';
                 fragment.appendChild(span);
-                fragment.appendChild(createBtnGroup(link));
+
+                const yancheLinkExists = Array.from(document.querySelectorAll('a.magnet-link[href="' + link.replace(/"/g, '\\"') + '"]')).length > 0;
+                if (!processedHrefs.has(link) && !yancheLinkExists && !hasOtherMagnetButtons(parent)) {
+                    fragment.appendChild(createBtnGroup(link));
+                }
                 lastIndex = regex.lastIndex;
             }
             fragment.appendChild(document.createTextNode(content.substring(lastIndex)));
             try { parent.replaceChild(fragment, node); } catch (e) {}
         });
+
+        // === 新增：为 yanche 绝对定位按钮预留空间 ===
+        setTimeout(() => {
+            document.querySelectorAll('a[href^="magnet:"]').forEach(a => {
+                const parent = a.parentElement;
+                if (!parent) return;
+                const yancheBtn = parent.querySelector('.magnet-combined-button, .magnet-button-part');
+                if (!yancheBtn) return;
+                const style = window.getComputedStyle(yancheBtn);
+                if (style.position === 'absolute') {
+                    // 估算按钮宽度（根据 yanche.js 样式，约 26px）
+                    const btnWidth = 40; // 稍宽一点，避免覆盖
+                    parent.style.paddingRight = btnWidth + 'px';
+                }
+            });
+        }, 500); // 延迟执行，确保 yanche 按钮已渲染
     }
 
-    // ================= 6. 设置面板（改进的115登录检查）=================
+    // ================= 6. 设置面板（与之前相同，可复用）=================
     function showSettingsModal() {
         const mask = document.createElement('div');
         mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100001;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
@@ -384,41 +435,33 @@
             });
         }
 
-        // 改进的115登录状态检测（基于参考脚本，准确可靠）
         function test115Connection() {
             const resultSpan = modal.querySelector('#u115_test_result');
             resultSpan.textContent = '检查登录状态...';
             GM_xmlhttpRequest({
                 method: 'GET',
                 url: 'https://115.com/web/lixian/?ct=lixian&ac=task_lists&t=' + Date.now(),
-                anonymous: false, // 确保发送Cookie
+                anonymous: false,
                 headers: {
                     'Accept': 'application/json, text/plain, */*',
                     'Referer': 'https://115.com/web/lixian/'
                 },
                 onload: (res) => {
                     try {
-                        // 检查是否被重定向到登录页
                         if (res.finalUrl && res.finalUrl.includes('login.115.com')) {
                             resultSpan.innerHTML = '❌ 未登录，请先登录115官网';
                             return;
                         }
                         const text = res.responseText;
                         let json = null;
-                        try {
-                            json = JSON.parse(text);
-                        } catch (_) {}
+                        try { json = JSON.parse(text); } catch (_) {}
                         if (json) {
-                            // 如果state为true或errno为0，通常表示已登录
                             if (json.state === true || json.errno === 0) {
                                 resultSpan.innerHTML = '✅ 已登录115';
-                                return;
                             } else {
                                 resultSpan.innerHTML = '❌ 未登录或登录已过期';
-                                return;
                             }
                         } else {
-                            // 非JSON，可能是登录页面
                             if (text.includes('登录') || text.includes('login') || text.includes('passport')) {
                                 resultSpan.innerHTML = '❌ 未登录，请先登录115官网';
                             } else {
