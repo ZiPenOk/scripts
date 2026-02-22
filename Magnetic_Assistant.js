@@ -1,9 +1,8 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      2.6
-// @description  点击按钮显示绿色勾，同组按钮点击时互斥切换。支持复制、推送到qB/115，带现代化配置面板。优化与其他脚本共存，避免按钮重叠。
-// @author       ZiPenOk
+// @version      3.0.0
+// @description  点击按钮显示绿色勾（验车按钮除外），支持复制、推送到qB/115，新增磁力信息验车功能，截图支持轮播。
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
@@ -11,11 +10,13 @@
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
 // @connect      *
+// @connect      whatslink.info
+// @require      https://cdn.jsdelivr.net/npm/vue@3.5.27/dist/vue.global.prod.js
 // @updateURL    https://raw.githubusercontent.com/ZiPenOk/scripts/main/Magnetic_Assistant.js
 // @downloadURL  https://raw.githubusercontent.com/ZiPenOk/scripts/main/Magnetic_Assistant.js
 // ==/UserScript==
 
-(function() {
+(function (vue) {
     'use strict';
 
     // ================= 1. 基础配置 =================
@@ -23,6 +24,7 @@
         enableCopy: GM_getValue('enableCopy', true),
         enableQb: GM_getValue('enableQb', true),
         enable115: GM_getValue('enable115', false),
+        enableCheck: GM_getValue('enableCheck', true),
         qbtHost: GM_getValue('qbtHost', 'http://127.0.0.1:8080'),
         qbtUser: GM_getValue('qbtUser', 'admin'),
         qbtPass: GM_getValue('qbtPass', 'adminadmin'),
@@ -36,10 +38,11 @@
         copy: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#666"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`,
         qb: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#0078d4"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`,
         u115: `<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="11" fill="#2777F8"/><text x="12" y="17" font-family="Arial" font-size="12" font-weight="900" fill="white" text-anchor="middle">5</text></svg>`,
-        check: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#28a745"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
+        car: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#ff9800"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15L17 12.23l-4-2.37V7z"/></svg>`,
+        checkActive: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#28a745"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
     };
 
-    // ================= 2. 注入CSS（完整版）=================
+    // ================= 2. 注入CSS（包含验车弹窗样式和轮播样式）=================
     const style = document.createElement('style');
     style.innerHTML = `
         .mag-btn-group {
@@ -109,6 +112,158 @@
         .mag-btn.active svg {
             animation: popIn 0.2s ease-out;
         }
+        /* 验车弹窗样式（来自 yanche.js） */
+        .check-car-mask {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 999998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: maskFadeIn 0.25s ease;
+        }
+        @keyframes maskFadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .check-car-panel {
+            animation: panelPop 0.25s ease;
+            position: relative;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80%;
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            background-color: rgba(255,255,255,0.95);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0,0,0,0.2) transparent;
+            color: #000;
+        }
+        .check-car-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .check-car-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .check-car-panel::-webkit-scrollbar-thumb {
+            background-color: rgba(0,0,0,0.18);
+            border-radius: 6px;
+        }
+        .check-car-panel h3 {
+            color: #ff4080;
+            font-size: 1rem;
+            margin: 0;
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .check-car-close {
+            cursor: pointer;
+            color: #888;
+            font-weight: bold;
+            font-size: 1.2rem;
+            transition: color 0.2s;
+        }
+        .check-car-close:hover {
+            color: #ff4080;
+        }
+        .info div {
+            background: #fff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+            font-size: 0.9rem;
+            margin: 6px 0;
+            word-wrap: break-word;
+        }
+        .screenshots ul {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 6px;
+            padding: 0;
+            list-style: none;
+        }
+        .screenshots img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .screenshots img:hover {
+            transform: scale(1.05);
+        }
+        /* 图片轮播弹窗 */
+        .gallery-mask {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gallery-container {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+        }
+        .gallery-img {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .gallery-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.3);
+            color: white;
+            border: none;
+            font-size: 2rem;
+            padding: 0 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            user-select: none;
+            backdrop-filter: blur(4px);
+        }
+        .gallery-nav:hover {
+            background: rgba(255,255,255,0.5);
+        }
+        .gallery-prev {
+            left: 10px;
+        }
+        .gallery-next {
+            right: 10px;
+        }
+        .gallery-close {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            text-shadow: 0 0 5px black;
+        }
+        @media (max-width: 768px) {
+            .check-car-panel { padding: 12px; }
+            .info div { font-size: 0.85rem; }
+        }
         /* 深色模式 */
         @media (prefers-color-scheme: dark) {
             .mag-btn-group {
@@ -126,6 +281,14 @@
             .mag-btn.active {
                 background: #1e3a2a !important;
                 border-color: #34ce57 !important;
+            }
+            .check-car-panel {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+            }
+            .info div {
+                background: #3a3a3a;
+                color: #e0e0e0;
             }
         }
     `;
@@ -145,29 +308,234 @@
             btn.innerHTML = btn.dataset.origIcon;
             btn.classList.remove('active');
         });
-        clickedBtn.innerHTML = ICONS.check;
+        clickedBtn.innerHTML = ICONS.checkActive;
         clickedBtn.classList.add('active');
     }
 
-    /**
-     * 检查目标元素附近是否已有其他脚本的磁力按钮（用于避让）
-     * @param {Element} target - 链接元素或文本节点父容器
-     * @returns {boolean} - true 表示已存在其他按钮，应跳过添加
-     */
+    // 验车按钮的临时高亮效果
+    function highlightBtn(btn) {
+        const originalBg = btn.style.backgroundColor;
+        btn.style.backgroundColor = '#ffb74d'; // 浅橙色
+        btn.style.transition = 'background-color 0.2s';
+        setTimeout(() => {
+            btn.style.backgroundColor = originalBg;
+        }, 200);
+    }
+
+    // 检测其他脚本的磁力按钮（用于避让）
     function hasOtherMagnetButtons(target) {
-        // 检查父元素下是否存在已知的其他脚本按钮类
         const parent = target.parentElement;
         if (!parent) return false;
-        // yanche.js 的按钮类
         const otherSelectors = [
-            '.magnet-combined-button',   // yanche.js 的组合按钮
-            '.magnet-button-part',        // yanche.js 的按钮部件
-            '.magnet-loading-btn',        // yanche.js 的加载按钮
-            '.check-car-panel'            // yanche.js 的面板（不太可能，但作为参考）
+            '.magnet-combined-button',
+            '.magnet-button-part',
+            '.magnet-loading-btn',
+            '.check-car-panel'
         ];
         return otherSelectors.some(sel => parent.querySelector(sel));
     }
 
+    // ================= 4. 图片轮播函数 =================
+    function showImageGallery(images, startIndex = 0) {
+        if (!images || images.length === 0) return;
+
+        let currentIndex = startIndex;
+        const mask = document.createElement('div');
+        mask.className = 'gallery-mask';
+
+        const updateImage = () => {
+            img.src = images[currentIndex];
+        };
+
+        const img = document.createElement('img');
+        img.className = 'gallery-img';
+        img.src = images[currentIndex];
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'gallery-nav gallery-prev';
+        prevBtn.innerHTML = '‹';
+        prevBtn.onclick = (e) => {
+            e.stopPropagation();
+            currentIndex = (currentIndex - 1 + images.length) % images.length;
+            updateImage();
+        };
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'gallery-nav gallery-next';
+        nextBtn.innerHTML = '›';
+        nextBtn.onclick = (e) => {
+            e.stopPropagation();
+            currentIndex = (currentIndex + 1) % images.length;
+            updateImage();
+        };
+
+        const closeBtn = document.createElement('div');
+        closeBtn.className = 'gallery-close';
+        closeBtn.innerHTML = '✖';
+        closeBtn.onclick = () => mask.remove();
+
+        const container = document.createElement('div');
+        container.className = 'gallery-container';
+        container.appendChild(img);
+        if (images.length > 1) {
+            container.appendChild(prevBtn);
+            container.appendChild(nextBtn);
+        }
+        container.appendChild(closeBtn);
+
+        mask.appendChild(container);
+        mask.addEventListener('click', (e) => {
+            if (e.target === mask) mask.remove();
+        });
+
+        document.body.appendChild(mask);
+    }
+
+    // ================= 5. 验车功能（使用 Vue 组件）=================
+    const MagnetPanel = {
+        name: 'MagnetPanel',
+        props: {
+            show: { type: Boolean, required: true },
+            magnet: { type: String, required: true },
+            info: { type: Object, required: false, default: () => ({}) }
+        },
+        emits: ['close'],
+        setup(props, { emit }) {
+            const formatSize = (bytes) => {
+                if (!bytes) return '0 B';
+                const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                let i = 0;
+                let size = bytes;
+                while (size >= 1024 && i < units.length - 1) {
+                    size /= 1024;
+                    i++;
+                }
+                return size.toFixed(2) + ' ' + units[i];
+            };
+
+            const decodeMagnetLink = (magnet) => {
+                return magnet.replace(/([?&])([^=]+)=([^&]*)/g, (match, sep, key, value) => {
+                    try {
+                        return `${sep}${key}=${decodeURIComponent(value)}`;
+                    } catch (e) {
+                        return match;
+                    }
+                });
+            };
+
+            const preview = (src) => {
+                // 改为调用轮播函数，如果有多张截图，传入全部
+                const shots = props.info.screenshots || [];
+                const urls = shots.map(s => s.screenshot || s);
+                const currentIndex = urls.indexOf(src);
+                showImageGallery(urls, currentIndex !== -1 ? currentIndex : 0);
+            };
+
+            return () => vue.h('div', {
+                class: 'check-car-mask',
+                onClick: (e) => { if (e.target === e.currentTarget) emit('close'); }
+            }, [
+                vue.h('div', { class: 'check-car-panel' }, [
+                    vue.h('div', { class: 'panel-header' }, [
+                        vue.h('h3', null, [
+                            vue.h('span', { style: { fontSize: '20px' } }, '🚗'),
+                            ' ',
+                            vue.h('b', null, '磁力信息')
+                        ]),
+                        vue.h('span', { class: 'check-car-close', onClick: () => emit('close') }, '✖')
+                    ]),
+                    vue.h('div', { class: 'panel-body' }, [
+                        props.info ? vue.h('div', { class: 'info' }, [
+                            vue.h('div', { class: 'magnet' }, [
+                                vue.h('b', null, '磁力链接：'),
+                                vue.h('a', { href: props.magnet, target: '_blank' }, decodeMagnetLink(props.magnet))
+                            ]),
+                            vue.h('div', null, [vue.h('b', null, '名称：'), ' ', props.info.name || '未知']),
+                            vue.h('div', null, [vue.h('b', null, '文件类型：'), ' ', props.info.file_type || '未知']),
+                            vue.h('div', null, [vue.h('b', null, '大小：'), ' ', formatSize(props.info.size)]),
+                            vue.h('div', null, [vue.h('b', null, '文件数量：'), ' ', props.info.count || 0]),
+                            props.info.screenshots && props.info.screenshots.length ? vue.h('div', { class: 'screenshots' }, [
+                                vue.h('p', null, [vue.h('b', null, '截图：')]),
+                                vue.h('ul', null, props.info.screenshots.map((shot, idx) =>
+                                    vue.h('li', { key: idx }, [
+                                        vue.h('img', {
+                                            src: shot.screenshot,
+                                            onClick: () => preview(shot.screenshot),
+                                            alt: '截图 ' + (idx + 1)
+                                        })
+                                    ])
+                                ))
+                            ]) : null
+                        ]) : vue.h('div', null, '等待获取...')
+                    ])
+                ])
+            ]);
+        }
+    };
+
+    function GM_Request({ method = "GET", url, data = null, headers = {} }) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method,
+                url,
+                headers,
+                data: data && typeof data === "object" ? JSON.stringify(data) : data,
+                onload: (res) => {
+                    try {
+                        const contentType = res.responseHeaders || "";
+                        if (contentType.includes("application/json")) {
+                            resolve(JSON.parse(res.responseText));
+                        } else {
+                            resolve(res.responseText);
+                        }
+                    } catch (err) {
+                        reject(err);
+                    }
+                },
+                onerror: (err) => reject(err)
+            });
+        });
+    }
+
+    async function getMagnetInfo(magnet) {
+        const url = `https://whatslink.info/api/v1/link?url=${encodeURIComponent(magnet)}`;
+        try {
+            return await GM_Request({ method: "GET", url, headers: { "Accept": "application/json" } });
+        } catch (err) {
+            console.error("获取磁力信息失败", err);
+            return null;
+        }
+    }
+
+    async function handleCheckCar(link, btn) {
+        // 验车按钮：短暂高亮，不打勾
+        highlightBtn(btn);
+
+        showToast('🔍 正在查询磁力信息...', true);
+        const info = await getMagnetInfo(link);
+        if (!info) {
+            showToast('❌ 查询失败', false);
+            return;
+        }
+
+        const mountPoint = document.createElement('div');
+        document.body.appendChild(mountPoint);
+
+        const app = vue.createApp({
+            render: () => vue.h(MagnetPanel, {
+                show: true,
+                magnet: link,
+                info: info,
+                onClose: () => {
+                    app.unmount();
+                    mountPoint.remove();
+                }
+            })
+        });
+        app.mount(mountPoint);
+    }
+
+    // ================= 6. 按钮组构建（验车按钮特殊处理）=================
     function createBtnGroup(link) {
         const group = document.createElement('span');
         group.className = 'mag-btn-group';
@@ -181,8 +549,13 @@
             btn.dataset.origIcon = icon;
             btn.onclick = (e) => {
                 e.stopPropagation();
-                setBtnActive(btn, group);
-                action();
+                if (type === 'check') {
+                    // 验车按钮：不打勾，只执行动作
+                    action(btn);
+                } else {
+                    setBtnActive(btn, group);
+                    action();
+                }
             };
             group.appendChild(btn);
         };
@@ -193,19 +566,20 @@
                 showToast('📋 链接已复制');
             });
         }
-
         if (config.enableQb) {
             addBtn('qb', ICONS.qb, '推送至 qB', () => pushToQb(link));
         }
-
         if (config.enable115) {
             addBtn('115', ICONS.u115, '115 离线', () => pushTo115(link));
+        }
+        if (config.enableCheck) {
+            addBtn('check', ICONS.car, '验车', (btn) => handleCheckCar(link, btn));
         }
 
         return group;
     }
 
-    // ================= 4. 推送函数 =================
+    // ================= 7. 推送函数 =================
     function pushToQb(link) {
         GM_xmlhttpRequest({
             method: "POST",
@@ -222,10 +596,12 @@
                         onload: (r) => {
                             if (r.status === 200) showToast('✅ 已推送到 qB');
                             else showToast('❌ 推送失败', false);
-                        }
+                        },
+                        onerror: () => showToast('❌ 推送请求失败', false)
                     });
                 } else showToast('🚫 qB 登录失败', false);
-            }
+            },
+            onerror: () => showToast('❌ 无法连接到 qB', false)
         });
     }
 
@@ -246,18 +622,19 @@
         });
     }
 
-    // ================= 5. 页面扫描（增强去重与避让）=================
+    // ================= 8. 页面扫描（修复弹窗内重复生成按钮）=================
     function processPage() {
         const regex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|)/gi;
 
-        // 收集已通过 <a> 标签处理的磁力链接
+        // 收集已处理的磁力链接
         const processedHrefs = new Set();
         document.querySelectorAll('a[data-mag-processed="true"]').forEach(a => {
             if (a.href) processedHrefs.add(a.href);
         });
 
-        // 处理 <a> 标签（排除 yanche.js 生成的 .magnet-link）
+        // 处理 <a> 标签（排除弹窗内的链接）
         document.querySelectorAll('a').forEach(a => {
+            if (a.closest('.check-car-panel')) return;
             if (a.dataset.magProcessed) return;
             if (a.classList.contains('magnet-link')) return;
             const href = a.href || '';
@@ -270,13 +647,13 @@
             }
         });
 
-        // 处理文本节点中的磁力链接
+        // 处理文本节点
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
         let node;
         const textNodes = [];
         while (node = walker.nextNode()) {
             const parent = node.parentElement;
-            if (!parent || parent.closest('.mag-btn-group') || parent.closest('[data-mag-processed]') ||
+            if (!parent || parent.closest('.check-car-panel') || parent.closest('.mag-btn-group') || parent.closest('[data-mag-processed]') ||
                 ['SCRIPT', 'STYLE', 'A', 'TEXTAREA', 'INPUT'].includes(parent.tagName)) continue;
             if (node.nodeValue.match(regex)) textNodes.push(node);
         }
@@ -305,25 +682,9 @@
             fragment.appendChild(document.createTextNode(content.substring(lastIndex)));
             try { parent.replaceChild(fragment, node); } catch (e) {}
         });
-
-        // === 新增：为 yanche 绝对定位按钮预留空间 ===
-        setTimeout(() => {
-            document.querySelectorAll('a[href^="magnet:"]').forEach(a => {
-                const parent = a.parentElement;
-                if (!parent) return;
-                const yancheBtn = parent.querySelector('.magnet-combined-button, .magnet-button-part');
-                if (!yancheBtn) return;
-                const style = window.getComputedStyle(yancheBtn);
-                if (style.position === 'absolute') {
-                    // 估算按钮宽度（根据 yanche.js 样式，约 26px）
-                    const btnWidth = 40; // 稍宽一点，避免覆盖
-                    parent.style.paddingRight = btnWidth + 'px';
-                }
-            });
-        }, 500); // 延迟执行，确保 yanche 按钮已渲染
     }
 
-    // ================= 6. 设置面板（与之前相同，可复用）=================
+    // ================= 9. 设置面板 =================
     function showSettingsModal() {
         const mask = document.createElement('div');
         mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100001;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
@@ -357,6 +718,7 @@
                     <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_copy" ${config.enableCopy?'checked':''}> <span style="margin-left:8px;">显示复制按钮</span></label>
                     <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_qb" ${config.enableQb?'checked':''}> <span style="margin-left:8px;">显示 qB 推送按钮</span></label>
                     <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_115" ${config.enable115?'checked':''}> <span style="margin-left:8px;">显示 115 离线按钮</span></label>
+                    <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_check" ${config.enableCheck?'checked':''}> <span style="margin-left:8px;">显示验车按钮</span></label>
                 </div>
             `,
             qb: `
@@ -483,6 +845,7 @@
                 enableCopy: modal.querySelector('#sw_copy')?.checked ?? config.enableCopy,
                 enableQb: modal.querySelector('#sw_qb')?.checked ?? config.enableQb,
                 enable115: modal.querySelector('#sw_115')?.checked ?? config.enable115,
+                enableCheck: modal.querySelector('#sw_check')?.checked ?? config.enableCheck,
                 qbtHost: modal.querySelector('#in_host')?.value.trim() ?? config.qbtHost,
                 qbtUser: modal.querySelector('#in_user')?.value.trim() ?? config.qbtUser,
                 qbtPass: modal.querySelector('#in_pass')?.value.trim() ?? config.qbtPass,
@@ -507,6 +870,7 @@
                     if (modal.querySelector('#sw_copy')) modal.querySelector('#sw_copy').checked = imported.enableCopy ?? true;
                     if (modal.querySelector('#sw_qb')) modal.querySelector('#sw_qb').checked = imported.enableQb ?? true;
                     if (modal.querySelector('#sw_115')) modal.querySelector('#sw_115').checked = imported.enable115 ?? false;
+                    if (modal.querySelector('#sw_check')) modal.querySelector('#sw_check').checked = imported.enableCheck ?? true;
                     if (modal.querySelector('#in_host')) modal.querySelector('#in_host').value = imported.qbtHost || 'http://127.0.0.1:8080';
                     if (modal.querySelector('#in_user')) modal.querySelector('#in_user').value = imported.qbtUser || 'admin';
                     if (modal.querySelector('#in_pass')) modal.querySelector('#in_pass').value = imported.qbtPass || 'adminadmin';
@@ -523,6 +887,7 @@
             GM_setValue('enableCopy', modal.querySelector('#sw_copy')?.checked ?? config.enableCopy);
             GM_setValue('enableQb', modal.querySelector('#sw_qb')?.checked ?? config.enableQb);
             GM_setValue('enable115', modal.querySelector('#sw_115')?.checked ?? config.enable115);
+            GM_setValue('enableCheck', modal.querySelector('#sw_check')?.checked ?? config.enableCheck);
             GM_setValue('qbtHost', modal.querySelector('#in_host')?.value.trim() ?? config.qbtHost);
             GM_setValue('qbtUser', modal.querySelector('#in_user')?.value.trim() ?? config.qbtUser);
             GM_setValue('qbtPass', modal.querySelector('#in_pass')?.value.trim() ?? config.qbtPass);
@@ -535,11 +900,11 @@
         modal.querySelector('#btn_cancel').onclick = () => mask.remove();
     }
 
-    // ================= 7. 启动监听 =================
+    // ================= 10. 启动监听 =================
     let timer = null;
     function lazyRun() { if (timer) clearTimeout(timer); timer = setTimeout(processPage, 500); }
     processPage();
     const observer = new MutationObserver(lazyRun);
     observer.observe(document.body, { childList: true, subtree: true });
 
-})();
+})(Vue);
