@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.1
+// @version      4.2
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -2259,10 +2259,9 @@
                 if (item) {
                     const link = api.createLink(item);
                     if (link) {
-                        // 尝试插入按钮组
                         const btnGroup = document.querySelector('.jav-jump-btn-group');
                         if (btnGroup) {
-                            link.style.marginLeft = '0'; // 按钮组内用 gap 控制间距
+                            link.style.marginLeft = '0';
                             btnGroup.appendChild(link);
                         } else {
                             idContainer.insertAdjacentElement('afterend', link);
@@ -2340,6 +2339,8 @@
                         }
 
                         this.setupContainerObserver();
+                        // 启动列表页维护定时器，每隔3秒扫描并修复丢失的高亮
+                        this.startListMaintenance();
                     }
 
                     // ----- 详情页处理（定时器）-----
@@ -2380,6 +2381,18 @@
                     if (!container) return;
                     const observer = new MutationObserver(() => setTimeout(scanAndRepair, 50));
                     observer.observe(container, { childList: true, subtree: true });
+                },
+
+                // 新增：列表页维护定时器
+                startListMaintenance() {
+                    if (this._listMaintenanceStarted) return;
+                    this._listMaintenanceStarted = true;
+
+                    setInterval(() => {
+                        const siteConfig = this.__siteConfig;
+                        if (!siteConfig || !siteConfig.list) return;
+                        scanAndRepair();
+                    }, 3000); // 每3秒检查一次
                 },
 
                 startDetailMaintenance() {
