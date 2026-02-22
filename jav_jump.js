@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      3.4.0
+// @version      3.5.0
 // @description  所有站点统一使用 强番号逻辑 + JavBus 有码/无码智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus 支持。
 // @author       ZiPenOk
+// @icon         https://javdb.com/favicon.ico
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
 // @match        *://supjav.com/*
@@ -12,6 +13,8 @@
 // @match        *://10.10.10.*:*/web/index.html*
 // @match        *://www.javbus.com/*
 // @match        *://javbus.com/*
+// @match        *://www.javlibrary.com/*/*
+// @match         *://javlibrary.com/*/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -71,6 +74,34 @@
             flex-wrap: wrap;
             gap: 8px;
             align-items: center;
+        }
+
+        body.main .javlibrary-fix {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            margin: 15px 0 10px !important;
+            padding: 0 !important;
+            background: transparent !important;
+            border: none !important;
+            width: 100% !important;
+            position: relative !important;
+            z-index: 9999 !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        body.main .javlibrary-fix a {
+            display: inline-block !important;
+            padding: 4px 8px !important;
+            border-radius: 4px !important;
+            font-size: 13px !important;
+            font-weight: bold !important;
+            font-family: Arial, "Microsoft YaHei", sans-serif !important;
+            text-decoration: none !important;
+            border: none !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+            box-sizing: border-box !important;
+            line-height: normal !important;
         }
     `);
 
@@ -204,11 +235,12 @@
     // ============================ 设置管理模块 ============================
     const Settings = {
         defaults: {
-            'sukebei':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            '169bbs':   { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'supjav':   { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'emby':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'javbus':   { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
+            'sukebei':    { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            '169bbs':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            'supjav':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            'emby':       { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            'javbus':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            'javlibrary': { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
         },
 
         get(siteId) {
@@ -308,6 +340,12 @@
             // 匹配 javbus.com 详情页：排除常见列表页
             match: (url) => /javbus\.com/.test(url) && !/search|genre|actresses|uncensored|forum|page|series|studio|label|director|star/.test(url),
             titleSelector: 'h3' // 详情页标题为 <h3>
+        },
+        {
+            id: 'javlibrary',
+            name: 'JAVLibrary',
+            match: (url) => /javlibrary\.com/.test(url) && /\/cn\/jav\w+\.html/.test(url), // 匹配中文详情页
+            titleSelector: '.post-title'
         }
     ];
 
@@ -328,18 +366,34 @@
 
         const settings = Settings.get(site.id);
 
-        // 创建按钮组容器 (统一放在标题下方新行)
+        // 创建按钮组容器
         const btnGroup = document.createElement('div');
         btnGroup.className = 'jav-jump-btn-group';
 
-        if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
-        if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
-        if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
-        if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
-        if (settings.preview) addPreviewBtn(code, btnGroup);
+        // JAVLibrary 特殊处理
+        if (site.id === 'javlibrary') {
+            btnGroup.classList.add('javlibrary-fix');
+            addNyaaBtn(code, btnGroup);
+            addJavbusBtn(code, btnGroup);
+            addJavdbBtn(code, btnGroup);
+            addGoogleBtn(code, btnGroup);
+            addPreviewBtn(code, btnGroup);
 
-        // 插入到标题元素之后
-        titleElem.insertAdjacentElement('afterend', btnGroup);
+            // 强化内联样式
+            btnGroup.querySelectorAll('a').forEach(btn => {
+                let style = btn.getAttribute('style') || '';
+                style = style.replace(/background:\s*([^;]+);/g, 'background: $1 !important;');
+                style = style.replace(/color:\s*([^;]+);/g, 'color: $1 !important;');
+                btn.setAttribute('style', style);
+            });
+
+            const rightColumn = document.querySelector('#rightcolumn');
+            if (rightColumn) {
+                rightColumn.prepend(btnGroup);
+            } else {
+                titleElem.insertAdjacentElement('afterend', btnGroup);
+            }
+        }
     }
 
     // ============================ 管理面板模块 ============================
