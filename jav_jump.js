@@ -1,16 +1,20 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      2.1.5
-// @description  支持多站点（新增 SupJav），表格布局滑动开关面板，经典灰白配色，手动关闭，修复 sukebei 按钮位置（改为第二行头部左对齐）。
+// @version      3.2.0
+// @description  所有站点统一使用强番号逻辑 + JavBus 有码/无码智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。
 // @author       ZiPenOk
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
 // @match        *://supjav.com/*
+// @match        http://10.10.10.60:8097/web/index.html*
+// @match        https://emby.sh1nyan.fun/web/index.html*
+// @match        *://10.10.10.*:*/web/index.html*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_registerMenuCommand
+// @grant        GM_addStyle
 // @connect      *
 // @updateURL    https://raw.githubusercontent.com/ZiPenOk/scripts/main/jav_jump.js
 // @downloadURL  https://raw.githubusercontent.com/ZiPenOk/scripts/main/jav_jump.js
@@ -19,21 +23,89 @@
 (function() {
     'use strict';
 
+    // ============================ 全局样式 ============================
+    GM_addStyle(`
+        #emby-config-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 2147483647; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); font-family: sans-serif; }
+        .emby-config-modal { background: #2d2d2d; border: 1px solid #444; border-radius: 12px; width: 320px; padding: 25px; color: white; box-shadow: 0 10px 50px rgba(0,0,0,0.9); }
+        .emby-config-header { font-size: 18px; font-weight: bold; margin-bottom: 20px; text-align: center; color: #00a4dc; border-bottom: 1px solid #444; padding-bottom: 12px; }
+        .emby-config-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; cursor: pointer; user-select: none; }
+        .emby-config-item input { width: 18px; height: 18px; cursor: pointer; }
+        .emby-config-footer { margin-top: 25px; display: flex; gap: 12px; }
+        .emby-config-btn { flex: 1; padding: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .emby-config-save { background: #00a4dc; color: white; }
+        .emby-config-cancel { background: #444; color: #ccc; }
+
+        .preview-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 2147483647;
+            display: flex;
+            overflow: auto;
+            cursor: zoom-out;
+            backdrop-filter: blur(5px);
+        }
+        .preview-img {
+            border-radius: 4px;
+            margin: auto;
+            cursor: zoom-in;
+            max-width: 95vw;
+            max-height: 95vh;
+            object-fit: contain;
+            display: block;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .preview-img.zoomed {
+            max-width: none;
+            max-height: none;
+            cursor: zoom-out;
+        }
+
+        /* 统一按钮组样式 */
+        .jav-jump-btn-group {
+            margin-top: 8px;
+            margin-bottom: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+    `);
+
     // ============================ 核心工具模块 ============================
     const Utils = {
+        // 统一使用 番号提取逻辑
         extractCode(text) {
             if (!text) return null;
-            const m = text.match(/\b([A-Z0-9]{2,6}-\d{3,7})\b/i);
-            return m ? m[1].toUpperCase() : null;
+
+            // FC2 格式: FC2-PPV-123456 或 FC2-123456
+            const fc2Match = text.match(/FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i);
+            if (fc2Match) {
+                return `FC2-PPV-${fc2Match[1]}`;
+            }
+
+            // 标准格式: 字母-数字 (忽略常见非番号前缀)
+            const standardMatch = text.match(/([a-zA-Z0-9]{2,15})([-\s_])(\d{2,10})/i);
+            if (standardMatch) {
+                const prefix = standardMatch[1].toUpperCase();
+                const separator = standardMatch[2];
+                const suffix = standardMatch[3];
+                const ignoreList = ['FULLHD', 'H264', 'H265', '1080P', '720P', 'PART', 'DISC', '10BIT'];
+                if (!ignoreList.includes(prefix)) {
+                    return `${prefix}${separator}${suffix}`;
+                }
+            }
+            return null;
         },
 
+        // 创建按钮 (通用)
         createBtn(text, color, handler) {
             const btn = document.createElement('a');
             btn.textContent = text;
             btn.style.cssText =
-                "margin-left:8px;padding:4px 12px;background:" +
+                "padding:4px 8px;background:" +
                 color +
-                ";color:white;border-radius:4px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-block;";
+                ";color:white;border-radius:4px;font-size:13px;font-weight:bold;cursor:pointer;text-decoration:none;display:inline-block;";
             btn.onclick = (e) => {
                 e.preventDefault();
                 handler();
@@ -41,6 +113,7 @@
             return btn;
         },
 
+        // 请求封装
         request(url) {
             return new Promise((resolve) => {
                 GM_xmlhttpRequest({
@@ -52,53 +125,30 @@
             });
         },
 
+        // 预览图显示
         showOverlay(imgUrl) {
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position:fixed;
-                inset:0;
-                background:rgba(0,0,0,0.85);
-                z-index:10000000;
-                display:flex;
-                justify-content:center;
-                align-items:center;
-                cursor:pointer;
-                overflow:auto;
-                padding:20px;
-            `;
-
+            const container = document.createElement('div');
+            container.className = 'preview-overlay';
             const img = document.createElement('img');
+            img.className = 'preview-img';
             img.src = imgUrl;
-            img.style.cssText = `
-                max-width:92%;
-                max-height:92%;
-                border:5px solid white;
-                border-radius:10px;
-                cursor:zoom-in;
-            `;
-
-            let isZoomed = false;
             img.onclick = (e) => {
                 e.stopPropagation();
-                if (!isZoomed) {
-                    overlay.style.alignItems = 'flex-start';
-                    img.style.maxWidth = 'none';
-                    img.style.maxHeight = 'none';
-                    img.style.cursor = 'zoom-out';
-                    isZoomed = true;
-                    overlay.scrollTo(0, 0);
-                } else {
-                    overlay.style.alignItems = 'center';
-                    img.style.maxWidth = '92%';
-                    img.style.maxHeight = '92%';
-                    img.style.cursor = 'zoom-in';
-                    isZoomed = false;
-                }
+                img.classList.toggle('zoomed');
             };
+            container.onclick = () => container.remove();
+            container.appendChild(img);
+            document.body.appendChild(container);
+        },
 
-            overlay.onclick = () => overlay.remove();
-            overlay.appendChild(img);
-            document.body.appendChild(overlay);
+        // 智能判断 JavBus 路径 (有码/无码)
+        getJavBusUrl(code) {
+            // 无码判定：日期_编号 (如 013123_001) 或 日期-编号 (如 122725-001) 或 以 n/k 开头的
+            const isUncensored = /^\d{6}[-_\s]\d{3}$/.test(code) || code.toLowerCase().startsWith('n') || code.toLowerCase().startsWith('k');
+            if (isUncensored) {
+                return `https://www.javbus.com/uncensored/search/${encodeURIComponent(code)}&type=1`;
+            }
+            return `https://www.javbus.com/search/${encodeURIComponent(code)}&type=&parent=ce`;
         }
     };
 
@@ -142,9 +192,10 @@
     // ============================ 设置管理模块 ============================
     const Settings = {
         defaults: {
-            'sukebei':    { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            '169bbs':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'supjav':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
+            'sukebei':  { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            '169bbs':   { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            'supjav':   { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            'emby':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
         },
 
         get(siteId) {
@@ -175,73 +226,7 @@
         }
     };
 
-    // ============================ 站点定义模块 ============================
-    const Sites = [
-        {
-            id: 'sukebei',
-            name: 'Sukebei',
-            match: (url) => /nyaa\.si/.test(url) && url.includes('/view/'),
-            titleSelector: '.panel-title',
-            enhance: (code, settings, titleElem) => {
-                const container = titleElem.parentElement; // .panel-heading
-                if (!container) return;
-
-                if (container.querySelector('.jav-jump-btn-group')) return;
-
-                const btnGroup = document.createElement('div');
-                btnGroup.className = 'jav-jump-btn-group';
-                btnGroup.style.cssText = `
-                    margin-top: 8px;
-                    margin-bottom: 4px;
-                    clear: both;
-                    text-align: left;  /* 改为左对齐，使按钮在第二行头部 */
-                    width: 100%;
-                `;
-
-                if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
-                if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
-                if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
-                if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
-                if (settings.preview) addPreviewBtn(code, btnGroup);
-
-                container.appendChild(btnGroup);
-            }
-        },
-        {
-            id: '169bbs',
-            name: '169bbs',
-            match: (url) => /169bbs\.(com|net|org)/.test(url) && url.includes('mod=viewthread'),
-            titleSelector: '#thread_subject, h1',
-            enhance: (code, settings, titleElem) => {
-                const btnGroup = document.createElement('span');
-                btnGroup.style.cssText = 'display: inline-block; white-space: nowrap; margin-left: 5px; vertical-align: middle;';
-                if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
-                if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
-                if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
-                if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
-                if (settings.preview) addPreviewBtn(code, btnGroup);
-                titleElem.appendChild(btnGroup);
-            }
-        },
-        {
-            id: 'supjav',
-            name: 'SupJav',
-            match: (url) => /supjav\.com/.test(url) && /\/\d+\.html$/.test(url),
-            titleSelector: '.archive-title h1',
-            enhance: (code, settings, titleElem) => {
-                const btnGroup = document.createElement('span');
-                btnGroup.style.cssText = 'display: inline-block; white-space: nowrap; margin-left: 5px; vertical-align: middle;';
-                if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
-                if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
-                if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
-                if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
-                if (settings.preview) addPreviewBtn(code, btnGroup);
-                titleElem.appendChild(btnGroup);
-            }
-        }
-    ];
-
-    // ============================ 按钮创建辅助函数（接收容器） ============================
+    // ============================ 按钮创建辅助函数 ============================
     function addNyaaBtn(code, container) {
         const btn = Utils.createBtn('🔍 Sukebei', '#17a2b8', () => {
             window.open(`https://sukebei.nyaa.si/?f=0&c=0_0&q=${code}`);
@@ -250,8 +235,9 @@
     }
 
     function addJavbusBtn(code, container) {
+        const url = Utils.getJavBusUrl(code);
         const btn = Utils.createBtn('🎬 JavBus', '#007bff', () => {
-            window.open(`https://www.javbus.com/search/${code}`);
+            window.open(url);
         });
         container.appendChild(btn);
     }
@@ -277,7 +263,35 @@
         container.appendChild(btn);
     }
 
-    // ============================ UI 渲染模块 ============================
+    // ============================ 站点定义模块 ============================
+    const Sites = [
+        {
+            id: 'sukebei',
+            name: 'Sukebei',
+            match: (url) => /nyaa\.si/.test(url) && url.includes('/view/'),
+            titleSelector: '.panel-title'
+        },
+        {
+            id: '169bbs',
+            name: '169bbs',
+            match: (url) => /169bbs\.(com|net|org)/.test(url) && url.includes('mod=viewthread'),
+            titleSelector: '#thread_subject, h1'
+        },
+        {
+            id: 'supjav',
+            name: 'SupJav',
+            match: (url) => /supjav\.com/.test(url) && /\/\d+\.html$/.test(url),
+            titleSelector: '.archive-title h1'
+        },
+        {
+            id: 'emby',
+            name: 'Emby',
+            match: (url) => /10\.10\.10\.\d+:\d+\/web\/index\.html/.test(url) || /emby\.sh1nyan\.fun\/web\/index\.html/.test(url),
+            titleSelector: 'h1'
+        }
+    ];
+
+    // ============================ UI 渲染模块 (统一按钮插入方式) ============================
     function renderButtonsForCurrentPage() {
         const site = Sites.find(s => s.match(window.location.href));
         if (!site) return;
@@ -285,6 +299,7 @@
         const titleElem = document.querySelector(site.titleSelector);
         if (!titleElem) return;
 
+        // 防止重复添加
         if (titleElem.dataset.enhanced === '1') return;
         titleElem.dataset.enhanced = '1';
 
@@ -292,10 +307,22 @@
         if (!code) return;
 
         const settings = Settings.get(site.id);
-        site.enhance(code, settings, titleElem);
+
+        // 创建按钮组容器 (统一使用 div，放在标题下方新行)
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'jav-jump-btn-group';
+
+        if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
+        if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
+        if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
+        if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
+        if (settings.preview) addPreviewBtn(code, btnGroup);
+
+        // 插入到标题元素之后 (即标题下方新行)
+        titleElem.insertAdjacentElement('afterend', btnGroup);
     }
 
-    // ============================ 管理面板模块（2.1.0经典灰白，手动关闭） ============================
+    // ============================ 管理面板模块 ============================
     function createSettingsPanel() {
         const existing = document.getElementById('jav-jump-settings-panel');
         if (existing) existing.remove();
