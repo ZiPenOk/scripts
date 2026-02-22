@@ -1,10 +1,9 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.0
-// @description  所有站点统一使用 强番号逻辑 + JavBus 有码/无码智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus 支持。
+// @version      3.6.0
+// @description  所有站点统一使用强番号逻辑 + JavBus 智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus、JAVLibrary、JavDB 支持。
 // @author       ZiPenOk
-// @icon         https://javdb.com/favicon.ico
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
 // @match        *://supjav.com/*
@@ -13,8 +12,9 @@
 // @match        *://10.10.10.*:*/web/index.html*
 // @match        *://www.javbus.com/*
 // @match        *://javbus.com/*
-// @match        *://www.javlibrary.com/*/*
-// @match         *://javlibrary.com/*/*
+// @match        *://javdb.com/v/*
+// @match        *://www.javlibrary.com/*
+// @match        *://javlibrary.com/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
@@ -76,6 +76,7 @@
             align-items: center;
         }
 
+        /* JAVLibrary 专用修复 - 只影响该站点的按钮组 */
         body.main .javlibrary-fix {
             display: flex !important;
             flex-wrap: wrap !important;
@@ -102,22 +103,18 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
             box-sizing: border-box !important;
             line-height: normal !important;
+            /* 背景和颜色由内联样式控制，此处不覆盖 */
         }
     `);
 
     // ============================ 核心工具模块 ============================
     const Utils = {
-        // 统一使用 Emby 强大的番号提取逻辑
         extractCode(text) {
             if (!text) return null;
-
-            // FC2 格式: FC2-PPV-123456 或 FC2-123456
             const fc2Match = text.match(/FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i);
             if (fc2Match) {
                 return `FC2-PPV-${fc2Match[1]}`;
             }
-
-            // 标准格式: 字母-数字 (忽略常见非番号前缀)
             const standardMatch = text.match(/([a-zA-Z0-9]{2,15})([-\s_])(\d{2,10})/i);
             if (standardMatch) {
                 const prefix = standardMatch[1].toUpperCase();
@@ -131,7 +128,6 @@
             return null;
         },
 
-        // 创建按钮 (通用)
         createBtn(text, color, handler) {
             const btn = document.createElement('a');
             btn.textContent = text;
@@ -156,7 +152,6 @@
             return btn;
         },
 
-        // 请求封装
         request(url) {
             return new Promise((resolve) => {
                 GM_xmlhttpRequest({
@@ -168,7 +163,6 @@
             });
         },
 
-        // 预览图显示
         showOverlay(imgUrl) {
             const container = document.createElement('div');
             container.className = 'preview-overlay';
@@ -184,9 +178,7 @@
             document.body.appendChild(container);
         },
 
-        // 智能判断 JavBus 路径 (有码/无码)
         getJavBusUrl(code) {
-            // 无码判定：日期_编号 (如 013123_001) 或 日期-编号 (如 122725-001) 或 以 n/k 开头的
             const isUncensored = /^\d{6}[-_\s]\d{3}$/.test(code) || code.toLowerCase().startsWith('n') || code.toLowerCase().startsWith('k');
             if (isUncensored) {
                 return `https://www.javbus.com/uncensored/search/${encodeURIComponent(code)}&type=1`;
@@ -240,6 +232,7 @@
             'supjav':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
             'emby':       { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
             'javbus':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
+            'javdb':      { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }, 
             'javlibrary': { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
         },
 
@@ -337,14 +330,20 @@
         {
             id: 'javbus',
             name: 'JavBus',
-            // 匹配 javbus.com 详情页：排除常见列表页
             match: (url) => /javbus\.com/.test(url) && !/search|genre|actresses|uncensored|forum|page|series|studio|label|director|star/.test(url),
-            titleSelector: 'h3' // 详情页标题为 <h3>
+            titleSelector: 'h3'
         },
+        {
+            id: 'javdb',
+            name: 'JavDB',
+            // 匹配 javdb.com 或 javdb*.com 的详情页，路径包含 /v/ 后跟字母数字
+            match: (url) => /javdb\d*\.com/.test(url) && /\/v\/\w+/.test(url),
+            titleSelector: 'h2.title' // 详情页标题为 h2.title
+        }, 
         {
             id: 'javlibrary',
             name: 'JAVLibrary',
-            match: (url) => /javlibrary\.com/.test(url) && /\/cn\/jav\w+\.html/.test(url), // 匹配中文详情页
+            match: (url) => /javlibrary\.com/.test(url) && /\/cn\/jav\w+\.html/.test(url),
             titleSelector: '.post-title'
         }
     ];
@@ -357,7 +356,6 @@
         const titleElem = document.querySelector(site.titleSelector);
         if (!titleElem) return;
 
-        // 防止重复添加
         if (titleElem.dataset.enhanced === '1') return;
         titleElem.dataset.enhanced = '1';
 
@@ -366,20 +364,19 @@
 
         const settings = Settings.get(site.id);
 
-        // 创建按钮组容器
         const btnGroup = document.createElement('div');
         btnGroup.className = 'jav-jump-btn-group';
 
-        // JAVLibrary 特殊处理
+        // 区分 JAVLibrary 特殊处理
         if (site.id === 'javlibrary') {
-            btnGroup.classList.add('javlibrary-fix');
+            // 强制添加所有按钮（忽略设置，确保显示；若希望受设置控制，可改为 settings.jumpXxx）
             addNyaaBtn(code, btnGroup);
             addJavbusBtn(code, btnGroup);
             addJavdbBtn(code, btnGroup);
             addGoogleBtn(code, btnGroup);
             addPreviewBtn(code, btnGroup);
 
-            // 强化内联样式
+            // 为按钮内联样式添加 !important 防止被覆盖
             btnGroup.querySelectorAll('a').forEach(btn => {
                 let style = btn.getAttribute('style') || '';
                 style = style.replace(/background:\s*([^;]+);/g, 'background: $1 !important;');
@@ -387,12 +384,25 @@
                 btn.setAttribute('style', style);
             });
 
+            btnGroup.classList.add('javlibrary-fix');
+
+            // 插入到 #rightcolumn 顶部
             const rightColumn = document.querySelector('#rightcolumn');
             if (rightColumn) {
                 rightColumn.prepend(btnGroup);
             } else {
                 titleElem.insertAdjacentElement('afterend', btnGroup);
             }
+        } else {
+            // 其他站点按设置添加按钮
+            if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
+            if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
+            if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
+            if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
+            if (settings.preview) addPreviewBtn(code, btnGroup);
+
+            // 直接插入到标题之后
+            titleElem.insertAdjacentElement('afterend', btnGroup);
         }
     }
 
