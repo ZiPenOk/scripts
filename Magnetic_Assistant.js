@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.0.0
-// @description  点击按钮显示绿色勾（验车按钮除外），支持复制、推送到qB/115，新增磁力信息验车功能，截图支持轮播。
+// @version      3.0.3
+// @description  点击按钮显示绿色勾（验车按钮除外），支持复制、推送到qB/115，新增磁力信息验车功能，截图支持轮播（点击遮罩关闭）。
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
@@ -35,43 +35,43 @@
 
     // 图标定义
     const ICONS = {
-        copy: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#666"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`,
-        qb: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#0078d4"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`,
-        u115: `<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="11" fill="#2777F8"/><text x="12" y="17" font-family="Arial" font-size="12" font-weight="900" fill="white" text-anchor="middle">5</text></svg>`,
-        car: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#ff9800"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15L17 12.23l-4-2.37V7z"/></svg>`,
-        checkActive: `<svg viewBox="0 0 24 24" width="16" height="16" fill="#28a745"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
+        copy: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#666"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`,
+        qb: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#0078d4"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`,
+        u115: `<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="11" fill="#2777F8"/><text x="12" y="17" font-family="Arial" font-size="12" font-weight="900" fill="white" text-anchor="middle">5</text></svg>`,
+        car: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#ff9800"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15L17 12.23l-4-2.37V7z"/></svg>`,
+        checkActive: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#28a745"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
     };
 
-    // ================= 2. 注入CSS（包含验车弹窗样式和轮播样式）=================
+    // ================= 2. 注入CSS（移除X按钮样式）=================
     const style = document.createElement('style');
     style.innerHTML = `
         .mag-btn-group {
             display: inline-flex !important;
             vertical-align: middle !important;
-            margin-left: 8px !important;
-            gap: 6px !important;
+            margin-left: 6px !important;
+            gap: 4px !important;
             background: #f8f9fa !important;
-            padding: 4px 5px !important;
-            border-radius: 8px !important;
+            padding: 2px 3px !important;
+            border-radius: 6px !important;
             border: 1px solid #dee2e6 !important;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
             transition: box-shadow 0.2s;
         }
         .mag-btn-group:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
         }
         .mag-btn {
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            width: 28px !important;
-            height: 24px !important;
+            width: 24px !important;
+            height: 20px !important;
             background: #ffffff !important;
             border: 1px solid #ced4da !important;
-            border-radius: 6px !important;
+            border-radius: 5px !important;
             cursor: pointer !important;
             transition: all 0.2s ease !important;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.03) !important;
             position: relative;
             overflow: hidden;
         }
@@ -79,12 +79,12 @@
             background: #e9ecef !important;
             border-color: #0078d4 !important;
             transform: translateY(-1px);
-            box-shadow: 0 4px 6px rgba(0,120,212,0.2) !important;
+            box-shadow: 0 2px 3px rgba(0,120,212,0.15) !important;
         }
         .mag-btn.active {
             border-color: #28a745 !important;
             background: #f0fff4 !important;
-            box-shadow: 0 0 0 2px rgba(40,167,69,0.3) !important;
+            box-shadow: 0 0 0 2px rgba(40,167,69,0.2) !important;
         }
         /* 涟漪效果 */
         .mag-btn::after {
@@ -100,8 +100,8 @@
             transition: width 0.3s, height 0.3s;
         }
         .mag-btn:active::after {
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
         }
         /* 绿色勾弹入动画 */
         @keyframes popIn {
@@ -112,7 +112,7 @@
         .mag-btn.active svg {
             animation: popIn 0.2s ease-out;
         }
-        /* 验车弹窗样式（来自 yanche.js） */
+        /* 验车弹窗样式 */
         .check-car-mask {
             position: fixed;
             inset: 0;
@@ -161,7 +161,7 @@
         }
         .check-car-panel h3 {
             color: #ff4080;
-            font-size: 1rem;
+            font-size: 1.2rem;
             margin: 0;
         }
         .panel-header {
@@ -174,7 +174,7 @@
             cursor: pointer;
             color: #888;
             font-weight: bold;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             transition: color 0.2s;
         }
         .check-car-close:hover {
@@ -182,12 +182,16 @@
         }
         .info div {
             background: #fff;
-            padding: 6px 10px;
+            padding: 8px 12px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-            font-size: 0.9rem;
-            margin: 6px 0;
+            font-size: 1rem;
+            margin: 8px 0;
             word-wrap: break-word;
+        }
+        .screenshots p {
+            font-size: 1rem;
+            margin-bottom: 6px;
         }
         .screenshots ul {
             display: grid;
@@ -207,7 +211,7 @@
         .screenshots img:hover {
             transform: scale(1.05);
         }
-        /* 图片轮播弹窗 */
+        /* 图片轮播弹窗（无X按钮） */
         .gallery-mask {
             position: fixed;
             inset: 0;
@@ -216,11 +220,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            cursor: pointer;
         }
         .gallery-container {
             position: relative;
             max-width: 90%;
             max-height: 90%;
+            cursor: default;
         }
         .gallery-img {
             max-width: 100%;
@@ -251,18 +257,9 @@
         .gallery-next {
             right: 10px;
         }
-        .gallery-close {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            color: white;
-            font-size: 2rem;
-            cursor: pointer;
-            text-shadow: 0 0 5px black;
-        }
         @media (max-width: 768px) {
             .check-car-panel { padding: 12px; }
-            .info div { font-size: 0.85rem; }
+            .info div { font-size: 0.95rem; padding: 6px 10px; }
         }
         /* 深色模式 */
         @media (prefers-color-scheme: dark) {
@@ -312,17 +309,15 @@
         clickedBtn.classList.add('active');
     }
 
-    // 验车按钮的临时高亮效果
     function highlightBtn(btn) {
         const originalBg = btn.style.backgroundColor;
-        btn.style.backgroundColor = '#ffb74d'; // 浅橙色
+        btn.style.backgroundColor = '#ffb74d';
         btn.style.transition = 'background-color 0.2s';
         setTimeout(() => {
             btn.style.backgroundColor = originalBg;
         }, 200);
     }
 
-    // 检测其他脚本的磁力按钮（用于避让）
     function hasOtherMagnetButtons(target) {
         const parent = target.parentElement;
         if (!parent) return false;
@@ -335,13 +330,16 @@
         return otherSelectors.some(sel => parent.querySelector(sel));
     }
 
-    // ================= 4. 图片轮播函数 =================
+    // ================= 4. 图片轮播函数（无X按钮，点击遮罩关闭）=================
     function showImageGallery(images, startIndex = 0) {
         if (!images || images.length === 0) return;
 
         let currentIndex = startIndex;
         const mask = document.createElement('div');
         mask.className = 'gallery-mask';
+        mask.addEventListener('click', (e) => {
+            if (e.target === mask) mask.remove(); // 点击遮罩关闭
+        });
 
         const updateImage = () => {
             img.src = images[currentIndex];
@@ -351,43 +349,34 @@
         img.className = 'gallery-img';
         img.src = images[currentIndex];
 
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'gallery-nav gallery-prev';
-        prevBtn.innerHTML = '‹';
-        prevBtn.onclick = (e) => {
-            e.stopPropagation();
-            currentIndex = (currentIndex - 1 + images.length) % images.length;
-            updateImage();
-        };
-
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'gallery-nav gallery-next';
-        nextBtn.innerHTML = '›';
-        nextBtn.onclick = (e) => {
-            e.stopPropagation();
-            currentIndex = (currentIndex + 1) % images.length;
-            updateImage();
-        };
-
-        const closeBtn = document.createElement('div');
-        closeBtn.className = 'gallery-close';
-        closeBtn.innerHTML = '✖';
-        closeBtn.onclick = () => mask.remove();
-
         const container = document.createElement('div');
         container.className = 'gallery-container';
-        container.appendChild(img);
+
         if (images.length > 1) {
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'gallery-nav gallery-prev';
+            prevBtn.innerHTML = '‹';
+            prevBtn.onclick = (e) => {
+                e.stopPropagation();
+                currentIndex = (currentIndex - 1 + images.length) % images.length;
+                updateImage();
+            };
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'gallery-nav gallery-next';
+            nextBtn.innerHTML = '›';
+            nextBtn.onclick = (e) => {
+                e.stopPropagation();
+                currentIndex = (currentIndex + 1) % images.length;
+                updateImage();
+            };
+
             container.appendChild(prevBtn);
             container.appendChild(nextBtn);
         }
-        container.appendChild(closeBtn);
 
+        container.appendChild(img);
         mask.appendChild(container);
-        mask.addEventListener('click', (e) => {
-            if (e.target === mask) mask.remove();
-        });
-
         document.body.appendChild(mask);
     }
 
@@ -424,7 +413,6 @@
             };
 
             const preview = (src) => {
-                // 改为调用轮播函数，如果有多张截图，传入全部
                 const shots = props.info.screenshots || [];
                 const urls = shots.map(s => s.screenshot || s);
                 const currentIndex = urls.indexOf(src);
@@ -438,7 +426,7 @@
                 vue.h('div', { class: 'check-car-panel' }, [
                     vue.h('div', { class: 'panel-header' }, [
                         vue.h('h3', null, [
-                            vue.h('span', { style: { fontSize: '20px' } }, '🚗'),
+                            vue.h('span', { style: { fontSize: '22px' } }, '🚗'),
                             ' ',
                             vue.h('b', null, '磁力信息')
                         ]),
@@ -508,9 +496,7 @@
     }
 
     async function handleCheckCar(link, btn) {
-        // 验车按钮：短暂高亮，不打勾
         highlightBtn(btn);
-
         showToast('🔍 正在查询磁力信息...', true);
         const info = await getMagnetInfo(link);
         if (!info) {
@@ -535,7 +521,7 @@
         app.mount(mountPoint);
     }
 
-    // ================= 6. 按钮组构建（验车按钮特殊处理）=================
+    // ================= 6. 按钮组构建 =================
     function createBtnGroup(link) {
         const group = document.createElement('span');
         group.className = 'mag-btn-group';
@@ -550,7 +536,6 @@
             btn.onclick = (e) => {
                 e.stopPropagation();
                 if (type === 'check') {
-                    // 验车按钮：不打勾，只执行动作
                     action(btn);
                 } else {
                     setBtnActive(btn, group);
@@ -622,17 +607,15 @@
         });
     }
 
-    // ================= 8. 页面扫描（修复弹窗内重复生成按钮）=================
+    // ================= 8. 页面扫描 =================
     function processPage() {
         const regex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|)/gi;
 
-        // 收集已处理的磁力链接
         const processedHrefs = new Set();
         document.querySelectorAll('a[data-mag-processed="true"]').forEach(a => {
             if (a.href) processedHrefs.add(a.href);
         });
 
-        // 处理 <a> 标签（排除弹窗内的链接）
         document.querySelectorAll('a').forEach(a => {
             if (a.closest('.check-car-panel')) return;
             if (a.dataset.magProcessed) return;
@@ -647,7 +630,6 @@
             }
         });
 
-        // 处理文本节点
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
         let node;
         const textNodes = [];
