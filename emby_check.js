@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.2
+// @version      4.4
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -887,9 +887,6 @@
             el.className = 'emby-jump-status-indicator';
             el.innerHTML = `
                 <span class="status-text">准备中...</span>
-                <div class="progress">
-                    <div class="progress-bar"></div>
-                </div>
                 <span class="close-btn">&times;</span>
             `;
             document.body.appendChild(el);
@@ -932,11 +929,46 @@
                 show(msg, 'error');
                 if (autoHide) setTimeout(hide, 5000);
             },
-            updateProgress,
-            updateProgressDebounced: debounce(updateProgress, 100),
             hide
         };
     })();
+    
+    // 统一提示管理
+    const Prompt = {
+        queryStart(code) { Status.show(`⏳ 查询番号 ${code} 中...`); },
+        querySuccess(code) { Status.success(`✅ Emby 找到匹配项: ${code}`, true); },
+        queryNotFound(code) { Status.error(`❌ Emby未找到匹配项: ${code}`, true); },
+        queryError(code, errMsg) { Status.error(`❌ Emby查询失败: ${errMsg}`, true); },
+        batchStart(count) { Status.show(`⏳ 正在查询 ${count} 个番号...`); },
+        batchComplete(foundCount) { Status.success(`✅ Emby查询完成，找到 ${foundCount} 项`, true); }
+    };
+    
+    // 统一番号提取规则（从文本中提取）
+    function extractCodeFromText(text) {
+        if (!text) return null;
+
+        // 匹配标准番号格式：字母-数字（可带后缀）
+        // 例如：ABF-319, IPZZ-777, FC2-PPV-123456
+        const patterns = [
+            // 标准格式：2-15个字母/数字，短横线，2-10位数字（可选带短横线后缀）
+            /([A-Z]{2,15})-(\d{2,10})(?:-(\d+))?/i,
+            // FC2-PPV 特殊格式
+            /FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i
+        ];
+
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) {
+                // 对于标准格式，返回完整番号（如 IPZZ-777 或 IPZZ-777-2）
+                if (pattern === patterns[0]) {
+                    return match[3] ? `${match[1]}-${match[2]}-${match[3]}` : `${match[1]}-${match[2]}`;
+                }
+                // 对于 FC2，返回 FC2-PPV-数字
+                return `FC2-PPV-${match[1]}`;
+            }
+        }
+        return null;
+    }
 
     // 设置面板 - 多服务器版（新增深色模式切换）
     const SettingsUI = {
@@ -1541,7 +1573,7 @@
                 const checkComplete = () => {
                     if (this.completed >= this.total && this.active === 0) {
                         const found = results.filter(r => r !== null).length;
-                        Status.success(`查询完成: 找到 ${found} 个匹配项`, true);
+                        Prompt.batchComplete(found);
                         resolve(results);
                     }
                 };
@@ -1549,8 +1581,6 @@
                 const processRequest = (index) => {
                     const code = codes[index];
                     this.active++;
-
-                    Status.updateProgressDebounced(this.completed, this.total);
 
                     this.checkExists(code).then(best => {
                         results[index] = best;
@@ -1890,8 +1920,10 @@
         javbus: Object.assign(Object.create(BaseProcessor), {
             listSelector: '.item.masonry-brick, #waterfall .item',
 
-            extractCode: item =>
-                item.querySelector('.item date')?.textContent?.trim(),
+            extractCode: item => {
+                const text = item.querySelector('.item date')?.textContent?.trim();
+                return extractCodeFromText(text);
+            },
 
             getElement: item =>
                 item.querySelector('.item date'),
@@ -1904,9 +1936,9 @@
 
                 const spans = infoElement.querySelectorAll('span');
                 if (spans.length > 1) {
-                    const code = spans[1].textContent?.trim();
+                    const code = extractCodeFromText(spans[1].textContent);
                     if (code) {
-                        Status.show('查询中...');
+                        Prompt.queryStart(code);
                         const bestItem = await this.api.checkExists(code);
                         if (bestItem) {
                             const link = this.api.createLink(bestItem);
@@ -1919,10 +1951,10 @@
                                 } else {
                                     spans[1].parentNode.insertBefore(link, spans[1].nextSibling);
                                 }
-                                Status.success('找到匹配项', true);
+                                Prompt.querySuccess(code);
                             }
                         } else {
-                            Status.error('未找到匹配项', true);
+                            Prompt.queryNotFound(code);
                         }
                     }
                 }
@@ -1932,8 +1964,10 @@
         javdb: Object.assign(Object.create(BaseProcessor), {
             listSelector: '.movie-list .item, .grid-item',
 
-            extractCode: item =>
-                item.querySelector('.video-title strong')?.textContent?.trim(),
+            extractCode: item => {
+                const text = item.querySelector('.video-title strong')?.textContent?.trim();
+                return extractCodeFromText(text);
+            },
 
             getElement: item =>
                 item.querySelector('.video-title strong'),
@@ -1947,11 +1981,10 @@
 
                 if (!detailElement) return;
 
-                const codeMatch = detailElement.textContent.trim().match(/[A-Z]{2,10}-\d+(?:-\d+)?/i);
-                const code = codeMatch ? codeMatch[0] : detailElement.textContent.trim().split(' ')[0];
+                const code = extractCodeFromText(detailElement.textContent);
 
                 if (code) {
-                    Status.show('查询中...');
+                    Prompt.queryStart(code);
                     const bestItem = await this.api.checkExists(code);
                     if (bestItem) {
                         const link = this.api.createLink(bestItem);
@@ -1963,10 +1996,10 @@
                             } else {
                                 detailElement.parentNode.insertBefore(link, detailElement.nextSibling);
                             }
-                            Status.success('找到匹配项', true);
+                            Prompt.querySuccess(code);
                         }
                     } else {
-                        Status.error('未找到匹配项', true);
+                        Prompt.queryNotFound(code);
                     }
                 }
             }
@@ -1976,11 +2009,8 @@
             listSelector: '.post',
 
             extractCode(item) {
-                const title = item.querySelector('h3 a')?.textContent?.trim();
-                if (!title) return null;
-
-                const match = title.match(/[A-Z]{2,10}-\d+(?:-\d+)?/i);
-                return match ? match[0] : null;
+                const text = item.querySelector('h3 a')?.textContent?.trim();
+                return extractCodeFromText(text);
             },
 
             getElement(item) {
@@ -1994,13 +2024,11 @@
                 if (!titleElement) return;
 
                 const title = titleElement.textContent.trim();
-                const match = title.match(/([a-zA-Z0-9]+-\d+)/i);
-                if (!match) return;
-
-                const code = match[1];
+                const code = extractCodeFromText(title);
+                if (!code) return;
 
                 if (code) {
-                    Status.show('查询中...');
+                    Prompt.queryStart(code);
                     const bestItem = await this.api.checkExists(code);
                     if (bestItem) {
                         const link = this.api.createLink(bestItem);
@@ -2013,10 +2041,10 @@
                             } else {
                                 titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
                             }
-                            Status.success('找到匹配项', true);
+                            Prompt.querySuccess(code);
                         }
                     } else {
-                        Status.error('未找到匹配项', true);
+                        Prompt.queryNotFound(code);
                     }
                 }
             }
@@ -2034,7 +2062,7 @@
                 const codes = this.extractCodes(title);
 
                 if (codes.length > 0) {
-                    Status.show(`找到 ${codes.length} 个可能的番号，开始查询...`);
+                    Prompt.batchStart(codes.length);
 
                     const bestItems = await this.api.batchQuery(codes);
                     let foundAny = false;
@@ -2061,8 +2089,11 @@
                         }
                     }
 
-                    if (foundAny) Status.success('找到匹配项', true);
-                    else Status.error('未找到匹配项', true);
+                    if (foundAny) {
+                        Prompt.batchComplete(bestItems.filter(Boolean).length);
+                    } else {
+                        Prompt.batchComplete(0); // 或 Status.error('❌ 未找到匹配项', true);
+                    }
                 }
             }, 
 
@@ -2092,6 +2123,12 @@
 
             listSelector: 'table tbody tr',
 
+            extractCode(item) {
+                const linkEl = item.querySelector('td:nth-child(2) a');
+                if (!linkEl) return null;
+                return extractCodeFromText(linkEl.textContent);
+            },
+
             async process() {
 
                 const siteConfig = this.__siteConfig;
@@ -2116,17 +2153,17 @@
                 if (!titleElement) return;
 
                 const titleText = titleElement.textContent;
-                const match = titleText.match(/[A-Z]{2,10}-\d+(?:-\d+)?/i);
-                if (!match) return;
+                const code = extractCodeFromText(titleText);
+                if (!code) return;
 
-                const code = match[0].toUpperCase();
+                const upperCode = code.toUpperCase();
 
-                Status.show(`查询番号 ${code} 中...`);
+                Prompt.queryStart(code);
                 const bestItem = await this.api.checkExists(code);
                 if (bestItem) {
                     const link = this.api.createLink(bestItem);
                     if (!link) {
-                        Status.error('未找到精确匹配', true);
+                        Prompt.queryNotFound(code);
                         return;
                     }
 
@@ -2144,9 +2181,9 @@
                         titleElement.appendChild(container);
                     }
 
-                    Status.success('Emby 找到匹配项', true);
+                    Prompt.querySuccess(code);
                 } else {
-                    Status.error('Emby 未找到匹配项', true);
+                    Prompt.queryNotFound(code);
                 }
             }, 
 
@@ -2169,12 +2206,12 @@
                     linkEl.dataset.embyChecked = "1";
 
                     const text = linkEl.textContent;
-                    const match = text.match(/[A-Z]{2,10}-\d+(?:-\d+)?/i);
-                    if (!match) continue;
+                    const code = extractCodeFromText(text);
+                    if (!code) continue;
 
                     totalChecked++;
 
-                    const code = match[0].toUpperCase();
+                    const upperCode = code.toUpperCase();
 
                     this.api.checkExists(code).then(bestItem => {
                         if (bestItem) {
@@ -2202,16 +2239,10 @@
                             }
                         });
 
-                        if (foundCount > 0) {
-                            Status.success(`列表查询完成，找到 ${foundCount} 项`, true);
-                        } else {
-                            Status.error("列表查询完成，未找到匹配项", true);
-                        }
+                        Prompt.batchComplete(foundCount);
                     }
-
                 }, 300);
             }
-
         }),
 
         javlibrary: (function() {
@@ -2248,7 +2279,7 @@
                 const idCodeElement = document.querySelector('#video_id .text');
                 if (!idContainer || !idCodeElement) return;
 
-                const code = idCodeElement.textContent.trim();
+                const code = extractCodeFromText(idCodeElement.textContent);
                 if (!code) return;
 
                 // 如果链接已存在，跳过
@@ -2266,13 +2297,13 @@
                         } else {
                             idContainer.insertAdjacentElement('afterend', link);
                         }
-                        Status.success('✅ 已从缓存添加Emby链接', true);
+                        Prompt.querySuccess(code);
                     }
                     return;
                 }
 
                 // 缓存中没有，查询一次
-                Status.show(`⏳ 查询番号 ${code} 中...`);
+                Prompt.queryStart(code);
                 api.checkExists(code).then(bestItem => {
                     if (bestItem) {
                         embyItemMap.set(code, bestItem);
@@ -2285,16 +2316,16 @@
                             } else {
                                 idContainer.insertAdjacentElement('afterend', link);
                             }
-                            Status.success(`✅ Emby 找到匹配项: ${code}`, true);
+                            Prompt.querySuccess(code);
                         } else {
                             Status.error('❌ 创建链接失败', true);
                         }
                     } else {
-                        Status.error(`❌ 未找到匹配项: ${code}`, true);
+                        Prompt.queryNotFound(code);
                     }
                 }).catch(e => {
                     console.error('Emby查询失败', e);
-                    Status.error(`❌ 查询失败: ${e.message}`, true);
+                    Prompt.queryError(code, e.message);
                 });
             }
 
@@ -2303,7 +2334,7 @@
 
                 extractCode: function(item) {
                     const idEl = item.querySelector('div.id');
-                    return idEl ? idEl.textContent.trim() : null;
+                    return idEl ? extractCodeFromText(idEl.textContent) : null;
                 },
 
                 async process() {
@@ -2419,10 +2450,8 @@
                 let code = null;
 
                 const keywords = document.querySelector('meta[name="keywords"]')?.content || "";
-                let match = keywords.match(/[A-Z]{2,10}-\d+(?:-\d+)?/i);
-                if (match) {
-                    code = match[0].toUpperCase();
-                }
+                code = extractCodeFromText(keywords);
+                if (code) code = code.toUpperCase();
 
                 if (!code) {
                     const info = document.querySelector('.vd-infos');
@@ -2430,9 +2459,9 @@
                         const ps = info.querySelectorAll('p');
                         for (const p of ps) {
                             const text = p.textContent || '';
-                            const m = text.match(/番号[:：]\s*([A-Z]{2,10}-\d+(?:-\d+)?)/i);
-                            if (m) {
-                                code = m[1].toUpperCase();
+                            code = extractCodeFromText(text);
+                            if (code) {
+                                code = code.toUpperCase();
                                 break;
                             }
                         }
@@ -2440,7 +2469,7 @@
                 }
 
                 if (code) {
-                    Status.show(`查询番号 ${code} 中...`);
+                    Prompt.queryStart(code);
                     const bestItem = await this.api.checkExists(code);
                     if (bestItem) {
                         const link = this.api.createLink(bestItem);
@@ -2454,11 +2483,11 @@
                                 } else {
                                     titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
                                 }
-                                Status.success('Emby 找到匹配项', true);
+                                Prompt.querySuccess(code);
                             }
                         }
                     } else {
-                        Status.error('Emby 未找到匹配项', true);
+                        Prompt.queryNotFound(code);
                     }
                 }
             }
@@ -2478,11 +2507,11 @@
                 if (document.querySelector('.emby-jump-link, .emby-badge')) return;
 
                 const keywords = document.querySelector('meta[name="keywords"]')?.content || "";
-                const match = keywords.match(/[A-Z]{2,10}-\d+(?:-\d+)?/i);
-                const code = match ? match[0].toUpperCase() : null;
+                const code = extractCodeFromText(keywords);
+                if (code) code = code.toUpperCase();
 
                 if (code) {
-                    Status.show(`查询番号 ${code} 中...`);
+                    Prompt.queryStart(code);
                     const bestItem = await this.api.checkExists(code);
                     if (bestItem) {
                         const link = this.api.createLink(bestItem);
@@ -2496,11 +2525,11 @@
                                 } else {
                                     titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
                                 }
-                                Status.success('Emby 找到匹配项', true);
+                                Prompt.querySuccess(code);
                             }
                         }
                     } else {
-                        Status.error('Emby 未找到匹配项', true);
+                        Prompt.queryNotFound(code);
                     }
                 }
             }
@@ -2513,8 +2542,7 @@
             extractCode: function(item) {
                 const link = item.querySelector('a.xst');
                 if (!link) return null;
-                const match = link.textContent.match(this.codeRegex);
-                return match ? match[0].toUpperCase() : null;
+                return extractCodeFromText(link.textContent);
             },
 
             getElement: item => item.querySelector('a.xst'),
@@ -2534,10 +2562,10 @@
                 if (siteConfig.detail) {
                     const titleEl = document.querySelector('#thread_subject');
                     if (titleEl) {
-                        const match = titleEl.textContent.match(this.codeRegex);
-                        if (match) {
-                            Status.show('正在查询 Emby...');
-                            const code = match[0].toUpperCase();
+                        const code = extractCodeFromText(titleEl.textContent);
+                        if (code) {
+                            const upperCode = code.toUpperCase();
+                            Prompt.queryStart(code);
                             const bestItem = await this.api.checkExists(code);
                             if (bestItem) {
                                 const link = this.api.createLink(bestItem);
@@ -2550,10 +2578,10 @@
                                     } else {
                                         titleEl.after(link); // 原有方式
                                     }
-                                    Status.success(`已找到: ${code}`, true);
+                                    Prompt.querySuccess(code);
                                 }
                             } else {
-                                Status.error('未找到匹配项', true);
+                                Prompt.queryNotFound(code);
                             }
                         }
                     }
