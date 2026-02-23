@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      3.6.0
+// @version      3.6.1
+// @icon         https://javdb.com/favicon.ico
 // @description  所有站点统一使用强番号逻辑 + JavBus 智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus、JAVLibrary、JavDB 支持。
 // @author       ZiPenOk
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
 // @match        *://supjav.com/*
-// @match        http://10.10.10.60:8097/web/index.html*
-// @match        https://emby.sh1nyan.fun/web/index.html*
+// @match        *://emby.sh1nyan.fun/web/index.html*
 // @match        *://10.10.10.*:*/web/index.html*
 // @match        *://www.javbus.com/*
 // @match        *://javbus.com/*
@@ -104,6 +104,15 @@
             box-sizing: border-box !important;
             line-height: normal !important;
             /* 背景和颜色由内联样式控制，此处不覆盖 */
+        }
+        
+        /* Emby 专用修复：强制按钮组换行并占满整宽 */
+        .emby-fix {
+            width: 100% !important;
+            flex-basis: 100% !important;
+            clear: both !important;
+            margin-top: 8px !important;
+            margin-bottom: 4px !important;
         }
     `);
 
@@ -232,7 +241,7 @@
             'supjav':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
             'emby':       { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
             'javbus':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'javdb':      { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }, 
+            'javdb':      { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
             'javlibrary': { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
         },
 
@@ -339,7 +348,7 @@
             // 匹配 javdb.com 或 javdb*.com 的详情页，路径包含 /v/ 后跟字母数字
             match: (url) => /javdb\d*\.com/.test(url) && /\/v\/\w+/.test(url),
             titleSelector: 'h2.title' // 详情页标题为 h2.title
-        }, 
+        },
         {
             id: 'javlibrary',
             name: 'JAVLibrary',
@@ -401,6 +410,20 @@
             if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
             if (settings.preview) addPreviewBtn(code, btnGroup);
 
+            // Emby 特殊处理
+            if (site.id === 'emby') {
+                btnGroup.classList.add('emby-fix');
+                const parent = titleElem.parentNode;
+                if (parent) {
+                    // 插入到父容器末尾，确保新行
+                    parent.appendChild(btnGroup);
+                } else {
+                    titleElem.insertAdjacentElement('afterend', btnGroup);
+                }
+            } else {
+                // 其他站点正常插入到标题之后
+                titleElem.insertAdjacentElement('afterend', btnGroup);
+            }
             // 直接插入到标题之后
             titleElem.insertAdjacentElement('afterend', btnGroup);
         }
