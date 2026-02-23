@@ -1,0 +1,28 @@
+services:
+  mdcx:
+    image: stainless403/mdcx-builtin-gui-base:${MDCX_BUILTIN_IMAGE_TAG}
+    container_name: ${MDCX_CONTAINER_NAME}
+    env_file:
+      - .env
+    volumes:
+      # 系统数据目录
+      - /volume1/docker/mdcx/data:/config
+          
+      # 配置文件目录
+      - /volume1/docker/mdcx/mdcx-config:/mdcx-config
+      # `配置文件目录`标记文件
+      - /volume1/docker/mdcx/mdcx-config/MDCx.config:/app/MDCx.config
+
+      # 日志目录
+      - /volume1/docker/mdcx/logs:/app/Log
+
+      # 影片目录
+      - /volume1/docker/mdcx/strm:/movies
+      # VOLUMES_REPLACEMENT
+    # environment:
+    ports:
+      - ${WEB_PORT}:5800
+      - ${VNC_PORT}:5900
+    restart: unless-stopped
+    network_mode: bridge
+    stdin_open: true

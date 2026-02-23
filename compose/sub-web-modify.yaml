@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  sub-web-modify:
+    image: sh1nyan/sub-web-modify
+    container_name: sub-web-modify
+    restart: unless-stopped
+    privileged: false
+    ports:
+      - "8090:80"

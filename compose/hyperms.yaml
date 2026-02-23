@@ -1,0 +1,12 @@
+services:
+  nullbr115:
+    image: gravityle/hyperms:0.0.5
+    container_name: hyperms
+    environment:
+      - HMS_TOKEN=
+    ports:
+      - "8115:8115"
+    volumes:
+      - /volume1/docker/hyperms/config:/config
+      - /volume1/docker/hyperms/media:/media
+    restart: always

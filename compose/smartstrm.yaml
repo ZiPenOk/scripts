@@ -1,0 +1,17 @@
+name: smartstrm
+services:
+  smartstrm:
+    image: cp0204/smartstrm:latest
+    container_name: smartstrm
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /mnt/smartstrm/config:/app/config # 挂载配置目录
+      - /mnt/smartstrm/logs:/app/logs # 挂载日志目录，可选
+      - /mnt/smartstrm/strm:/strm # 挂载 STRM 生成目录
+      # 以上 /yourpath 改为你实际存放配置的路径
+    environment:
+      - PORT=8024 # 管理端口，可选
+      - ADMIN_USERNAME= # 管理用户名
+      - ADMIN_PASSWORD= # 管理用户密码
+      - LICENSE= # 许可证字符串（如有）

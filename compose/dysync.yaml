@@ -1,0 +1,29 @@
+services:
+  dysync:
+    image: ccr.ccs.tencentyun.com/jianzhichu/dysync:beta_2.0.8
+    container_name: dysync  # 容器名称
+    restart: unless-stopped # 始终重启容器，除非容器被手动停止或Docker服务停止
+    ports:
+      - "10101:10101" 
+    volumes:
+      # 基础路径映射
+      - /home/dysync/db:/app/db          # 数据库目录（持久化配置和同步记录）
+      # 默认音频目录（用于图文和动态视频合成时遇到因版权无法下载的音频时用作合成视频所需要的音频）
+      - /mnt/synology_nfs/video/douyin/mp3:/app/mp3
+      - /mnt/synology_nfs/video/douyin/images:/app/images
+      - /mnt/synology_nfs/video/douyin/collect:/app/collect   # 个人收藏视频目录
+      - /mnt/synology_nfs/video/douyin/favorite:/app/favorite  # 个人喜欢视频目录
+      - /mnt/synology_nfs/video/douyin/uper:/app/uper      # 指定博主视频目录 
+      - /mnt/synology_nfs/video/douyin/mix:/app/mix      # 合集 不需要可以删除
+      - /mnt/synology_nfs/video/douyin/series:/app/series      # 短剧 不需要可以删除
+      
+      # 多账号时路径映射示例（可选，也可以再授权时设置路径与第一个账号的路径一致）
+      # - /vol2/1000/media/dysync/dy2/collect:/app/collect2 
+      # - /vol2/1000/media/dysync/dy2/fav:/app/favorite2  
+	  # - /vol2/1000/media/dysync/dy2/up:/app/uper2
+
+    network_mode: bridge
+    deploy:
+      resources: 
+          limits:  
+           memory: 250m #限制内存占用不超过250mb，如果有图文视频下载需求，不建议设置

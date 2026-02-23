@@ -1,0 +1,34 @@
+version: "3"
+
+services:
+  mtphotos:
+    image: registry.cn-hangzhou.aliyuncs.com/mtphotos/mt-photos:latest
+    container_name: mtphotos
+    restart: always
+    ports:
+      - 8063:8063
+    volumes:
+      - /volume1/docker/mtphotos/mt_photos:/config
+      - /volume1/docker/mtphotos/mt_upload:/upload
+      - /volume1/photo:/photos #提示：这一行是其他需要映射给容器的文件夹，如果没有可以删除这一行
+    environment:
+      - TZ=Asia/Shanghai
+    depends_on:
+      - mtphotos_ai
+      - mtphotos_face_api
+  mtphotos_ai:
+    image: registry.cn-hangzhou.aliyuncs.com/mtphotos/mt-photos-ai:onnx-latest
+    container_name: mtphotos_ai
+    restart: always
+    ports:
+      - 8060:8060
+    environment:
+      - API_AUTH_KEY=mt_photos_ai_extra
+  mtphotos_face_api:
+    image: crpi-gcuyquw9co62xzjn.cn-guangzhou.personal.cr.aliyuncs.com/devfox101/mt-photos-insightface-unofficial:latest
+    container_name: mtphotos_face_api
+    restart: always
+    ports:
+      - 8066:8066
+    environment:
+      - API_AUTH_KEY=mt_photos_ai_extra

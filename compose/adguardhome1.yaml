@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome1
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - /home/adguardhome1/work:/opt/adguardhome/work
+      - /home/adguardhome1/conf:/opt/adguardhome/conf
+    environment:
+      - TZ=Asia/Shanghai

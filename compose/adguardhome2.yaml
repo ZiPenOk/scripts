@@ -1,0 +1,20 @@
+version: '3.8'
+
+
+services:
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome2
+    restart: unless-stopped
+    ports:
+      - "5353:53/tcp"            # 普通 DNS 端口
+      - "5353:53/udp"            # 普通 DNS 端口
+      - "3100:3000"            # 初始安装界面
+      - "3020:80"              # Web 管理界面
+      - "3243:443/tcp"         # DoH 服务端口
+      - "3243:443/udp"         # DoH 服务端口
+    volumes:
+      - /home/adguardhome2/work:/opt/adguardhome/work
+      - /home/adguardhome2/conf:/opt/adguardhome/conf
+    environment:
+      - TZ=Asia/Shanghai

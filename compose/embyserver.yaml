@@ -1,0 +1,22 @@
+services:
+    embyserver:
+        image: emby/embyserver:latest
+        container_name: embyserver
+        network_mode: bridge
+        privileged: true  # <--- 取消注释，赋予特权模式
+        environment:
+            - UID=0
+            - GID=0
+            - GIDLIST=0,44,105
+            - TZ=Asia/Shanghai
+        volumes:
+            - /home/embyserver/config:/config
+            - /mnt/synology_nfs:/synology_nfs
+            - /mnt/smartstrm/strm:/strm
+            - /mnt/smartstrm/StrmAssistant:/StrmAssistant
+        ports:
+            - 8096:8096
+        devices:
+            - /dev/dri/renderD128:/dev/dri/renderD128
+            - /dev/dri/renderD129:/dev/dri/renderD129
+        restart: unless-stopped

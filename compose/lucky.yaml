@@ -1,0 +1,9 @@
+services:
+  lucky:
+    image: gdy666/lucky:v2
+    container_name: lucky
+    volumes:
+      - /home/lucky/conf:/app/conf
+      - /var/run/docker.sock:/var/run/docker.sock
+    network_mode: host
+    restart: always

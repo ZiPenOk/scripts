@@ -1,0 +1,14 @@
+services:
+  migu_video:
+    image: develop767/migu_video
+    container_name: migu_video
+    restart: always
+    # 使用 host 网络模式时，不需要手动映射端口 (ports)
+    network_mode: host
+    environment:
+      - muserId=
+      - mtoken=
+      - mport=1234
+      # 请将下面的 NASIP 替换为你 NAS 的实际 IP 地址
+      - mhost=http://10.10.10.200:1234 
+      - mrateType=9

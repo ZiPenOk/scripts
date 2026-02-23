@@ -1,0 +1,9 @@
+services:
+  mediago:
+    image: registry.cn-beijing.aliyuncs.com/caorushizi/mediago:v3.0.0
+    container_name: mediago
+    ports:
+      - "8899:8899"
+    volumes:
+      - /volume1/NAS/downloads:/root/mediago
+    restart: unless-stopped

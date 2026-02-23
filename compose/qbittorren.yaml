@@ -1,0 +1,17 @@
+version: "2"
+services:
+  qbittorrentee:
+    image: superng6/qbittorrentee
+    container_name: qbittorrentee
+    environment:
+      - PUID=1024
+      - PGID=100
+      - TZ=Asia/Shanghai
+    volumes:
+      - /volume1/docker/qbittorren/config:/config
+      - /volume1/NAS/downloads/temp:/downloads
+    ports:
+      - 6881:6881
+      - 6881:6881/udp
+      - 8080:8080
+    restart: unless-stopped

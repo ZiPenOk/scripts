@@ -1,0 +1,48 @@
+services:
+  xunlei:
+    container_name: xunlei
+    image: cnk3x/xunlei:beta
+    restart: unless-stopped
+
+    # 宿主机名，迅雷远程控制的名称与此相关，会显示 `群晖-r66s`
+    hostname: nas
+
+    # 必须, cap_add: [SYS_ADMIN] 和 privileged: true 二选一
+    privileged: true
+
+    # 面板访问端口，如需更改访问端口到5432，替换前面的2345为5432即可
+    ports: [2345:2345/tcp]
+    network_mode: bridge
+    # 可以通过环境变量 XL_DASHBOARD_PORT=5432 来更改内部端口, 不过bridge网络模式没有必要更改默认端口
+    # 如果设置 network_mode: host, 将忽略上面的端口映射配置(ports), 但可以通过环境变量 XL_DASHBOARD_PORT=5432 来更改端口
+    # network_mode: host
+
+    environment:
+      ##如果需要指定多个下载目录，手动指定XL_DIR_DOWNLOAD
+      ##多个以冒号`:`隔开，都必须以 /xunlei 开头，迅雷面板选择保存路径显示会去掉/xunlei前缀
+      ##指定后可以在 volumes 中绑定宿主机实际目录
+      ##迅雷云盘的缓存会使用第一个目录会缓存
+      ##/xunlei/后面可以用中文
+      ##不设置默认一个目录 /xunlei/downloads
+      #- XL_DIR_DOWNLOAD=/xunlei/下载:/xunlei/影音:/xunlei/大人
+
+      # 设置用户身份，请确保该用户对 XL_DIR_DOWNLOAD 指定的目录或者默认的 /xunlei/downloads 有读写权限
+      - XL_UID=1024 # 用户ID
+      - XL_GID=100 # 用户组ID
+      # 网页访问的用户名
+      - XL_DASHBOARD_USERNAME=
+      - XL_DASHBOARD_PASSWORD=
+    volumes:
+      ## 二选一必须，对应 XL_DIR_DOWNLOAD 指定的目录, 请替换冒号前面的路径为实际路径
+      #- /vol1/1000/下载:/xunlei/下载
+      #- /vol1/1000/影音/下载:/xunlei/影音
+      #- /vol1/1000/大人/下载:/xunlei/大人
+
+      ## 二选一必须，如果没有通过 XL_DIR_DOWNLOAD 指定下载目录，请将下面这行代码替换为上面代码
+      - /volume1/NAS/downloads:/xunlei/downloads
+
+      # 必须，数据目录，迅雷运行时，插件，升级，包括登录数据都在这
+      - /volume1/docker/xunlei/data:/xunlei/data
+
+      # 可选，首次初始化，会从远程下载迅雷套件到此处，如果不配置每次重新创建都会重新从远程下载
+      - /volume1/docker/xunlei/pan-xunlei-com:/xunlei/var/packages/pan-xunlei-com
