@@ -17,7 +17,7 @@ services:
       - /volume1/docker/mdcx/logs:/app/Log
 
       # 影片目录
-      - /volume1/docker/mdcx/strm:/movies
+      - /volume1/docker/DebianRoot/mnt/smartstrm/strm:/movies
       # VOLUMES_REPLACEMENT
     # environment:
     ports:
