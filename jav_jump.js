@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      3.6.1
+// @version      4.0
 // @icon         https://javdb.com/favicon.ico
-// @description  所有站点统一使用强番号逻辑 + JavBus 智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus、JAVLibrary、JavDB 支持。
+// @description  所有站点统一使用强番号逻辑 + JavBus 智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus、JAVLibrary、JavDB 支持。增加javstore预览图来源, 并添加来源控制和缓存控制选择
 // @author       ZiPenOk
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
@@ -114,6 +114,36 @@
             margin-top: 8px !important;
             margin-bottom: 4px !important;
         }
+        
+        //预览图缓存控制
+        .mini-switch {
+            width: 40px;
+            height: 20px;
+            appearance: none;
+            background: #e0e0e0;
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            outline: none;
+            transition: background 0.2s;
+        }
+        .mini-switch:checked {
+            background: #4CAF50;
+        }
+        .mini-switch::before {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: left 0.2s;
+        }
+        .mini-switch:checked::before {
+            left: calc(100% - 18px);
+        }
     `);
 
     // ============================ 核心工具模块 ============================
@@ -198,7 +228,8 @@
 
     // ============================ 预览图模块 ============================
     const Thumbnail = {
-        async get(code) {
+        // ========== 来源1：javfree.me ==========
+        async javfree(code) {
             const cacheKey = `thumb_cache_${code}`;
             const cached = sessionStorage.getItem(cacheKey);
             if (cached) return cached;
@@ -223,6 +254,142 @@
             }
         },
 
+        // ========== 来源2：javstore.net ==========
+        async javstore(code) {
+            try {
+                // 标准化番号：移除 FC2- 前缀、PPV 后缀及所有连字符，用于模糊匹配
+                const normalizedCode = code.replace(/^fc2-?/i, '').replace(/-/g, '').toLowerCase();
+                console.log(`javstore: searching for code=${code}, normalized=${normalizedCode}`);
+
+                // 1. 搜索页
+                const searchUrl = `https://javstore.net/search?q=${encodeURIComponent(code)}`;
+                const searchHtml = await Utils.request(searchUrl);
+                const searchDoc = new DOMParser().parseFromString(searchHtml, 'text/html');
+
+                // 2. 提取详情页链接：选择所有可能链接，并过滤掉外部链接
+                const candidateLinks = searchDoc.querySelectorAll('a[href*="/"]');
+                let detailUrl = null;
+                for (let link of candidateLinks) {
+                    const href = link.getAttribute('href');
+                    if (!href) continue;
+                    // 只考虑 javstore.net 域内的链接：相对路径或以 javstore.net 开头的绝对路径
+                    if (href.startsWith('http') && !href.includes('javstore.net')) {
+                        continue;
+                    }
+                    // 构建完整 URL
+                    const fullUrl = href.startsWith('http') ? href : new URL(href, searchUrl).href;
+                    // 提取 URL 路径的最后部分（通常是标题部分），用于匹配
+                    const pathLastPart = fullUrl.split('/').pop() || '';
+                    const normalizedPath = pathLastPart.toLowerCase().replace(/-/g, '');
+                    if (normalizedPath.includes(normalizedCode)) {
+                        detailUrl = fullUrl;
+                        console.log(`javstore: matched detail page: ${detailUrl}`);
+                        break;
+                    }
+                }
+
+                if (!detailUrl) {
+                    console.warn('javstore: no matching detail page found');
+                    return null;
+                }
+
+                // 3. 获取详情页
+                const detailHtml = await Utils.request(detailUrl);
+                const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
+
+                // 4. 查找预览图链接
+                // 优先寻找包含 "CLICK HERE" 文本的 a 标签
+                const allLinks = detailDoc.querySelectorAll('a');
+                let previewLink = null;
+                for (let link of allLinks) {
+                    if (link.textContent.includes('CLICK HERE')) {
+                        previewLink = link;
+                        break;
+                    }
+                }
+
+                if (previewLink) {
+                    let imgUrl = previewLink.href;
+                    console.log('javstore: found CLICK HERE link:', imgUrl);
+                    // 如果 URL 是 http 协议，尝试转为 https
+                    if (imgUrl.startsWith('http:')) {
+                        imgUrl = imgUrl.replace(/^http:/, 'https:');
+                    }
+                    return imgUrl;
+                }
+
+                // 备用方案：查找包含 _s.jpg 的图片，转为原图 URL
+                const img = detailDoc.querySelector('img[src*="_s.jpg"]');
+                if (img) {
+                    let src = img.src;
+                    if (!src.startsWith('http')) {
+                        src = new URL(src, detailUrl).href;
+                    }
+                    // 尝试转换为大图：_s.jpg -> _l.jpg 或 移除 _s
+                    const highRes = src.replace(/_s\.jpg$/, '_l.jpg') || src.replace('_s.jpg', '.jpg');
+                    const secureUrl = highRes.replace(/^http:/, 'https:');
+                    console.log('javstore: fallback to img src:', secureUrl);
+                    return secureUrl;
+                }
+
+                console.warn('javstore: no preview image found');
+                return null;
+            } catch (e) {
+                console.warn('javstore 获取失败', e);
+                return null;
+            }
+        }, 
+
+        // ========== 主入口：按顺序尝试各来源 ==========
+        async get(code) {
+            const cacheEnabled = Settings.getPreviewCacheEnabled();
+            let cacheKey;
+            if (cacheEnabled) {
+                cacheKey = `thumb_cache_${code}`;
+                const cached = sessionStorage.getItem(cacheKey);
+                if (cached) return cached;
+            }
+
+            const sourceMode = Settings.getPreviewSource();
+            console.log('sourceMode:', sourceMode);
+            let url = null;
+
+            try {
+                if (sourceMode === 'javfree_only') {
+                    console.log('Using javfree_only');
+                    url = await this.javfree(code);
+                } else if (sourceMode === 'javstore_only') {
+                    console.log('Using javstore_only');
+                    url = await this.javstore(code);
+                } else if (sourceMode === 'javfree_first') {
+                    console.log('Using javfree_first');
+                    url = await this.javfree(code);
+                    if (!url) {
+                        console.log('javfree returned null, trying javstore');
+                        url = await this.javstore(code);
+                    }
+                } else if (sourceMode === 'javstore_first') {
+                    console.log('Using javstore_first');
+                    url = await this.javstore(code);
+                    if (!url) {
+                        console.log('javstore returned null, trying javfree');
+                        url = await this.javfree(code);
+                    }
+                } else {
+                    console.error('Invalid sourceMode:', sourceMode);
+                }
+
+                console.log('Final url:', url);
+                if (url && cacheEnabled) {
+                    sessionStorage.setItem(cacheKey, url);
+                }
+                return url;
+            } catch (error) {
+                console.error('Error in Thumbnail.get:', error);
+                return null;
+            }
+        }, 
+
         async show(code) {
             const url = await this.get(code);
             if (url) {
@@ -235,6 +402,18 @@
 
     // ============================ 设置管理模块 ============================
     const Settings = {
+        getPreviewSource() {
+            return GM_getValue('preview_source', 'javfree_first'); // 默认值：优先 javfree
+        },
+        setPreviewSource(value) {
+            GM_setValue('preview_source', value);
+        },
+        getPreviewCacheEnabled() {
+            return GM_getValue('preview_cache_enabled', true); // 默认开启缓存
+        },
+        setPreviewCacheEnabled(value) {
+            GM_setValue('preview_cache_enabled', value);
+        },
         defaults: {
             'sukebei':    { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
             '169bbs':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
@@ -424,8 +603,6 @@
                 // 其他站点正常插入到标题之后
                 titleElem.insertAdjacentElement('afterend', btnGroup);
             }
-            // 直接插入到标题之后
-            titleElem.insertAdjacentElement('afterend', btnGroup);
         }
     }
 
@@ -463,6 +640,62 @@
 
         panel.innerHTML = '<h2 style="margin-top:0; text-align:center;">⚙️ 番号跳转设置</h2>';
 
+        // ----- 预览图设置行（合并来源与缓存开关）-----
+        const rowDiv = document.createElement('div');
+        rowDiv.style.cssText = `
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            white-space: nowrap;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 2px 5px;
+        `;
+
+        // 来源选择块
+        const sourceDiv = document.createElement('div');
+        sourceDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; flex-shrink: 0;';
+        const sourceLabel = document.createElement('span');
+        sourceLabel.style.fontWeight = 'bold';
+        sourceLabel.textContent = '预览图来源:';
+        const sourceSelect = document.createElement('select');
+        sourceSelect.id = 'preview-source-select';
+        sourceSelect.style.cssText = 'padding: 5px; border-radius: 4px;';
+        sourceSelect.innerHTML = `
+            <option value="javfree_first">优先 javfree，失败后 javstore</option>
+            <option value="javstore_first">优先 javstore，失败后 javfree</option>
+            <option value="javfree_only">仅 javfree</option>
+            <option value="javstore_only">仅 javstore</option>
+        `;
+        sourceDiv.appendChild(sourceLabel);
+        sourceDiv.appendChild(sourceSelect);
+
+        // 缓存开关块
+        const cacheDiv = document.createElement('div');
+        cacheDiv.style.cssText = 'display: flex; align-items: center; gap: 10px; flex-shrink: 0;';
+        const cacheLabel = document.createElement('span');
+        cacheLabel.style.fontWeight = 'bold';
+        cacheLabel.textContent = '启用预览图缓存:';
+        const cacheCheckbox = document.createElement('input');
+        cacheCheckbox.type = 'checkbox';
+        cacheCheckbox.id = 'preview-cache-checkbox';
+        cacheCheckbox.className = 'mini-switch';
+        cacheDiv.appendChild(cacheLabel);
+        cacheDiv.appendChild(cacheCheckbox);
+
+        rowDiv.appendChild(sourceDiv);
+        rowDiv.appendChild(cacheDiv);
+        panel.appendChild(rowDiv);
+
+        // 设置当前值
+        sourceSelect.value = Settings.getPreviewSource();
+        cacheCheckbox.checked = Settings.getPreviewCacheEnabled();
+
+        // ----- 表格样式 -----
         const style = document.createElement('style');
         style.textContent = `
             .toggle-switch {
@@ -528,13 +761,13 @@
         `;
         panel.appendChild(style);
 
+        // ----- 站点表格 -----
         const table = document.createElement('table');
         table.className = 'settings-table';
 
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
         const siteTh = document.createElement('th'); siteTh.textContent = '站点'; headerRow.appendChild(siteTh);
-
         const features = Settings.getAllFeatures();
         features.forEach(feature => {
             const th = document.createElement('th');
@@ -579,6 +812,7 @@
         table.appendChild(tbody);
         panel.appendChild(table);
 
+        // ----- 按钮 -----
         const btnDiv = document.createElement('div');
         btnDiv.style.display = 'flex';
         btnDiv.style.justifyContent = 'center';
@@ -591,15 +825,22 @@
         saveBtn.onmouseover = () => saveBtn.style.background = '#218838';
         saveBtn.onmouseout = () => saveBtn.style.background = '#28a745';
         saveBtn.onclick = () => {
+            // 保存每个站点的开关
             const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
             const newSettingsMap = {};
-
             checkboxes.forEach(cb => {
+                if (!cb.dataset.site) return; // 过滤掉预览图缓存开关
                 const siteId = cb.dataset.site;
                 const feature = cb.dataset.feature;
                 if (!newSettingsMap[siteId]) newSettingsMap[siteId] = {};
                 newSettingsMap[siteId][feature] = cb.checked;
             });
+
+            // 保存预览图设置
+            const selectedSource = document.getElementById('preview-source-select').value;
+            Settings.setPreviewSource(selectedSource);
+            const cacheEnabled = document.getElementById('preview-cache-checkbox').checked;
+            Settings.setPreviewCacheEnabled(cacheEnabled);
 
             Object.keys(newSettingsMap).forEach(siteId => {
                 Settings.set(siteId, newSettingsMap[siteId]);
