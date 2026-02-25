@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.4
+// @version      4.5
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -867,6 +867,15 @@
         .modern.dark-mode .sites-row-flex .site-name {
             color: #d0d0e0;
         }
+
+        .emby-button-group {
+            display: inline-block;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .emby-copy-btn {
+            margin-right: 4px;
+        }
     `);
 
     // 单例状态指示器
@@ -932,7 +941,7 @@
             hide
         };
     })();
-    
+
     // 统一提示管理
     const Prompt = {
         queryStart(code) { Status.show(`⏳ 查询番号 ${code} 中...`); },
@@ -942,7 +951,7 @@
         batchStart(count) { Status.show(`⏳ 正在查询 ${count} 个番号...`); },
         batchComplete(foundCount) { Status.success(`✅ Emby查询完成，找到 ${foundCount} 项`, true); }
     };
-    
+
     // 统一番号提取规则（从文本中提取）
     function extractCodeFromText(text) {
         if (!text) return null;
@@ -1438,6 +1447,50 @@
         }
     };
 
+    // 复制工具函数
+    function copyToClipboard(text, element) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+                showCopySuccess(element);
+            }).catch(() => {
+                fallbackCopyTextToClipboard(text, element);
+            });
+        } else {
+            fallbackCopyTextToClipboard(text, element);
+        }
+    }
+
+    function showCopySuccess(element) {
+        const originalText = element.innerHTML;
+        const originalBg = element.style.background;
+
+        element.innerHTML = '✓ 已复制到剪切板';
+        element.style.background = 'linear-gradient(135deg, #52b54b 0%, #3d9142 100%)';
+
+        setTimeout(() => {
+            element.innerHTML = originalText;
+            element.style.background = originalBg;
+        }, 1500);
+    }
+
+    function fallbackCopyTextToClipboard(text, element) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.cssText = 'position: fixed; top: 0; left: 0; width: 2em; height: 2em; padding: 0; border: none; outline: none; box-shadow: none; background: transparent;';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            if (document.execCommand('copy')) {
+                showCopySuccess(element);
+            }
+        } catch (err) {
+            console.error('复制失败:', err);
+        }
+        document.body.removeChild(textArea);
+    }
+
     // Emby API 和请求控制
     class EmbyAPI {
         constructor() {
@@ -1635,11 +1688,13 @@
                 background: ${Config.highlightColor} !important;
                 border-radius: 3px !important;
                 padding: 3px 8px !important;
-                margin-left: 12px !important;   /* 与标题保持间距 */
-                display: inline-block !important;  /* 与标题同行 */
-                vertical-align: middle !important; /* 垂直居中 */
+                margin-left: 4px !important;   /* 与复制按钮间距 */
+                display: inline-block !important;
+                vertical-align: middle !important;
                 border: none !important;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
+                transition: all 0.2s ease !important;
+                transform: scale(1) !important;
             `;
 
             el.innerHTML = `
@@ -1655,7 +1710,61 @@
                     跳转到emby
                 </a>
             `;
+
+            // 鼠标悬停效果
+            el.addEventListener('mouseenter', () => {
+                el.style.transform = 'scale(1.05)';
+                el.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+            });
+            el.addEventListener('mouseleave', () => {
+                el.style.transform = 'scale(1)';
+                el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
+            });
+
             return el;
+        }
+
+        // 创建番号复制按钮
+        createCopyButton(code) {
+            if (!code) return null;
+
+            const btn = document.createElement('span');
+            btn.className = 'emby-copy-btn';
+            btn.textContent = `📀 ${code}`;
+            btn.style.cssText = `
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border-radius: 4px;
+                padding: 4px 8px;
+                margin-left: 2px;
+                display: inline-block;
+                color: white;
+                font-size: 13px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                transition: all 0.2s ease;
+                vertical-align: middle;
+                user-select: none;
+                border: none;
+            `;
+
+            // 鼠标悬停特效
+            btn.addEventListener('mouseenter', () => {
+                btn.style.transform = 'scale(1.05)';
+                btn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'scale(1)';
+                btn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
+            });
+
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                copyToClipboard(code, btn);
+            });
+
+            return btn;
         }
 
         createBadge(item) {
@@ -1929,7 +2038,7 @@
                 item.querySelector('.item date'),
 
             async processDetailPage() {
-                if (document.querySelector('.emby-jump-link, .emby-badge')) return;
+                if (document.querySelector('.emby-jump-link, .emby-badge, .emby-copy-btn')) return;
 
                 const infoElement = document.querySelector('.col-md-3.info p');
                 if (!infoElement) return;
@@ -1940,19 +2049,30 @@
                     if (code) {
                         Prompt.queryStart(code);
                         const bestItem = await this.api.checkExists(code);
-                        if (bestItem) {
-                            const link = this.api.createLink(bestItem);
-                            if (link) {
-                                // 尝试插入按钮组
-                                const btnGroup = document.querySelector('.jav-jump-btn-group');
-                                if (btnGroup) {
+                        const link = bestItem ? this.api.createLink(bestItem) : null;
+                        const copyBtn = this.api.createCopyButton(code);
+
+                        if (link || copyBtn) {
+                            const btnGroup = document.querySelector('.jav-jump-btn-group');
+                            if (btnGroup) {
+                                if (link) {
                                     link.style.marginLeft = '0';
                                     btnGroup.appendChild(link);
-                                } else {
-                                    spans[1].parentNode.insertBefore(link, spans[1].nextSibling);
                                 }
-                                Prompt.querySuccess(code);
+                                if (copyBtn) btnGroup.appendChild(copyBtn);
+                            } else {
+                                // 创建一个容器来放置按钮
+                                const container = document.createElement('span');
+                                container.className = 'emby-button-group';
+                                container.style.cssText = 'display: inline-block; margin-left: 8px;';
+                                if (link) container.appendChild(link);
+                                if (copyBtn) container.appendChild(copyBtn);
+                                spans[1].parentNode.insertBefore(container, spans[1].nextSibling);
                             }
+                        }
+
+                        if (bestItem) {
+                            Prompt.querySuccess(code);
                         } else {
                             Prompt.queryNotFound(code);
                         }
@@ -1973,7 +2093,7 @@
                 item.querySelector('.video-title strong'),
 
             async processDetailPage() {
-                if (document.querySelector('.emby-jump-link, .emby-badge')) return;
+                if (document.querySelector('.emby-jump-link, .emby-badge, .emby-copy-btn')) return;
 
                 const detailElement =
                     document.querySelector('body > section > div > div.video-detail > h2 > strong') ||
@@ -1986,18 +2106,29 @@
                 if (code) {
                     Prompt.queryStart(code);
                     const bestItem = await this.api.checkExists(code);
-                    if (bestItem) {
-                        const link = this.api.createLink(bestItem);
-                        if (link) {
-                            const btnGroup = document.querySelector('.jav-jump-btn-group');
-                            if (btnGroup) {
+                    const link = bestItem ? this.api.createLink(bestItem) : null;
+                    const copyBtn = this.api.createCopyButton(code);
+
+                    if (link || copyBtn) {
+                        const btnGroup = document.querySelector('.jav-jump-btn-group');
+                        if (btnGroup) {
+                            if (link) {
                                 link.style.marginLeft = '0';
                                 btnGroup.appendChild(link);
-                            } else {
-                                detailElement.parentNode.insertBefore(link, detailElement.nextSibling);
                             }
-                            Prompt.querySuccess(code);
+                            if (copyBtn) btnGroup.appendChild(copyBtn);
+                        } else {
+                            const container = document.createElement('span');
+                            container.className = 'emby-button-group';
+                            container.style.cssText = 'display: inline-block; margin-left: 8px;';
+                            if (link) container.appendChild(link);
+                            if (copyBtn) container.appendChild(copyBtn);
+                            detailElement.parentNode.insertBefore(container, detailElement.nextSibling);
                         }
+                    }
+
+                    if (bestItem) {
+                        Prompt.querySuccess(code);
                     } else {
                         Prompt.queryNotFound(code);
                     }
@@ -2018,7 +2149,7 @@
             },
 
             async processDetailPage() {
-                if (document.querySelector('.video-wrap .emby-jump-link, .video-wrap .emby-badge')) return;
+                if (document.querySelector('.video-wrap .emby-jump-link, .video-wrap .emby-badge, .video-wrap .emby-copy-btn')) return;
 
                 const titleElement = document.querySelector('.video-wrap .archive-title h1');
                 if (!titleElement) return;
@@ -2027,25 +2158,33 @@
                 const code = extractCodeFromText(title);
                 if (!code) return;
 
-                if (code) {
-                    Prompt.queryStart(code);
-                    const bestItem = await this.api.checkExists(code);
-                    if (bestItem) {
-                        const link = this.api.createLink(bestItem);
+                Prompt.queryStart(code);
+                const bestItem = await this.api.checkExists(code);
+                const link = bestItem ? this.api.createLink(bestItem) : null;
+                const copyBtn = this.api.createCopyButton(code);
+
+                if (link || copyBtn) {
+                    const btnGroup = document.querySelector('.jav-jump-btn-group');
+                    if (btnGroup) {
                         if (link) {
-                            // 尝试插入按钮组
-                            const btnGroup = document.querySelector('.jav-jump-btn-group');
-                            if (btnGroup) {
-                                link.style.marginLeft = '0';
-                                btnGroup.appendChild(link);
-                            } else {
-                                titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
-                            }
-                            Prompt.querySuccess(code);
+                            link.style.marginLeft = '0';
+                            btnGroup.appendChild(link);
                         }
+                        if (copyBtn) btnGroup.appendChild(copyBtn);
                     } else {
-                        Prompt.queryNotFound(code);
+                        const container = document.createElement('span');
+                        container.className = 'emby-button-group';
+                        container.style.cssText = 'display: inline-block; margin-left: 8px;';
+                        if (link) container.appendChild(link);
+                        if (copyBtn) container.appendChild(copyBtn);
+                        titleElement.parentNode.insertBefore(container, titleElement.nextSibling);
                     }
+                }
+
+                if (bestItem) {
+                    Prompt.querySuccess(code);
+                } else {
+                    Prompt.queryNotFound(code);
                 }
             }
         }),
@@ -2056,7 +2195,7 @@
             async process() {
                 const siteConfig = this.__siteConfig;
                 if (!siteConfig || !siteConfig.detail) return;
-                if (document.querySelector('.emby-jump-link, .emby-badge')) return;
+                if (document.querySelector('.emby-jump-link, .emby-badge, .emby-copy-btn')) return;
 
                 const title = document.title.trim();
                 const codes = this.extractCodes(title);
@@ -2072,30 +2211,38 @@
                                       document.querySelector('h1');
                     if (!container) return;
 
-                    for (const bestItem of bestItems) {
+                    // 创建一个按钮组容器
+                    let btnGroup = document.querySelector('.jav-jump-btn-group');
+                    if (!btnGroup) {
+                        btnGroup = document.createElement('span');
+                        btnGroup.className = 'jav-jump-btn-group';
+                        btnGroup.style.cssText = 'display: inline-block; margin-left: 8px; vertical-align: middle;';
+                        container.parentNode.insertBefore(btnGroup, container.nextSibling);
+                    }
+
+                    for (let i = 0; i < codes.length; i++) {
+                        const code = codes[i];
+                        const bestItem = bestItems[i];
                         if (bestItem) {
                             const link = this.api.createLink(bestItem);
                             if (link) {
-                                // 尝试插入按钮组
-                                const btnGroup = document.querySelector('.jav-jump-btn-group');
-                                if (btnGroup) {
-                                    link.style.marginLeft = '0';
-                                    btnGroup.appendChild(link);
-                                } else {
-                                    container.parentNode.insertBefore(link, container.nextSibling);
-                                }
+                                link.style.marginLeft = '0';
+                                btnGroup.appendChild(link);
                                 foundAny = true;
                             }
                         }
+                        // 为每个番号创建复制按钮（无论是否找到）
+                        const copyBtn = this.api.createCopyButton(code);
+                        if (copyBtn) btnGroup.appendChild(copyBtn);
                     }
 
                     if (foundAny) {
                         Prompt.batchComplete(bestItems.filter(Boolean).length);
                     } else {
-                        Prompt.batchComplete(0); // 或 Status.error('❌ 未找到匹配项', true);
+                        Prompt.batchComplete(0);
                     }
                 }
-            }, 
+            },
 
             extractCodes(title) {
                 if (!title) return [];
@@ -2147,7 +2294,7 @@
             },
 
             async processDetailPage() {
-                if (document.querySelector('.emby-jump-link, .emby-badge')) return;
+                if (document.querySelector('.emby-jump-link, .emby-badge, .emby-copy-btn')) return;
 
                 const titleElement = document.querySelector('.panel-heading .panel-title');
                 if (!titleElement) return;
@@ -2156,36 +2303,34 @@
                 const code = extractCodeFromText(titleText);
                 if (!code) return;
 
-                const upperCode = code.toUpperCase();
-
                 Prompt.queryStart(code);
                 const bestItem = await this.api.checkExists(code);
-                if (bestItem) {
-                    const link = this.api.createLink(bestItem);
-                    if (!link) {
-                        Prompt.queryNotFound(code);
-                        return;
-                    }
+                const link = bestItem ? this.api.createLink(bestItem) : null;
+                const copyBtn = this.api.createCopyButton(code);
 
-                    // 尝试插入到另一个脚本的按钮组
+                if (link || copyBtn) {
                     const btnGroup = document.querySelector('.jav-jump-btn-group');
                     if (btnGroup) {
-                        // 移除可能的多余左边距（因为按钮组本身有 gap 间距）
-                        link.style.marginLeft = '0';
-                        btnGroup.appendChild(link);
+                        if (link) {
+                            link.style.marginLeft = '0';
+                            btnGroup.appendChild(link);
+                        }
+                        if (copyBtn) btnGroup.appendChild(copyBtn);
                     } else {
-                        // 原有逻辑：创建容器并插入到标题后面
                         const container = document.createElement('span');
                         container.style.marginLeft = '10px';
-                        container.appendChild(link);
+                        if (link) container.appendChild(link);
+                        if (copyBtn) container.appendChild(copyBtn);
                         titleElement.appendChild(container);
                     }
+                }
 
+                if (bestItem) {
                     Prompt.querySuccess(code);
                 } else {
                     Prompt.queryNotFound(code);
                 }
-            }, 
+            },
 
             async processListPage() {
 
@@ -2283,22 +2428,34 @@
                 if (!code) return;
 
                 // 如果链接已存在，跳过
-                if (document.querySelector('.emby-jump-link, .emby-badge')) return;
+                if (document.querySelector('.emby-jump-link, .emby-badge, .emby-copy-btn')) return;
+
+                // 创建复制按钮
+                const copyBtn = api.createCopyButton(code);
 
                 // 尝试从缓存获取
                 let item = embyItemMap.get(code);
                 if (item) {
                     const link = api.createLink(item);
-                    if (link) {
+                    if (link || copyBtn) {
                         const btnGroup = document.querySelector('.jav-jump-btn-group');
                         if (btnGroup) {
-                            link.style.marginLeft = '0';
-                            btnGroup.appendChild(link);
+                            if (link) {
+                                link.style.marginLeft = '0';
+                                btnGroup.appendChild(link);
+                            }
+                            if (copyBtn) btnGroup.appendChild(copyBtn);
                         } else {
-                            idContainer.insertAdjacentElement('afterend', link);
+                            // 创建一个容器
+                            const container = document.createElement('span');
+                            container.className = 'emby-button-group';
+                            container.style.cssText = 'display: inline-block; margin-left: 8px;';
+                            if (link) container.appendChild(link);
+                            if (copyBtn) container.appendChild(copyBtn);
+                            idContainer.insertAdjacentElement('afterend', container);
                         }
-                        Prompt.querySuccess(code);
                     }
+                    if (link) Prompt.querySuccess(code);
                     return;
                 }
 
@@ -2308,19 +2465,40 @@
                     if (bestItem) {
                         embyItemMap.set(code, bestItem);
                         const link = api.createLink(bestItem);
-                        if (link) {
+                        if (link || copyBtn) {
                             const btnGroup = document.querySelector('.jav-jump-btn-group');
                             if (btnGroup) {
-                                link.style.marginLeft = '0';
-                                btnGroup.appendChild(link);
+                                if (link) {
+                                    link.style.marginLeft = '0';
+                                    btnGroup.appendChild(link);
+                                }
+                                if (copyBtn) btnGroup.appendChild(copyBtn);
                             } else {
-                                idContainer.insertAdjacentElement('afterend', link);
+                                const container = document.createElement('span');
+                                container.className = 'emby-button-group';
+                                container.style.cssText = 'display: inline-block; margin-left: 8px;';
+                                if (link) container.appendChild(link);
+                                if (copyBtn) container.appendChild(copyBtn);
+                                idContainer.insertAdjacentElement('afterend', container);
                             }
                             Prompt.querySuccess(code);
                         } else {
                             Status.error('❌ 创建链接失败', true);
                         }
                     } else {
+                        // 即使没有 Emby 资源，也显示复制按钮
+                        if (copyBtn) {
+                            const btnGroup = document.querySelector('.jav-jump-btn-group');
+                            if (btnGroup) {
+                                btnGroup.appendChild(copyBtn);
+                            } else {
+                                const container = document.createElement('span');
+                                container.className = 'emby-button-group';
+                                container.style.cssText = 'display: inline-block; margin-left: 8px;';
+                                container.appendChild(copyBtn);
+                                idContainer.insertAdjacentElement('afterend', container);
+                            }
+                        }
                         Prompt.queryNotFound(code);
                     }
                 }).catch(e => {
@@ -2432,7 +2610,7 @@
                     setInterval(() => maintainDetailPage(this.api), 2000);
                 }
             });
-        })(), 
+        })(),
 
         madou: Object.assign(Object.create(BaseProcessor), {
             listSelector: '',
@@ -2445,7 +2623,7 @@
             },
 
             async processDetailPage() {
-                if (document.querySelector('.emby-jump-link, .emby-badge')) return;
+                if (document.querySelector('.emby-jump-link, .emby-badge, .emby-copy-btn')) return;
 
                 let code = null;
 
@@ -2471,21 +2649,32 @@
                 if (code) {
                     Prompt.queryStart(code);
                     const bestItem = await this.api.checkExists(code);
-                    if (bestItem) {
-                        const link = this.api.createLink(bestItem);
-                        if (link) {
-                            const titleElement = document.querySelector('h1');
-                            if (titleElement) {
-                                const btnGroup = document.querySelector('.jav-jump-btn-group');
-                                if (btnGroup) {
+                    const link = bestItem ? this.api.createLink(bestItem) : null;
+                    const copyBtn = this.api.createCopyButton(code);
+
+                    if (link || copyBtn) {
+                        const titleElement = document.querySelector('h1');
+                        if (titleElement) {
+                            const btnGroup = document.querySelector('.jav-jump-btn-group');
+                            if (btnGroup) {
+                                if (link) {
                                     link.style.marginLeft = '0';
                                     btnGroup.appendChild(link);
-                                } else {
-                                    titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
                                 }
-                                Prompt.querySuccess(code);
+                                if (copyBtn) btnGroup.appendChild(copyBtn);
+                            } else {
+                                const container = document.createElement('span');
+                                container.className = 'emby-button-group';
+                                container.style.cssText = 'display: inline-block; margin-left: 8px;';
+                                if (link) container.appendChild(link);
+                                if (copyBtn) container.appendChild(copyBtn);
+                                titleElement.parentNode.insertBefore(container, titleElement.nextSibling);
                             }
                         }
+                    }
+
+                    if (bestItem) {
+                        Prompt.querySuccess(code);
                     } else {
                         Prompt.queryNotFound(code);
                     }
@@ -2504,7 +2693,7 @@
             },
 
             async processDetailPage() {
-                if (document.querySelector('.emby-jump-link, .emby-badge')) return;
+                if (document.querySelector('.emby-jump-link, .emby-badge, .emby-copy-btn')) return;
 
                 const keywords = document.querySelector('meta[name="keywords"]')?.content || "";
                 const code = extractCodeFromText(keywords);
@@ -2513,21 +2702,32 @@
                 if (code) {
                     Prompt.queryStart(code);
                     const bestItem = await this.api.checkExists(code);
-                    if (bestItem) {
-                        const link = this.api.createLink(bestItem);
-                        if (link) {
-                            const titleElement = document.querySelector('h1');
-                            if (titleElement) {
-                                const btnGroup = document.querySelector('.jav-jump-btn-group');
-                                if (btnGroup) {
+                    const link = bestItem ? this.api.createLink(bestItem) : null;
+                    const copyBtn = this.api.createCopyButton(code);
+
+                    if (link || copyBtn) {
+                        const titleElement = document.querySelector('h1');
+                        if (titleElement) {
+                            const btnGroup = document.querySelector('.jav-jump-btn-group');
+                            if (btnGroup) {
+                                if (link) {
                                     link.style.marginLeft = '0';
                                     btnGroup.appendChild(link);
-                                } else {
-                                    titleElement.parentNode.insertBefore(link, titleElement.nextSibling);
                                 }
-                                Prompt.querySuccess(code);
+                                if (copyBtn) btnGroup.appendChild(copyBtn);
+                            } else {
+                                const container = document.createElement('span');
+                                container.className = 'emby-button-group';
+                                container.style.cssText = 'display: inline-block; margin-left: 8px;';
+                                if (link) container.appendChild(link);
+                                if (copyBtn) container.appendChild(copyBtn);
+                                titleElement.parentNode.insertBefore(container, titleElement.nextSibling);
                             }
                         }
+                    }
+
+                    if (bestItem) {
+                        Prompt.querySuccess(code);
                     } else {
                         Prompt.queryNotFound(code);
                     }
@@ -2564,22 +2764,31 @@
                     if (titleEl) {
                         const code = extractCodeFromText(titleEl.textContent);
                         if (code) {
-                            const upperCode = code.toUpperCase();
                             Prompt.queryStart(code);
                             const bestItem = await this.api.checkExists(code);
-                            if (bestItem) {
-                                const link = this.api.createLink(bestItem);
-                                if (link) {
-                                    // 尝试插入按钮组
-                                    const btnGroup = document.querySelector('.jav-jump-btn-group');
-                                    if (btnGroup) {
-                                        link.style.marginLeft = '0'; // 移除左间距，使用按钮组gap
+                            const link = bestItem ? this.api.createLink(bestItem) : null;
+                            const copyBtn = this.api.createCopyButton(code);
+
+                            if (link || copyBtn) {
+                                const btnGroup = document.querySelector('.jav-jump-btn-group');
+                                if (btnGroup) {
+                                    if (link) {
+                                        link.style.marginLeft = '0';
                                         btnGroup.appendChild(link);
-                                    } else {
-                                        titleEl.after(link); // 原有方式
                                     }
-                                    Prompt.querySuccess(code);
+                                    if (copyBtn) btnGroup.appendChild(copyBtn);
+                                } else {
+                                    const container = document.createElement('span');
+                                    container.className = 'emby-button-group';
+                                    container.style.cssText = 'display: inline-block; margin-left: 8px;';
+                                    if (link) container.appendChild(link);
+                                    if (copyBtn) container.appendChild(copyBtn);
+                                    titleEl.after(container);
                                 }
+                            }
+
+                            if (bestItem) {
+                                Prompt.querySuccess(code);
                             } else {
                                 Prompt.queryNotFound(code);
                             }
