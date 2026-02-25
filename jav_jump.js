@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      4.0
+// @version      4.1
 // @icon         https://javdb.com/favicon.ico
 // @description  所有站点统一使用强番号逻辑 + JavBus 智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus、JAVLibrary、JavDB 支持。增加javstore预览图来源, 并添加来源控制和缓存控制选择
 // @author       ZiPenOk
@@ -105,7 +105,7 @@
             line-height: normal !important;
             /* 背景和颜色由内联样式控制，此处不覆盖 */
         }
-        
+
         /* Emby 专用修复：强制按钮组换行并占满整宽 */
         .emby-fix {
             width: 100% !important;
@@ -114,7 +114,7 @@
             margin-top: 8px !important;
             margin-bottom: 4px !important;
         }
-        
+
         //预览图缓存控制
         .mini-switch {
             width: 40px;
@@ -143,6 +143,35 @@
         }
         .mini-switch:checked::before {
             left: calc(100% - 18px);
+        }
+
+        /* ========== 按钮特效悬停和动画 ========== */
+        @keyframes btnSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* 通用按钮组样式 */
+        .jav-jump-btn-group a,
+        .javlibrary-fix a {
+            transition: all 0.2s ease-in-out;
+            animation: btnSlideIn 0.3s ease-out;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* 悬停效果（针对 JAVLibrary 使用 !important 覆盖内联样式） */
+        .jav-jump-btn-group a:hover,
+        .javlibrary-fix a:hover {
+            transform: scale(1.05) !important;
+            filter: brightness(1.2) !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+            text-decoration: none !important;
         }
     `);
 
@@ -338,7 +367,7 @@
                 console.warn('javstore 获取失败', e);
                 return null;
             }
-        }, 
+        },
 
         // ========== 主入口：按顺序尝试各来源 ==========
         async get(code) {
@@ -388,7 +417,7 @@
                 console.error('Error in Thumbnail.get:', error);
                 return null;
             }
-        }, 
+        },
 
         async show(code) {
             const url = await this.get(code);
