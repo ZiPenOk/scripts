@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.1.5
-// @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，仅保留xt和dn，若dn中包含番号则提取为新的dn，支持纯数字番号如010521-001）、推送到qB/115，新增磁力信息验车功能，截图支持轮播（点击遮罩关闭）。
+// @version      3.2.0
+// @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，仅保留xt和dn，且dn解码为明文）、推送到qB/115，新增磁力信息验车功能，截图支持轮播（点击遮罩关闭）。完美整合 laosiji.js，仅在操作列插入一次。
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
@@ -330,7 +330,7 @@
         return otherSelectors.some(sel => parent.querySelector(sel));
     }
 
-    // ================= 4. 统一番号提取规则（支持纯数字番号）=================
+    // ================= 4. 番号提取 =================
     function extractCodeFromText(text) {
         if (!text) return null;
 
@@ -351,7 +351,6 @@
                 } else if (pattern === patterns[1]) {
                     return `FC2-PPV-${match[1]}`;
                 } else if (pattern === patterns[2]) {
-                    // 对于纯数字，统一返回 010521-001 格式
                     return `${match[1]}-${match[2]}`;
                 }
             }
@@ -550,7 +549,7 @@
         app.mount(mountPoint);
     }
 
-    // ================= 7. 按钮组构建（复制按钮优化，支持纯数字番号）=================
+    // ================= 7. 精简磁力链接（含番号提取）=================
     function simplifyMagnetLink(link) {
         if (!link.startsWith('magnet:?')) return link;
         try {
@@ -591,6 +590,7 @@
         }
     }
 
+    // ================= 8. 按钮组构建 =================
     function createBtnGroup(link) {
         const group = document.createElement('span');
         group.className = 'mag-btn-group';
@@ -638,7 +638,7 @@
         return group;
     }
 
-    // ================= 8. 推送函数 =================
+    // ================= 9. 推送函数 =================
     function pushToQb(link) {
         GM_xmlhttpRequest({
             method: "POST",
@@ -681,16 +681,53 @@
         });
     }
 
-    // ================= 9. 页面扫描 =================
+    // ================= 10. 特殊处理：laosiji.js 表格 =================
+    function handleLaosijiTable() {
+        const table = document.getElementById('nong-table-new');
+        if (!table) return;
+
+        // 遍历每一行（跳过表头）
+        const rows = table.querySelectorAll('tr.jav-nong-row:not(#jav-nong-head)');
+        rows.forEach(row => {
+            const cells = row.cells;
+            if (cells.length < 3) return;
+            const operationCell = cells[2]; // 操作列（第三列，索引2）
+            // 获取磁力链接：优先从第一个单元格的a标签获取
+            const magnetLink = row.querySelector('td:first-child a[href^="magnet:"]')?.href;
+            if (!magnetLink) return;
+
+            // 避免重复添加
+            if (operationCell.querySelector('.mag-btn-group')) return;
+
+            // 创建我们的按钮组
+            const btnGroup = createBtnGroup(magnetLink);
+
+            // 移除原有的复制按钮（如果有）
+            const oldCopy = operationCell.querySelector('.nong-copy');
+            if (oldCopy) oldCopy.remove();
+
+            // 插入按钮组
+            operationCell.appendChild(btnGroup);
+        });
+    }
+
+    // ================= 11. 页面扫描（整合 laosiji 处理）=================
     function processPage() {
         const regex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|)/gi;
 
+        // 先处理 laosiji 表格
+        handleLaosijiTable();
+
+        // 收集已处理的磁力链接（避免重复）
         const processedHrefs = new Set();
         document.querySelectorAll('a[data-mag-processed="true"]').forEach(a => {
             if (a.href) processedHrefs.add(a.href);
         });
 
+        // 处理 <a> 标签（排除 laosiji 表格内的链接，它们已被特殊处理）
         document.querySelectorAll('a').forEach(a => {
+            // 跳过 laosiji 表格内的所有 a 标签
+            if (a.closest('#nong-table-new')) return;
             if (a.closest('.check-car-panel')) return;
             if (a.dataset.magProcessed) return;
             if (a.classList.contains('magnet-link')) return;
@@ -704,12 +741,13 @@
             }
         });
 
+        // 处理文本节点（同样跳过 laosiji 表格内的节点）
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
         let node;
         const textNodes = [];
         while (node = walker.nextNode()) {
             const parent = node.parentElement;
-            if (!parent || parent.closest('.check-car-panel') || parent.closest('.mag-btn-group') || parent.closest('[data-mag-processed]') ||
+            if (!parent || parent.closest('#nong-table-new') || parent.closest('.check-car-panel') || parent.closest('.mag-btn-group') || parent.closest('[data-mag-processed]') ||
                 ['SCRIPT', 'STYLE', 'A', 'TEXTAREA', 'INPUT'].includes(parent.tagName)) continue;
             if (node.nodeValue.match(regex)) textNodes.push(node);
         }
@@ -740,7 +778,7 @@
         });
     }
 
-    // ================= 10. 设置面板 =================
+    // ================= 12. 设置面板 =================
     function showSettingsModal() {
         const mask = document.createElement('div');
         mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100001;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
@@ -956,7 +994,7 @@
         modal.querySelector('#btn_cancel').onclick = () => mask.remove();
     }
 
-    // ================= 11. 启动监听 =================
+    // ================= 13. 启动监听 =================
     let timer = null;
     function lazyRun() { if (timer) clearTimeout(timer); timer = setTimeout(processPage, 500); }
     processPage();
