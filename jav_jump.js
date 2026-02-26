@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      4.2
+// @version      4.3
 // @icon         https://javdb.com/favicon.ico
 // @description  所有站点统一使用强番号逻辑 + JavBus 智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus、JAVLibrary、JavDB 支持。增加javstore预览图来源, 并添加来源控制和缓存控制选择
 // @author       ZiPenOk
@@ -179,22 +179,38 @@
     const Utils = {
         extractCode(text) {
             if (!text) return null;
-            const fc2Match = text.match(/FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i);
-            if (fc2Match) {
-                return `FC2-PPV-${fc2Match[1]}`;
-            }
-            const standardMatch = text.match(/([a-zA-Z0-9]{2,15})([-\s_])(\d{2,10})/i);
-            if (standardMatch) {
-                const prefix = standardMatch[1].toUpperCase();
-                const separator = standardMatch[2];
-                const suffix = standardMatch[3];
-                const ignoreList = ['FULLHD', 'H264', 'H265', '1080P', '720P', 'PART', 'DISC', '10BIT'];
-                if (!ignoreList.includes(prefix)) {
-                    return `${prefix}${separator}${suffix}`;
+
+            const patterns = [
+                { regex: /([A-Z]{2,15})[-_\s]([A-Z]{1,2}\d{2,10})/i, type: 'alphanum' },
+                { regex: /([A-Z]{2,15})[-_\s](\d{2,10})(?:[-_\s](\d+))?/i, type: 'standard' },
+                { regex: /FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i, type: 'fc2' },
+                { regex: /(\d{6})[-_\s]?(\d{2,3})/, type: 'numeric' },
+                { regex: /([A-Z]{1,2})(\d{3,4})/i, type: 'compact' }
+            ];
+
+            const ignoreList = ['FULLHD', 'H264', 'H265', '1080P', '720P', 'PART', 'DISC', '10BIT'];
+
+            for (let i = 0; i < patterns.length; i++) {
+                const { regex, type } = patterns[i];
+                const match = text.match(regex);
+                if (!match) continue;
+
+                if (type === 'alphanum') {
+                    return match[0].trim();
+                } else if (type === 'standard') {
+                    const prefix = match[1].toUpperCase();
+                    if (ignoreList.includes(prefix)) continue;
+                    return match[3] ? `${prefix}-${match[2]}-${match[3]}` : `${prefix}-${match[2]}`;
+                } else if (type === 'fc2') {
+                    return `FC2-PPV-${match[1]}`;
+                } else if (type === 'numeric') {
+                    return `${match[1]}-${match[2]}`;
+                } else if (type === 'compact') {
+                    return match[0].toUpperCase();
                 }
             }
             return null;
-        },
+        }, 
 
         createBtn(text, color, handler) {
             const btn = document.createElement('a');
