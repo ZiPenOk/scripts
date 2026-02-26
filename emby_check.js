@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.6
+// @version      4.7
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -1086,32 +1086,6 @@
                 return rows;
             }
 
-            // 生成站点开关表格行
-            function generateSitesRows() {
-                const sites = currentConfig.enabledSites;
-                let rows = '';
-                for (const site in sites) {
-                    rows += `
-                        <div class="sites-row">
-                            <div class="site-name">${site}</div>
-                            <div class="site-toggle">
-                                <label class="switch">
-                                    <input type="checkbox" data-site="${site}" data-type="list" ${sites[site].list ? 'checked' : ''}>
-                                    <span class="slider round"></span>
-                                </label>
-                            </div>
-                            <div class="site-toggle">
-                                <label class="switch">
-                                    <input type="checkbox" data-site="${site}" data-type="detail" ${sites[site].detail ? 'checked' : ''}>
-                                    <span class="slider round"></span>
-                                </label>
-                            </div>
-                        </div>
-                    `;
-                }
-                return rows;
-            }
-
             // 图标显示：深色模式开启时显示☀️（点击切回浅色），关闭时显示🌙（点击切深色）
             const darkModeIcon = Config.darkMode ? '☀️' : '🌙';
             const darkModeTitle = Config.darkMode ? '切换浅色模式' : '切换深色模式';
@@ -2145,10 +2119,11 @@
             },
 
             async processDetailPage() {
-                if (document.querySelector('.video-wrap .emby-jump-link, .video-wrap .emby-badge, .video-wrap .emby-copy-btn')) return;
-
                 const titleElement = document.querySelector('.video-wrap .archive-title h1');
                 if (!titleElement) return;
+
+                if (titleElement.dataset.embyInjected === '1') return;
+                titleElement.dataset.embyInjected = '1';
 
                 const title = titleElement.textContent.trim();
                 const code = extractCodeFromText(title);
@@ -2423,10 +2398,15 @@
                 const code = extractCodeFromText(idCodeElement.textContent);
                 if (!code) return;
 
-                // 如果链接已存在，跳过
-                if (document.querySelector('.emby-jump-link, .emby-badge, .emby-copy-btn')) return;
+                // 如果已经为该番号处理过，跳过
+                if (idContainer.dataset.embyCode === code) return;
 
-                // 创建复制按钮
+                // 如果正在处理中，跳过
+                if (idContainer.dataset.embyProcessing === 'true') return;
+
+                // 标记正在处理
+                idContainer.dataset.embyProcessing = 'true';
+
                 const copyBtn = api.createCopyButton(code);
 
                 // 尝试从缓存获取
@@ -2436,13 +2416,9 @@
                     if (link || copyBtn) {
                         const btnGroup = document.querySelector('.jav-jump-btn-group');
                         if (btnGroup) {
-                            if (link) {
-                                link.style.marginLeft = '0';
-                                btnGroup.appendChild(link);
-                            }
+                            if (link) btnGroup.appendChild(link);
                             if (copyBtn) btnGroup.appendChild(copyBtn);
                         } else {
-                            // 创建一个容器
                             const container = document.createElement('span');
                             container.className = 'emby-button-group';
                             container.style.cssText = 'display: inline-block; margin-left: 8px;';
@@ -2452,6 +2428,9 @@
                         }
                     }
                     if (link) Prompt.querySuccess(code);
+                    // 设置已处理标记
+                    idContainer.dataset.embyCode = code;
+                    delete idContainer.dataset.embyProcessing;
                     return;
                 }
 
@@ -2464,10 +2443,7 @@
                         if (link || copyBtn) {
                             const btnGroup = document.querySelector('.jav-jump-btn-group');
                             if (btnGroup) {
-                                if (link) {
-                                    link.style.marginLeft = '0';
-                                    btnGroup.appendChild(link);
-                                }
+                                if (link) btnGroup.appendChild(link);
                                 if (copyBtn) btnGroup.appendChild(copyBtn);
                             } else {
                                 const container = document.createElement('span');
@@ -2500,6 +2476,12 @@
                 }).catch(e => {
                     console.error('Emby查询失败', e);
                     Prompt.queryError(code, e.message);
+                }).finally(() => {
+                    // 无论成功失败，设置已处理标记（避免重复尝试），并清除处理中标记
+                    if (idContainer && idContainer.dataset) {
+                        idContainer.dataset.embyCode = code;
+                        delete idContainer.dataset.embyProcessing;
+                    }
                 });
             }
 
