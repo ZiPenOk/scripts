@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      4.1
+// @version      4.2
 // @icon         https://javdb.com/favicon.ico
 // @description  所有站点统一使用强番号逻辑 + JavBus 智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus、JAVLibrary、JavDB 支持。增加javstore预览图来源, 并添加来源控制和缓存控制选择
 // @author       ZiPenOk
@@ -444,21 +444,23 @@
             GM_setValue('preview_cache_enabled', value);
         },
         defaults: {
-            'sukebei':    { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            '169bbs':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'supjav':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'emby':       { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'javbus':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'javdb':      { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true },
-            'javlibrary': { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpGoogle: true, preview: true }
+            'sukebei':    { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
+            '169bbs':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
+            'supjav':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
+            'emby':       { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
+            'javbus':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
+            'javdb':      { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
+            'javlibrary': { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true }
         },
 
         get(siteId) {
             const saved = GM_getValue(`settings_${siteId}`, null);
+            const defaults = this.defaults[siteId] || {};
             if (saved) {
-                return JSON.parse(saved);
+                // 合并保存的配置与默认配置，确保所有默认字段都存在
+                return { ...defaults, ...JSON.parse(saved) };
             }
-            return this.defaults[siteId] ? { ...this.defaults[siteId] } : {};
+            return { ...defaults };
         },
 
         set(siteId, settings) {
@@ -466,7 +468,7 @@
         },
 
         getAllFeatures() {
-            return ['jumpJavbus', 'jumpJavdb', 'jumpNyaa', 'jumpGoogle', 'preview'];
+            return ['jumpJavbus', 'jumpJavdb', 'jumpNyaa', 'jumpMissAV', 'jumpGoogle', 'preview'];
         },
 
         getFeatureName(feature) {
@@ -474,6 +476,7 @@
                 jumpJavbus: 'JavBus跳转',
                 jumpJavdb: 'JavDB跳转',
                 jumpNyaa: 'Sukebei跳转',
+                jumpMissAV: 'MissAV跳转',
                 jumpGoogle: 'Google搜索',
                 preview: '预览图'
             };
@@ -500,6 +503,15 @@
     function addJavdbBtn(code, container) {
         const btn = Utils.createBtn('📀 JavDB', '#6f42c1', () => {
             window.open(`https://javdb.com/search?q=${code}`);
+        });
+        container.appendChild(btn);
+    }
+    
+    function addMissAVBtn(code, container) {
+        const codeLower = code.toLowerCase();
+        const directUrl = `https://missav.ws/${codeLower}`;
+        const btn = Utils.createBtn('🎬 MissAV', '#ec4899', () => {
+            window.open(directUrl);
         });
         container.appendChild(btn);
     }
@@ -590,6 +602,7 @@
             addNyaaBtn(code, btnGroup);
             addJavbusBtn(code, btnGroup);
             addJavdbBtn(code, btnGroup);
+            addMissAVBtn(code, btnGroup);
             addGoogleBtn(code, btnGroup);
             addPreviewBtn(code, btnGroup);
 
@@ -615,6 +628,7 @@
             if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
             if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
             if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
+            if (settings.jumpMissAV) addMissAVBtn(code, btnGroup);
             if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
             if (settings.preview) addPreviewBtn(code, btnGroup);
 
