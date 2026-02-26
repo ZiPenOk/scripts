@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.8.0
+// @version      4.8.1
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -867,7 +867,7 @@
         .modern.dark-mode .sites-row-flex .site-name {
             color: #d0d0e0;
         }
-        
+
         /* ===== 统一按钮系统 ===== */
         .emby-btn {
             display: inline-flex !important;
@@ -1007,13 +1007,10 @@
         if (!text) return null;
 
         const patterns = [
-            // 标准格式：2-15个字母/数字，短横线，2-10位数字（可选带短横线后缀）
             /([A-Z]{2,15})-(\d{2,10})(?:-(\d+))?/i,
-            // FC2-PPV 特殊格式
+            /([A-Z]{2,15})-([A-Z]{0,2}\d{2,10})/i,
             /FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i,
-            // 纯数字格式：6位数字-2/3位数字（或下划线/空格），统一为短横线
             /(\d{6})[-_ ]?(\d{2,3})/,
-            // 无分隔符的字母（1-2个）加数字（3-4位），保持原始格式（如 n1696）
             /([A-Z]{1,2})(\d{3,4})/i
         ];
 
@@ -1022,11 +1019,13 @@
             if (match) {
                 if (i === 0) { // 标准格式
                     return match[3] ? `${match[1]}-${match[2]}-${match[3]}` : `${match[1]}-${match[2]}`;
-                } else if (i === 1) { // FC2
+                } else if (i === 1) { // 字母-字母数字格式，保持原始格式
+                    return match[0]; // 返回完整字符串，如 MKBD-S118
+                } else if (i === 2) { // FC2
                     return `FC2-PPV-${match[1]}`;
-                } else if (i === 2) { // 纯数字格式，统一为短横线
+                } else if (i === 3) { // 纯数字格式
                     return `${match[1]}-${match[2]}`;
-                } else if (i === 3) { // 无分隔符字母+数字，保持原始格式
+                } else if (i === 4) { // 无分隔符字母+数字
                     return match[0];
                 }
             }
@@ -1528,7 +1527,7 @@
             this.total = 0;
             this.completed = 0;
         }
-        
+
         getBtnSizeClass() {
             switch (Config.badgeSize) {
                 case 'small': return 'emby-btn-small';
@@ -1738,7 +1737,7 @@
 
             return link;
         }
-        
+
         createCopyButton(code) {
             if (!code) return null;
 
@@ -1774,8 +1773,10 @@
             const target = code.trim().toUpperCase();
             const targetClean = target.replace(/[-_]/g, '');
             const mainTarget = target.replace(/-\d+$/, '');
-
             const cleanStr = s => (s || '').toUpperCase().replace(/[-_]/g, '');
+
+            // 提取target的字母前缀（连字符前的部分）
+            const targetPrefix = target.split('-')[0];
 
             let best = null;
             let bestScore = 0;
@@ -1783,6 +1784,7 @@
             for (const it of items) {
                 const name = (it.Name || '').toUpperCase();
                 const nameClean = cleanStr(name);
+                const namePrefix = name.split('-')[0];
 
                 let score = 0;
 
@@ -1790,8 +1792,9 @@
                 else if (nameClean === targetClean) score = 95;
                 else if (name === mainTarget) score = 92;
                 else if (nameClean === cleanStr(mainTarget)) score = 90;
-                else if (name.includes(mainTarget)) score = 85;
-                else if (nameClean.includes(cleanStr(mainTarget))) score = 80;
+                // 只有在字母前缀相同时，才考虑包含匹配
+                else if (name.includes(mainTarget) && targetPrefix === namePrefix) score = 85;
+                else if (nameClean.includes(cleanStr(mainTarget)) && targetPrefix === namePrefix) score = 80;
 
                 if (score > bestScore) {
                     bestScore = score;
