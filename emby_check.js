@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.5
+// @version      4.6
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -867,14 +867,64 @@
         .modern.dark-mode .sites-row-flex .site-name {
             color: #d0d0e0;
         }
+        
+        /* ===== 统一按钮系统 ===== */
+        .emby-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+
+            border-radius: 6px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+
+            line-height: 1 !important;
+            box-sizing: border-box !important;
+            white-space: nowrap !important;
+
+            transition: all .18s ease !important;
+            vertical-align: middle !important;
+
+            text-decoration: none !important;
+            border: none !important;
+            user-select: none !important;
+        }
+
+        .emby-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,.25);
+        }
+
+        .emby-btn-small {
+            font-size: 11px !important;
+            padding: 3px 8px !important;
+        }
+
+        .emby-btn-medium {
+            font-size: 13px !important;
+            padding: 4px 10px !important;
+        }
+
+        .emby-btn-large {
+            font-size: 15px !important;
+            padding: 6px 14px !important;
+        }
+
+        .emby-btn-jump {
+            background: ${Config.highlightColor} !important;
+            color: #fff !important;
+        }
+
+        .emby-btn-copy {
+            background: linear-gradient(135deg,#667eea,#764ba2) !important;
+            color: #fff !important;
+        }
 
         .emby-button-group {
-            display: inline-block;
-            margin-left: 8px;
-            vertical-align: middle;
-        }
-        .emby-copy-btn {
-            margin-right: 4px;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            margin-left: 8px !important;
         }
     `);
 
@@ -1499,6 +1549,14 @@
             this.total = 0;
             this.completed = 0;
         }
+        
+        getBtnSizeClass() {
+            switch (Config.badgeSize) {
+                case 'small': return 'emby-btn-small';
+                case 'large': return 'emby-btn-large';
+                default: return 'emby-btn-medium';
+            }
+        }
 
         async fetchData(code) {
             if (!code) return { Items: [] };
@@ -1676,87 +1734,26 @@
             });
         }
 
-        // 创建跳转链接（内联样式强制覆盖）
         createLink(item) {
             if (!item) return null;
 
             const embyUrl = `${Config.embyBaseUrl}web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}`;
 
-            const el = document.createElement('div');
-            el.className = 'emby-jump-link';
-            el.style.cssText = `
-                background: ${Config.highlightColor} !important;
-                border-radius: 3px !important;
-                padding: 3px 8px !important;
-                margin-left: 4px !important;   /* 与复制按钮间距 */
-                display: inline-block !important;
-                vertical-align: middle !important;
-                border: none !important;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
-                transition: all 0.2s ease !important;
-                transform: scale(1) !important;
-            `;
+            const link = document.createElement('a');
+            link.href = embyUrl;
+            link.target = '_blank';
+            link.className = `emby-btn emby-btn-jump ${this.getBtnSizeClass()}`;
+            link.textContent = '🎬 跳转到Emby';
 
-            el.innerHTML = `
-                <a href="${embyUrl}" target="_blank"
-                    style="
-                        color: #ffffff !important;
-                        text-decoration: none !important;
-                        display: inline-block !important;
-                        font-weight: bold !important;
-                        font-size: 13px !important;
-                        background: transparent !important;
-                    ">
-                    跳转到emby
-                </a>
-            `;
-
-            // 鼠标悬停效果
-            el.addEventListener('mouseenter', () => {
-                el.style.transform = 'scale(1.05)';
-                el.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-            });
-            el.addEventListener('mouseleave', () => {
-                el.style.transform = 'scale(1)';
-                el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
-            });
-
-            return el;
+            return link;
         }
-
-        // 创建番号复制按钮
+        
         createCopyButton(code) {
             if (!code) return null;
 
             const btn = document.createElement('span');
-            btn.className = 'emby-copy-btn';
+            btn.className = `emby-btn emby-btn-copy ${this.getBtnSizeClass()}`;
             btn.textContent = `📀 ${code}`;
-            btn.style.cssText = `
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                border-radius: 4px;
-                padding: 4px 8px;
-                margin-left: 2px;
-                display: inline-block;
-                color: white;
-                font-size: 13px;
-                font-weight: bold;
-                cursor: pointer;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-                transition: all 0.2s ease;
-                vertical-align: middle;
-                user-select: none;
-                border: none;
-            `;
-
-            // 鼠标悬停特效
-            btn.addEventListener('mouseenter', () => {
-                btn.style.transform = 'scale(1.05)';
-                btn.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.transform = 'scale(1)';
-                btn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
-            });
 
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -2056,7 +2053,6 @@
                             const btnGroup = document.querySelector('.jav-jump-btn-group');
                             if (btnGroup) {
                                 if (link) {
-                                    link.style.marginLeft = '0';
                                     btnGroup.appendChild(link);
                                 }
                                 if (copyBtn) btnGroup.appendChild(copyBtn);
