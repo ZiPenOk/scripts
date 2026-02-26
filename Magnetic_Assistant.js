@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.2.0
-// @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，仅保留xt和dn，且dn解码为明文）、推送到qB/115，新增磁力信息验车功能，截图支持轮播（点击遮罩关闭）。完美整合 laosiji.js，仅在操作列插入一次。
+// @version      3.2.3
+// @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，仅保留xt和dn，并尝试提取标准番号）、推送到qB/115，新增磁力信息验车功能，截图支持轮播（点击遮罩关闭）。完美整合 laosiji.js，仅在操作列插入一次。
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
@@ -330,28 +330,31 @@
         return otherSelectors.some(sel => parent.querySelector(sel));
     }
 
-    // ================= 4. 番号提取 =================
+    // ================= 4. 番号提取（用户提供的完整规则）=================
     function extractCodeFromText(text) {
         if (!text) return null;
 
         const patterns = [
-            // 标准格式：字母-数字（可带后缀）如 ABF-319, IPZZ-777, IPZZ-777-2
             /([A-Z]{2,15})-(\d{2,10})(?:-(\d+))?/i,
-            // FC2-PPV 特殊格式
+            /([A-Z]{2,15})-([A-Z]{0,2}\d{2,10})/i,
             /FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i,
-            // 纯数字番号：如 010521-001, 010521_001, 010521001
-            /(\d{6})[_-]?(\d{3})/
+            /(\d{6})[-_ ]?(\d{2,3})/,
+            /([A-Z]{1,2})(\d{3,4})/i
         ];
 
-        for (const pattern of patterns) {
-            const match = text.match(pattern);
+        for (let i = 0; i < patterns.length; i++) {
+            const match = text.match(patterns[i]);
             if (match) {
-                if (pattern === patterns[0]) {
+                if (i === 0) { // 标准格式
                     return match[3] ? `${match[1]}-${match[2]}-${match[3]}` : `${match[1]}-${match[2]}`;
-                } else if (pattern === patterns[1]) {
+                } else if (i === 1) { // 字母-字母数字格式，保持原始格式
+                    return match[0]; // 返回完整字符串，如 MKBD-S118
+                } else if (i === 2) { // FC2
                     return `FC2-PPV-${match[1]}`;
-                } else if (pattern === patterns[2]) {
+                } else if (i === 3) { // 纯数字格式
                     return `${match[1]}-${match[2]}`;
+                } else if (i === 4) { // 无分隔符字母+数字
+                    return match[0];
                 }
             }
         }
@@ -549,7 +552,7 @@
         app.mount(mountPoint);
     }
 
-    // ================= 7. 精简磁力链接（含番号提取）=================
+    // ================= 7. 精简磁力链接（使用用户提供的番号提取规则）=================
     function simplifyMagnetLink(link) {
         if (!link.startsWith('magnet:?')) return link;
         try {
@@ -572,9 +575,9 @@
             if (dn) {
                 let decodedDn = null;
                 try {
-                    decodedDn = decodeURIComponent(dn);
+                    decodedDn = decodeURIComponent(dn).trim();
                 } catch (e) {
-                    decodedDn = dn;
+                    decodedDn = dn.trim();
                 }
                 const code = extractCodeFromText(decodedDn);
                 if (code) {
@@ -686,47 +689,35 @@
         const table = document.getElementById('nong-table-new');
         if (!table) return;
 
-        // 遍历每一行（跳过表头）
         const rows = table.querySelectorAll('tr.jav-nong-row:not(#jav-nong-head)');
         rows.forEach(row => {
             const cells = row.cells;
             if (cells.length < 3) return;
-            const operationCell = cells[2]; // 操作列（第三列，索引2）
-            // 获取磁力链接：优先从第一个单元格的a标签获取
+            const operationCell = cells[2];
             const magnetLink = row.querySelector('td:first-child a[href^="magnet:"]')?.href;
             if (!magnetLink) return;
 
-            // 避免重复添加
             if (operationCell.querySelector('.mag-btn-group')) return;
 
-            // 创建我们的按钮组
             const btnGroup = createBtnGroup(magnetLink);
-
-            // 移除原有的复制按钮（如果有）
             const oldCopy = operationCell.querySelector('.nong-copy');
             if (oldCopy) oldCopy.remove();
-
-            // 插入按钮组
             operationCell.appendChild(btnGroup);
         });
     }
 
-    // ================= 11. 页面扫描（整合 laosiji 处理）=================
+    // ================= 11. 页面扫描 =================
     function processPage() {
         const regex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|)/gi;
 
-        // 先处理 laosiji 表格
         handleLaosijiTable();
 
-        // 收集已处理的磁力链接（避免重复）
         const processedHrefs = new Set();
         document.querySelectorAll('a[data-mag-processed="true"]').forEach(a => {
             if (a.href) processedHrefs.add(a.href);
         });
 
-        // 处理 <a> 标签（排除 laosiji 表格内的链接，它们已被特殊处理）
         document.querySelectorAll('a').forEach(a => {
-            // 跳过 laosiji 表格内的所有 a 标签
             if (a.closest('#nong-table-new')) return;
             if (a.closest('.check-car-panel')) return;
             if (a.dataset.magProcessed) return;
@@ -741,7 +732,6 @@
             }
         });
 
-        // 处理文本节点（同样跳过 laosiji 表格内的节点）
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
         let node;
         const textNodes = [];
