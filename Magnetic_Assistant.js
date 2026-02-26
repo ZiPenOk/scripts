@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.0.3
-// @description  点击按钮显示绿色勾（验车按钮除外），支持复制、推送到qB/115，新增磁力信息验车功能，截图支持轮播（点击遮罩关闭）。
+// @version      3.1.5
+// @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，仅保留xt和dn，若dn中包含番号则提取为新的dn，支持纯数字番号如010521-001）、推送到qB/115，新增磁力信息验车功能，截图支持轮播（点击遮罩关闭）。
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setClipboard
@@ -42,7 +42,7 @@
         checkActive: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#28a745"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
     };
 
-    // ================= 2. 注入CSS（移除X按钮样式）=================
+    // ================= 2. 注入CSS =================
     const style = document.createElement('style');
     style.innerHTML = `
         .mag-btn-group {
@@ -330,7 +330,36 @@
         return otherSelectors.some(sel => parent.querySelector(sel));
     }
 
-    // ================= 4. 图片轮播函数（无X按钮，点击遮罩关闭）=================
+    // ================= 4. 统一番号提取规则（支持纯数字番号）=================
+    function extractCodeFromText(text) {
+        if (!text) return null;
+
+        const patterns = [
+            // 标准格式：字母-数字（可带后缀）如 ABF-319, IPZZ-777, IPZZ-777-2
+            /([A-Z]{2,15})-(\d{2,10})(?:-(\d+))?/i,
+            // FC2-PPV 特殊格式
+            /FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i,
+            // 纯数字番号：如 010521-001, 010521_001, 010521001
+            /(\d{6})[_-]?(\d{3})/
+        ];
+
+        for (const pattern of patterns) {
+            const match = text.match(pattern);
+            if (match) {
+                if (pattern === patterns[0]) {
+                    return match[3] ? `${match[1]}-${match[2]}-${match[3]}` : `${match[1]}-${match[2]}`;
+                } else if (pattern === patterns[1]) {
+                    return `FC2-PPV-${match[1]}`;
+                } else if (pattern === patterns[2]) {
+                    // 对于纯数字，统一返回 010521-001 格式
+                    return `${match[1]}-${match[2]}`;
+                }
+            }
+        }
+        return null;
+    }
+
+    // ================= 5. 图片轮播函数 =================
     function showImageGallery(images, startIndex = 0) {
         if (!images || images.length === 0) return;
 
@@ -338,7 +367,7 @@
         const mask = document.createElement('div');
         mask.className = 'gallery-mask';
         mask.addEventListener('click', (e) => {
-            if (e.target === mask) mask.remove(); // 点击遮罩关闭
+            if (e.target === mask) mask.remove();
         });
 
         const updateImage = () => {
@@ -380,7 +409,7 @@
         document.body.appendChild(mask);
     }
 
-    // ================= 5. 验车功能（使用 Vue 组件）=================
+    // ================= 6. 验车功能（使用 Vue 组件）=================
     const MagnetPanel = {
         name: 'MagnetPanel',
         props: {
@@ -521,7 +550,47 @@
         app.mount(mountPoint);
     }
 
-    // ================= 6. 按钮组构建 =================
+    // ================= 7. 按钮组构建（复制按钮优化，支持纯数字番号）=================
+    function simplifyMagnetLink(link) {
+        if (!link.startsWith('magnet:?')) return link;
+        try {
+            const paramRegex = /[?&]([^=]+)=([^&]*)/g;
+            let match;
+            let xt = null;
+            let dn = null;
+            while ((match = paramRegex.exec(link)) !== null) {
+                const key = match[1];
+                const value = match[2];
+                if (key === 'xt') {
+                    xt = value;
+                } else if (key === 'dn') {
+                    dn = value;
+                }
+            }
+            if (!xt) return link;
+
+            let newLink = `magnet:?xt=${xt}`;
+            if (dn) {
+                let decodedDn = null;
+                try {
+                    decodedDn = decodeURIComponent(dn);
+                } catch (e) {
+                    decodedDn = dn;
+                }
+                const code = extractCodeFromText(decodedDn);
+                if (code) {
+                    newLink += `&dn=${code}`;
+                } else {
+                    newLink += `&dn=${decodedDn}`;
+                }
+            }
+            return newLink;
+        } catch (e) {
+            console.warn('精简磁力链接失败，使用原始链接', e);
+            return link;
+        }
+    }
+
     function createBtnGroup(link) {
         const group = document.createElement('span');
         group.className = 'mag-btn-group';
@@ -547,8 +616,13 @@
 
         if (config.enableCopy) {
             addBtn('copy', ICONS.copy, '复制链接', () => {
-                GM_setClipboard(link, 'text');
-                showToast('📋 链接已复制');
+                const processedLink = simplifyMagnetLink(link);
+                GM_setClipboard(processedLink, 'text');
+                if (processedLink !== link) {
+                    showToast('📋 精简链接已复制');
+                } else {
+                    showToast('📋 链接已复制');
+                }
             });
         }
         if (config.enableQb) {
@@ -564,7 +638,7 @@
         return group;
     }
 
-    // ================= 7. 推送函数 =================
+    // ================= 8. 推送函数 =================
     function pushToQb(link) {
         GM_xmlhttpRequest({
             method: "POST",
@@ -607,7 +681,7 @@
         });
     }
 
-    // ================= 8. 页面扫描 =================
+    // ================= 9. 页面扫描 =================
     function processPage() {
         const regex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|)/gi;
 
@@ -666,7 +740,7 @@
         });
     }
 
-    // ================= 9. 设置面板 =================
+    // ================= 10. 设置面板 =================
     function showSettingsModal() {
         const mask = document.createElement('div');
         mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100001;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
@@ -882,7 +956,7 @@
         modal.querySelector('#btn_cancel').onclick = () => mask.remove();
     }
 
-    // ================= 10. 启动监听 =================
+    // ================= 11. 启动监听 =================
     let timer = null;
     function lazyRun() { if (timer) clearTimeout(timer); timer = setTimeout(processPage, 500); }
     processPage();
