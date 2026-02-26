@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.7.2
+// @version      4.8.0
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -1006,24 +1006,29 @@
     function extractCodeFromText(text) {
         if (!text) return null;
 
-        // 匹配标准番号格式：字母-数字（可带后缀）
-        // 例如：ABF-319, IPZZ-777, FC2-PPV-123456
         const patterns = [
             // 标准格式：2-15个字母/数字，短横线，2-10位数字（可选带短横线后缀）
             /([A-Z]{2,15})-(\d{2,10})(?:-(\d+))?/i,
             // FC2-PPV 特殊格式
-            /FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i
+            /FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i,
+            // 纯数字格式：6位数字-2/3位数字（或下划线/空格），统一为短横线
+            /(\d{6})[-_ ]?(\d{2,3})/,
+            // 无分隔符的字母（1-2个）加数字（3-4位），保持原始格式（如 n1696）
+            /([A-Z]{1,2})(\d{3,4})/i
         ];
 
-        for (const pattern of patterns) {
-            const match = text.match(pattern);
+        for (let i = 0; i < patterns.length; i++) {
+            const match = text.match(patterns[i]);
             if (match) {
-                // 对于标准格式，返回完整番号（如 IPZZ-777 或 IPZZ-777-2）
-                if (pattern === patterns[0]) {
+                if (i === 0) { // 标准格式
                     return match[3] ? `${match[1]}-${match[2]}-${match[3]}` : `${match[1]}-${match[2]}`;
+                } else if (i === 1) { // FC2
+                    return `FC2-PPV-${match[1]}`;
+                } else if (i === 2) { // 纯数字格式，统一为短横线
+                    return `${match[1]}-${match[2]}`;
+                } else if (i === 3) { // 无分隔符字母+数字，保持原始格式
+                    return match[0];
                 }
-                // 对于 FC2，返回 FC2-PPV-数字
-                return `FC2-PPV-${match[1]}`;
             }
         }
         return null;
@@ -1587,19 +1592,31 @@
             return { Items: [] };
         }
 
-        /**
-         * 检查指定番号在 Emby 中是否存在，返回最佳匹配项（或 null）
-         */
+        /*** 检查指定番号在 Emby 中是否存在，返回最佳匹配项（或 null）*/
         async checkExists(code) {
             if (!code) return null;
 
             const clean = code.trim().toUpperCase();
 
-            const tryCodes = [clean];
+            let tryCodes = [clean];
+
+            // 处理 FC2 的两种变体
+            const fc2PPVMatch = clean.match(/^FC2-PPV-(\d+)$/i);
+            const fc2Match = clean.match(/^FC2-(\d+)$/i);
+            if (fc2PPVMatch) {
+                tryCodes.push(`FC2-${fc2PPVMatch[1]}`);
+            } else if (fc2Match) {
+                tryCodes.push(`FC2-PPV-${fc2Match[1]}`);
+            }
+
+            // 原有的降级逻辑（如 IPZZ-777-2 降级为 IPZZ-777）
             const mainMatch = clean.match(/^([A-Z]+-\d+)/);
             if (mainMatch && mainMatch[1] !== clean) {
                 tryCodes.push(mainMatch[1]);
             }
+
+            // 去重
+            tryCodes = [...new Set(tryCodes)];
 
             // 先查缓存
             for (const c of tryCodes) {
@@ -1616,7 +1633,7 @@
                 }
             }
 
-            // 缓存未命中，执行搜索
+            // 执行搜索
             for (const c of tryCodes) {
                 try {
                     const url = `${Config.embyBaseUrl}emby/Users/${Config.embyAPI}/Items` +
