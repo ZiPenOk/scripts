@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.7.1
+// @version      4.7.2
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -2725,8 +2725,87 @@
 
             getElement: item => item.querySelector('a.xst'),
 
-            async process() {
+            // 重写 processItemsWithLink 方法，为按钮添加左边距
+            async processItemsWithLink(items) {
+                if (!items?.length) return;
 
+                Status.show(`正在收集番号: 共${items.length}个项目`);
+
+                const toProcess = [];
+                const codes = [];
+
+                for (const item of items) {
+                    if (this.processed.has(item)) continue;
+                    this.processed.add(item);
+
+                    const code = this.extractCode(item);
+                    const element = this.getElement(item);
+
+                    if (code && element) {
+                        toProcess.push({ element, code });
+                        codes.push(code);
+                    }
+                }
+
+                if (codes.length > 0) {
+                    const bestItems = await this.api.batchQuery(codes);
+                    const processedElements = [];
+
+                    for (let i = 0; i < bestItems.length; i++) {
+                        if (bestItems[i]) {
+                            const { element } = toProcess[i];
+                            const item = items[i];
+
+                            if (item) item.classList.add('emby-processed');
+
+                            const link = this.api.createLink(bestItems[i]);
+
+                            if (link) {
+                                // 为列表页按钮添加左边距
+                                link.style.marginLeft = '8px';
+
+                                const target = element.parentNode || element;
+                                let current = element;
+
+                                const containerClasses = [
+                                    'item',
+                                    'masonry-brick',
+                                    'grid-item',
+                                    'movie-list',
+                                    'post'
+                                ];
+
+                                while (current && current !== document.body) {
+                                    for (const className of containerClasses) {
+                                        if (current.classList?.contains(className)) {
+                                            current.style.cssText += `
+                                                border:3px solid ${Config.highlightColor};
+                                                background-color:${Config.highlightColor}22;
+                                            `;
+                                            break;
+                                        }
+                                    }
+                                    current = current.parentElement;
+                                }
+
+                                processedElements.push({
+                                    target,
+                                    link,
+                                    position: element.nextSibling
+                                });
+                            }
+                        }
+                    }
+
+                    requestAnimationFrame(() => {
+                        processedElements.forEach(({ target, link, position }) => {
+                            target.insertBefore(link, position);
+                        });
+                    });
+                }
+            },
+
+            async process() {
                 const siteConfig = this.__siteConfig;
                 if (!siteConfig) return;
 
