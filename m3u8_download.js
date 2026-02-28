@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         M3U8 视频嗅探下载 + MediaGo 投喂
 // @namespace    https://github.com/ZiPenOk
-// @version      3.0.0
+// @version      3.0.1
 // @description  严格保持 1.js 原始 UI 布局。增加：1.番号正则提取；2.投喂失败详细检测；3.UI 越界找回。
 // @author       ZiPenOk
 // @match        *://*/*
@@ -14,6 +14,7 @@
 // @grant        GM_setValue
 // @supportURL   https://github.com/ZiPenOk/scripts/issues
 // @homepageURL  https://github.com/ZiPenOk/scripts
+// @icon         https://cdn-icons-png.flaticon.com/512/9404/9404997.png
 // @updateURL    https://raw.githubusercontent.com/ZiPenOk/scripts/main/m3u8_download.js
 // @downloadURL  https://raw.githubusercontent.com/ZiPenOk/scripts/main/m3u8_download.js
 // ==/UserScript==

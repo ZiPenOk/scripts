@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.2.3
+// @version      3.2.4
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，仅保留xt和dn，并尝试提取标准番号）、推送到qB/115，新增磁力信息验车功能，截图支持轮播（点击遮罩关闭）。完美整合 laosiji.js，仅在操作列插入一次。
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
@@ -12,6 +12,7 @@
 // @connect      *
 // @connect      whatslink.info
 // @require      https://cdn.jsdelivr.net/npm/vue@3.5.27/dist/vue.global.prod.js
+// @icon         https://cdn-icons-png.freepik.com/512/234/234746.png
 // @updateURL    https://raw.githubusercontent.com/ZiPenOk/scripts/main/Magnetic_Assistant.js
 // @downloadURL  https://raw.githubusercontent.com/ZiPenOk/scripts/main/Magnetic_Assistant.js
 // ==/UserScript==
