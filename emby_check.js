@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      4.8.1
+// @version      4.8.2
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -891,8 +891,8 @@
         }
 
         .emby-btn:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 6px 14px rgba(0,0,0,.35);
+            transform: scale(1.05) !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,.25) !important;
         }
 
         .emby-btn-small {
@@ -902,7 +902,7 @@
 
         .emby-btn-medium {
             font-size: 13px !important;
-            padding: 4px 10px !important;
+            padding: 6px 10px !important;
         }
 
         .emby-btn-large {
