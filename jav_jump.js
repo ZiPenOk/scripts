@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      4.3
+// @version      4.4
 // @icon         https://javdb.com/favicon.ico
 // @description  所有站点统一使用强番号逻辑 + JavBus 智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus、JAVLibrary、JavDB 支持。增加javstore预览图来源, 并添加来源控制和缓存控制选择
 // @author       ZiPenOk
@@ -180,14 +180,21 @@
         extractCode(text) {
             if (!text) return null;
 
+            // 增强的正则表达式，优先级调整：优先匹配第二组带字母的格式（如 MKBD-S118）
             const patterns = [
+                // 模式1: 字母-字母数字，第二组至少一个字母（防止误匹配纯数字）
                 { regex: /([A-Z]{2,15})[-_\s]([A-Z]{1,2}\d{2,10})/i, type: 'alphanum' },
+                // 模式2: 标准格式: 字母-纯数字，可带额外后缀（如 ABC-123 或 ABC-123-456）
                 { regex: /([A-Z]{2,15})[-_\s](\d{2,10})(?:[-_\s](\d+))?/i, type: 'standard' },
+                // 模式3: FC2 格式
                 { regex: /FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i, type: 'fc2' },
+                // 模式4: 纯数字格式，如 123456-789
                 { regex: /(\d{6})[-_\s]?(\d{2,3})/, type: 'numeric' },
+                // 模式5: 无分隔符字母+数字，如 AB123
                 { regex: /([A-Z]{1,2})(\d{3,4})/i, type: 'compact' }
             ];
 
+            // 忽略列表，仅用于模式2（标准格式），过滤掉干扰词
             const ignoreList = ['FULLHD', 'H264', 'H265', '1080P', '720P', 'PART', 'DISC', '10BIT'];
 
             for (let i = 0; i < patterns.length; i++) {
@@ -196,21 +203,25 @@
                 if (!match) continue;
 
                 if (type === 'alphanum') {
+                    // 返回完整匹配字符串（如 MKBD-S118），保持原样
                     return match[0].trim();
                 } else if (type === 'standard') {
                     const prefix = match[1].toUpperCase();
+                    // 如果前缀是干扰词，跳过并继续匹配下一个模式
                     if (ignoreList.includes(prefix)) continue;
+                    // 如果有第三组（如 ABC-123-456），则返回带后缀的格式
                     return match[3] ? `${prefix}-${match[2]}-${match[3]}` : `${prefix}-${match[2]}`;
                 } else if (type === 'fc2') {
                     return `FC2-PPV-${match[1]}`;
                 } else if (type === 'numeric') {
                     return `${match[1]}-${match[2]}`;
                 } else if (type === 'compact') {
+                    // 无分隔符格式，转为大写返回（如 AB123）
                     return match[0].toUpperCase();
                 }
             }
             return null;
-        }, 
+        },
 
         createBtn(text, color, handler) {
             const btn = document.createElement('a');
@@ -448,32 +459,31 @@
     // ============================ 设置管理模块 ============================
     const Settings = {
         getPreviewSource() {
-            return GM_getValue('preview_source', 'javfree_first'); // 默认值：优先 javfree
+            return GM_getValue('preview_source', 'javfree_first');
         },
         setPreviewSource(value) {
             GM_setValue('preview_source', value);
         },
         getPreviewCacheEnabled() {
-            return GM_getValue('preview_cache_enabled', true); // 默认开启缓存
+            return GM_getValue('preview_cache_enabled', true);
         },
         setPreviewCacheEnabled(value) {
             GM_setValue('preview_cache_enabled', value);
         },
         defaults: {
-            'sukebei':    { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
-            '169bbs':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
-            'supjav':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
-            'emby':       { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
-            'javbus':     { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
-            'javdb':      { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true },
-            'javlibrary': { jumpNyaa: true, jumpJavbus: true, jumpJavdb: true, jumpMissAV: true, jumpGoogle: true, preview: true }
+            'sukebei':    { enabled: true },
+            '169bbs':     { enabled: true },
+            'supjav':     { enabled: true },
+            'emby':       { enabled: true },
+            'javbus':     { enabled: true },
+            'javdb':      { enabled: true },
+            'javlibrary': { enabled: true }
         },
 
         get(siteId) {
             const saved = GM_getValue(`settings_${siteId}`, null);
-            const defaults = this.defaults[siteId] || {};
+            const defaults = this.defaults[siteId] || { enabled: true };
             if (saved) {
-                // 合并保存的配置与默认配置，确保所有默认字段都存在
                 return { ...defaults, ...JSON.parse(saved) };
             }
             return { ...defaults };
@@ -484,17 +494,12 @@
         },
 
         getAllFeatures() {
-            return ['jumpJavbus', 'jumpJavdb', 'jumpNyaa', 'jumpMissAV', 'jumpGoogle', 'preview'];
+            return ['enabled'];
         },
 
         getFeatureName(feature) {
             const map = {
-                jumpJavbus: 'JavBus跳转',
-                jumpJavdb: 'JavDB跳转',
-                jumpNyaa: 'Sukebei跳转',
-                jumpMissAV: 'MissAV跳转',
-                jumpGoogle: 'Google搜索',
-                preview: '预览图'
+                enabled: '启用本站点功能'
             };
             return map[feature] || feature;
         }
@@ -522,12 +527,19 @@
         });
         container.appendChild(btn);
     }
-    
+
     function addMissAVBtn(code, container) {
         const codeLower = code.toLowerCase();
         const directUrl = `https://missav.ws/${codeLower}`;
         const btn = Utils.createBtn('🎬 MissAV', '#ec4899', () => {
             window.open(directUrl);
+        });
+        container.appendChild(btn);
+    }
+
+    function addBTDiggBtn(code, container) {
+        const btn = Utils.createBtn('🔍 BTDigg', '#F60', () => {
+            window.open(`https://btdig.com/search?q=${code}`);
         });
         container.appendChild(btn);
     }
@@ -581,9 +593,8 @@
         {
             id: 'javdb',
             name: 'JavDB',
-            // 匹配 javdb.com 或 javdb*.com 的详情页，路径包含 /v/ 后跟字母数字
             match: (url) => /javdb\d*\.com/.test(url) && /\/v\/\w+/.test(url),
-            titleSelector: 'h2.title' // 详情页标题为 h2.title
+            titleSelector: 'h2.title'
         },
         {
             id: 'javlibrary',
@@ -609,16 +620,20 @@
 
         const settings = Settings.get(site.id);
 
+        // 如果该站点被禁用，直接返回
+        if (!settings.enabled) return;
+
         const btnGroup = document.createElement('div');
         btnGroup.className = 'jav-jump-btn-group';
 
         // 区分 JAVLibrary 特殊处理
         if (site.id === 'javlibrary') {
-            // 强制添加所有按钮（忽略设置，确保显示；若希望受设置控制，可改为 settings.jumpXxx）
+            // 强制添加所有按钮（忽略设置，确保显示）
             addNyaaBtn(code, btnGroup);
             addJavbusBtn(code, btnGroup);
             addJavdbBtn(code, btnGroup);
             addMissAVBtn(code, btnGroup);
+            addBTDiggBtn(code, btnGroup);
             addGoogleBtn(code, btnGroup);
             addPreviewBtn(code, btnGroup);
 
@@ -640,26 +655,25 @@
                 titleElem.insertAdjacentElement('afterend', btnGroup);
             }
         } else {
-            // 其他站点按设置添加按钮
-            if (settings.jumpNyaa) addNyaaBtn(code, btnGroup);
-            if (settings.jumpJavbus) addJavbusBtn(code, btnGroup);
-            if (settings.jumpJavdb) addJavdbBtn(code, btnGroup);
-            if (settings.jumpMissAV) addMissAVBtn(code, btnGroup);
-            if (settings.jumpGoogle) addGoogleBtn(code, btnGroup);
-            if (settings.preview) addPreviewBtn(code, btnGroup);
+            // 其他站点添加所有按钮（不再按单个功能判断）
+            addNyaaBtn(code, btnGroup);
+            addJavbusBtn(code, btnGroup);
+            addJavdbBtn(code, btnGroup);
+            addMissAVBtn(code, btnGroup);
+            addBTDiggBtn(code, btnGroup);
+            addGoogleBtn(code, btnGroup);
+            addPreviewBtn(code, btnGroup);
 
             // Emby 特殊处理
             if (site.id === 'emby') {
                 btnGroup.classList.add('emby-fix');
                 const parent = titleElem.parentNode;
                 if (parent) {
-                    // 插入到父容器末尾，确保新行
                     parent.appendChild(btnGroup);
                 } else {
                     titleElem.insertAdjacentElement('afterend', btnGroup);
                 }
             } else {
-                // 其他站点正常插入到标题之后
                 titleElem.insertAdjacentElement('afterend', btnGroup);
             }
         }
