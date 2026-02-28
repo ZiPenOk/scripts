@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         番号跳转加预览图
 // @namespace    https://github.com/ZiPenOk
-// @version      4.4
+// @version      4.5
 // @icon         https://javdb.com/favicon.ico
 // @description  所有站点统一使用强番号逻辑 + JavBus 智能路径，表格开关，手动关闭，按钮统一在标题下方新行显示。新增 JavBus、JAVLibrary、JavDB 支持。增加javstore预览图来源, 并添加来源控制和缓存控制选择
 // @author       ZiPenOk
@@ -172,6 +172,27 @@
             filter: brightness(1.2) !important;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
             text-decoration: none !important;
+        }
+
+        @keyframes menuFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .search-submenu a {
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
+
+        .search-submenu a:hover {
+            transform: translateX(5px) scale(1.02);
+            filter: brightness(1.1);
         }
     `);
 
@@ -502,8 +523,30 @@
                 enabled: '启用本站点功能'
             };
             return map[feature] || feature;
+        },
+
+        getDefaultSearchEngine() {
+            const index = GM_getValue('default_search_engine', 0);
+            return SearchEngines[index] || SearchEngines[0];
+        },
+
+        setDefaultSearchEngine(index) {
+            GM_setValue('default_search_engine', index);
         }
     };
+
+    // ============================ 搜索引擎数据 ============================
+    const SearchEngines = [
+        { name: 'BTDigg', color: '#F60', url: (code) => `https://btdig.com/search?q=${code}` },
+        { name: 'CiLiJia', color: '#DE5833', url: (code) => `https://cilijia.net/search?q=${code}` },
+        { name: 'Google', color: '#4285F4', url: (code) => `https://www.google.com/search?q=${code}` },
+        { name: 'Bing', color: '#008373', url: (code) => `https://www.bing.com/search?q=${code}` },
+        { name: 'DuckGo', color: '#DE5833', url: (code) => `https://duckduckgo.com/?q=${code}` }
+
+    ];
+
+    // 默认搜索引擎索引（可配置）
+    const DEFAULT_SEARCH_ENGINE_INDEX = 0; // Google
 
     // ============================ 按钮创建辅助函数 ============================
     function addNyaaBtn(code, container) {
@@ -537,25 +580,100 @@
         container.appendChild(btn);
     }
 
-    function addBTDiggBtn(code, container) {
-        const btn = Utils.createBtn('🔍 BTDigg', '#F60', () => {
-            window.open(`https://btdig.com/search?q=${code}`);
-        });
-        container.appendChild(btn);
-    }
-
-    function addGoogleBtn(code, container) {
-        const btn = Utils.createBtn('🔎 Google', '#4285F4', () => {
-            window.open(`https://www.google.com/search?q=${code}`);
-        });
-        container.appendChild(btn);
-    }
-
     function addPreviewBtn(code, container) {
         const btn = Utils.createBtn('🖼️ 预览图', '#28a745', async () => {
             await Thumbnail.show(code);
         });
         container.appendChild(btn);
+    }
+
+    function addSearchMenu(code, container) {
+        // 获取默认搜索引擎
+        const defaultEngine = Settings.getDefaultSearchEngine();
+
+        // 创建菜单容器
+        const menuDiv = document.createElement('div');
+        menuDiv.className = 'search-menu';
+        menuDiv.style.cssText = `
+            position: relative;
+            display: inline-block;
+        `;
+
+        // 主按钮（默认搜索引擎）
+        const mainBtn = Utils.createBtn(`🔍 ${defaultEngine.name}`, defaultEngine.color, () => {
+            window.open(defaultEngine.url(code));
+        });
+        mainBtn.classList.add('search-main-btn');
+        menuDiv.appendChild(mainBtn);
+
+        // 子菜单容器
+        const subMenu = document.createElement('div');
+        subMenu.className = 'search-submenu';
+        subMenu.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            display: none;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 4px;
+            padding: 4px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 10000;
+            min-width: 120px;
+            backdrop-filter: blur(5px);
+        `;
+
+        // 为每个搜索引擎创建子按钮（排除默认引擎）
+        SearchEngines.forEach(engine => {
+            if (engine.name === defaultEngine.name) return; // 不重复显示默认引擎
+
+            const subBtn = Utils.createBtn(`🔍 ${engine.name}`, engine.color, () => {
+                window.open(engine.url(code));
+            });
+            subBtn.style.margin = '2px 0';
+            subBtn.style.width = '100%';
+            subBtn.style.textAlign = 'left';
+            subMenu.appendChild(subBtn);
+        });
+
+        menuDiv.appendChild(subMenu);
+
+        // 悬停逻辑
+        let hoverTimer;
+        menuDiv.addEventListener('mouseenter', () => {
+            clearTimeout(hoverTimer);
+            hoverTimer = setTimeout(() => {
+                subMenu.style.display = 'flex';
+                // 添加淡入动画
+                subMenu.style.animation = 'menuFadeIn 0.2s ease';
+            }, 1000);
+        });
+
+        menuDiv.addEventListener('mouseleave', (e) => {
+            clearTimeout(hoverTimer);
+            // 如果鼠标移入子菜单，不隐藏
+            if (e.relatedTarget && subMenu.contains(e.relatedTarget)) return;
+
+            setTimeout(() => {
+                if (!subMenu.matches(':hover')) {
+                    subMenu.style.display = 'none';
+                }
+            }, 300); // 给一点缓冲时间
+        });
+
+        // 子菜单悬停时不隐藏
+        subMenu.addEventListener('mouseenter', () => {
+            clearTimeout(hoverTimer);
+        });
+
+        subMenu.addEventListener('mouseleave', () => {
+            subMenu.style.display = 'none';
+        });
+
+        container.appendChild(menuDiv);
     }
 
     // ============================ 站点定义模块 ============================
@@ -633,8 +751,7 @@
             addJavbusBtn(code, btnGroup);
             addJavdbBtn(code, btnGroup);
             addMissAVBtn(code, btnGroup);
-            addBTDiggBtn(code, btnGroup);
-            addGoogleBtn(code, btnGroup);
+            addSearchMenu(code, btnGroup);
             addPreviewBtn(code, btnGroup);
 
             // 为按钮内联样式添加 !important 防止被覆盖
@@ -660,8 +777,7 @@
             addJavbusBtn(code, btnGroup);
             addJavdbBtn(code, btnGroup);
             addMissAVBtn(code, btnGroup);
-            addBTDiggBtn(code, btnGroup);
-            addGoogleBtn(code, btnGroup);
+            addSearchMenu(code, btnGroup);
             addPreviewBtn(code, btnGroup);
 
             // Emby 特殊处理
@@ -767,6 +883,39 @@
         // 设置当前值
         sourceSelect.value = Settings.getPreviewSource();
         cacheCheckbox.checked = Settings.getPreviewCacheEnabled();
+
+        //默认搜索引擎
+        const searchEngineRow = document.createElement('div');
+        searchEngineRow.style.cssText = `
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        `;
+
+        const engineLabel = document.createElement('span');
+        engineLabel.style.fontWeight = 'bold';
+        engineLabel.textContent = '默认搜索引擎:';
+
+        const engineSelect = document.createElement('select');
+        engineSelect.id = 'default-search-engine';
+        engineSelect.style.cssText = 'padding: 5px; border-radius: 4px; min-width: 200px;';
+
+        SearchEngines.forEach((engine, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = engine.name;
+            engineSelect.appendChild(option);
+        });
+
+        // 设置当前值
+        const currentDefault = GM_getValue('default_search_engine', 0);
+        engineSelect.value = currentDefault;
+
+        searchEngineRow.appendChild(engineLabel);
+        searchEngineRow.appendChild(engineSelect);
+        panel.insertBefore(searchEngineRow, panel.querySelector('style')); // 插入到表格样式之前
 
         // ----- 表格样式 -----
         const style = document.createElement('style');
@@ -914,6 +1063,10 @@
             Settings.setPreviewSource(selectedSource);
             const cacheEnabled = document.getElementById('preview-cache-checkbox').checked;
             Settings.setPreviewCacheEnabled(cacheEnabled);
+
+            // 保存默认搜索引擎
+            const selectedEngine = document.getElementById('default-search-engine').value;
+            GM_setValue('default_search_engine', parseInt(selectedEngine));
 
             Object.keys(newSettingsMap).forEach(siteId => {
                 Settings.set(siteId, newSettingsMap[siteId]);
