@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.0.5
+// @version      2.0.9
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -97,6 +97,7 @@
 // @run-at       document-end
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
+// @grant        GM_registerMenuCommand
 // @connect      *
 // @supportURL   https://github.com/ZiPenOk/scripts/issues
 // @homepageURL  https://github.com/ZiPenOk/scripts
@@ -138,12 +139,18 @@
             GM_xmlhttpRequest({
                 method: 'GET',
                 url: url,
+                timeout: 10000,
                 onload: res => {
                     const src = res.responseText.match(pattern)
                     if(src && src.length > 1) resolve(src[1])
+                    else resolve(null)
                 },
                 onerror: err => {
                     console.error(err)
+                    resolve(null)
+                },
+                ontimeout: () => {
+                    resolve(null)
                 }
             })
         })
@@ -154,11 +161,15 @@
             GM_xmlhttpRequest({
                 method: 'GET',
                 url: url,
+                timeout: 10000,
                 onload: res => {
                     resolve(res.responseText || '')
                 },
                 onerror: err => {
                     console.error(err)
+                    resolve('')
+                },
+                ontimeout: () => {
                     resolve('')
                 }
             })
@@ -211,7 +222,7 @@
         if(src) return src
 
         const match = html.match(/<img[^>]+src=["'](https?:\/\/[^"']+\/Application\/storage\/app\/public\/uploads\/users\/[^"']+)["']/i) ||
-                      html.match(/<img[^>]+src=["']((?:\/upload)?\/Application\/storage\/app\/public\/uploads\/users\/[^"']+)["']/i)
+                      html.match(/<img[^>]+src=["']((?:\/uploads?)?\/Application\/storage\/app\/public\/uploads\/users\/[^"']+)["']/i)
         return match ? toAbsoluteUrl(match[1], base) : null
     }
 
@@ -475,7 +486,7 @@
         'sht-link\\.[a-z]+',
         'sweetie-fox\\.[a-z]+',
         'xcamcovid\\.[a-z]+',
-        'xxpics\\.[a-z]+', 
+        'xxpics\\.[a-z]+',
         'shentai-anime\\.[a-z]+'
     ];
 
@@ -495,20 +506,8 @@
         },
         async (url, callback) => {
             try {
-                const absolute = await doGet(url, /<img[^>]+src="(https?:\/\/[^\/]+(\/upload)?\/Application\/storage\/app\/public\/uploads\/users\/[^"]+)"/i);
-                if (absolute) {
-                    callback(absolute);
-                    return;
-                }
-
-                const domainMatch = url.match(/^https?:\/\/([^\/]+)/);
-                const domain = domainMatch ? domainMatch[1] : '';
-                if (!domain) return;
-
-                const relative = await doGet(url, /src="((\/upload)?\/Application\/storage\/app\/public\/uploads\/users\/[^"]+)"/i);
-                if (relative) {
-                    callback(`https://${domain}${relative}`);
-                }
+                const src = parseStorageImage(await doGetHtml(url), url)
+                if (src) callback(src)
             } catch (e) {
             }
         }
@@ -526,7 +525,95 @@
     const href = document.location.href
     if(/^https?:\/\/(sukebei\.nyaa\.si).+/g.test(href)) {
 
-        let LMT_Wrap, LMT_Frame, LMT_Loading, LMT_panel, LMT_img
+        // ==================== 本地缓存 + 预加载校验 ====================
+        const CACHE_PREFIX = 'lmt_thumb_'
+        const CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 本地缓存有效期 7 天
+        const CACHE_MAX = 2000 // 最多保留条数，超出淘汰最旧的
+        const cacheKeys = () => {
+            const keys = []
+            for(let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i)
+                if(k && k.indexOf(CACHE_PREFIX) === 0) keys.push(k)
+            }
+            return keys
+        }
+        const pruneCache = target => {
+            try {
+                const keys = cacheKeys()
+                if(keys.length <= target) return
+                const items = keys.map(k => {
+                    let ts = 0
+                    try { ts = (JSON.parse(localStorage.getItem(k)) || {}).ts || 0 } catch(e) {}
+                    return { k, ts }
+                })
+                items.sort((a, b) => a.ts - b.ts) // 最旧的排前面
+                for(let i = 0; i < items.length - target; i++) localStorage.removeItem(items[i].k)
+            } catch(e) {}
+        }
+        const clearThumbCache = () => {
+            const keys = cacheKeys()
+            keys.forEach(k => localStorage.removeItem(k))
+            alert('已清空缩略图缓存，共 ' + keys.length + ' 条')
+        }
+        const getLocalThumb = id => {
+            try {
+                const raw = localStorage.getItem(CACHE_PREFIX + id)
+                if(!raw) return null
+                const obj = JSON.parse(raw)
+                if(!obj || !obj.url) return null
+                if(Date.now() - obj.ts > CACHE_TTL) { localStorage.removeItem(CACHE_PREFIX + id); return null }
+                return obj.url
+            } catch(e) { return null }
+        }
+        const setLocalThumb = (id, url) => {
+            if(!id || !url) return
+            const val = JSON.stringify({ url: url, ts: Date.now() })
+            try {
+                localStorage.setItem(CACHE_PREFIX + id, val)
+            } catch(e) {
+                // 写满则清理后重试一次
+                pruneCache(Math.floor(CACHE_MAX * 0.8))
+                try { localStorage.setItem(CACHE_PREFIX + id, val) } catch(e2) {}
+            }
+        }
+        const delLocalThumb = id => { try { localStorage.removeItem(CACHE_PREFIX + id) } catch(e) {} }
+        // 载入时按上限裁剪一次，并注册一键清理菜单
+        pruneCache(CACHE_MAX)
+        if(typeof GM_registerMenuCommand === 'function') GM_registerMenuCommand('清空缩略图缓存', clearThumbCache)
+        // 后台用 <img> 预加载校验：能加载出来才算有效（同时把图片暖进浏览器缓存，hover 秒出）
+        const preloadImage = (url, timeout = 8000) => new Promise(resolve => {
+            if(!url) return resolve(false)
+            if(/^data:/i.test(url)) return resolve(true)
+            const img = new Image()
+            let done = false
+            const finish = ok => { if(done) return; done = true; clearTimeout(t); resolve(ok) }
+            const t = setTimeout(() => finish(false), timeout)
+            img.onload = () => finish(img.naturalWidth > 0)
+            img.onerror = () => finish(false)
+            img.src = url
+        })
+        const upsertThumbMarker = (a, url) => {
+            if(!a || !url) return
+            const oldUrl = a.dataset.lmt
+            a.dataset.lmt = url
+
+            let span = oldUrl ? document.querySelector(`span[data-lmt="${decodeURI(oldUrl)}"]`) : null
+            if(!span && a.previousElementSibling && a.previousElementSibling.dataset && a.previousElementSibling.dataset.lmt) {
+                span = a.previousElementSibling
+            }
+            if(!span) {
+                span = document.createElement("span")
+                span.innerHTML='🖼️'
+                span.style.cursor = 'pointer'
+                a.before(span)
+            }
+            span.dataset.lmt = url
+        }
+
+        let LMT_Wrap, LMT_Frame, LMT_Loading, LMT_panel, LMT_img, LMT_Status
+        let LMT_resolveLink = null
+        let LMT_mouseX = 0
+        let LMT_mouseY = 0
         const panelWidth = 480
         const panelHeight = 480
         function createWrap(parent) {
@@ -551,28 +638,40 @@
             LMT_panel.style.boxShadow = '0 1px 1px rgba(0,0,0,.05)'
             LMT_panel.style.width = `${panelWidth}px`
             LMT_panel.style.height = `${panelHeight}px`
+            LMT_panel.style.overflow = 'hidden'
+            LMT_panel.style.zIndex = '9999'
+            LMT_panel.style.pointerEvents = 'none'
             document.body.appendChild(LMT_panel)
 
             LMT_img = document.createElement('img')
             LMT_img.style.width = '100%'
             LMT_img.style.height = '100%'
             LMT_img.style.objectFit = 'contain'
+            LMT_img.style.display = 'none'
             LMT_img.onerror = (e) => {
-                LMT_panel.style.top = '-1000px'
-                LMT_panel.style.left = '-1000px'
                 LMT_img.style.display = 'none'
                 const a = document.querySelector(`a[data-lmt="${decodeURI(e.target.src)}"]`)
-                if(a && a.dataset.lmtSrc) {
-                    delete a.dataset.lmt
-                    a.dataset.lmtSrc = '#'
-                } else if(a) {
-                    delete a.dataset.lmt
-                    delete a.dataset.lmtSrc
+                if(a) a.dataset.lmtStale = '1'
+                if(LMT_Status) {
+                    LMT_Status.innerText = 'Refreshing...'
+                    LMT_Status.style.display = 'flex'
                 }
-                const span = document.querySelector(`span[data-lmt="${decodeURI(e.target.src)}"]`)
-                if(span) span.remove()
             }
             LMT_panel.appendChild(LMT_img)
+
+            LMT_Status = document.createElement('div')
+            LMT_Status.style.position = 'absolute'
+            LMT_Status.style.left = '0'
+            LMT_Status.style.top = '0'
+            LMT_Status.style.width = '100%'
+            LMT_Status.style.height = '100%'
+            LMT_Status.style.display = 'none'
+            LMT_Status.style.alignItems = 'center'
+            LMT_Status.style.justifyContent = 'center'
+            LMT_Status.style.color = '#777'
+            LMT_Status.style.fontSize = '14px'
+            LMT_Status.style.background = '#f5f5f5'
+            LMT_panel.appendChild(LMT_Status)
 
             LMT_Frame = document.createElement('iframe')
             LMT_Frame.id = 'LMT_Frame'
@@ -582,7 +681,17 @@
         }
 
         const imgList = []
+        const imgPending = new Set()
         function addToImgQueue(q) {
+            const key = (q.href || '').toLowerCase()
+            if(!key || imgPending.has(key)) return
+            imgPending.add(key)
+            setTimeout(() => imgPending.delete(key), 15000)
+
+            if(q.handler && q.handler.processNyaa) {
+                q.handler.handleNyaa(q.href)
+                return
+            }
             if(imgList.filter(a=>a.href===q.href).length === 0) imgList.push(q)
         }
         let running = false
@@ -632,18 +741,19 @@
             }
             if(e.data.LMT_SRC) {
                 const url_src = e.data.LMT_SRC.toLowerCase()
+                imgPending.delete(url_src)
                 const a = document.querySelector(`a[data-lmt-src="${decodeURI(url_src)}"]`)
-                if(a && !a.dataset.lmt) {
-                    a.dataset.lmt = e.data.LMT
-                    const span = document.createElement("span");
-                    span.innerHTML='🖼️'
-                    span.style.cursor = 'pointer'
-                    span.dataset.lmt = e.data.LMT
-                    a.before(span)
+                if(a) {
+                    delete a.dataset.lmtStale
+                    upsertThumbMarker(a, e.data.LMT)
 
                     if(/^https?:\/\/(sukebei\.nyaa\.si\/view\/).+/g.test(a.href)) {
                         const id = a.href.substr(a.href.lastIndexOf('/')+1)
                         saveThumb(id, e.data.LMT)
+                        setLocalThumb(id, e.data.LMT)
+                    }
+                    if(LMT_panel && LMT_panel.dataset.visible === '1' && LMT_panel.dataset.activeHref === a.href) {
+                        showPreview(a)
                     }
                 }
             }
@@ -656,43 +766,102 @@
             windowWidth = unsafeWindow.innerWidth
             windowHeight = unsafeWindow.innerHeight
         })
-        unsafeWindow.addEventListener('mouseover', function (e) {
-            const a = e.target
-            if(a.dataset.lmt) {
-                LMT_panel.style.backgroundImage = `url('${a.dataset.lmt}')`
-                LMT_img.src = a.dataset.lmt
-                LMT_img.style.display = 'block'
+        const movePreviewPanel = e => {
+            if(e) {
+                LMT_mouseX = e.clientX
+                LMT_mouseY = e.clientY
             }
-        })
-        unsafeWindow.addEventListener('mousemove', function (e) {
-            const a = e.target
-            if(LMT_img.style.display == 'block') {
+            if(LMT_panel.dataset.visible === '1') {
                 const offset = 20;
-                const panelRightEdge = e.clientX + offset + panelWidth;
-                const panelBottomEdge = e.clientY + offset + panelHeight;
+                const panelRightEdge = LMT_mouseX + offset + panelWidth;
+                const panelBottomEdge = LMT_mouseY + offset + panelHeight;
 
-                let newLeft = e.clientX + offset;
+                let newLeft = LMT_mouseX + offset;
                 if(panelRightEdge > windowWidth) {
-                    newLeft = e.clientX - offset - panelWidth;
+                    newLeft = LMT_mouseX - offset - panelWidth;
                 }
                 newLeft = Math.max(5, Math.min(newLeft, windowWidth - panelWidth - 5));
 
-                let newTop = e.clientY + offset;
+                let newTop = LMT_mouseY + offset;
                 if(panelBottomEdge > windowHeight) {
-                    newTop = e.clientY - offset - panelHeight;
+                    newTop = LMT_mouseY - offset - panelHeight;
                 }
                 newTop = Math.max(5, Math.min(newTop, windowHeight - panelHeight - 5));
 
                 LMT_panel.style.left = newLeft + 'px';
                 LMT_panel.style.top = newTop + 'px';
             }
+        }
+        const hidePreviewPanel = () => {
+            LMT_panel.dataset.visible = '0'
+            LMT_panel.style.top = '-1000px'
+            LMT_panel.style.left = '-1000px'
+            LMT_panel.style.backgroundImage = ''
+            LMT_img.style.display = 'none'
+            if(LMT_Status) LMT_Status.style.display = 'none'
+        }
+        const showPreview = (a, e) => {
+            if(!a || !a.dataset.lmt) return
+            if(!a.href && a.nextElementSibling && a.nextElementSibling.dataset && a.nextElementSibling.dataset.lmt) {
+                a = a.nextElementSibling
+            }
+
+            const url = a.dataset.lmt
+            const seq = String(Date.now()) + Math.random()
+            LMT_panel.dataset.visible = '1'
+            LMT_panel.dataset.seq = seq
+            LMT_panel.dataset.activeHref = a.href || ''
+            LMT_panel.dataset.src = url
+            LMT_panel.style.backgroundImage = ''
+            LMT_img.style.display = 'none'
+            LMT_Status.innerText = a.dataset.lmtStale ? 'Refreshing...' : 'Loading...'
+            LMT_Status.style.display = 'flex'
+            movePreviewPanel(e)
+
+            const probe = new Image()
+            let probeDone = false
+            probe.onload = () => {
+                if(LMT_panel.dataset.seq !== seq || LMT_panel.dataset.src !== url) return
+                probeDone = true
+                clearTimeout(refreshTimer)
+                delete a.dataset.lmtStale
+                LMT_img.src = url
+                LMT_img.style.display = 'block'
+                LMT_Status.style.display = 'none'
+            }
+            probe.onerror = () => {
+                if(LMT_panel.dataset.seq !== seq || LMT_panel.dataset.src !== url) return
+                probeDone = true
+                clearTimeout(refreshTimer)
+                a.dataset.lmtStale = '1'
+                LMT_Status.innerText = 'Refreshing...'
+                LMT_Status.style.display = 'flex'
+                if(LMT_resolveLink) LMT_resolveLink(a, true)
+            }
+            const refreshTimer = setTimeout(() => {
+                if(probeDone) return
+                if(LMT_panel.dataset.seq !== seq || LMT_panel.dataset.src !== url) return
+                a.dataset.lmtStale = '1'
+                LMT_Status.innerText = 'Refreshing...'
+                LMT_Status.style.display = 'flex'
+                if(LMT_resolveLink) LMT_resolveLink(a, true)
+            }, 1500)
+            probe.src = url
+
+            if(a.dataset.lmtStale && LMT_resolveLink) {
+                LMT_resolveLink(a, true)
+            }
+        }
+        unsafeWindow.addEventListener('mouseover', function (e) {
+            showPreview(e.target, e)
+        })
+        unsafeWindow.addEventListener('mousemove', function (e) {
+            movePreviewPanel(e)
         })
         unsafeWindow.addEventListener('mouseout', function (e) {
             const a = e.target
             if(a.dataset.lmt) {
-                LMT_panel.style.top = '-1000px'
-                LMT_panel.style.left = '-1000px'
-                LMT_img.style.display = 'none'
+                hidePreviewPanel()
             }
         })
 
@@ -702,8 +871,16 @@
                 GM_xmlhttpRequest({
                     method: 'GET',
                     url: `${CLOUD_URL}/thumbs/?ids=${ids}`,
-                    onload: res => { resolve(JSON.parse(res.responseText)) },
-                    onError: err => { console.log(err);resolve([]) }
+                    timeout: 3000,
+                    onload: res => {
+                        try {
+                            resolve(JSON.parse(res.responseText))
+                        } catch(e) {
+                            resolve([])
+                        }
+                    },
+                    onerror: err => { console.log(err);resolve([]) },
+                    ontimeout: () => { resolve([]) }
                 })
             })
         }
@@ -741,37 +918,123 @@
             createPanel()
         } else {
             const links = document.querySelectorAll('.torrent-list>tbody>tr>td:nth-child(2)>a:last-child')
-            const ids = Array.apply(null, links).map(a => a.href.substr(a.href.lastIndexOf('/')+1)).join(',')
-            getThumbs(ids).then(thumbs => {
-                for(let i in thumbs) {
-                    if(!thumbs[i]) continue
-                    links[i].dataset.lmt = thumbs[i]
-                    const span = document.createElement("span");
-                    span.innerHTML='🖼️'
-                    span.style.cursor = 'pointer'
-                    span.dataset.lmt = thumbs[i]
-                    links[i].before(span)
+            const linksArr = Array.apply(null, links)
+            const idOf = a => a.href.substr(a.href.lastIndexOf('/')+1)
+            const isResolvedImageUrl = url => {
+                return /^data:image\//i.test(url) ||
+                       /\/Application\/storage\/app\/public\/uploads\/users\//i.test(url)
+            }
+            const handlerFor = url => {
+                for(let i in handlers) {
+                    if(handlers[i].canHandle(url)) return handlers[i]
+                }
+                return null
+            }
+            const resolveCandidateUrl = (a, url, force = false) => {
+                if(!a || !url || url.indexOf('nyaa.si') >= 0) return false
+
+                const h = handlerFor(url)
+                if(h && !isResolvedImageUrl(url)) {
+                    a.dataset.lmtSrc = url.toLowerCase()
+                    addToImgQueue({href: url, handler: h})
+                    return true
+                }
+
+                if(h && isResolvedImageUrl(url)) {
+                    a.dataset.lmtSrc = url.toLowerCase()
+                    unsafeWindow.top.postMessage({"LMT": url, "LMT_SRC": url}, '*')
+                    return true
+                }
+
+                if(/\.(jpe?g|png|gif|webp)(?:[?#].*)?$/i.test(url)) {
+                    a.dataset.lmtSrc = url.toLowerCase()
+                    unsafeWindow.top.postMessage({"LMT": url, "LMT_SRC": url}, '*')
+                    return true
+                }
+
+                return false
+            }
+            const placeMarker = (link, url) => {
+                upsertThumbMarker(link, url)
+            }
+            // 先挂标记，校验放后台；失效时刷新缓存，不让 UI 等图片探测超时。
+            const tryPlace = (link, url, id) => {
+                if(!isResolvedImageUrl(url) && handlerFor(url)) {
+                    delLocalThumb(id)
+                    resolveCandidateUrl(link, url, true)
+                    return
+                }
+                placeMarker(link, url)
+                setLocalThumb(id, url)
+                preloadImage(url, 2500).then(ok => {
+                    if(!ok) {
+                        link.dataset.lmtStale = '1'
+                        delLocalThumb(id)
+                        resolveLink(link, true)
+                    } else {
+                        delete link.dataset.lmtStale
+                    }
+                })
+            }
+            // 查找顺序：本地缓存 → 云端 → 自动实时解析（无需手动划过）
+            const cloudLinks = []
+            linksArr.forEach(link => {
+                if(!link.href) return
+                const id = idOf(link)
+                const local = getLocalThumb(id)
+                if(local) {
+                    tryPlace(link, local, id)
+                } else {
+                    cloudLinks.push(link)
                 }
             })
+            if(cloudLinks.length) {
+                const ids = cloudLinks.map(idOf).join(',')
+                const cloudFallbackTimer = setTimeout(() => {
+                    cloudLinks.forEach(link => resolveLink(link))
+                }, 600)
+                getThumbs(ids).then(thumbs => {
+                    clearTimeout(cloudFallbackTimer)
+                    thumbs = thumbs || []
+                    cloudLinks.forEach((link, i) => {
+                        const url = thumbs[i]
+                        if(url) {
+                            tryPlace(link, url, idOf(link))
+                        } else {
+                            resolveLink(link) // 云端无缓存 → 自动实时解析
+                        }
+                    })
+                })
+            }
 
-            document.querySelector('.torrent-list').addEventListener('mouseover', async (e) => {
-                const a = e.target
-                if(a.dataset.lmt || a.dataset.lmtSrc || !a.href || !/.*\/view\/\d+$/.test(a.href)) return
+            // 实时解析单个种子：抓详情页 → 匹配图床链接 → 入队加载
+            const resolveLink = async (a, force = false) => {
+                if(!a || !a.href || a.dataset.lmtPending) return
+                if(!force && a.dataset.lmt) return
+                if(!force && a.dataset.lmtSrc === '#') return
+                if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) return
+                if(!/.*\/view\/\d+$/.test(a.href)) return
 
+                a.dataset.lmtPending = '1' // 占位，避免并发/hover 重复解析
                 const unlock = await lock()
-                const detail = await getDetail(a.href)
+                let detail
+                try { detail = await getDetail(a.href) } catch(err) { unlock(); delete a.dataset.lmtPending; return }
                 unlock()
+                delete a.dataset.lmtPending
+                if(!force && a.dataset.lmt) return
+                if(!force && a.dataset.lmtSrc === '#') return
+                if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) return
 
                 let imgs = detail.responseText.match(/]\((https?:\/\/[^)]+)/)
                 if(imgs && imgs[1] && imgs[1].indexOf('nyaa.si') < 0) {
-                    a.dataset.lmtSrc = imgs[1]
-                    addToImgQueue({href: imgs[1], handler: {handleNyaa: (url) => { unsafeWindow.top.postMessage({"LMT": url, "LMT_SRC": url}, '*') }}})
-                    return
+                    if(resolveCandidateUrl(a, imgs[1], force)) return
                 }
 
-                let desc = detail.responseText.match(/id="torrent-description">(.*?)<\/div>/)
-                if(!desc) return false
-                desc = desc[1].replaceAll('&#10;', '\n').replaceAll(')]', ' )]').replaceAll('\*\*', ' \*\* ')
+                let desc = detail.responseText.match(/<div\b[^>]*id=["']torrent-description["'][^>]*>([\s\S]*?)<\/div>/i)
+                desc = (desc ? desc[1] : detail.responseText)
+                    .replaceAll('&#10;', '\n')
+                    .replaceAll(')]', ' )]')
+                    .replaceAll('\*\*', ' \*\* ')
                 let hrefs = desc.match(/(https?:\/\/[^\s\)]+)/g) || []
                 let info = detail.responseText.match(/noopener noreferrer nofollow" href="(https?:\/\/.+?)"/)
                 if(info) hrefs = [...hrefs, info[1]]
@@ -794,26 +1057,22 @@
                         }
                     }
 
-                    for(let j in handlers) {
-                        const h = handlers[j]
-                        if(href.indexOf('nyaa') < 0 && h.canHandle(href)) {
-                            a.dataset.lmtSrc = href.toLowerCase()
-                            addToImgQueue({href:href,handler:h})
-                            flag = true
-                            break
-                        }
-                    }
-                    if(flag) {
+                    if(resolveCandidateUrl(a, href, force)) {
+                        flag = true
                         break
                     }
                 }
                 if(!flag) {
                     a.dataset.lmtSrc = '#'
                 }
-            })
+            }
+            // hover 仅作兜底（绝大多数已在载入时自动解析完成）
+            LMT_resolveLink = resolveLink
+            document.querySelector('.torrent-list').addEventListener('mouseover', (e) => resolveLink(e.target))
             createPanel()
 
-            let isLock = false;
+            const LOCK_LIMIT = 6; // 详情页并发数
+            let lockCount = 0;
             let lockList = [];
             async function lock() {
                 function unlock() {
@@ -821,15 +1080,15 @@
                     if (waitFunc) {
                         waitFunc.resolve(unlock);
                     } else {
-                        isLock = false;
+                        lockCount--;
                     }
                 }
-                if (isLock) {
+                if (lockCount >= LOCK_LIMIT) {
                     return new Promise((resolve, reject) => {
                         lockList.push({ resolve, reject });
                     });
                 } else {
-                    isLock = true;
+                    lockCount++;
                     return unlock;
                 }
             }
@@ -838,8 +1097,10 @@
                     GM_xmlhttpRequest({
                         method: 'GET',
                         url: url,
+                        timeout: 8000,
                         onload: res => { resolve(res) },
-                        onError: err => { reject(err) }
+                        onerror: err => { reject(err) },
+                        ontimeout: () => { reject(new Error('getDetail timeout')) }
                     })
                 })
             }
