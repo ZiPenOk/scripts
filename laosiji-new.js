@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.6.7
+// @version      2.6.7.1
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -26,7 +26,6 @@
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
-// @grant        GM_notification
 // @grant        GM_setClipboard
 // @grant        GM_registerMenuCommand
 // @grant        GM_download
@@ -42,7 +41,7 @@
 // ==/UserScript==
 (function () {
     'use strict';
-    const SCRIPT_VERSION = '2.6.7';
+    const SCRIPT_VERSION = '2.6.7.1';
     const DEBUG_LOG = false;
     const ERROR_LOG = true;
     const PAGE_ZOOM_DEFAULT = 86;
@@ -533,8 +532,44 @@
         },
     };
     Core.expose('__LAOSIJI_UI__', Ui);
+    function getNotifyTone(title, text) {
+        const raw = `${title || ''} ${text || ''}`;
+        if (/失败|錯誤|错误|未登录|未登入|异常|失效|无法|失敗|請先|请先/i.test(raw)) return 'error';
+        if (/成功|已保存|已添加|任务已添加|已保存授权|登录成功/i.test(raw)) return 'success';
+        return 'info';
+    }
+    function showPageNotify(title, text, url) {
+        const parent = document.body || document.documentElement;
+        if (!parent) return;
+        injectStyle('jav-page-notify-style', `.jav-page-notify{position:fixed;top:76px;right:22px;z-index:2147483647;width:min(360px,calc(100vw - 28px));padding:12px 14px;color:#f8fafc;background:rgba(15,23,42,.94);border:1px solid rgba(148,163,184,.28);border-left:4px solid #38bdf8;border-radius:10px;box-shadow:0 16px 42px rgba(0,0,0,.32),0 0 0 1px rgba(255,255,255,.04) inset;backdrop-filter:blur(14px) saturate(1.1);font-family:Arial,"Microsoft YaHei",sans-serif;transform:translateY(-10px);opacity:0;pointer-events:auto;transition:opacity .18s ease,transform .18s ease;cursor:default}.jav-page-notify.is-clickable{cursor:pointer}.jav-page-notify.is-success{border-left-color:#22c55e}.jav-page-notify.is-error{border-left-color:#ef4444}.jav-page-notify.show{opacity:1;transform:translateY(0)}.jav-page-notify.hide{opacity:0;transform:translateY(-10px)}.jav-page-notify-title{margin:0 0 4px;font-size:14px;font-weight:800;line-height:1.35}.jav-page-notify-text{margin:0;color:#dbeafe;font-size:13px;line-height:1.45}@media (max-width:720px){.jav-page-notify{top:14px;right:14px;width:calc(100vw - 28px)}}`);
+        document.querySelector('.jav-page-notify')?.remove();
+        const toast = document.createElement('div');
+        toast.className = `jav-page-notify is-${getNotifyTone(title, text)}${url ? ' is-clickable' : ''}`;
+        toast.setAttribute('role', 'status');
+        if (url) {
+            toast.title = '点击打开相关页面';
+            toast.addEventListener('click', () => window.open(url, '_blank', 'noopener,noreferrer'));
+        }
+        const titleEl = document.createElement('p');
+        titleEl.className = 'jav-page-notify-title';
+        titleEl.textContent = title || 'JAV 老司机';
+        toast.appendChild(titleEl);
+        if (text) {
+            const textEl = document.createElement('p');
+            textEl.className = 'jav-page-notify-text';
+            textEl.textContent = text;
+            toast.appendChild(textEl);
+        }
+        parent.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.classList.add('hide');
+            setTimeout(() => toast.remove(), 240);
+        }, 3400);
+    }
     function notify(title, text, url) {
-        GM_notification({ title, text, onclick: () => url && window.open(url) });
+        showPageNotify(title, text, url);
     }
     function addJavdbApiLoginStyles() {
         if (document.getElementById('javdb-api-login-style')) return;
@@ -1649,7 +1684,7 @@
                     || /自提/.test(item.title)
                     || /征用/.test(item.title)
                     || (_hasCJK && !_hasJP);
-                const is4K = /(?:[^A-Za-z0-9]|^)4K(?:UHD)?(?:[^A-Za-z0-9]|$)/i.test(item.title);
+                const is4K = /(?:[^A-Za-z0-9]|^)(?:4K(?:UHD)?|2160P)(?:[^A-Za-z0-9]|$)/i.test(item.title);
                 if (isChinese) {
                     const badge = document.createElement('span');
                     badge.textContent = '[中字]';
