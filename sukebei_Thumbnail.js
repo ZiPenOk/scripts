@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.0.9
+// @version      2.1.0
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -930,6 +930,8 @@
                 }
                 return null
             }
+            let promoteDetailJob = () => {}
+            let cancelDetailJob = () => false
             const resolveCandidateUrl = (a, url, force = false) => {
                 if(!a || !url || url.indexOf('nyaa.si') >= 0) return false
 
@@ -964,6 +966,7 @@
                     resolveCandidateUrl(link, url, true)
                     return
                 }
+                if(cancelDetailJob(link.href)) delete link.dataset.lmtQueued
                 placeMarker(link, url)
                 setLocalThumb(id, url)
                 preloadImage(url, 2500).then(ok => {
@@ -1010,13 +1013,23 @@
             // 实时解析单个种子：抓详情页 → 匹配图床链接 → 入队加载
             const resolveLink = async (a, force = false) => {
                 if(!a || !a.href || a.dataset.lmtPending) return
+                if(a.dataset.lmtQueued) {
+                    if(force) promoteDetailJob(a.href)
+                    return
+                }
                 if(!force && a.dataset.lmt) return
                 if(!force && a.dataset.lmtSrc === '#') return
                 if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) return
                 if(!/.*\/view\/\d+$/.test(a.href)) return
 
-                a.dataset.lmtPending = '1' // 占位，避免并发/hover 重复解析
-                const unlock = await lock()
+                a.dataset.lmtQueued = '1'
+                const unlock = await lock(force, a.href)
+                delete a.dataset.lmtQueued
+                if(!force && a.dataset.lmt) { unlock(); return }
+                if(!force && a.dataset.lmtSrc === '#') { unlock(); return }
+                if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) { unlock(); return }
+
+                a.dataset.lmtPending = '1'
                 let detail
                 try { detail = await getDetail(a.href) } catch(err) { unlock(); delete a.dataset.lmtPending; return }
                 unlock()
@@ -1071,26 +1084,73 @@
             document.querySelector('.torrent-list').addEventListener('mouseover', (e) => resolveLink(e.target))
             createPanel()
 
-            const LOCK_LIMIT = 6; // 详情页并发数
+            const LOCK_LIMIT = 5; // 详情页最大并发数
+            const DETAIL_START_INTERVAL = 600; // 新请求启动间隔，避免列表页瞬间打爆 Sukebei
             let lockCount = 0;
-            let lockList = [];
-            async function lock() {
-                function unlock() {
-                    let waitFunc = lockList.shift();
-                    if (waitFunc) {
-                        waitFunc.resolve(unlock);
-                    } else {
-                        lockCount--;
+            let lockSeq = 0;
+            let lockLastStart = 0;
+            let lockTimer = null;
+            let detailBackoffUntil = 0;
+            const lockList = [];
+
+            const pumpLock = () => {
+                if(lockTimer || lockCount >= LOCK_LIMIT || !lockList.length) return;
+
+                const now = Date.now();
+                const delay = Math.max(
+                    0,
+                    DETAIL_START_INTERVAL - (now - lockLastStart),
+                    detailBackoffUntil - now
+                );
+
+                lockTimer = setTimeout(() => {
+                    lockTimer = null;
+                    if(lockCount >= LOCK_LIMIT || !lockList.length) {
+                        pumpLock();
+                        return;
                     }
-                }
-                if (lockCount >= LOCK_LIMIT) {
-                    return new Promise((resolve, reject) => {
-                        lockList.push({ resolve, reject });
-                    });
-                } else {
+
+                    const waitFunc = lockList.shift();
                     lockCount++;
-                    return unlock;
-                }
+                    lockLastStart = Date.now();
+                    waitFunc.resolve(() => {
+                        lockCount = Math.max(0, lockCount - 1);
+                        pumpLock();
+                    });
+                    pumpLock();
+                }, delay);
+            };
+
+            promoteDetailJob = key => {
+                const index = lockList.findIndex(item => item.key === key);
+                if(index < 0) return;
+
+                const item = lockList.splice(index, 1)[0];
+                item.priority = true;
+                const insertAt = lockList.findIndex(job => !job.priority);
+                if(insertAt < 0) lockList.push(item);
+                else lockList.splice(insertAt, 0, item);
+            };
+
+            cancelDetailJob = key => {
+                const index = lockList.findIndex(item => item.key === key);
+                if(index < 0) return false;
+                lockList.splice(index, 1);
+                return true;
+            };
+
+            async function lock(priority = false, key = '') {
+                return new Promise(resolve => {
+                    const item = { resolve, key, priority, seq: ++lockSeq };
+                    if(priority) {
+                        const insertAt = lockList.findIndex(job => !job.priority);
+                        if(insertAt < 0) lockList.push(item);
+                        else lockList.splice(insertAt, 0, item);
+                    } else {
+                        lockList.push(item);
+                    }
+                    pumpLock();
+                });
             }
             const getDetail = url => {
                 return new Promise((resolve, reject) => {
@@ -1098,7 +1158,14 @@
                         method: 'GET',
                         url: url,
                         timeout: 8000,
-                        onload: res => { resolve(res) },
+                        onload: res => {
+                            if(res.status === 429) {
+                                detailBackoffUntil = Date.now() + 30000;
+                                reject(new Error('getDetail 429'));
+                                return;
+                            }
+                            resolve(res)
+                        },
                         onerror: err => { reject(err) },
                         ontimeout: () => { reject(new Error('getDetail timeout')) }
                     })
