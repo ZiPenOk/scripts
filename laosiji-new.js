@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.6.7.2
+// @version      2.6.8
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -41,7 +41,7 @@
 // ==/UserScript==
 (function () {
     'use strict';
-    const SCRIPT_VERSION = '2.6.7.2';
+    const SCRIPT_VERSION = '2.6.8';
     const DEBUG_LOG = false;
     const ERROR_LOG = true;
     const PAGE_ZOOM_DEFAULT = 86;
@@ -1874,6 +1874,11 @@
     })();
     Core.expose('__LAOSIJI_MAGNET__', Magnet);
     function openJavdbApiLoginDialog(nextUrl = '') {
+        if (!document.body) {
+            setTimeout(() => openJavdbApiLoginDialog(nextUrl), 50);
+            return;
+        }
+
         addJavdbApiLoginStyles();
         document.querySelector('#javdb-api-login-overlay')?.remove();
         const overlay = document.createElement('div');
@@ -1914,11 +1919,30 @@
         });
         setTimeout(() => accountInput.focus(), 0);
     }
-    function renderJavdbApiLoginRequired(status, message = 'Top250 需要登录 JavDB API。可使用 JavDB 账号密码登录一次，脚本会在本地保存授权。') {
+    function renderJavdbApiLoginRequired(status, message = 'Top250 需要登录 JavDB API。可使用 JavDB 账号密码登录一次，脚本会在本地保存授权。', nextUrl = location.href) {
         addJavdbApiLoginStyles();
+
+        if (!status) {
+            scheduleJavdbApiLoginDialog(nextUrl);
+            return;
+        }
+
         status.classList.add('is-error');
         status.innerHTML = `<span>${message}</span><button class="javdb-api-login-inline" type="button">登录 JavDB</button>`;
-        status.querySelector('.javdb-api-login-inline')?.addEventListener('click', () => openJavdbApiLoginDialog());
+        status.querySelector('.javdb-api-login-inline')?.addEventListener('click', () => openJavdbApiLoginDialog(nextUrl));
+    }
+    function scheduleJavdbApiLoginDialog(nextUrl = location.href) {
+        if (document.documentElement.dataset.laosijiJavdbApiLoginPrompted === '1') return;
+        document.documentElement.dataset.laosijiJavdbApiLoginPrompted = '1';
+        setTimeout(() => {
+            if (!Magnet.javdbApi.token() && !document.querySelector('#javdb-api-login-overlay')) {
+                openJavdbApiLoginDialog(nextUrl);
+            }
+        }, 0);
+    }
+    function isJavdbApiAuthError(err) {
+        const text = String(err?.message || err || '');
+        return /JWT|token|authorization|unauthorized|login required|請登錄|請登入|请登录|请登入|登錄帳號|登录账号|未登錄|未登录/i.test(text);
     }
     const SiteJavBus = {
         match() {
@@ -3155,6 +3179,7 @@
                 if (modeInfo.mode === 'top') {
                     if (!Magnet.javdbApi.token()) {
                         renderJavdbApiLoginRequired(status);
+                        scheduleJavdbApiLoginDialog(location.href);
                         return true;
                     }
                     json = await Magnet.javdbApi.top250({
@@ -3196,9 +3221,11 @@
                 return true;
             } catch (err) {
                 errorLog('JavDB API 榜单请求失败:', err);
-                if (/JWT|token|authorization|unauthorized/i.test(String(err?.message || ''))) {
+                if (isJavdbApiAuthError(err)) {
                     Magnet.javdbApi.setToken('');
-                    renderJavdbApiLoginRequired(status, 'JavDB App API 登录状态已失效，请重新登录一次。');
+                    renderJavdbApiLoginRequired(status, 'JavDB API 登录状态已失效，请重新登录一次。');
+                    delete document.documentElement.dataset.laosijiJavdbApiLoginPrompted;
+                    scheduleJavdbApiLoginDialog(location.href);
                     return true;
                 }
                 status.classList.add('is-error');
