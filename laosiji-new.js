@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.6.7.1
+// @version      2.6.7.2
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -41,7 +41,7 @@
 // ==/UserScript==
 (function () {
     'use strict';
-    const SCRIPT_VERSION = '2.6.7.1';
+    const SCRIPT_VERSION = '2.6.7.2';
     const DEBUG_LOG = false;
     const ERROR_LOG = true;
     const PAGE_ZOOM_DEFAULT = 86;
@@ -1468,34 +1468,75 @@
         }
         async function offline115(maglink) {
             maglink = maglink.substring(0, 60);
-            const tokenR = await gmFetch(`http://115.com/?ct=offline&ac=space&_=${Date.now()}`);
+            const loginUrl = 'https://115.com/?mode=login';
+            const offlineUrl = 'https://115.com/?tab=offline&mode=wangpan';
+            const tokenR = await gmFetch(`https://115.com/?ct=offline&ac=space&_=${Date.now()}`, {
+                headers: {
+                    Accept: 'application/json, text/plain, */*',
+                    Referer: offlineUrl,
+                },
+            });
             if (!tokenR.loadstuts) {
-                notify('115 错误', '无法获取token，请检查115是否已登录', 'http://115.com/?mode=login');
+                notify('115 错误', '无法获取签名，请检查跨源权限或115登录状态', loginUrl);
                 return;
             }
             if (tokenR.responseText.includes('html')) {
-                notify('115 未登录', '请先登录115账户后再离线下载', 'http://115.com/?mode=login');
+                notify('115 未登录', '请先登录115账户后再离线下载', loginUrl);
                 return;
             }
-            const json = JSON.parse(tokenR.responseText);
+            const json = parseJson(tokenR.responseText);
+            if (!json?.sign || !json?.time) {
+                notify('115 错误', '签名返回异常，请确认115已登录并允许跨源访问', offlineUrl);
+                return;
+            }
             const uid = GM_getValue('jav_115_uid', '');
             return new Promise(resolve => {
+                const done = () => resolve();
                 GM_xmlhttpRequest({
                     method: 'POST',
-                    url: 'http://115.com/web/lixian/?ct=lixian&ac=add_task_url',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    url: 'https://115.com/web/lixian/?ct=lixian&ac=add_task_url',
+                    timeout: 20000,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        Accept: 'application/json, text/javascript, */*; q=0.01',
+                        Origin: 'https://115.com',
+                        Referer: offlineUrl,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
                     data: `url=${encodeURIComponent(maglink)}&uid=${uid}&sign=${json.sign}&time=${json.time}`,
                     onload(r) {
-                        const res = JSON.parse(r.responseText);
+                        if (r.status < 200 || r.status >= 400) {
+                            notify('115 离线失败', `请求失败：HTTP ${r.status || 0}`, offlineUrl);
+                            done();
+                            return;
+                        }
+                        const res = parseJson(r.responseText);
+                        if (!res) {
+                            notify('115 离线失败', '115返回异常，可能是登录失效或跨源权限未完整允许', offlineUrl);
+                            done();
+                            return;
+                        }
                         if (res.state) {
-                            notify('115 离线成功', '任务已添加', 'http://115.com/?tab=offline&mode=wangpan');
+                            notify('115 离线成功', '任务已添加', offlineUrl);
                         } else {
                             const msg = res.errcode === '911'
                                 ? '账号使用异常，请手工验证'
-                                : (res.error_msg || '未知错误');
-                            notify('115 离线失败', msg, 'http://115.com/?tab=offline&mode=wangpan');
+                                : (res.error_msg || res.msg || res.error || '未知错误');
+                            notify('115 离线失败', msg, offlineUrl);
                         }
-                        resolve();
+                        done();
+                    },
+                    onerror() {
+                        notify('115 离线失败', '推送请求失败，请检查跨源权限或网络状态', offlineUrl);
+                        done();
+                    },
+                    ontimeout() {
+                        notify('115 离线失败', '推送请求超时，请稍后重试', offlineUrl);
+                        done();
+                    },
+                    onabort() {
+                        notify('115 离线失败', '推送请求已取消，可能是跨源权限被拒绝', offlineUrl);
+                        done();
                     },
                 });
             });
