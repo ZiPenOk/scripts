@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.6.8
+// @version      2.6.8.1
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -41,7 +41,7 @@
 // ==/UserScript==
 (function () {
     'use strict';
-    const SCRIPT_VERSION = '2.6.8';
+    const SCRIPT_VERSION = '2.6.8.1';
     const DEBUG_LOG = false;
     const ERROR_LOG = true;
     const PAGE_ZOOM_DEFAULT = 86;
@@ -85,6 +85,7 @@
         titleTranslate: { key: 'title_translate_enabled', def: true, bool: true },
         listOpenNewTab: { key: 'list_open_new_tab_enabled', def: false, bool: true },
         portraitCards: { key: 'portrait_cards_enabled', def: false, bool: true },
+        reviewsDefaultExpanded: { key: 'reviews_default_expanded', def: false, bool: true },
         thumbSourceOrder: { key: 'thumb_source_order', def: () => ['javfree', 'projectjav', 'javstore'] },
         detailFlex: { key: 'detail_flex_settings', def: () => ({}), normalize: value => value || {} },
         btnShowNyaa: { key: 'btn_show_nyaa', def: true, bool: true },
@@ -2025,7 +2026,7 @@
         },
         _ensureJavdbReviewsStyle() {
             SiteJavDB._ensureApiMovieTabStyle?.();
-            injectStyle('javbus-javdb-reviews-style', `.javbus-javdb-reviews{margin:18px 0 24px!important;border:1px solid #e5e7eb!important;border-radius:6px!important;background:#fff!important;overflow:hidden!important;box-shadow:0 1px 2px rgba(15,23,42,.04)!important}.javbus-javdb-reviews-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:10px 12px!important;border-bottom:1px solid #e5e7eb!important;background:#f8fafc!important;color:#1f2937!important;font-size:15px!important;font-weight:800!important}.javbus-javdb-reviews-toggle{display:inline-flex!important;align-items:center!important;gap:8px!important;padding:0!important;border:0!important;background:transparent!important;color:inherit!important;font:inherit!important;cursor:pointer!important}.javbus-javdb-reviews-toggle::before{content:"▸";color:#64748b;font-size:13px;transition:transform .16s ease}.javbus-javdb-reviews.is-expanded .javbus-javdb-reviews-toggle::before{transform:rotate(90deg)}.javbus-javdb-reviews-head a{color:#2563eb!important;font-size:12px!important;font-weight:800!important;text-decoration:none!important}.javbus-javdb-reviews-badge{display:inline-flex!important;align-items:center!important;height:20px!important;margin-left:8px!important;padding:0 7px!important;border:1px solid #bfdbfe!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:11px!important;line-height:1!important;vertical-align:middle!important}.javbus-javdb-reviews-body .message,.javbus-javdb-reviews-body .message-body{margin:0!important;border:0!important;background:transparent!important;padding:0!important}.javbus-javdb-reviews-body[hidden]{display:none!important}.javbus-javdb-reviews-footer{padding:10px 0 12px!important;background:#fff!important}.javbus-javdb-reviews-collapse-bar{padding:10px 12px 0!important;margin-bottom:0!important}`);
+            injectStyle('javbus-javdb-reviews-style', `.javbus-javdb-reviews{margin:18px 0 24px!important;border:1px solid #e5e7eb!important;border-radius:6px!important;background:#fff!important;overflow:hidden!important;box-shadow:0 1px 2px rgba(15,23,42,.04)!important}.javbus-javdb-reviews-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:10px 12px!important;border-bottom:1px solid #e5e7eb!important;background:#f8fafc!important;color:#1f2937!important;font-size:15px!important;font-weight:800!important}.javbus-javdb-reviews-toggle{display:inline-flex!important;align-items:center!important;gap:8px!important;padding:0!important;border:0!important;background:transparent!important;color:inherit!important;font:inherit!important;cursor:pointer!important}.javbus-javdb-reviews-toggle::before{content:"▸";color:#64748b;font-size:13px;transition:transform .16s ease}.javbus-javdb-reviews.is-expanded .javbus-javdb-reviews-toggle::before{transform:rotate(90deg)}.javbus-javdb-reviews-head a{color:#2563eb!important;font-size:12px!important;font-weight:800!important;text-decoration:none!important}.javbus-javdb-reviews-actions{display:flex!important;align-items:center!important;gap:10px!important;flex:0 0 auto!important}.javbus-javdb-reviews-badge{display:inline-flex!important;align-items:center!important;height:20px!important;margin-left:8px!important;padding:0 7px!important;border:1px solid #bfdbfe!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:11px!important;line-height:1!important;vertical-align:middle!important}.javbus-javdb-reviews-body .message,.javbus-javdb-reviews-body .message-body{margin:0!important;border:0!important;background:transparent!important;padding:0!important}.javbus-javdb-reviews-body[hidden]{display:none!important}.javbus-javdb-reviews-footer{padding:10px 0 12px!important;background:#fff!important}.javbus-javdb-reviews-collapse-bar{padding:10px 12px 0!important;margin-bottom:0!important}`);
         },
         _findRecommendHeading() {
             return [...document.querySelectorAll('h4')].find(h4 => {
@@ -2063,10 +2064,11 @@
             const panel = document.createElement('section');
             panel.className = 'javbus-javdb-reviews';
             panel.dataset.avid = avid;
-            panel.innerHTML = `<div class="javbus-javdb-reviews-head"><button type="button" class="javbus-javdb-reviews-toggle" aria-expanded="false">JavDB 短评<span class="javbus-javdb-reviews-badge" title="此区块已由 JAV 老司机脚本替换">老司机</span></button><a class="javbus-javdb-reviews-link" href="https://javdb.com/search?q=${encodeURIComponent(avid)} " target="_blank" rel="noopener noreferrer">JavDB</a></div><div class="javbus-javdb-reviews-body" hidden><div class="javdb-api-tab-loading">正在读取短评...</div></div>`;
+            panel.innerHTML = `<div class="javbus-javdb-reviews-head"><button type="button" class="javbus-javdb-reviews-toggle" aria-expanded="false">JavDB 短评<span class="javbus-javdb-reviews-badge" title="此区块已由 JAV 老司机脚本替换">老司机</span></button><div class="javbus-javdb-reviews-actions">${SiteJavDB._renderApiReviewDefaultToggle()}<a class="javbus-javdb-reviews-link" href="https://javdb.com/search?q=${encodeURIComponent(avid)}" target="_blank" rel="noopener noreferrer">JavDB</a></div></div><div class="javbus-javdb-reviews-body" hidden><div class="javdb-api-tab-loading">正在读取短评...</div></div>`;
             heading.replaceWith(panel);
             if (this._isRecommendContainer(next)) next.remove();
             this._bindJavbusReviewLoadMore(panel);
+            this._applyJavbusReviewsDefault(panel);
         },
         _renderJavbusReviewFooter(hasMore, shownCount) {
             return `<div class="javdb-api-tab-footer javbus-javdb-reviews-footer"> ${hasMore ? `<button type="button" class="javdb-api-tab-load-more javbus-javdb-reviews-load-more" data-shown-count="${shownCount}" data-load-limit="${JAVDB_REVIEW_MORE_LIMIT}">加载更多短评</button>` : `<div class="javdb-api-tab-end">已加载全部短评</div>`} </div>`;
@@ -2079,19 +2081,39 @@
             const items = list.length ? SiteJavDB._renderApiReviewItems(list, offset, JAVDB_REVIEW_MORE_LIMIT) : '<div class="javdb-api-tab-empty">暂无短评</div>';
             return `<article class="message video-panel"><div class="message-body"> ${this._renderJavbusReviewCollapseBar()} <div class="javdb-api-tab-items"> ${items} </div> ${this._renderJavbusReviewFooter(hasMore, offset + list.length)} </div></article>`;
         },
+        _setJavbusReviewsExpanded(panel, expanded) {
+            if (!panel) return;
+            const body = panel.querySelector('.javbus-javdb-reviews-body');
+            const toggle = panel.querySelector('.javbus-javdb-reviews-toggle');
+            panel.classList.toggle('is-expanded', !!expanded);
+            if (body) body.hidden = !expanded;
+            toggle?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        },
+        _applyJavbusReviewsDefault(panel) {
+            SiteJavDB._syncApiReviewDefaultToggles?.(panel);
+            if (!panel || !CFG.reviewsDefaultExpanded) return;
+            this._setJavbusReviewsExpanded(panel, true);
+            if (panel.dataset.reviewsLoaded !== '1') {
+                this._loadJavdbReviewsForJavbus(panel.dataset.avid || '', panel);
+            }
+        },
         _bindJavbusReviewLoadMore(panel) {
             if (!panel || panel.dataset.reviewsLoadMoreBound === '1') return;
             panel.dataset.reviewsLoadMoreBound = '1';
+            panel.addEventListener('change', e => {
+                const input = e.target?.closest?.('[data-laosiji-review-default-expanded]');
+                if (!input || !panel.contains(input)) return;
+                CFG.reviewsDefaultExpanded = input.checked;
+                SiteJavDB._syncApiReviewDefaultToggles?.(document);
+            }, true);
             panel.addEventListener('click', e => {
                 const toggle = e.target?.closest?.('.javbus-javdb-reviews-toggle');
                 if (toggle && panel.contains(toggle)) {
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation?.();
-                    const body = panel.querySelector('.javbus-javdb-reviews-body');
                     const expanded = panel.classList.toggle('is-expanded');
-                    if (body) body.hidden = !expanded;
-                    toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+                    this._setJavbusReviewsExpanded(panel, expanded);
                     if (expanded && panel.dataset.reviewsLoaded !== '1') {
                         this._loadJavdbReviewsForJavbus(panel.dataset.avid || '', panel);
                     }
@@ -2102,11 +2124,7 @@
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation?.();
-                    const body = panel.querySelector('.javbus-javdb-reviews-body');
-                    const toggleBtn = panel.querySelector('.javbus-javdb-reviews-toggle');
-                    panel.classList.remove('is-expanded');
-                    if (body) body.hidden = true;
-                    toggleBtn?.setAttribute('aria-expanded', 'false');
+                    this._setJavbusReviewsExpanded(panel, false);
                     return;
                 }
                 const btn = e.target?.closest?.('.javbus-javdb-reviews-load-more');
@@ -2445,6 +2463,7 @@
         },
         _ensureDarkThemeStyle() {
             injectStyle('javdb-dark-style', `html[data-theme="dark"] .jav-card{background:#252525!important;border-color:#3f3f46!important;box-shadow:0 1px 4px rgba(0,0,0,.34)!important}html[data-theme="dark"] .jav-card:hover{border-color:rgba(96,165,250,.58)!important;box-shadow:0 12px 26px rgba(0,0,0,.38)!important}html[data-theme="dark"] .jav-card-link,html[data-theme="dark"] .javdb-card-grid .item .javdb-card-link.box{background:#252525!important;color:#8ab4ff!important}html[data-theme="dark"] .jav-card-link:visited{color:#c4a7ff!important}html[data-theme="dark"] .jav-card-cover,html[data-theme="dark"] .jav-card-image{background:#18181b!important;border-color:#3f3f46!important}html[data-theme="dark"] .javdb-card-score{color:#cbd5e1!important}html[data-theme="dark"] .javdb-card-meta{color:#94a3b8!important}html[data-theme="dark"] .javdb-card-tags .tag:not(.is-success):not(.is-info):not(.is-primary):not(.is-warning):not(.is-danger){background:#333333!important;color:#d1d5db!important}html[data-theme="dark"] .jav-nong-wrapper{background:transparent!important;color:#d1d5db!important}html[data-theme="dark"] #jav-nong-table{background:#2f2f2f!important;color:#d1d5db!important}html[data-theme="dark"] #jav-nong-table th,html[data-theme="dark"] #jav-nong-table td{background:#262626!important;border-color:#3f3f46!important;color:#d1d5db!important}html[data-theme="dark"] #jav-nong-table .nong-head-row th{background:#303030!important;color:#e5e7eb!important}html[data-theme="dark"] #jav-nong-table .nong-magnet-name>a{color:#8ab4ff!important}html[data-theme="dark"] #jav-nong-notice,html[data-theme="dark"] #jav-nong-refresh{color:#cbd5e1!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] article.message.video-panel,html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] article.message.video-panel .message-body{background:#252525!important;border-color:#3f3f46!important;color:#e5e7eb!important}html[data-theme="dark"] .javdb-api-review,html[data-theme="dark"] .javdb-api-related{background:#252525!important;border-bottom-color:#3f3f46!important}html[data-theme="dark"] .javdb-api-review-head,html[data-theme="dark"] .javdb-api-related-head,html[data-theme="dark"] .javdb-api-review-content,html[data-theme="dark"] .javdb-api-related-desc{color:#e5e7eb!important}html[data-theme="dark"] .javdb-api-related-meta,html[data-theme="dark"] .javdb-api-tab-loading,html[data-theme="dark"] .javdb-api-tab-empty,html[data-theme="dark"] .javdb-api-tab-end{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-error{color:#fb7185!important}html[data-theme="dark"] .javdb-api-review-toggle,html[data-theme="dark"] .javdb-api-review-collapse,html[data-theme="dark"] .javdb-api-tab-load-more{background:#2f3b4f!important;border-color:#4b5f80!important;color:#dbeafe!important}html[data-theme="dark"] .javdb-api-review-toggle::before{color:#93c5fd!important}html[data-theme="dark"] .javdb-api-tab-badge{background:#1e3a5f!important;border-color:#3b82f6!important;color:#dbeafe!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .item{background:#252525!important;border-color:#3f3f46!important;color:#e5e7eb!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .item.odd{background:#2a2a2a!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .magnet-name a,html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links a{color:#8ab4ff!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .meta,html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .date{color:#94a3b8!important}html[data-theme="dark"] .jav-stills-shell{background:#252525!important;border-color:#3f3f46!important;box-shadow:0 8px 18px rgba(0,0,0,.28)!important}html[data-theme="dark"] .jav-stills-rail>a,html[data-theme="dark"] .jav-stills-rail>.tile-item,html[data-theme="dark"] .jav-stills-rail>.preview-video-container{background:#1f2937!important;border-color:#4b5563!important;box-shadow:none!important}html[data-theme="dark"] .jav-stills-arrow{background:rgba(39,39,42,.92)!important;border-color:#52525b!important;color:#e5e7eb!important}html[data-theme="dark"] .jav-stills-arrow:hover{background:#303030!important;border-color:rgba(96,165,250,.58)!important}`);
+            injectStyle('javdb-review-default-dark-style', `html[data-theme="dark"] .javdb-api-review-default-toggle{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-review-default-switch{border-color:#52525b!important;background:#3f3f46!important}`);
         },
         _dismissOver18Modal() {
             if (!this.match()) return;
@@ -2513,7 +2532,7 @@
             return `<span class="score-stars"> ${Array.from({ length: 5 }, (_, index) => `<i class="icon-star${index < value ? '' : ' gray'}"></i>`).join('')} </span>`;
         },
         _ensureApiMovieTabStyle() {
-            injectStyle('javdb-api-movie-tab-style', `#tabs-container[data-laosiji-api-movie-tabs] .top-meta{display:none!important}.javdb-api-tab-loading,.javdb-api-tab-empty,.javdb-api-tab-error,.javdb-api-tab-end{padding:12px 14px!important;color:#64748b!important;font-size:13px!important;font-weight:700!important}.javdb-api-tab-error{color:#be123c!important}.javdb-api-review,.javdb-api-related{margin:0!important;padding:11px 12px!important;border-bottom:1px solid #edf2f7!important;background:#fff!important;word-break:break-word!important}.javdb-api-review-head,.javdb-api-related-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important;color:#334155!important;font-size:13px!important}.javdb-api-review-content,.javdb-api-related-desc{margin-top:7px!important;color:#1f2937!important;font-size:13px!important;line-height:1.65!important;white-space:normal!important}.javdb-api-related-meta{display:flex!important;gap:10px!important;flex-wrap:wrap!important;margin-top:7px!important;color:#64748b!important;font-size:12px!important}.javdb-api-tab-footer{padding:10px 0 0!important}.javdb-api-tab-load-more{width:100%!important;min-height:34px!important;border:1px solid #bfdbfe!important;border-radius:6px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:13px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-toggle{width:100%!important;min-height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:13px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-review-toggle::before{content:"▸";color:#64748b;font-size:13px}.javdb-api-review-collapse-bar{display:flex!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-collapse{min-height:28px!important;padding:0 10px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-tab-badge-item{display:flex!important;align-items:center!important;margin-left:4px!important;pointer-events:auto!important}.javdb-api-tab-badge{margin-left:0!important;align-self:center!important;display:inline-flex!important;align-items:center!important;height:20px!important;padding:0 7px!important;border:1px solid #bfdbfe!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}`);
+            injectStyle('javdb-api-movie-tab-style', `#tabs-container[data-laosiji-api-movie-tabs] .top-meta{display:none!important}.javdb-api-tab-loading,.javdb-api-tab-empty,.javdb-api-tab-error,.javdb-api-tab-end{padding:12px 14px!important;color:#64748b!important;font-size:13px!important;font-weight:700!important}.javdb-api-tab-error{color:#be123c!important}.javdb-api-review,.javdb-api-related{margin:0!important;padding:11px 12px!important;border-bottom:1px solid #edf2f7!important;background:#fff!important;word-break:break-word!important}.javdb-api-review-head,.javdb-api-related-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important;color:#334155!important;font-size:13px!important}.javdb-api-review-content,.javdb-api-related-desc{margin-top:7px!important;color:#1f2937!important;font-size:13px!important;line-height:1.65!important;white-space:normal!important}.javdb-api-related-meta{display:flex!important;gap:10px!important;flex-wrap:wrap!important;margin-top:7px!important;color:#64748b!important;font-size:12px!important}.javdb-api-tab-footer{padding:10px 0 0!important}.javdb-api-tab-load-more{width:100%!important;min-height:34px!important;border:1px solid #bfdbfe!important;border-radius:6px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:13px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-toggle{width:100%!important;min-height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:13px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-review-toggle::before{content:"▸";color:#64748b;font-size:13px}.javdb-api-review-collapse-bar{display:flex!important;align-items:center!important;gap:8px!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-default-row{display:flex!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-default-toggle{display:inline-flex!important;align-items:center!important;gap:6px!important;color:#475569!important;font-size:12px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important}.javdb-api-review-default-toggle input{position:absolute!important;opacity:0!important;pointer-events:none!important}.javdb-api-review-default-switch{position:relative!important;width:28px!important;height:16px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#e5e7eb!important;transition:background .16s ease,border-color .16s ease!important}.javdb-api-review-default-switch::before{content:""!important;position:absolute!important;top:2px!important;left:2px!important;width:10px!important;height:10px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 2px rgba(15,23,42,.22)!important;transition:transform .16s ease!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch{border-color:#2563eb!important;background:#2563eb!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch::before{transform:translateX(12px)!important}.javdb-api-review-collapse{min-height:28px!important;padding:0 10px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-tab-badge-item{display:flex!important;align-items:center!important;margin-left:4px!important;pointer-events:auto!important}.javdb-api-tab-badge{margin-left:0!important;align-self:center!important;display:inline-flex!important;align-items:center!important;height:20px!important;padding:0 7px!important;border:1px solid #bfdbfe!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}`);
         },
         _ensureApiMovieTabBadge() {
             const tabs = document.querySelector('.tabs.no-bottom');
@@ -2546,11 +2565,19 @@
         _renderApiTabError(text) {
             return `<article class="message video-panel"><div class="message-body"><div class="javdb-api-tab-error"> ${this._escapeHtml(text || '读取失败')} </div></div></article>`;
         },
+        _renderApiReviewDefaultToggle() {
+            return `<label class="javdb-api-review-default-toggle" title="控制以后进入详情页时短评默认展开或折叠"><input type="checkbox" data-laosiji-review-default-expanded="1"${CFG.reviewsDefaultExpanded ? ' checked' : ''}><span class="javdb-api-review-default-switch"></span><span>默认展开</span></label>`;
+        },
+        _syncApiReviewDefaultToggles(root = document) {
+            root.querySelectorAll?.('[data-laosiji-review-default-expanded]').forEach(input => {
+                input.checked = CFG.reviewsDefaultExpanded;
+            });
+        },
         _renderApiReviewCollapsed() {
-            return '<article class="message video-panel"><div class="message-body"><button type="button" class="javdb-api-review-toggle" data-laosiji-api-expand-reviews="1">展开短评</button></div></article>';
+            return `<article class="message video-panel"><div class="message-body"><div class="javdb-api-review-default-row">${this._renderApiReviewDefaultToggle()}</div><button type="button" class="javdb-api-review-toggle" data-laosiji-api-expand-reviews="1">展开短评</button></div></article>`;
         },
         _renderApiReviewCollapseBar() {
-            return '<div class="javdb-api-review-collapse-bar"><button type="button" class="javdb-api-review-collapse" data-laosiji-api-collapse-reviews="1">收起短评</button></div>';
+            return `<div class="javdb-api-review-collapse-bar">${this._renderApiReviewDefaultToggle()}<button type="button" class="javdb-api-review-collapse" data-laosiji-api-collapse-reviews="1">收起短评</button></div>`;
         },
         _renderApiTabFooter(tab, nextPage, hasNext, doneText, moreText, pageSize = 20, shownCount = 0, loadLimit = pageSize) {
             return `<div class="javdb-api-tab-footer"> ${hasNext ? `<button type="button" class="javdb-api-tab-load-more" data-laosiji-api-load-tab="${tab}" data-next-page="${nextPage}" data-page-size="${pageSize}" data-shown-count="${shownCount}" data-load-limit="${loadLimit}">${this._escapeHtml(moreText)}</button>` : `<div class="javdb-api-tab-end">${this._escapeHtml(doneText)}</div>`} </div>`;
@@ -2700,6 +2727,12 @@
                 link.removeAttribute('data-url');
             });
             const root = tabsContainer.closest('.columns') || tabsContainer;
+            root.addEventListener('change', e => {
+                const input = e.target?.closest?.('[data-laosiji-review-default-expanded]');
+                if (!input || !root.contains(input)) return;
+                CFG.reviewsDefaultExpanded = input.checked;
+                this._syncApiReviewDefaultToggles(document);
+            }, true);
             root.addEventListener('click', e => {
                 if (e.target?.closest?.('.javdb-api-tab-badge-item')) {
                     e.preventDefault();
@@ -2763,7 +2796,11 @@
                 }
             }, true);
             this._setApiMovieTab('reviews');
-            reviewsPane.innerHTML = this._renderApiReviewCollapsed();
+            if (CFG.reviewsDefaultExpanded) {
+                this._loadApiMovieTab(movieId, 'reviews');
+            } else {
+                reviewsPane.innerHTML = this._renderApiReviewCollapsed();
+            }
         },
         _ensurePaginationJumpStyle() {
             injectStyle('javdb-pagination-jump-style', `.javdb-pagination-jump{display:flex!important;align-items:center!important;gap:.25rem!important;margin:0!important;flex-wrap:nowrap!important}.pagination-list .javdb-pagination-jump-item{display:list-item!important;margin-left:.25rem!important}.javdb-pagination-jump .pagination-link{margin:0!important}.javdb-pagination-jump input.pagination-link{width:4.5em!important;min-width:4.5em!important;text-align:center!important;box-shadow:none!important;appearance:textfield!important}.javdb-pagination-jump input.pagination-link::-webkit-outer-spin-button,.javdb-pagination-jump input.pagination-link::-webkit-inner-spin-button{-webkit-appearance:none!important;margin:0!important}.javdb-pagination-jump button.pagination-link{cursor:pointer!important;font-weight:400!important}@media (max-width:640px){.pagination-list .javdb-pagination-jump-item{flex-basis:100%!important;margin-left:.25rem!important}}`);
