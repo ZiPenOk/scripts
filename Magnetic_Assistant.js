@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.0
+// @version      3.5.1
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -21,8 +21,6 @@
 
 (function () {
     'use strict';
-
-    // ================= 1. 基础配置 =================
     const config = {
         enableCopy: GM_getValue('enableCopy', true),
         enableQb: GM_getValue('enableQb', true),
@@ -46,7 +44,6 @@
         checkActive: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#28a745"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
     };
 
-    // ================= 2. 注入CSS（新增链接样式）=================
     const style = document.createElement('style');
     style.innerHTML = `
         .mag-btn-group {
@@ -129,12 +126,12 @@
         #nong-table-new .nong-115-cell {
             display: none !important;
         }
-        #jav-nong-table td:nth-child(3),
+        #jav-nong-table .nong-op-cell,
         #nong-table-new td:nth-child(3) {
             min-width: 88px;
             text-align: center;
         }
-        #jav-nong-table td:nth-child(3):not(.mag-laosiji-ready-cell)::after,
+        #jav-nong-table .nong-op-cell:not(.mag-laosiji-ready-cell)::after,
         #nong-table-new td:nth-child(3):not(.mag-laosiji-ready-cell)::after {
             content: '';
             display: inline-block;
@@ -283,7 +280,6 @@
     `;
     (document.head || document.documentElement).appendChild(style);
 
-    // ================= 3. 工具函数 =================
     function showToast(msg, success = true) {
         const toast = document.createElement('div');
         toast.style.cssText = `position:fixed;bottom:50px;right:30px;background:${success?'#28a745':'#dc3545'};color:white;padding:10px 20px;border-radius:8px;z-index:100000;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);`;
@@ -322,7 +318,6 @@
         return otherSelectors.some(sel => parent.querySelector(sel));
     }
 
-    // ================= 4. 番号提取 =================
     function extractCodeFromText(text) {
         if (!text) return null;
 
@@ -353,8 +348,6 @@
         return null;
     }
 
-    // ================= 5. 图片轮播函数 =================
-    // ================= 5. ???? =================
     function GM_Request({ method = "GET", url, data = null, headers = {} }) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -503,7 +496,6 @@
         showWhatslinkModal(info, link);
     }
 
-    // ================= 7. 精简磁力链接 =================
     function simplifyMagnetLink(link) {
         if (!link.startsWith('magnet:?')) return link;
         try {
@@ -592,7 +584,6 @@
         return group;
     }
 
-    // ================= 9. 推送函数 =================
     function pushToQb(link) {
         GM_xmlhttpRequest({
             method: "POST",
@@ -600,7 +591,6 @@
             data: `username=${config.qbtUser}&password=${config.qbtPass}`,
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             onload: (res) => {
-                // 登录成功应返回 "Ok."（忽略前后空白）
                 if (res.status === 200 && res.responseText && res.responseText.trim() === "Ok.") {
                     GM_xmlhttpRequest({
                         method: "POST",
@@ -608,7 +598,6 @@
                         data: `urls=${encodeURIComponent(link)}`,
                         headers: { "Content-Type": "application/x-www-form-urlencoded" },
                         onload: (r) => {
-                            // 添加任务成功返回 "Ok."，失败返回错误信息
                             if (r.status === 200 && r.responseText && r.responseText.trim() === "Ok.") {
                                 showToast('✅ 已推送到 qB');
                             } else {
@@ -691,23 +680,20 @@
         });
     }
 
-    // ================= 10. 特殊处理：laosiji 表格（兼容新旧版本）=================
     function handleLaosijiTable() {
-        // 兼容新版（jav-nong-table）和旧版（nong-table-new）
         const table = document.getElementById('jav-nong-table') || document.getElementById('nong-table-new');
         if (!table) return;
 
-        // 隐藏 115 离线列（cili 自带 115 推送，避免重复）
         table.querySelectorAll('.nong-115-head, .nong-115-cell').forEach(el => {
             el.style.display = 'none';
         });
 
-        // 新版行带 data-maglink；旧版行是 tr.jav-nong-row
         const rows = table.querySelectorAll('tr[data-maglink], tr.jav-nong-row:not(.nong-head-row)');
         rows.forEach(row => {
             const cells = row.cells;
             if (cells.length < 3) return;
-            const operationCell = cells[2];
+            const operationCell = row.querySelector('.nong-op-cell') || cells[2];
+            if (!operationCell) return;
 
             const magnetLink = row.getAttribute('data-maglink')
                 || row.querySelector('td:first-child a[href^="magnet:"]')?.href;
@@ -726,7 +712,6 @@
         });
     }
 
-    // ================= 11. 文本链接处理（支持磁力、ed2k、ftp、纯哈希）=================
     const linkRegexes = {
         magnet: /magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*/g,
         ed2k: /ed2k:\/\/\|file\|[^|]+\|[^|]+\|[^|]+\|/g,
@@ -783,9 +768,7 @@
         return fragment;
     }
 
-    // ================= 12. 页面扫描（增强版）=================
     function processPage() {
-        // 先处理 laosiji 表格
         handleLaosijiTable();
 
         const processedHrefs = new Set();
@@ -793,7 +776,6 @@
             if (a.href) processedHrefs.add(a.href);
         });
 
-        // 处理文本节点（包括纯哈希转换和样式化链接）
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
         let node;
         const textNodes = [];
@@ -811,14 +793,12 @@
             }
         });
 
-        // 处理 <a> 标签（排除 laosiji 表格内的链接）
         document.querySelectorAll('a').forEach(a => {
             if (a.closest('#jav-nong-table')) return;
             if (a.closest('#nong-table-new')) return;
             if (a.closest('.whatslink-modal')) return;
             if (a.dataset.magProcessed) return;
             const href = a.href || '';
-            // 支持 magnet, ed2k, ftp
             if (href.startsWith('magnet:?xt=urn:btih:') || href.startsWith('ed2k://') || href.startsWith('ftp://')) {
                 if (a.nextElementSibling?.classList?.contains('mag-btn-group')) return;
                 if (hasOtherMagnetButtons(a)) return;
@@ -830,7 +810,6 @@
 
     }
 
-    // ================= 13. 设置面板 =================
     function showSettingsModal() {
         const mask = document.createElement('div');
         mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100001;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
