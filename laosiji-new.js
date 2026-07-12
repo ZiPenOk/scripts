@@ -2104,10 +2104,15 @@
         _placeJavbusReviewsPanel(panel) {
             const magnetSubmit = this._findMagnetSubmitHeading();
             const stillsShell = document.querySelector('.jav-stills-javbus[data-laosiji-stills="1"], .jav-stills-javbus');
-            const anchor = stillsShell?.parentNode ? stillsShell : magnetSubmit;
-            if (!panel || !anchor?.parentNode) return false;
-            if (panel.nextElementSibling !== anchor) {
-                anchor.parentNode.insertBefore(panel, anchor);
+            const anchor = stillsShell?.parentNode ? stillsShell.nextSibling : magnetSubmit;
+            const parent = stillsShell?.parentNode || magnetSubmit?.parentNode;
+            if (!panel || !parent) return false;
+            if (stillsShell?.parentNode) {
+                if (stillsShell.nextElementSibling !== panel) {
+                    parent.insertBefore(panel, anchor);
+                }
+            } else if (panel.nextElementSibling !== magnetSubmit) {
+                parent.insertBefore(panel, magnetSubmit);
             }
             return true;
         },
@@ -4674,8 +4679,8 @@
             if (config?.site !== 'javbus' || !shell) return;
             const reviewsPanel = document.querySelector('.javbus-javdb-reviews');
             if (reviewsPanel?.parentNode) {
-                if (reviewsPanel.nextElementSibling !== shell) {
-                    reviewsPanel.parentNode.insertBefore(shell, reviewsPanel.nextSibling);
+                if (shell.nextElementSibling !== reviewsPanel) {
+                    reviewsPanel.parentNode.insertBefore(shell, reviewsPanel);
                 }
                 return;
             }
