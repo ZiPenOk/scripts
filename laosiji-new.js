@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.0
+// @version      2.7.0.1
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -45,7 +45,7 @@
 // ==/UserScript==
 (function () {
     'use strict';
-    const SCRIPT_VERSION = '2.7.0';
+    const SCRIPT_VERSION = '2.7.0.1';
     const DEBUG_LOG = false;
     const ERROR_LOG = true;
     const PAGE_ZOOM_DEFAULT = 86;
@@ -2096,6 +2096,29 @@
                 );
             });
         },
+        _findMagnetSubmitHeading() {
+            const direct = document.querySelector('#mag-submit-show');
+            if (direct) return direct;
+            return [...document.querySelectorAll('h4')].find(h4 => /磁力(?:連結|链接)投稿/.test(h4.textContent || ''));
+        },
+        _placeJavbusReviewsPanel(panel) {
+            const magnetSubmit = this._findMagnetSubmitHeading();
+            const stillsShell = document.querySelector('.jav-stills-javbus[data-laosiji-stills="1"], .jav-stills-javbus');
+            const anchor = stillsShell?.parentNode ? stillsShell : magnetSubmit;
+            if (!panel || !anchor?.parentNode) return false;
+            if (panel.nextElementSibling !== anchor) {
+                anchor.parentNode.insertBefore(panel, anchor);
+            }
+            return true;
+        },
+        _removeRecommendBlock() {
+            const heading = this._findRecommendHeading()
+                || [...document.querySelectorAll('h4')].find(h4 => /^(?:\u63a8\u85a6|\u63a8\u8350)/.test((h4.textContent || '').trim()));
+            if (!heading) return;
+            const next = heading.nextElementSibling;
+            heading.remove();
+            if (this._isRecommendContainer(next)) next.remove();
+        },
         _isRecommendContainer(node) {
             if (!node || node.nodeType !== 1) return false;
             const mark = `${node.id || ''} ${node.className || ''}`;
@@ -2110,20 +2133,24 @@
             const existing = document.querySelector('.javbus-javdb-reviews');
             if (existing) {
                 this._bindJavbusReviewLoadMore(existing);
-                const next = existing.nextElementSibling;
-                if (this._isRecommendContainer(next)) next.remove();
+                this._placeJavbusReviewsPanel(existing);
+                this._removeRecommendBlock();
                 return;
             }
             const heading = this._findRecommendHeading();
-            if (!heading) return;
+            if (!heading && !this._findMagnetSubmitHeading()) return;
             this._ensureJavdbReviewsStyle();
-            const next = heading.nextElementSibling;
             const panel = document.createElement('section');
             panel.className = 'javbus-javdb-reviews';
             panel.dataset.avid = avid;
             panel.innerHTML = `<div class="javbus-javdb-reviews-head"><button type="button" class="javbus-javdb-reviews-toggle" aria-expanded="false">JavDB 短评<span class="javbus-javdb-reviews-badge" title="此区块已由 JAV 老司机脚本替换">老司机</span></button><div class="javbus-javdb-reviews-actions">${SiteJavDB._renderApiReviewDefaultToggle()}<a class="javbus-javdb-reviews-link" href="https://javdb.com/search?q=${encodeURIComponent(avid)}" target="_blank" rel="noopener noreferrer">JavDB</a></div></div><div class="javbus-javdb-reviews-body" hidden><div class="javdb-api-tab-loading">正在读取短评...</div></div>`;
-            heading.replaceWith(panel);
-            if (this._isRecommendContainer(next)) next.remove();
+            if (this._placeJavbusReviewsPanel(panel)) {
+                this._removeRecommendBlock();
+            } else {
+                const next = heading.nextElementSibling;
+                heading.replaceWith(panel);
+                if (this._isRecommendContainer(next)) next.remove();
+            }
             this._bindJavbusReviewLoadMore(panel);
             this._applyJavbusReviewsDefault(panel);
         },
@@ -4643,13 +4670,30 @@
             config.container.closest('.message.video-panel, article.message')?.classList.add('javdb-stills-panel-clean');
             config.container.closest('.message-body')?.classList.add('javdb-stills-body-clean');
         }
+        function reorderJavbusStills(config, shell) {
+            if (config?.site !== 'javbus' || !shell) return;
+            const reviewsPanel = document.querySelector('.javbus-javdb-reviews');
+            if (reviewsPanel?.parentNode) {
+                if (reviewsPanel.nextElementSibling !== shell) {
+                    reviewsPanel.parentNode.insertBefore(shell, reviewsPanel.nextSibling);
+                }
+                return;
+            }
+            const submitHeading = document.querySelector('#mag-submit-show');
+            if (!submitHeading?.parentNode || shell.nextElementSibling === submitHeading) return;
+            submitHeading.parentNode.insertBefore(shell, submitHeading);
+        }
         function sync() {
             const config = findConfig();
             if (!config?.container) return;
             ensureStyle();
             cleanSiteShell(config);
             bindViewer(config.container);
-            if (config.container.closest('.jav-stills-shell')) return;
+            const existingShell = config.container.closest('.jav-stills-shell');
+            if (existingShell) {
+                reorderJavbusStills(config, existingShell);
+                return;
+            }
             const shell = document.createElement('div');
             shell.className = `jav-stills-shell jav-stills-${config.site}`;
             shell.dataset.laosijiStills = '1';
@@ -4669,6 +4713,7 @@
                 button('›', 'jav-stills-arrow-next', config.container, 1)
             );
             shell.append(stage);
+            reorderJavbusStills(config, shell);
         }
         return { sync };
     })();
