@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.1
+// @version      3.5.2
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -21,6 +21,7 @@
 
 (function () {
     'use strict';
+
     const config = {
         enableCopy: GM_getValue('enableCopy', true),
         enableQb: GM_getValue('enableQb', true),
@@ -35,7 +36,6 @@
 
     GM_registerMenuCommand("⚙️ 脚本综合设置", showSettingsModal);
 
-    // 图标定义
     const ICONS = {
         copy: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#666"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`,
         qb: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#0078d4"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`,
@@ -536,8 +536,8 @@
         }
     }
 
-    // ================= 8. 按钮组构建 =================
     function createBtnGroup(link) {
+        link = normalizeSupportedLink(link);
         const group = document.createElement('span');
         group.className = 'mag-btn-group';
         group.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
@@ -591,6 +591,7 @@
             data: `username=${config.qbtUser}&password=${config.qbtPass}`,
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             onload: (res) => {
+                // 登录成功应返回 "Ok."（忽略前后空白）
                 if (res.status === 200 && res.responseText && res.responseText.trim() === "Ok.") {
                     GM_xmlhttpRequest({
                         method: "POST",
@@ -598,6 +599,7 @@
                         data: `urls=${encodeURIComponent(link)}`,
                         headers: { "Content-Type": "application/x-www-form-urlencoded" },
                         onload: (r) => {
+                            // 添加任务成功返回 "Ok."，失败返回错误信息
                             if (r.status === 200 && r.responseText && r.responseText.trim() === "Ok.") {
                                 showToast('✅ 已推送到 qB');
                             } else {
@@ -714,17 +716,104 @@
 
     const linkRegexes = {
         magnet: /magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*/g,
-        ed2k: /ed2k:\/\/\|file\|[^|]+\|[^|]+\|[^|]+\|/g,
+        ed2k: /ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|\/?/gi,
         ftp: /ftp:\/\/[^\s]+/g
     };
 
+    function decodeLinkValue(value) {
+        if (!value) return '';
+        try {
+            return decodeURIComponent(value);
+        } catch (_) {
+            return value;
+        }
+    }
+
+    function extractEd2kLink(value) {
+        const decoded = decodeLinkValue(value || '');
+        const match = decoded.match(/ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|\/?/i);
+        return match ? match[0] : null;
+    }
+
+    function normalizeSupportedLink(link) {
+        if (!link) return link;
+        if (/^ed2k:/i.test(link)) {
+            const decoded = decodeLinkValue(link);
+            return extractEd2kLink(decoded) || decoded;
+        }
+        return link;
+    }
+
+    function collectFollowingTextNodes(startNode, maxChars = 4096) {
+        const chunks = [];
+        let text = '';
+        let node = startNode.nextSibling;
+
+        while (node && text.length < maxChars) {
+            if (node.nodeType !== Node.TEXT_NODE) break;
+            const value = node.nodeValue || '';
+            chunks.push({ node, value });
+            text += value;
+            if (extractEd2kLink(text)) break;
+            node = node.nextSibling;
+        }
+
+        return { text, chunks };
+    }
+
+    function consumeTextChunks(chunks, count) {
+        let remaining = count;
+        for (const chunk of chunks) {
+            if (remaining <= 0) break;
+            if (remaining >= chunk.value.length) {
+                remaining -= chunk.value.length;
+                chunk.node.remove();
+            } else {
+                chunk.node.nodeValue = chunk.value.slice(remaining);
+                remaining = 0;
+            }
+        }
+    }
+
+    function repairSplitEd2kAnchor(anchor) {
+        const prefixCandidates = [
+            anchor.textContent,
+            anchor.getAttribute('href'),
+            anchor.href
+        ].map(value => decodeLinkValue(value || '').trim()).filter(value => /^ed2k:\/\//i.test(value));
+
+        for (const prefix of prefixCandidates) {
+            const directLink = extractEd2kLink(prefix);
+            if (directLink) {
+                anchor.textContent = directLink;
+                anchor.setAttribute('href', directLink);
+                anchor.dataset.magRawLink = directLink;
+                return directLink;
+            }
+
+            const { text, chunks } = collectFollowingTextNodes(anchor);
+            const fullLink = extractEd2kLink(prefix + text);
+            if (fullLink && fullLink.startsWith(prefix)) {
+                anchor.textContent = fullLink;
+                anchor.setAttribute('href', fullLink);
+                anchor.dataset.magRawLink = fullLink;
+                consumeTextChunks(chunks, fullLink.length - prefix.length);
+                return fullLink;
+            }
+        }
+
+        return null;
+    }
+
     function createStyledLink(url, type) {
         const a = document.createElement('a');
-        a.href = url;
+        const normalizedUrl = normalizeSupportedLink(url);
+        a.setAttribute('href', normalizedUrl);
         a.className = `${type}-link`;
-        a.textContent = url;
+        a.textContent = normalizedUrl;
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
+        a.dataset.magRawLink = normalizedUrl;
         return a;
     }
 
@@ -733,13 +822,13 @@
         if (!parent) return null;
         const content = node.nodeValue;
 
-        const combinedRegex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*|ed2k:\/\/\|file\|[^|]+\|[^|]+\|[^|]+\||ftp:\/\/[^\s]+)/gi;
+        const combinedRegex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|\/?|ftp:\/\/[^\s]+)/gi;
         if (!combinedRegex.test(content)) return null;
         combinedRegex.lastIndex = 0;
 
         const fragment = document.createDocumentFragment();
         let lastIndex = 0;
-        let match; // 声明变量
+        let match;
 
         while ((match = combinedRegex.exec(content)) !== null) {
             if (match.index > lastIndex) {
@@ -751,10 +840,9 @@
             else if (url.startsWith('ed2k:')) type = 'ed2k';
             else if (url.startsWith('ftp:')) type = 'ftp';
             const link = createStyledLink(url, type);
-            link.dataset.magProcessed = 'true'; // 标记已处理
+            link.dataset.magProcessed = 'true';
             fragment.appendChild(link);
 
-            // 立即添加按钮组
             const btnGroup = createBtnGroup(url);
             fragment.appendChild(btnGroup);
 
@@ -798,10 +886,15 @@
             if (a.closest('#nong-table-new')) return;
             if (a.closest('.whatslink-modal')) return;
             if (a.dataset.magProcessed) return;
-            const href = a.href || '';
-            if (href.startsWith('magnet:?xt=urn:btih:') || href.startsWith('ed2k://') || href.startsWith('ftp://')) {
+            let href = normalizeSupportedLink(a.dataset.magRawLink || a.getAttribute('href') || a.href || '');
+            if (/^ed2k:\/\//i.test(href)) {
+                href = repairSplitEd2kAnchor(a) || href;
+            }
+            // 支持 magnet, ed2k, ftp
+            if (/^magnet:\?xt=urn:btih:/i.test(href) || /^ed2k:\/\//i.test(href) || /^ftp:\/\//i.test(href)) {
                 if (a.nextElementSibling?.classList?.contains('mag-btn-group')) return;
                 if (hasOtherMagnetButtons(a)) return;
+                a.dataset.magRawLink = href;
                 a.after(createBtnGroup(href));
                 a.dataset.magProcessed = 'true';
                 processedHrefs.add(href);
@@ -1027,7 +1120,6 @@
         modal.querySelector('#btn_cancel').onclick = () => mask.remove();
     }
 
-    // ================= 14. 启动监听 =================
     let timer = null;
     let observer = null;
     function lazyRun(delay = 120) {
