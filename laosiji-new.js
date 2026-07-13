@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.0.3
+// @version      2.7.0.4
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -19,6 +19,7 @@
 // @match        *://sehuatang.net/*
 // @match        *://hjd2048.com/2048/*
 // @match        *://jable.tv/*
+// @match        *://123av.com/*
 // @match        *://fc2cmadb.com/*
 // @match        *://www.fc2cmadb.com/*
 // @include      *://javdb*.com/*
@@ -46,7 +47,7 @@
 // ==/UserScript==
 (function () {
     'use strict';
-    const SCRIPT_VERSION = '2.7.0.3';
+    const SCRIPT_VERSION = '2.7.0.4';
     const DEBUG_LOG = false;
     const ERROR_LOG = true;
     const PAGE_ZOOM_DEFAULT = 86;
@@ -4147,6 +4148,7 @@
         getPan115ListCard(anchor) {
             return anchor?.closest?.([
                 '.video-img-box',
+                '.card',
                 '.video-list-row',
                 '.movie-list .item',
                 '.movies .item',
@@ -4177,7 +4179,7 @@
             if (!hasTitleText) return null;
             const card = this.getPan115ListCard(anchor);
             if (card && anchor.querySelector('img') && !visibleTitleHasCode) {
-                const titleAnchor = card.querySelector('.detail .title a[href], h6.title a[href], .video-title a[href], .title a[href]');
+                const titleAnchor = card.querySelector('.card__title .card__link[href], .detail .title a[href], h6.title a[href], .video-title a[href], .title a[href]');
                 if (titleAnchor && titleAnchor !== anchor) return null;
             }
             const looksLikeVideoLink =
@@ -4187,7 +4189,7 @@
                 /\/(?:[a-z]{2,15}-\d{2,10}|fc2[-_]?ppv[-_]?\d{6,9})\/?$/i.test(href) ||
                 /\/(?:[a-z]{2,15}\d{3,6})\/?$/i.test(href) ||
                 /(?:movie|video|detail|view|jav)/i.test(href);
-            const inListContainer = !!anchor.closest('.movie-list, .movies, .grid, #waterfall, .movie-box, .box, .thumbnail, .video-img-box, .video-list, .video-list-row, .section-container, .videothumblist');
+            const inListContainer = !!anchor.closest('.movie-list, .movies, .grid, #waterfall, .movie-box, .box, .thumbnail, .video-img-box, .card, .video-list, .video-list-row, .section-container, .videothumblist');
             if (!looksLikeVideoLink && !inListContainer) return null;
             if (hasTitleText && !visibleTitleHasCode && !looksLikeVideoLink) return null;
             return { anchor, code: pan115Code };
@@ -4231,6 +4233,7 @@
             }
             const selectors = [
                 ...(isSupjavList ? ['.post h3 a[href]'] : []),
+                '.card__title .card__link[href]',
                 '.video-img-box .detail .title a[href]',
                 '.video-img-box h6.title a[href]',
                 '.movie-list a[href]',
@@ -7158,10 +7161,17 @@
         if (!showMissav) return;
         const codeLower = code.toLowerCase();
         const codeCompactLower = codeLower.replace(/-/g, '');
+        const get123AvLocalePrefix = () => {
+            if (/(?:^|\.)123av\.com$/i.test(location.hostname)) {
+                const locale = location.pathname.match(/^\/([a-z]{2}(?:-[a-z]{2})?)\//i)?.[1];
+                if (locale) return `/${locale.toLowerCase()}`;
+            }
+            return '/cn';
+        };
         const videoUrlMap = {
             missav: `https://missav.ws/${codeLower}`,
             jable: `https://jable.tv/videos/${codeLower}/`,
-            '123av': `https://123av.com/zh/v/${codeLower}`,
+            '123av': `https://123av.com${get123AvLocalePrefix()}/v/${codeLower}`,
             javday: `https://javday.app/videos/${codeCompactLower}/`,
             supjav: `https://supjav.com/zh/?s=${encodeURIComponent(code)}`,
             javrate: `https://www.javrate.com/search/${encodeURIComponent(codeLower)}`,
@@ -7484,6 +7494,15 @@
             titleSelector: '.header-left > h4'
         },
         {
+            id: '123av',
+            name: '123AV',
+            match: (url) => {
+                const u = new URL(url);
+                return /(?:^|\.)123av\.com$/i.test(u.hostname) && /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?v\/[^/?#]+\/?$/i.test(u.pathname);
+            },
+            titleSelector: '.watch__title'
+        },
+        {
             id: 'fc2cmadb',
             name: 'FC2CMA',
             match(url) {
@@ -7710,14 +7729,21 @@
         if (existingBtnGroup) {
             if (site.id === 'emby') {
             } else {
-            const code = typeof site.getCode === 'function'
-                ? site.getCode(titleElem)
-                : Utils.extractCode(titleElem.textContent);
-            const pan115Code = Pan115.extractCode(site.id === 'fc2cmadb' ? code : titleElem.textContent, code);
-            if (pan115Code) addPan115PlayBtn(pan115Code, existingBtnGroup);
-            addSettingsBtn(existingBtnGroup);
-            placeJumpButtonGroup(site, titleElem, existingBtnGroup);
-            return;
+                const existingTitleText = titleElem.textContent || '';
+                const code = typeof site.getCode === 'function'
+                    ? site.getCode(titleElem)
+                    : Utils.extractCode(existingTitleText);
+                if (code && existingBtnGroup.dataset.code && existingBtnGroup.dataset.code !== code) {
+                    existingBtnGroup.remove();
+                    delete titleElem.dataset.enhanced;
+                } else {
+                    if (code) existingBtnGroup.dataset.code = code;
+                    const pan115Code = Pan115.extractCode(site.id === 'fc2cmadb' ? code : existingTitleText, code);
+                    if (pan115Code) addPan115PlayBtn(pan115Code, existingBtnGroup);
+                    addSettingsBtn(existingBtnGroup);
+                    placeJumpButtonGroup(site, titleElem, existingBtnGroup);
+                    return;
+                }
             }
         }
         if (titleElem.dataset.enhanced === '1') return;
@@ -7733,6 +7759,7 @@
         const btnGroup = document.createElement('div');
         btnGroup.className = 'jav-jump-btn-group';
         btnGroup.dataset.laosijiJump = '1';
+        btnGroup.dataset.code = code;
         if (site.id === 'fc2cmadb') {
             btnGroup.classList.add('fc2cmadb-jump-group');
             insertAvidCopyBtn(titleElem, code, null, true);
@@ -7842,6 +7869,17 @@
             btnGroup.style.flexWrap = 'wrap';
             if (btnGroup.parentElement !== titleElem) {
                 titleElem.appendChild(btnGroup);
+            }
+            return;
+        }
+        if (site.id === '123av') {
+            btnGroup.style.marginTop = '10px';
+            btnGroup.style.display = 'flex';
+            btnGroup.style.flexWrap = 'wrap';
+            const head = titleElem.closest('.watch__head, .watch__headinfo') || titleElem.parentElement;
+            allowJumpMenuOverflow(head);
+            if (btnGroup.parentElement !== titleElem.parentElement || btnGroup.previousElementSibling !== titleElem) {
+                titleElem.insertAdjacentElement('afterend', btnGroup);
             }
             return;
         }
@@ -8249,6 +8287,15 @@
         document.querySelectorAll('.jav-jump-btn-group[data-laosiji-jump="1"]').forEach(el => el.remove());
         document.querySelectorAll('h1[data-enhanced="1"]').forEach(el => delete el.dataset.enhanced);
     }
+    function is123AvHost() {
+        return /(?:^|\.)123av\.com$/i.test(location.hostname);
+    }
+    function reset123AvRouteState() {
+        if (!is123AvHost()) return;
+        document.querySelectorAll('.jav-jump-btn-group[data-laosiji-jump="1"]').forEach(el => el.remove());
+        document.querySelectorAll('.watch__title[data-enhanced="1"]').forEach(el => delete el.dataset.enhanced);
+        removePan115Ui();
+    }
     let mutationSyncTimer = null;
     const runIdle = window.requestIdleCallback
         ? (fn) => window.requestIdleCallback(fn, { timeout: 600 })
@@ -8300,6 +8347,20 @@
             }, d));
         });
     }
+    let routeRefreshTimers = [];
+    function clearRouteRefreshRetries() {
+        routeRefreshTimers.forEach(t => clearTimeout(t));
+        routeRefreshTimers = [];
+    }
+    function routeRefreshWithRetry() {
+        clearRouteRefreshRetries();
+        const delays = [80, 200, 450, 800, 1300, 2200, 3500];
+        delays.forEach(d => {
+            routeRefreshTimers.push(setTimeout(() => {
+                Runtime.refresh();
+            }, d));
+        });
+    }
     function onEmbyNavigate() {
         if (location.href === lastEmbyLoc) return;
         lastEmbyLoc = location.href;
@@ -8307,6 +8368,9 @@
         if (isEmby) {
             resetEmbyButtonState();
             embyRenderWithRetry();
+        } else if (is123AvHost()) {
+            reset123AvRouteState();
+            routeRefreshWithRetry();
         } else {
             JumpButtons.render();
         }
