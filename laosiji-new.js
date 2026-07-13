@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.0.2
+// @version      2.7.0.3
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -46,7 +46,7 @@
 // ==/UserScript==
 (function () {
     'use strict';
-    const SCRIPT_VERSION = '2.7.0.2';
+    const SCRIPT_VERSION = '2.7.0.3';
     const DEBUG_LOG = false;
     const ERROR_LOG = true;
     const PAGE_ZOOM_DEFAULT = 86;
@@ -4144,6 +4144,19 @@
             });
             return walker.nextNode();
         },
+        getPan115ListCard(anchor) {
+            return anchor?.closest?.([
+                '.video-img-box',
+                '.video-list-row',
+                '.movie-list .item',
+                '.movies .item',
+                '.grid .item',
+                '#waterfall .item',
+                '.videothumblist .video',
+                '.thumbnail',
+                '.post',
+            ].join(',')) || null;
+        },
         findPan115TitleAnchor(anchor) {
             if (!anchor || anchor.closest('.jav-jump-btn-group, .jav-pan115-badge')) return null;
             if (anchor.closest('.emby-btn, .emby-badge, .emby-button-group, .emby-javlibrary-list-badge')) return null;
@@ -4160,7 +4173,13 @@
             if (!code || !pan115Code) return null;
             const visibleTitle = (anchor.textContent || anchor.getAttribute('title') || '').trim();
             const hasTitleText = visibleTitle.length > 0;
+            const visibleTitleHasCode = !!Utils.extractCode(visibleTitle);
             if (!hasTitleText) return null;
+            const card = this.getPan115ListCard(anchor);
+            if (card && anchor.querySelector('img') && !visibleTitleHasCode) {
+                const titleAnchor = card.querySelector('.detail .title a[href], h6.title a[href], .video-title a[href], .title a[href]');
+                if (titleAnchor && titleAnchor !== anchor) return null;
+            }
             const looksLikeVideoLink =
                 /\/v\/\w+/i.test(href) ||
                 /(?:^|\/|\.)jav\w+\.html(?:[?#].*)?$/i.test(href) ||
@@ -4168,16 +4187,30 @@
                 /\/(?:[a-z]{2,15}-\d{2,10}|fc2[-_]?ppv[-_]?\d{6,9})\/?$/i.test(href) ||
                 /\/(?:[a-z]{2,15}\d{3,6})\/?$/i.test(href) ||
                 /(?:movie|video|detail|view|jav)/i.test(href);
-            const inListContainer = !!anchor.closest('.movie-list, .movies, .grid, #waterfall, .movie-box, .box, .thumbnail, .video-list, .video-list-row, .section-container, .videothumblist');
+            const inListContainer = !!anchor.closest('.movie-list, .movies, .grid, #waterfall, .movie-box, .box, .thumbnail, .video-img-box, .video-list, .video-list-row, .section-container, .videothumblist');
             if (!looksLikeVideoLink && !inListContainer) return null;
-            if (hasTitleText && !Utils.extractCode(visibleTitle) && !looksLikeVideoLink) return null;
+            if (hasTitleText && !visibleTitleHasCode && !looksLikeVideoLink) return null;
             return { anchor, code: pan115Code };
         },
         collectPan115ListTargets() {
             if (this.isDetailPage()) return [];
             const isSupjavList = /supjav\.com/.test(location.hostname);
             const seen = new Set();
+            const seenCardCodes = new Map();
             const targets = [];
+            const pushTarget = target => {
+                if (!target?.anchor || !target.code) return;
+                const card = this.getPan115ListCard(target.anchor) || target.anchor;
+                const normalized = Pan115.normalizeKeepSeparator(target.code) || target.code;
+                let codes = seenCardCodes.get(card);
+                if (!codes) {
+                    codes = new Set();
+                    seenCardCodes.set(card, codes);
+                }
+                if (codes.has(normalized)) return;
+                codes.add(normalized);
+                targets.push(target);
+            };
             if (/(javlibrary|javlib|r86m|s87n)/i.test(location.hostname)) {
                 document.querySelectorAll('.videothumblist .video > a[href]:not(.emby-javlibrary-list-badge)').forEach(anchor => {
                     if (seen.has(anchor) || anchor.dataset.pan115Checked === '1') return;
@@ -4193,11 +4226,13 @@
                     const pan115Code = Pan115.extractCode(text, code);
                     if (!code || !pan115Code) return;
                     seen.add(anchor);
-                    targets.push({ anchor, code: pan115Code });
+                    pushTarget({ anchor, code: pan115Code });
                 });
             }
             const selectors = [
                 ...(isSupjavList ? ['.post h3 a[href]'] : []),
+                '.video-img-box .detail .title a[href]',
+                '.video-img-box h6.title a[href]',
                 '.movie-list a[href]',
                 '.videothumblist .video > a[href]:not(.emby-javlibrary-list-badge)',
                 '.movies a[href]',
@@ -4214,13 +4249,20 @@
                 if (isSupjavList && !anchor.matches('.post h3 a[href]')) return;
                 seen.add(anchor);
                 const target = this.findPan115TitleAnchor(anchor);
-                if (target) targets.push(target);
+                if (target) pushTarget(target);
             });
             return targets;
         },
         insertPan115ListBadge(anchor, hit, code) {
             if (!Pan115.enabled() || !hit?.pickcode || !anchor || anchor.dataset.pan115HasBadge === '1') return;
             if (anchor.matches?.('.emby-javlibrary-list-badge') || anchor.closest?.('.emby-btn, .emby-badge, .emby-button-group, .emby-javlibrary-list-badge')) return;
+            const card = this.getPan115ListCard(anchor);
+            const hasSameBadge = root => !!root && [...root.querySelectorAll('.jav-pan115-badge[data-pickcode]')]
+                .some(badge => badge.dataset.pickcode === hit.pickcode);
+            if (hasSameBadge(card) || (!card && hasSameBadge(anchor.parentElement))) {
+                anchor.dataset.pan115HasBadge = '1';
+                return;
+            }
             const title = anchor.querySelector('.title, .video-title');
             if (title) {
                 const badge = createPan115Badge(hit, code, false);
