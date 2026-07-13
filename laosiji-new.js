@@ -12,6 +12,7 @@
 // @match        *://javdb.com/*
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
+// @match        *://*169bbs*.com/*
 // @match        *://supjav.com/*
 // @match        *://javrate.com/*
 // @match        *://www.javrate.com/*
@@ -7821,6 +7822,9 @@
             target.closest('tr'),
             target.closest('#video_jacket_info'),
             target.closest('.movie-panel-info'),
+            target.closest('.movie-panel-info')?.closest('.column'),
+            target.closest('.movie-panel-info')?.closest('.columns'),
+            target.closest('.movie-panel-info')?.closest('.video-meta-panel'),
             target.closest('.container .info'),
             target.closest('.col-md-3.info'),
             target.closest('.jav-flex-container'),
