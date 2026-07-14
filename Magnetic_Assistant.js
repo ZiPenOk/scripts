@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.2
+// @version      3.5.3
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -25,11 +25,16 @@
     const config = {
         enableCopy: GM_getValue('enableCopy', true),
         enableQb: GM_getValue('enableQb', true),
+        enableBc: GM_getValue('enableBc', false),
         enable115: GM_getValue('enable115', false),
         enableCheck: GM_getValue('enableCheck', true),
         qbtHost: GM_getValue('qbtHost', 'http://127.0.0.1:8080'),
         qbtUser: GM_getValue('qbtUser', 'admin'),
         qbtPass: GM_getValue('qbtPass', 'adminadmin'),
+        bcHost: GM_getValue('bcHost', 'http://127.0.0.1:8080'),
+        bcUser: GM_getValue('bcUser', 'admin'),
+        bcPass: GM_getValue('bcPass', ''),
+        bcSavePath: GM_getValue('bcSavePath', ''),
         u115Cid: GM_getValue('u115Cid', GM_getValue('u115Uid', '')),
         u115Uid: GM_getValue('u115Uid', '')
     };
@@ -39,6 +44,7 @@
     const ICONS = {
         copy: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#666"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`,
         qb: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#0078d4"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`,
+        bc: `<svg viewBox="0 0 24 24" width="14" height="14" fill="none"><circle cx="12" cy="12" r="10" fill="#1677ff"/><path d="M8 7h5.2c2 0 3.3 1 3.3 2.6 0 1-.5 1.8-1.4 2.2 1.1.4 1.8 1.2 1.8 2.5 0 1.8-1.4 2.9-3.6 2.9H8V7zm2.2 2v2h2.7c.8 0 1.3-.4 1.3-1s-.5-1-1.3-1h-2.7zm0 3.8v2.4h3c.9 0 1.4-.4 1.4-1.2s-.5-1.2-1.5-1.2h-2.9z" fill="#fff"/></svg>`,
         u115: `<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="11" fill="#2777F8"/><text x="12" y="17" font-family="Arial" font-size="12" font-weight="900" fill="white" text-anchor="middle">5</text></svg>`,
         car: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#ff9800"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15L17 12.23l-4-2.37V7z"/></svg>`,
         checkActive: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#28a745"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
@@ -574,6 +580,9 @@
         if (config.enableQb) {
             addBtn('qb', ICONS.qb, '推送至 qB', () => pushToQb(link));
         }
+        if (config.enableBc) {
+            addBtn('bc', ICONS.bc, '推送至 BitComet', () => pushToBitComet(link));
+        }
         if (config.enable115) {
             addBtn('115', ICONS.u115, '115 离线', () => pushTo115(link));
         }
@@ -620,6 +629,63 @@
 
     function get115Cid() {
         return (config.u115Cid || config.u115Uid || '').trim();
+    }
+
+    function base64EncodeUtf8(text) {
+        if (typeof TextEncoder !== 'undefined') {
+            const bytes = new TextEncoder().encode(text);
+            let binary = '';
+            bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+            return btoa(binary);
+        }
+        return btoa(unescape(encodeURIComponent(text)));
+    }
+
+    function getBitCometAuthHeaders(contentType) {
+        const headers = {};
+        if (contentType) headers['Content-Type'] = contentType;
+        const user = (config.bcUser || '').trim();
+        const pass = config.bcPass || '';
+        if (user || pass) {
+            headers.Authorization = `Basic ${base64EncodeUtf8(`${user}:${pass}`)}`;
+        }
+        return headers;
+    }
+
+    function normalizeHost(host) {
+        return String(host || '').trim().replace(/\/+$/, '');
+    }
+
+    function pushToBitComet(link) {
+        const host = normalizeHost(config.bcHost);
+        if (!host) {
+            showToast('❌ BitComet 地址不能为空', false);
+            return;
+        }
+
+        const savePath = (config.bcSavePath || '').trim();
+        const data = `url=${encodeURIComponent(link)}${savePath ? `&save_path=${encodeURIComponent(savePath)}` : ''}`;
+
+        GM_xmlhttpRequest({
+            method: "POST",
+            url: `${host}/panel/task_add_magnet_result`,
+            data,
+            headers: getBitCometAuthHeaders('application/x-www-form-urlencoded'),
+            onload: (res) => {
+                const text = (res.responseText || '').trim();
+                const failed = /Add task failed|failed|error|失败|错误/i.test(text);
+                const success = /Add task succeed|succeeded|success|成功/i.test(text);
+
+                if (res.status === 200 && success && !failed) {
+                    showToast('✅ 已推送到 BitComet');
+                } else {
+                    let errorMsg = text || `HTTP ${res.status}`;
+                    if (errorMsg.length > 50) errorMsg = errorMsg.substring(0, 50) + '...';
+                    showToast(`❌ BitComet 推送失败: ${errorMsg}`, false);
+                }
+            },
+            onerror: () => showToast('❌ 无法连接到 BitComet，请检查地址', false)
+        });
     }
 
     function pushTo115(link) {
@@ -914,6 +980,7 @@
             <div class="tab-header" style="display:flex;border-bottom:1px solid #ddd;margin-bottom:20px;">
                 <div class="tab" data-tab="general" style="padding:8px 16px;cursor:pointer;border-bottom:2px solid #0078d4;">常规</div>
                 <div class="tab" data-tab="qb" style="padding:8px 16px;cursor:pointer;">qBittorrent</div>
+                <div class="tab" data-tab="bc" style="padding:8px 16px;cursor:pointer;">BitComet</div>
                 <div class="tab" data-tab="115" style="padding:8px 16px;cursor:pointer;">115网盘</div>
                 <div class="tab" data-tab="advanced" style="padding:8px 16px;cursor:pointer;">高级</div>
             </div>
@@ -935,6 +1002,7 @@
                 <div style="margin-bottom:15px;">
                     <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_copy" ${config.enableCopy?'checked':''}> <span style="margin-left:8px;">显示复制按钮</span></label>
                     <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_qb" ${config.enableQb?'checked':''}> <span style="margin-left:8px;">显示 qB 推送按钮</span></label>
+                    <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_bc" ${config.enableBc?'checked':''}> <span style="margin-left:8px;">显示 BitComet 推送按钮</span></label>
                     <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_115" ${config.enable115?'checked':''}> <span style="margin-left:8px;">显示 115 离线按钮</span></label>
                     <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_check" ${config.enableCheck?'checked':''}> <span style="margin-left:8px;">显示验车按钮</span></label>
                 </div>
@@ -948,6 +1016,20 @@
                     </div>
                     <button id="test_qb" style="padding:8px 15px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:5px;">测试连接</button>
                     <span id="qb_test_result" style="margin-left:10px;font-size:13px;"></span>
+                </div>
+            `,
+            bc: `
+                <div style="border-top:1px solid #eee;padding-top:15px;">
+                    <label style="display:flex;align-items:center;margin-bottom:10px;"><input type="checkbox" id="sw_bc_panel" ${config.enableBc?'checked':''}> <span style="margin-left:8px;">启用 BitComet 推送按钮</span></label>
+                    <input id="in_bc_host" type="text" placeholder="BitComet 地址 (如 http://127.0.0.1:8081)" value="${config.bcHost}" style="width:100%;margin-bottom:8px;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+                    <div style="display:flex;gap:5px;margin-bottom:8px;">
+                        <input id="in_bc_user" type="text" placeholder="用户名" value="${config.bcUser}" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                        <input id="in_bc_pass" type="password" placeholder="密码" value="${config.bcPass}" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:4px;">
+                    </div>
+                    <input id="in_bc_save_path" type="text" placeholder="保存路径（可选，如 D:\\Downloads）" value="${config.bcSavePath}" style="width:100%;margin-bottom:8px;padding:8px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
+                    <button id="test_bc" style="padding:8px 15px;background:#28a745;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:5px;">测试连接</button>
+                    <span id="bc_test_result" style="margin-left:10px;font-size:13px;"></span>
+                    <p style="font-size:12px;color:#666;margin-top:8px;">需在 BitComet 中启用远程访问/WebUI；脚本使用 /panel/task_add_magnet_result 接口。</p>
                 </div>
             `,
             '115': `
@@ -982,6 +1064,8 @@
 
             if (tabName === 'qb') {
                 modal.querySelector('#test_qb')?.addEventListener('click', testQbConnection);
+            } else if (tabName === 'bc') {
+                modal.querySelector('#test_bc')?.addEventListener('click', testBitCometConnection);
             } else if (tabName === '115') {
                 modal.querySelector('#test_115')?.addEventListener('click', test115Connection);
             } else if (tabName === 'advanced') {
@@ -1005,6 +1089,42 @@
                 onload: (res) => {
                     if (res.status === 200) {
                         resultSpan.innerHTML = '✅ 连接成功';
+                    } else {
+                        resultSpan.innerHTML = '❌ 连接失败（状态码 ' + res.status + '）';
+                    }
+                },
+                onerror: () => {
+                    resultSpan.innerHTML = '❌ 网络错误或地址不可达';
+                }
+            });
+        }
+
+        function testBitCometConnection() {
+            const host = normalizeHost(modal.querySelector('#in_bc_host').value);
+            const user = modal.querySelector('#in_bc_user').value.trim();
+            const pass = modal.querySelector('#in_bc_pass').value;
+            const resultSpan = modal.querySelector('#bc_test_result');
+            resultSpan.textContent = '测试中...';
+
+            if (!host) {
+                resultSpan.innerHTML = '❌ 地址不能为空';
+                return;
+            }
+
+            const headers = {};
+            if (user || pass) {
+                headers.Authorization = `Basic ${base64EncodeUtf8(`${user}:${pass}`)}`;
+            }
+
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: host + '/panel/task_list_xml',
+                headers,
+                onload: (res) => {
+                    if (res.status === 200) {
+                        resultSpan.innerHTML = '✅ 连接成功';
+                    } else if (res.status === 401 || res.status === 403) {
+                        resultSpan.innerHTML = '❌ 认证失败';
                     } else {
                         resultSpan.innerHTML = '❌ 连接失败（状态码 ' + res.status + '）';
                     }
@@ -1062,11 +1182,16 @@
             const currentConfig = {
                 enableCopy: modal.querySelector('#sw_copy')?.checked ?? config.enableCopy,
                 enableQb: modal.querySelector('#sw_qb')?.checked ?? config.enableQb,
+                enableBc: modal.querySelector('#sw_bc')?.checked ?? modal.querySelector('#sw_bc_panel')?.checked ?? config.enableBc,
                 enable115: modal.querySelector('#sw_115')?.checked ?? config.enable115,
                 enableCheck: modal.querySelector('#sw_check')?.checked ?? config.enableCheck,
                 qbtHost: modal.querySelector('#in_host')?.value.trim() ?? config.qbtHost,
                 qbtUser: modal.querySelector('#in_user')?.value.trim() ?? config.qbtUser,
                 qbtPass: modal.querySelector('#in_pass')?.value.trim() ?? config.qbtPass,
+                bcHost: modal.querySelector('#in_bc_host')?.value.trim() ?? config.bcHost,
+                bcUser: modal.querySelector('#in_bc_user')?.value.trim() ?? config.bcUser,
+                bcPass: modal.querySelector('#in_bc_pass')?.value ?? config.bcPass,
+                bcSavePath: modal.querySelector('#in_bc_save_path')?.value.trim() ?? config.bcSavePath,
                 u115Cid: modal.querySelector('#in_115_cid')?.value.trim() ?? config.u115Cid,
                 u115Uid: modal.querySelector('#in_115_cid')?.value.trim() ?? config.u115Uid
             };
@@ -1088,11 +1213,17 @@
                     const imported = JSON.parse(e.target.result);
                     if (modal.querySelector('#sw_copy')) modal.querySelector('#sw_copy').checked = imported.enableCopy ?? true;
                     if (modal.querySelector('#sw_qb')) modal.querySelector('#sw_qb').checked = imported.enableQb ?? true;
+                    if (modal.querySelector('#sw_bc')) modal.querySelector('#sw_bc').checked = imported.enableBc ?? false;
+                    if (modal.querySelector('#sw_bc_panel')) modal.querySelector('#sw_bc_panel').checked = imported.enableBc ?? false;
                     if (modal.querySelector('#sw_115')) modal.querySelector('#sw_115').checked = imported.enable115 ?? false;
                     if (modal.querySelector('#sw_check')) modal.querySelector('#sw_check').checked = imported.enableCheck ?? true;
                     if (modal.querySelector('#in_host')) modal.querySelector('#in_host').value = imported.qbtHost || 'http://127.0.0.1:8080';
                     if (modal.querySelector('#in_user')) modal.querySelector('#in_user').value = imported.qbtUser || 'admin';
                     if (modal.querySelector('#in_pass')) modal.querySelector('#in_pass').value = imported.qbtPass || 'adminadmin';
+                    if (modal.querySelector('#in_bc_host')) modal.querySelector('#in_bc_host').value = imported.bcHost || 'http://127.0.0.1:8081';
+                    if (modal.querySelector('#in_bc_user')) modal.querySelector('#in_bc_user').value = imported.bcUser || 'admin';
+                    if (modal.querySelector('#in_bc_pass')) modal.querySelector('#in_bc_pass').value = imported.bcPass || '';
+                    if (modal.querySelector('#in_bc_save_path')) modal.querySelector('#in_bc_save_path').value = imported.bcSavePath || '';
                     if (modal.querySelector('#in_115_cid')) modal.querySelector('#in_115_cid').value = imported.u115Cid || imported.u115Uid || '';
                     showToast('✅ 配置导入成功，请检查后保存');
                 } catch (err) {
@@ -1105,11 +1236,16 @@
         modal.querySelector('#btn_save').onclick = () => {
             GM_setValue('enableCopy', modal.querySelector('#sw_copy')?.checked ?? config.enableCopy);
             GM_setValue('enableQb', modal.querySelector('#sw_qb')?.checked ?? config.enableQb);
+            GM_setValue('enableBc', modal.querySelector('#sw_bc')?.checked ?? modal.querySelector('#sw_bc_panel')?.checked ?? config.enableBc);
             GM_setValue('enable115', modal.querySelector('#sw_115')?.checked ?? config.enable115);
             GM_setValue('enableCheck', modal.querySelector('#sw_check')?.checked ?? config.enableCheck);
             GM_setValue('qbtHost', modal.querySelector('#in_host')?.value.trim() ?? config.qbtHost);
             GM_setValue('qbtUser', modal.querySelector('#in_user')?.value.trim() ?? config.qbtUser);
             GM_setValue('qbtPass', modal.querySelector('#in_pass')?.value.trim() ?? config.qbtPass);
+            GM_setValue('bcHost', modal.querySelector('#in_bc_host')?.value.trim() ?? config.bcHost);
+            GM_setValue('bcUser', modal.querySelector('#in_bc_user')?.value.trim() ?? config.bcUser);
+            GM_setValue('bcPass', modal.querySelector('#in_bc_pass')?.value ?? config.bcPass);
+            GM_setValue('bcSavePath', modal.querySelector('#in_bc_save_path')?.value.trim() ?? config.bcSavePath);
             GM_setValue('u115Cid', modal.querySelector('#in_115_cid')?.value.trim() ?? config.u115Cid);
             GM_setValue('u115Uid', modal.querySelector('#in_115_cid')?.value.trim() ?? config.u115Uid);
             mask.remove();
