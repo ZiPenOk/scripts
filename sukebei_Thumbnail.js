@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.1.0
+// @version      2.2.0
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -529,6 +529,7 @@
         const CACHE_PREFIX = 'lmt_thumb_'
         const CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 本地缓存有效期 7 天
         const CACHE_MAX = 2000 // 最多保留条数，超出淘汰最旧的
+        const NO_THUMB = '__NO_THUMB__'
         const cacheKeys = () => {
             const keys = []
             for(let i = 0; i < localStorage.length; i++) {
@@ -865,12 +866,15 @@
             }
         })
 
-        const CLOUD_URL = 'https://oc1.bigsm.art'
-        const getThumbs = ids => {
+        const CLOUD_URLS = [
+            'https://sukebei.cfyan.cc.cd',
+            'https://oc1.bigsm.art'
+        ]
+        const getThumbsFrom = (cloudUrl, ids) => {
             return new Promise((resolve, reject) => {
                 GM_xmlhttpRequest({
                     method: 'GET',
-                    url: `${CLOUD_URL}/thumbs/?ids=${ids}`,
+                    url: `${cloudUrl}/thumbs/?ids=${ids}`,
                     timeout: 3000,
                     onload: res => {
                         try {
@@ -884,22 +888,43 @@
                 })
             })
         }
-        const saveThumb = (id, thumb) => {
-            GM_xmlhttpRequest({
-                method: 'POST',
-                url: `${CLOUD_URL}/thumb/${id}`,
-                data: `{"url": "${thumb}"}`,
-                headers: {
-                    "Content-Type": "application/json"
+        const getThumbs = async ids => {
+            const merged = []
+            for(let i = 0; i < CLOUD_URLS.length; i++) {
+                const thumbs = await getThumbsFrom(CLOUD_URLS[i], ids)
+                if(!thumbs || !thumbs.length) continue
+                for(let j = 0; j < thumbs.length; j++) {
+                    if(!merged[j] && thumbs[j]) merged[j] = thumbs[j]
                 }
+            }
+            return merged
+        }
+        const saveThumb = (id, thumb) => {
+            CLOUD_URLS.forEach(cloudUrl => {
+                GM_xmlhttpRequest({
+                    method: 'POST',
+                    url: `${cloudUrl}/thumb/${id}`,
+                    data: JSON.stringify({ url: thumb }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                })
             })
         }
 
         if(/^https?:\/\/(sukebei\.nyaa\.si\/view\/).+/g.test(href)) {
             const desc = document.querySelector('#torrent-description')
-            const links = desc.querySelectorAll('a')
+            if(!desc) return
 
-            if(!desc || !links) return
+            const links = desc.querySelectorAll('a')
+            const detailID = href.substr(href.lastIndexOf('/')+1)
+            const externalUrls = (desc.innerHTML.match(/https?:\/\/[^\s\)"'<]+/g) || [])
+                .filter(url => url.indexOf('nyaa.si') < 0)
+            if(!externalUrls.length) {
+                const alreadyNoThumb = getLocalThumb(detailID) === NO_THUMB
+                setLocalThumb(detailID, NO_THUMB)
+                if(!alreadyNoThumb) saveThumb(detailID, NO_THUMB)
+            }
 
             for(let i = 0; i < links.length; i++) {
                 if(!links[i].href) continue
@@ -932,6 +957,14 @@
             }
             let promoteDetailJob = () => {}
             let cancelDetailJob = () => false
+            const markNoThumb = (link, id, report = false) => {
+                if(!link || !id) return
+                link.dataset.lmtSrc = '#'
+                link.dataset.lmtNoThumb = '1'
+                if(cancelDetailJob(link.href)) delete link.dataset.lmtQueued
+                setLocalThumb(id, NO_THUMB)
+                if(report) saveThumb(id, NO_THUMB)
+            }
             const resolveCandidateUrl = (a, url, force = false) => {
                 if(!a || !url || url.indexOf('nyaa.si') >= 0) return false
 
@@ -961,6 +994,10 @@
             }
             // 先挂标记，校验放后台；失效时刷新缓存，不让 UI 等图片探测超时。
             const tryPlace = (link, url, id) => {
+                if(url === NO_THUMB) {
+                    markNoThumb(link, id)
+                    return
+                }
                 if(!isResolvedImageUrl(url) && handlerFor(url)) {
                     delLocalThumb(id)
                     resolveCandidateUrl(link, url, true)
@@ -1013,6 +1050,7 @@
             // 实时解析单个种子：抓详情页 → 匹配图床链接 → 入队加载
             const resolveLink = async (a, force = false) => {
                 if(!a || !a.href || a.dataset.lmtPending) return
+                if(a.dataset.lmtNoThumb === '1') return
                 if(a.dataset.lmtQueued) {
                     if(force) promoteDetailJob(a.href)
                     return
@@ -1025,6 +1063,7 @@
                 a.dataset.lmtQueued = '1'
                 const unlock = await lock(force, a.href)
                 delete a.dataset.lmtQueued
+                if(a.dataset.lmtNoThumb === '1') { unlock(); return }
                 if(!force && a.dataset.lmt) { unlock(); return }
                 if(!force && a.dataset.lmtSrc === '#') { unlock(); return }
                 if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) { unlock(); return }
@@ -1034,12 +1073,15 @@
                 try { detail = await getDetail(a.href) } catch(err) { unlock(); delete a.dataset.lmtPending; return }
                 unlock()
                 delete a.dataset.lmtPending
+                if(a.dataset.lmtNoThumb === '1') return
                 if(!force && a.dataset.lmt) return
                 if(!force && a.dataset.lmtSrc === '#') return
                 if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) return
 
+                let hasExternalCandidate = false
                 let imgs = detail.responseText.match(/]\((https?:\/\/[^)]+)/)
                 if(imgs && imgs[1] && imgs[1].indexOf('nyaa.si') < 0) {
+                    hasExternalCandidate = true
                     if(resolveCandidateUrl(a, imgs[1], force)) return
                 }
 
@@ -1070,13 +1112,18 @@
                         }
                     }
 
+                    hasExternalCandidate = true
                     if(resolveCandidateUrl(a, href, force)) {
                         flag = true
                         break
                     }
                 }
                 if(!flag) {
-                    a.dataset.lmtSrc = '#'
+                    if(hasExternalCandidate) {
+                        a.dataset.lmtSrc = '#'
+                    } else {
+                        markNoThumb(a, idOf(a), true)
+                    }
                 }
             }
             // hover 仅作兜底（绝大多数已在载入时自动解析完成）
@@ -1085,7 +1132,7 @@
             createPanel()
 
             const LOCK_LIMIT = 5; // 详情页最大并发数
-            const DETAIL_START_INTERVAL = 600; // 新请求启动间隔，避免列表页瞬间打爆 Sukebei
+            const DETAIL_START_INTERVAL = 800; // 新请求启动间隔，避免列表页瞬间打爆 Sukebei
             let lockCount = 0;
             let lockSeq = 0;
             let lockLastStart = 0;
@@ -1160,7 +1207,7 @@
                         timeout: 8000,
                         onload: res => {
                             if(res.status === 429) {
-                                detailBackoffUntil = Date.now() + 30000;
+                                detailBackoffUntil = Date.now() + 5000;
                                 reject(new Error('getDetail 429'));
                                 return;
                             }
