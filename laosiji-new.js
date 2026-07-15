@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.1.1
+// @version      2.7.2
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -47,7 +47,7 @@
 // ==/UserScript==
 (function () {
     'use strict';
-    const SCRIPT_VERSION = '2.7.1.1';
+    const SCRIPT_VERSION = '2.7.2';
     const DEBUG_LOG = false;
     const ERROR_LOG = true;
     const PAGE_ZOOM_DEFAULT = 86;
@@ -79,6 +79,7 @@
         btdigUrl: { key: 'cfg_btdig_url', def: 'btdig.com' },
         btsearchUrl: { key: 'cfg_btsearch_url', def: 'btsearch.love' },
         sukebeiUrl: { key: 'cfg_sukebei_url', def: 'sukebei.nyaa.si' },
+        u9a9Url: { key: 'cfg_u9a9_url', def: 'u9a9.com' },
         sokittyUrl: { key: 'cfg_sokitty_url', def: 'w1.sokitty.me' },
         defaultEngine: { key: 'cfg_default_engine', def: 'sukebei.nyaa.si' },
         defaultVideoEngine: { key: 'default_video_engine', def: 'missav' },
@@ -108,6 +109,7 @@
         btnShowMissav: { key: 'btn_show_missav', def: true, bool: true },
         btnShowFanza: { key: 'btn_show_fanza', def: true, bool: true },
         btnShowSearch: { key: 'btn_show_search', def: true, bool: true },
+        btnShowSubtitle: { key: 'btn_show_subtitle', def: true, bool: true },
         btnShowTrailer: { key: 'btn_show_trailer', def: true, bool: true },
         btnShowPreview: { key: 'btn_show_preview', def: true, bool: true },
         btnShowPan115: { key: 'btn_show_pan115', def: false, bool: true },
@@ -651,6 +653,7 @@
             { key: 'btdigUrl',        label: 'BtDig',        placeholder: 'btdig.com' },
             { key: 'btsearchUrl',     label: 'BTSearch',     placeholder: 'btsearch.love' },
             { key: 'sukebeiUrl',      label: 'Sukebei',      placeholder: 'sukebei.nyaa.si' },
+            { key: 'u9a9Url',         label: 'U9A9',         placeholder: 'u9a9.com' },
             { key: 'sokittyUrl',      label: 'SoKitty',      placeholder: 'w1.sokitty.me' },
         ];
         const JUMP_SEARCH_ENGINES = ['BTDigg', 'Taocili', 'Google', 'Bing', 'DuckGo'];
@@ -661,6 +664,7 @@
             ['missav', 'btnShowMissav'],
             ['fanza', 'btnShowFanza'],
             ['search', 'btnShowSearch'],
+            ['subtitle', 'btnShowSubtitle'],
             ['trailer', 'btnShowTrailer'],
             ['preview', 'btnShowPreview'],
         ];
@@ -672,13 +676,13 @@
         const stripProtocol = value => String(value || '').trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
         function open() {
             document.getElementById('jav-settings-overlay')?.remove();
-            GM_addStyle(`#jav-settings-overlay{position:fixed;inset:0;z-index:10000020;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(7px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#jav-settings-panel{width:min(800px,94vw);max-height:88vh;background:linear-gradient(180deg,#f8fbff 0%,#f6f3ff 46%,#fff7ed 100%);color:#111827;border:1px solid rgba(148,163,184,.38);border-radius:16px;box-shadow:0 26px 76px rgba(15,23,42,.36);display:flex;flex-direction:column;overflow:hidden}#jav-settings-panel *{box-sizing:border-box}#jav-settings-panel .sp-header{padding:18px 22px;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 54%,#7c2d12 100%);border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between}#jav-settings-panel .sp-title{font-size:18px;font-weight:750;color:#fff}#jav-settings-panel .sp-close{width:32px;height:32px;border:1px solid rgba(255,255,255,.24);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:18px;line-height:1}#jav-settings-panel .sp-close:hover{background:rgba(255,255,255,.18)}#jav-settings-panel .sp-body{padding:18px 22px;overflow:auto;display:grid;gap:14px}#jav-settings-panel .sp-card{position:relative;background:rgba(255,255,255,.92);border:1px solid rgba(203,213,225,.88);border-radius:10px;padding:15px;box-shadow:0 10px 24px rgba(15,23,42,.06);overflow:hidden}#jav-settings-panel .sp-card::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#2563eb}#jav-settings-panel .sp-card-magnet::before{background:#16a34a}#jav-settings-panel .sp-card-defaults::before{background:#2563eb}#jav-settings-panel .sp-card-features::before{background:#00a85a}#jav-settings-panel .sp-card-order::before{background:#dc2626}#jav-settings-panel .sp-card-title{font-size:13px;font-weight:750;color:#1e293b;margin-bottom:12px}#jav-settings-panel .sp-card-jump::before{background:#6366f1}#jav-settings-panel .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}#jav-settings-panel .sp-feature-order-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:stretch}#jav-settings-panel .sp-feature-order-row>.sp-card{height:100%}#jav-settings-panel .sp-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#jav-settings-panel .sp-feature-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-item:has(#sp-magnet-table){order:1;grid-column:1}#jav-settings-panel .sp-feature-item:has(#sp-clear-preview-cache){order:2;grid-column:1}#jav-settings-panel .sp-feature-item:has(#sp-clear-trailer-cache){order:2;grid-column:2}#jav-settings-panel .sp-feature-item .sp-desc{margin-top:2px;font-size:11px}#jav-settings-panel .sp-feature-select{order:1;grid-column:2;display:grid;grid-template-columns:1fr 64px;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-select .sp-select{height:28px;padding:3px 2px 3px 4px;font-size:12px;text-align:left}#jav-settings-panel .sp-cache-clean{background:linear-gradient(135deg,#fff 0%,#f8fbff 58%,#f0f9ff 100%)}#jav-settings-panel .sp-cache-clear-btn{position:relative;width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border:1px solid #bae6fd;border-radius:10px;background:linear-gradient(180deg,#f0f9ff,#fff);color:#0284c7;cursor:pointer;overflow:hidden;transition:transform .16s,border-color .16s,background .16s,color .16s,box-shadow .16s}#jav-settings-panel .sp-cache-clear-btn::after{content:'';position:absolute;inset:-8px;border-radius:inherit;background:radial-gradient(circle,rgba(14,165,233,.22),transparent 62%);opacity:0;transform:scale(.45);transition:opacity .22s,transform .22s}#jav-settings-panel .sp-cache-clear-btn:hover{transform:translateY(-1px);border-color:#38bdf8;color:#0369a1;box-shadow:0 8px 18px rgba(14,165,233,.18)}#jav-settings-panel .sp-cache-clear-btn:active{transform:translateY(0) scale(.96)}#jav-settings-panel .sp-cache-clear-btn.is-clearing::after{opacity:1;transform:scale(1)}#jav-settings-panel .sp-cache-clear-btn.is-done{border-color:#86efac;background:linear-gradient(180deg,#ecfdf5,#fff);color:#15803d}#jav-settings-panel .sp-cache-clear-icon{position:relative;z-index:1;display:inline-block;font-size:15px;line-height:1}#jav-settings-panel .sp-cache-clear-btn.is-clearing .sp-cache-clear-icon{animation:spCacheSpin .48s ease}@keyframes spCacheSpin{to{transform:rotate(360deg)}}#jav-settings-panel .sp-field{display:flex;flex-direction:column;gap:6px;min-width:0}#jav-settings-panel .sp-label{font-size:12px;font-weight:650;color:#475569}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{width:100%;min-width:0;height:34px;padding:6px 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:13px;outline:none}#jav-settings-panel .sp-input:focus,#jav-settings-panel .sp-select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.13)}#jav-settings-panel .sp-engine-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:end}#jav-settings-panel .sp-cache-actions{display:flex;align-items:center;gap:8px;margin-right:auto}#jav-settings-panel .sp-cache-feedback{min-width:64px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-footer-links{display:flex;align-items:center;gap:8px;margin-right:4px}#jav-settings-panel .sp-footer-link{color:#475569;font-size:12px;font-weight:700;text-decoration:none;padding:6px 8px;border-radius:7px}#jav-settings-panel .sp-footer-link:hover{color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-footer-sep{width:1px;height:16px;background:#cbd5e1}#jav-settings-panel .sp-desc{font-size:12px;color:#64748b;line-height:1.45}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;width:42px;height:24px;flex:0 0 auto}#jav-settings-panel .sp-toggle input{opacity:0;width:0;height:0}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform .18s}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#2563eb}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-order-list{display:flex;flex-direction:column;gap:8px}#jav-settings-panel .sp-order-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(90deg,#fff 0%,#f8fafc 100%);user-select:none}#jav-settings-panel .sp-order-name{font-size:13px;font-weight:700;color:#1e293b}#jav-settings-panel .sp-dot{width:9px;height:9px;border-radius:50%}#jav-settings-panel .sp-order-actions{display:flex;gap:5px}#jav-settings-panel .sp-order-btn{width:28px;height:28px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;cursor:pointer;font-size:14px;line-height:1}#jav-settings-panel .sp-order-btn:hover:not(:disabled){border-color:#2563eb;color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-order-btn:disabled{opacity:.36;cursor:not-allowed}#jav-settings-panel .sp-footer{padding:14px 22px;background:rgba(255,255,255,.92);border-top:1px solid rgba(203,213,225,.86);display:flex;align-items:center;justify-content:flex-end;gap:10px}#jav-settings-panel .sp-btn{height:34px;padding:0 16px;border-radius:8px;border:1px solid transparent;font-size:13px;font-weight:700;cursor:pointer}#jav-settings-panel .sp-btn-cancel{background:#fff;color:#475569;border-color:#cbd5e1}#jav-settings-panel .sp-btn-clear{background:#fff7ed;color:#9a3412;border-color:#fed7aa}#jav-settings-panel .sp-btn-clear:hover{background:#ffedd5}#jav-settings-panel .sp-btn-save{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;box-shadow:0 8px 20px rgba(79,70,229,.25)}@media (max-width:640px){#jav-settings-panel .sp-grid,#jav-settings-panel .sp-engine-row,#jav-settings-panel .sp-feature-grid,#jav-settings-panel .sp-feature-order-row{grid-template-columns:1fr}#jav-settings-panel .sp-feature-item{grid-column:auto!important}#jav-settings-panel .sp-cache-actions{margin-right:0}#jav-settings-panel .sp-footer{flex-wrap:wrap}}`);
+            GM_addStyle(`#jav-settings-overlay{position:fixed;inset:0;z-index:10000020;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(7px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#jav-settings-panel{width:min(800px,94vw);max-height:88vh;background:linear-gradient(180deg,#f8fbff 0%,#f6f3ff 46%,#fff7ed 100%);color:#111827;border:1px solid rgba(148,163,184,.38);border-radius:16px;box-shadow:0 26px 76px rgba(15,23,42,.36);display:flex;flex-direction:column;overflow:hidden}#jav-settings-panel *{box-sizing:border-box}#jav-settings-panel .sp-header{padding:18px 22px;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 54%,#7c2d12 100%);border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between}#jav-settings-panel .sp-title{font-size:18px;font-weight:750;color:#fff}#jav-settings-panel .sp-close{width:32px;height:32px;border:1px solid rgba(255,255,255,.24);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:18px;line-height:1}#jav-settings-panel .sp-close:hover{background:rgba(255,255,255,.18)}#jav-settings-panel .sp-body{padding:18px 22px;overflow:auto;display:grid;gap:14px}#jav-settings-panel .sp-card{position:relative;background:rgba(255,255,255,.92);border:1px solid rgba(203,213,225,.88);border-radius:10px;padding:15px;box-shadow:0 10px 24px rgba(15,23,42,.06);overflow:hidden}#jav-settings-panel .sp-card::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#2563eb}#jav-settings-panel .sp-card-magnet::before{background:#16a34a}#jav-settings-panel .sp-card-features::before{background:#00a85a}#jav-settings-panel .sp-card-order::before{background:#dc2626}#jav-settings-panel .sp-card-title{font-size:13px;font-weight:750;color:#1e293b;margin-bottom:12px}#jav-settings-panel .sp-card-jump::before{background:#6366f1}#jav-settings-panel .sp-card-jump .sp-grid{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}#jav-settings-panel .sp-feature-order-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:stretch}#jav-settings-panel .sp-feature-order-row>.sp-card{height:100%}#jav-settings-panel .sp-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#jav-settings-panel .sp-feature-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-item:has(#sp-magnet-table){order:1;grid-column:1}#jav-settings-panel .sp-feature-item:has(#sp-clear-preview-cache){order:2;grid-column:1}#jav-settings-panel .sp-feature-item:has(#sp-clear-trailer-cache){order:2;grid-column:2}#jav-settings-panel .sp-feature-item .sp-desc{margin-top:2px;font-size:11px}#jav-settings-panel .sp-feature-select{order:1;grid-column:2;display:grid;grid-template-columns:1fr 64px;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-select .sp-select{height:28px;padding:3px 2px 3px 4px;font-size:12px;text-align:left}#jav-settings-panel .sp-cache-clean{background:linear-gradient(135deg,#fff 0%,#f8fbff 58%,#f0f9ff 100%)}#jav-settings-panel .sp-cache-clear-btn{position:relative;width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border:1px solid #bae6fd;border-radius:10px;background:linear-gradient(180deg,#f0f9ff,#fff);color:#0284c7;cursor:pointer;overflow:hidden;transition:transform .16s,border-color .16s,background .16s,color .16s,box-shadow .16s}#jav-settings-panel .sp-cache-clear-btn::after{content:'';position:absolute;inset:-8px;border-radius:inherit;background:radial-gradient(circle,rgba(14,165,233,.22),transparent 62%);opacity:0;transform:scale(.45);transition:opacity .22s,transform .22s}#jav-settings-panel .sp-cache-clear-btn:hover{transform:translateY(-1px);border-color:#38bdf8;color:#0369a1;box-shadow:0 8px 18px rgba(14,165,233,.18)}#jav-settings-panel .sp-cache-clear-btn:active{transform:translateY(0) scale(.96)}#jav-settings-panel .sp-cache-clear-btn.is-clearing::after{opacity:1;transform:scale(1)}#jav-settings-panel .sp-cache-clear-btn.is-done{border-color:#86efac;background:linear-gradient(180deg,#ecfdf5,#fff);color:#15803d}#jav-settings-panel .sp-cache-clear-icon{position:relative;z-index:1;display:inline-block;font-size:15px;line-height:1}#jav-settings-panel .sp-cache-clear-btn.is-clearing .sp-cache-clear-icon{animation:spCacheSpin .48s ease}@keyframes spCacheSpin{to{transform:rotate(360deg)}}#jav-settings-panel .sp-field{display:flex;flex-direction:column;gap:6px;min-width:0}#jav-settings-panel .sp-label{font-size:12px;font-weight:650;color:#475569}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{width:100%;min-width:0;height:34px;padding:6px 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:13px;outline:none}#jav-settings-panel .sp-input:focus,#jav-settings-panel .sp-select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.13)}#jav-settings-panel .sp-engine-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:end}#jav-settings-panel .sp-cache-actions{display:flex;align-items:center;gap:8px;margin-right:auto}#jav-settings-panel .sp-cache-feedback{min-width:64px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-footer-links{display:flex;align-items:center;gap:8px;margin-right:4px}#jav-settings-panel .sp-footer-link{color:#475569;font-size:12px;font-weight:700;text-decoration:none;padding:6px 8px;border-radius:7px}#jav-settings-panel .sp-footer-link:hover{color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-footer-sep{width:1px;height:16px;background:#cbd5e1}#jav-settings-panel .sp-desc{font-size:12px;color:#64748b;line-height:1.45}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;width:42px;height:24px;flex:0 0 auto}#jav-settings-panel .sp-toggle input{opacity:0;width:0;height:0}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform .18s}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#2563eb}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-order-list{display:flex;flex-direction:column;gap:8px}#jav-settings-panel .sp-order-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(90deg,#fff 0%,#f8fafc 100%);user-select:none}#jav-settings-panel .sp-order-name{font-size:13px;font-weight:700;color:#1e293b}#jav-settings-panel .sp-dot{width:9px;height:9px;border-radius:50%}#jav-settings-panel .sp-order-actions{display:flex;gap:5px}#jav-settings-panel .sp-order-btn{width:28px;height:28px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;cursor:pointer;font-size:14px;line-height:1}#jav-settings-panel .sp-order-btn:hover:not(:disabled){border-color:#2563eb;color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-order-btn:disabled{opacity:.36;cursor:not-allowed}#jav-settings-panel .sp-footer{padding:14px 22px;background:rgba(255,255,255,.92);border-top:1px solid rgba(203,213,225,.86);display:flex;align-items:center;justify-content:flex-end;gap:10px}#jav-settings-panel .sp-btn{height:34px;padding:0 16px;border-radius:8px;border:1px solid transparent;font-size:13px;font-weight:700;cursor:pointer}#jav-settings-panel .sp-btn-cancel{background:#fff;color:#475569;border-color:#cbd5e1}#jav-settings-panel .sp-btn-clear{background:#fff7ed;color:#9a3412;border-color:#fed7aa}#jav-settings-panel .sp-btn-clear:hover{background:#ffedd5}#jav-settings-panel .sp-btn-save{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;box-shadow:0 8px 20px rgba(79,70,229,.25)}@media (max-width:640px){#jav-settings-panel .sp-grid,#jav-settings-panel .sp-engine-row,#jav-settings-panel .sp-feature-grid,#jav-settings-panel .sp-feature-order-row{grid-template-columns:1fr}#jav-settings-panel .sp-feature-item{grid-column:auto!important}#jav-settings-panel .sp-cache-actions{margin-right:0}#jav-settings-panel .sp-footer{flex-wrap:wrap}}`);
             const overlay = document.createElement('div');
             overlay.id = 'jav-settings-overlay';
             overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
             const panel = document.createElement('div');
             panel.id = 'jav-settings-panel';
-            panel.innerHTML = `<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><section class="sp-card sp-card-magnet"><div class="sp-card-title">磁力搜索</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认磁力引擎</span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-engine-row"><label class="sp-field"><span class="sp-label">编辑引擎</span><select class="sp-select" id="sp-engine-picker"></select></label><label class="sp-field"><span class="sp-label">域名</span><input class="sp-input" id="sp-engine-domain"></label></div></div></section><section class="sp-card sp-card-defaults"><div class="sp-card-title">默认组跳转入口</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认搜索入口</span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-field"><span class="sp-label">默认视频入口</span><select class="sp-select" id="sp-video-engine"></select></label></div></section><div class="sp-feature-order-row"><section class="sp-card sp-card-features"><div class="sp-card-title">功能项开关</div><div class="sp-feature-grid"><div class="sp-feature-item"><div><div class="sp-label">磁力引擎</div></div><label class="sp-toggle"><input id="sp-magnet-table" type="checkbox"><span class="sp-toggle-track"></span></label></div><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预览图缓存</div><div class="sp-desc">清理本页会话缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-preview-cache" type="button" title="清理预览图缓存"><span class="sp-cache-clear-icon">↻</span></button></div><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预告片缓存</div><div class="sp-desc">清理解析结果缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-trailer-cache" type="button" title="清理预告片缓存"><span class="sp-cache-clear-icon">↻</span></button></div><label class="sp-feature-select"><div><div class="sp-label">115播放器</div></div><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option></select></label></div></section><section class="sp-card sp-card-order"><div class="sp-card-title">预览图来源顺序</div><div class="sp-order-list" id="sp-thumb-order"></div></section></div><section class="sp-card sp-card-jump" style="--card-color:#6366f1;"><style> #jav-settings-panel .sp-chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; } #jav-settings-panel .sp-chip input { display: none; } #jav-settings-panel .sp-chip-label { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 999px; border: 0.5px solid var(--color-border-secondary, #cbd5e1); background: var(--color-background-secondary, #f8fafc); color: var(--color-text-secondary, #64748b); font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; user-select: none; } #jav-settings-panel .sp-chip input:checked + .sp-chip-label { border-color: #6366f1; background: #eef2ff; color: #4338ca; } #jav-settings-panel .sp-chip-label:hover { border-color: #a5b4fc; background: #f0f4ff; color: #4338ca; } #jav-settings-panel .sp-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; flex: 0 0 auto; } </style><div class="sp-card-title">跳转按钮控制</div><div class="sp-chip-group"><label class="sp-chip"><input id="sp-btn-nyaa" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>Sukebei</span></label><label class="sp-chip"><input id="sp-btn-javbus" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>JavBus</span></label><label class="sp-chip"><input id="sp-btn-javdb" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>JavDB</span></label><label class="sp-chip"><input id="sp-btn-missav" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>视频组</span></label><label class="sp-chip"><input id="sp-btn-fanza" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>FANZA</span></label><label class="sp-chip"><input id="sp-btn-search" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>搜索组</span></label><label class="sp-chip"><input id="sp-btn-trailer" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>预告片</span></label><label class="sp-chip"><input id="sp-btn-preview" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>预览图</span></label></div></section></div><div class="sp-footer"><div class="sp-cache-actions"><div class="sp-footer-links"><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-clear" id="sp-clear-cache" type="button">清空缓存</button><span class="sp-cache-feedback" id="sp-cache-feedback"></span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+            panel.innerHTML = `<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><section class="sp-card sp-card-magnet"><div class="sp-card-title">磁力搜索</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认磁力引擎</span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-engine-row"><label class="sp-field"><span class="sp-label">编辑引擎</span><select class="sp-select" id="sp-engine-picker"></select></label><label class="sp-field"><span class="sp-label">域名</span><input class="sp-input" id="sp-engine-domain"></label></div></div></section><div class="sp-feature-order-row"><section class="sp-card sp-card-features"><div class="sp-card-title">功能项开关</div><div class="sp-feature-grid"><div class="sp-feature-item"><div><div class="sp-label">磁力引擎</div></div><label class="sp-toggle"><input id="sp-magnet-table" type="checkbox"><span class="sp-toggle-track"></span></label></div><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预览图缓存</div><div class="sp-desc">清理本页会话缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-preview-cache" type="button" title="清理预览图缓存"><span class="sp-cache-clear-icon">↻</span></button></div><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预告片缓存</div><div class="sp-desc">清理解析结果缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-trailer-cache" type="button" title="清理预告片缓存"><span class="sp-cache-clear-icon">↻</span></button></div><label class="sp-feature-select"><div><div class="sp-label">115播放器</div></div><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option></select></label></div></section><section class="sp-card sp-card-order"><div class="sp-card-title">预览图来源顺序</div><div class="sp-order-list" id="sp-thumb-order"></div></section></div><section class="sp-card sp-card-jump" style="--card-color:#6366f1;"><style> #jav-settings-panel .sp-chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; } #jav-settings-panel .sp-chip input { display: none; } #jav-settings-panel .sp-chip-label { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 999px; border: 0.5px solid var(--color-border-secondary, #cbd5e1); background: var(--color-background-secondary, #f8fafc); color: var(--color-text-secondary, #64748b); font-size: 12px; font-weight: 500; cursor: pointer; transition: all .15s; user-select: none; } #jav-settings-panel .sp-chip input:checked + .sp-chip-label { border-color: #6366f1; background: #eef2ff; color: #4338ca; } #jav-settings-panel .sp-chip-label:hover { border-color: #a5b4fc; background: #f0f4ff; color: #4338ca; } #jav-settings-panel .sp-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; flex: 0 0 auto; } </style><div class="sp-card-title">跳转入口与按钮控制</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认搜索入口</span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-field"><span class="sp-label">默认视频入口</span><select class="sp-select" id="sp-video-engine"></select></label></div><div class="sp-chip-group"><label class="sp-chip"><input id="sp-btn-nyaa" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>Sukebei</span></label><label class="sp-chip"><input id="sp-btn-javbus" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>JavBus</span></label><label class="sp-chip"><input id="sp-btn-javdb" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>JavDB</span></label><label class="sp-chip"><input id="sp-btn-missav" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>视频组</span></label><label class="sp-chip"><input id="sp-btn-fanza" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>FANZA</span></label><label class="sp-chip"><input id="sp-btn-search" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>搜索组</span></label><label class="sp-chip"><input id="sp-btn-subtitle" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>字幕</span></label><label class="sp-chip"><input id="sp-btn-trailer" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>预告片</span></label><label class="sp-chip"><input id="sp-btn-preview" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>预览图</span></label></div></section></div><div class="sp-footer"><div class="sp-cache-actions"><div class="sp-footer-links"><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-clear" id="sp-clear-cache" type="button">清空缓存</button><span class="sp-cache-feedback" id="sp-cache-feedback"></span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
             overlay.appendChild(panel);
             document.body.appendChild(overlay);
             const defaultSelect = panel.querySelector('#sp-default-engine');
@@ -697,6 +701,7 @@
                 missav:  panel.querySelector('#sp-btn-missav'),
                 fanza:   panel.querySelector('#sp-btn-fanza'),
                 search:  panel.querySelector('#sp-btn-search'),
+                subtitle: panel.querySelector('#sp-btn-subtitle'),
                 trailer: panel.querySelector('#sp-btn-trailer'),
                 preview: panel.querySelector('#sp-btn-preview'),
             };
@@ -1001,6 +1006,7 @@
             [CFG.btdigUrl]:       'BtDig',
             [CFG.btsearchUrl]:    'BTSearch',
             [CFG.sukebeiUrl]:     'Sukebei',
+            [CFG.u9a9Url]:        'U9A9',
             [CFG.sokittyUrl]:     'SoKitty',
         });
         const Engines = {
@@ -1011,6 +1017,7 @@
                     [CFG.btdigUrl]:       _searchBtdig,
                     [CFG.btsearchUrl]:    _searchBTSearch,
                     [CFG.sukebeiUrl]:     _searchsukebei,
+                    [CFG.u9a9Url]:        _searchU9A9,
                     [CFG.sokittyUrl]:     _searchSokitty,
                 };
             },
@@ -1471,6 +1478,22 @@
             }));
             return { url: r.finalUrl || base, data };
         }
+        async function _searchU9A9(kw) {
+            const base = 'https://' + CFG.u9a9Url;
+            const searchUrl = `${base}/?type=2&search=${encodeURIComponent(kw)}`;
+            const r = await gmFetch(searchUrl, { headers: { Referer: base + '/', Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' } });
+            if (!r.loadstuts) return { url: searchUrl, data: [] };
+            const doc = parseHTML(r.responseText);
+            const rows = doc.querySelectorAll('table.torrent-list tbody tr.default, table.torrent-list tbody tr.success');
+            const data = [...rows].map(el => {
+                const titleA = el.querySelector('td:nth-child(2)>a:nth-child(1)');
+                const magnetA = el.querySelector('td:nth-child(3)>a[href^="magnet:"]');
+                const href = titleA?.getAttribute('href') || '';
+                const src = href ? href.startsWith('http') ? href : new URL(href, base).href : searchUrl;
+                return { title: titleA?.getAttribute('title') || titleA?.textContent?.trim() || '', maglink: magnetA?.href || '', size: el.querySelector('td:nth-child(4)')?.textContent?.trim() || '', src };
+            }).filter(item => item.title && item.maglink);
+            return { url: r.finalUrl || searchUrl, data };
+        }
         async function _searchSokitty(kw) {
             const base = 'https://' + CFG.sokittyUrl;
             const searchUrl = `${base}/search?key=${encodeURIComponent(kw)}`;
@@ -1770,10 +1793,7 @@
                 const _hasJP  = /[\u3040-\u309f\u30a0-\u30ff]/.test(item.title);
                 const isChinese = /(?:[^A-Za-z]|^)FHDC(?:[^A-Za-z]|$)/i.test(item.title)
                     || /[-_]CH?(?:[^A-Za-z]|$)/.test(item.title)
-                    || /中字/.test(item.title)
-                    || /中文/.test(item.title)
-                    || /自提/.test(item.title)
-                    || /征用/.test(item.title)
+                    || /(?:中字|中文|字幕|中文字幕|繁體中字|繁体中字|繁體中文|繁体中文|繁體字幕|繁体字幕|繁中|繁字|自提|征用|徵用|漢化|汉化|內嵌|内嵌|內封|内封|雙語|双语)/.test(item.title)
                     || (_hasCJK && !_hasJP);
                 const is4K = /(?:[^A-Za-z0-9]|^)(?:4K(?:UHD)?|2160P)(?:[^A-Za-z0-9]|$)/i.test(item.title);
                 if (isChinese) {
@@ -7097,6 +7117,271 @@
             return task;
         },
     };
+    const Subtitle = {
+        api: 'https://api-shoulei-ssl.xunlei.com/oracle/subtitle',
+        previewExts: new Set(['ass', 'srt', 'ssa', 'vtt']),
+        overlay: null,
+        closeOverlay: null,
+        scrollLockDepth: 0,
+        savedHtmlOverflow: '',
+        savedBodyOverflow: '',
+        savedHtmlOverscroll: '',
+        savedBodyOverscroll: '',
+        normalizeCode(code) {
+            return Utils.normalizeCode(code) || String(code || '').trim().toUpperCase();
+        },
+        ensureStyle() {
+            injectStyle('jav-subtitle-style', `.jav-subtitle-overlay,.jav-subtitle-preview-overlay{position:fixed;inset:0;z-index:10000045;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-sizing:border-box;overscroll-behavior:contain}.jav-subtitle-preview-overlay{z-index:10000046}.jav-subtitle-overlay *,.jav-subtitle-preview-overlay *{box-sizing:border-box}.jav-subtitle-panel{width:min(780px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(203,213,225,.85);border-radius:12px;background:#fff;color:#111827;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-subtitle-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #e5e7eb;background:linear-gradient(180deg,#f8fafc 0%,#fff 100%)}.jav-subtitle-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:850}.jav-subtitle-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-subtitle-close:hover{background:#e2e8f0}.jav-subtitle-body{padding:12px;overflow:auto;overscroll-behavior:contain}.jav-subtitle-status{padding:38px 14px;color:#64748b;font-size:14px;text-align:center}.jav-subtitle-table{display:flex;flex-direction:column;gap:8px}.jav-subtitle-row{display:grid;grid-template-columns:minmax(0,1fr) 72px 146px;gap:10px;align-items:center;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#f8fafc}.jav-subtitle-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:760;color:#0f172a}.jav-subtitle-ext{justify-self:start;padding:3px 8px;border-radius:999px;background:#e0f2fe;color:#075985;font-size:12px;font-weight:800;text-transform:uppercase}.jav-subtitle-actions{display:flex;justify-content:flex-end;gap:7px}.jav-subtitle-actions button,.jav-subtitle-preview-download{height:28px;padding:0 10px;border:0;border-radius:7px;background:#0f766e;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.jav-subtitle-actions button:nth-child(2){background:#2563eb}.jav-subtitle-actions button:disabled,.jav-subtitle-preview-download:disabled{opacity:.62;cursor:wait}.jav-subtitle-preview-panel{width:min(920px,94vw);max-height:88vh}.jav-subtitle-pre{margin:0;min-height:320px;max-height:70vh;overflow:auto;padding:14px 16px;background:#111827;color:#e5e7eb;font:12px/1.55 Consolas,Monaco,"Courier New",monospace;white-space:pre-wrap;word-break:break-word;overscroll-behavior:contain}.jav-subtitle-preview-footer{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e5e7eb;background:#f8fafc}@media (max-width:640px){.jav-subtitle-row{grid-template-columns:1fr;gap:7px}.jav-subtitle-actions{justify-content:flex-start}}`);
+        },
+        lockScroll() {
+            if (this.scrollLockDepth === 0) {
+                this.savedHtmlOverflow = document.documentElement.style.overflow || '';
+                this.savedBodyOverflow = document.body.style.overflow || '';
+                this.savedHtmlOverscroll = document.documentElement.style.overscrollBehavior || '';
+                this.savedBodyOverscroll = document.body.style.overscrollBehavior || '';
+                document.documentElement.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden';
+                document.documentElement.style.overscrollBehavior = 'contain';
+                document.body.style.overscrollBehavior = 'contain';
+            }
+            this.scrollLockDepth++;
+        },
+        unlockScroll() {
+            if (this.scrollLockDepth <= 0) return;
+            this.scrollLockDepth--;
+            if (this.scrollLockDepth === 0) {
+                document.documentElement.style.overflow = this.savedHtmlOverflow;
+                document.body.style.overflow = this.savedBodyOverflow;
+                document.documentElement.style.overscrollBehavior = this.savedHtmlOverscroll;
+                document.body.style.overscrollBehavior = this.savedBodyOverscroll;
+            }
+        },
+        request(url, { timeout = 20000, errorText = '字幕源请求失败', timeoutText = '字幕源请求超时', ...opts } = {}) {
+            return new Promise((resolve, reject) => {
+                GM_xmlhttpRequest({
+                    method: 'GET',
+                    timeout,
+                    ...opts,
+                    url,
+                    onload: r => {
+                        if (r.status && (r.status < 200 || r.status >= 400)) reject(new Error(`HTTP ${r.status}`));
+                        else resolve(r);
+                    },
+                    onerror: () => reject(new Error(errorText)),
+                    ontimeout: () => reject(new Error(timeoutText)),
+                });
+            });
+        },
+        async requestJson(url) {
+            const r = await this.request(url, { headers: { Accept: 'application/json, text/plain, */*' }, timeout: 18000 });
+            try { return JSON.parse(r.responseText || '{}'); }
+            catch { throw new Error('字幕源返回不是JSON'); }
+        },
+        async requestText(url) {
+            return (await this.request(url, { errorText: '字幕文件请求失败', timeoutText: '字幕文件请求超时' })).responseText || '';
+        },
+        async requestBlob(url) {
+            const r = await this.request(url, { responseType: 'blob', timeout: 25000, errorText: '字幕下载失败', timeoutText: '字幕下载超时' });
+            return r.response || new Blob([r.responseText || ''], { type: 'text/plain;charset=utf-8' });
+        },
+        itemUrl(item) {
+            return String(item?.url || item?.link || item?.download_url || item?.file_url || item?.surl || '').trim();
+        },
+        itemExt(item) {
+            const direct = String(item?.ext || item?.format || item?.file_type || '').replace(/^\./, '').trim().toLowerCase();
+            if (direct) return direct;
+            const name = String(item?.name || item?.filename || item?.sname || '');
+            const url = this.itemUrl(item);
+            return (name.match(/\.([a-z0-9]{2,5})$/i)?.[1] || url.match(/\.([a-z0-9]{2,5})(?:[?#]|$)/i)?.[1] || '').toLowerCase();
+        },
+        itemDisplayName(item, code) {
+            const ext = this.itemExt(item);
+            const raw = String(item?.name || item?.filename || item?.title || item?.sname || item?.file_name || '').trim();
+            return raw || `${this.normalizeCode(code)}${ext ? `.${ext}` : ''}`;
+        },
+        fileName(item, code) {
+            const ext = this.itemExt(item);
+            let name = this.itemDisplayName(item, code);
+            if (ext && !new RegExp(`\\.${ext}$`, 'i').test(name)) name += `.${ext}`;
+            name = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/\s+/g, ' ').trim();
+            return name || `${this.normalizeCode(code)}.${ext || 'srt'}`;
+        },
+        async search(code) {
+            const normalized = this.normalizeCode(code);
+            const payload = await this.requestJson(`${this.api}?${new URLSearchParams({ gcid: '', cid: '', name: normalized }).toString()}`);
+            const list = [payload?.data, payload?.data?.list, payload?.data?.sublist, payload?.list, payload?.sublist, payload?.result?.list].find(Array.isArray) || [];
+            const seen = new Set();
+            return list.filter(item => {
+                const url = this.itemUrl(item);
+                const key = `${url}|${this.itemDisplayName(item, normalized)}`;
+                if (!url || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        },
+        createShell(code, title = `字幕 ${code}`) {
+            this.ensureStyle();
+            if (this.closeOverlay) this.closeOverlay();
+            const overlay = document.createElement('div');
+            overlay.className = 'jav-subtitle-overlay';
+            overlay.innerHTML = `<section class="jav-subtitle-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><div class="jav-subtitle-body"><div class="jav-subtitle-status">正在搜索字幕...</div></div></section>`;
+            overlay.querySelector('.jav-subtitle-title').textContent = title;
+            const close = () => {
+                overlay.remove();
+                if (this.overlay === overlay) this.overlay = null;
+                if (this.closeOverlay === close) this.closeOverlay = null;
+                this.unlockScroll();
+                document.removeEventListener('keydown', onKeydown, true);
+            };
+            const onKeydown = e => { if (e.key === 'Escape') close(); };
+            overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+            overlay.addEventListener('wheel', e => e.stopPropagation(), { passive: false });
+            overlay.addEventListener('touchmove', e => e.stopPropagation(), { passive: false });
+            overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close);
+            this.lockScroll();
+            document.addEventListener('keydown', onKeydown, true);
+            document.body.appendChild(overlay);
+            this.overlay = overlay;
+            this.closeOverlay = close;
+            return overlay;
+        },
+        setStatus(overlay, text) {
+            const body = overlay.querySelector('.jav-subtitle-body');
+            if (!body) return;
+            body.innerHTML = '';
+            const status = document.createElement('div');
+            status.className = 'jav-subtitle-status';
+            status.textContent = text;
+            body.appendChild(status);
+        },
+        renderList(overlay, code, items) {
+            const body = overlay.querySelector('.jav-subtitle-body');
+            if (!body) return;
+            body.innerHTML = '';
+            const table = document.createElement('div');
+            table.className = 'jav-subtitle-table';
+            items.forEach(item => {
+                const row = document.createElement('div');
+                const name = document.createElement('div');
+                const ext = document.createElement('span');
+                const actions = document.createElement('div');
+                const preview = document.createElement('button');
+                const download = document.createElement('button');
+                row.className = 'jav-subtitle-row';
+                name.className = 'jav-subtitle-name';
+                name.textContent = this.itemDisplayName(item, code);
+                name.title = name.textContent;
+                ext.className = 'jav-subtitle-ext';
+                ext.textContent = this.itemExt(item) || 'file';
+                actions.className = 'jav-subtitle-actions';
+                preview.type = download.type = 'button';
+                preview.textContent = '预览';
+                download.textContent = '下载';
+                preview.addEventListener('click', () => this.preview(item, code, preview));
+                download.addEventListener('click', () => this.download(item, code, download));
+                actions.append(preview, download);
+                row.append(name, ext, actions);
+                table.appendChild(row);
+            });
+            body.appendChild(table);
+        },
+        async show(code) {
+            const normalized = this.normalizeCode(code);
+            if (!normalized) {
+                Utils.showToast('无法识别番号', '没有可用于搜索字幕的番号', 2400);
+                return;
+            }
+            const overlay = this.createShell(normalized);
+            try {
+                const items = await this.search(normalized);
+                if (items.length) this.renderList(overlay, normalized, items);
+                else this.setStatus(overlay, '未找到相关字幕');
+            } catch (err) {
+                errorLog('字幕搜索失败:', err);
+                this.setStatus(overlay, err?.message || '字幕搜索失败');
+            }
+        },
+        async withBusy(btn, text, fn) {
+            const oldText = btn?.textContent || '';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = text;
+            }
+            try { return await fn(); }
+            finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = oldText;
+                }
+            }
+        },
+        async preview(item, code, btn) {
+            const url = this.itemUrl(item);
+            const ext = this.itemExt(item);
+            if (!url) {
+                Utils.showToast('无法预览字幕', '字幕文件地址为空', 2400);
+                return;
+            }
+            if (!this.previewExts.has(ext)) {
+                Utils.showToast('暂不支持预览', `${ext || '该'} 类型可直接下载`, 2400);
+                return;
+            }
+            await this.withBusy(btn, '读取中', async () => {
+                this.showPreview(code, this.fileName(item, code), await this.requestText(url));
+            }).catch(err => {
+                errorLog('字幕预览失败:', err);
+                Utils.showToast('字幕预览失败', err?.message || '请求失败', 2800);
+            });
+        },
+        async download(item, code, btn) {
+            const url = this.itemUrl(item);
+            if (!url) {
+                Utils.showToast('无法下载字幕', '字幕文件地址为空', 2400);
+                return;
+            }
+            await this.withBusy(btn, '下载中', async () => this.saveBlob(await this.requestBlob(url), this.fileName(item, code))).catch(err => {
+                errorLog('字幕下载失败:', err);
+                Utils.showToast('字幕下载失败', err?.message || '请求失败', 2800);
+            });
+        },
+        saveBlob(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1200);
+        },
+        showPreview(code, fileName, text) {
+            this.ensureStyle();
+            const overlay = document.createElement('div');
+            overlay.className = 'jav-subtitle-preview-overlay';
+            overlay.innerHTML = `<section class="jav-subtitle-panel jav-subtitle-preview-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><pre class="jav-subtitle-pre"></pre><div class="jav-subtitle-preview-footer"><button class="jav-subtitle-preview-download" type="button">下载</button></div></section>`;
+            const close = () => {
+                overlay.remove();
+                this.unlockScroll();
+                document.removeEventListener('keydown', onKeydown, true);
+            };
+            const onKeydown = e => { if (e.key === 'Escape') close(); };
+            const numbered = String(text || '').split(/\r?\n/).map((line, index, lines) => `${String(index + 1).padStart(String(lines.length).length, ' ')}. ${line}`).join('\n');
+            overlay.querySelector('.jav-subtitle-title').textContent = `${fileName} - ${code}`;
+            overlay.querySelector('.jav-subtitle-pre').textContent = numbered;
+            overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close);
+            overlay.querySelector('.jav-subtitle-preview-download')?.addEventListener('click', e => {
+                e.preventDefault();
+                this.saveBlob(new Blob([text || ''], { type: 'text/plain;charset=utf-8' }), fileName);
+            });
+            overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+            overlay.addEventListener('wheel', e => e.stopPropagation(), { passive: false });
+            overlay.addEventListener('touchmove', e => e.stopPropagation(), { passive: false });
+            this.lockScroll();
+            document.addEventListener('keydown', onKeydown, true);
+            document.body.appendChild(overlay);
+        },
+    };
+    Core.expose('__LAOSIJI_SUBTITLE__', Subtitle);
     function closeAllJumpMenus(exceptMenu = null) {
         document.querySelectorAll('.search-submenu.is-open').forEach(menu => {
             if (menu !== exceptMenu) menu.classList.remove('is-open');
@@ -7228,6 +7513,24 @@
         }, useCapture);
         container.appendChild(btn);
     }
+    function addSubtitleBtn(code, container, useCapture = false) {
+        if (!GM_getValue('btn_show_subtitle', true)) return;
+        const btn = Utils.createBtn('📝 字幕', '#0f766e', async () => {
+            const oldText = btn.textContent;
+            btn.textContent = '📝 搜索中...';
+            btn.style.pointerEvents = 'none';
+            btn.style.opacity = '0.72';
+            try {
+                await Subtitle.show(code);
+            } finally {
+                btn.textContent = oldText;
+                btn.style.pointerEvents = '';
+                btn.style.opacity = '';
+            }
+        }, useCapture);
+        btn.classList.add('jav-subtitle-btn');
+        container.appendChild(btn);
+    }
     function addTrailerBtn(code, container, useCapture = false) {
         if (!GM_getValue('btn_show_trailer', true)) return;
         const btn = Utils.createBtn('🎞️ 预告片', '#111827', async () => {
@@ -7260,7 +7563,7 @@
         if (!normalized || container.dataset.pan115PlayCode === normalized) return;
         container.dataset.pan115PlayCode = normalized;
         const marker = document.createComment('pan115-play');
-        const anchor = container.querySelector('.jav-trailer-btn, .jav-preview-btn, .jav-settings-btn');
+        const anchor = container.querySelector('.jav-subtitle-btn, .jav-trailer-btn, .jav-preview-btn, .jav-settings-btn');
         container.insertBefore(marker, anchor || null);
         Pan115.searchCached(normalized).then(hit => {
             const pickcode = hit?.pickcode;
@@ -7777,6 +8080,7 @@
             addSearchMenu(code, btnGroup);
             addJumpLineBreak(btnGroup);
             addPan115PlayBtn(Pan115.extractCode(titleText, code), btnGroup);
+            addSubtitleBtn(code, btnGroup);
             addTrailerBtn(trailerCode, btnGroup);
             addPreviewBtn(code, btnGroup);
             addSettingsBtn(btnGroup);
@@ -7817,6 +8121,7 @@
             bindJumpMenu(searchMenuDiv, toggleBtn, subMenu, mainSearchBtn);
             btnGroup.appendChild(searchMenuDiv);
             addPan115PlayBtn(Pan115.extractCode(titleText, code), btnGroup);
+            addSubtitleBtn(code, btnGroup);
             addTrailerBtn(trailerCode, btnGroup);
             addPreviewBtn(code, btnGroup);
             addSettingsBtn(btnGroup);
@@ -7831,6 +8136,7 @@
             addSearchMenu(code, btnGroup);
             if (['javbus', 'javdb', 'supjav', 'jable'].includes(site.id)) addJumpLineBreak(btnGroup);
             addPan115PlayBtn(Pan115.extractCode(site.id === 'fc2cmadb' ? code : titleText, code), btnGroup);
+            addSubtitleBtn(code, btnGroup);
             addTrailerBtn(trailerCode, btnGroup);
             addPreviewBtn(code, btnGroup);
             addSettingsBtn(btnGroup);
