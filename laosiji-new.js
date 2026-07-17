@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.2.2
+// @version      2.7.2.3
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -46,7 +46,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.2.2';
+  const SCRIPT_VERSION = '2.7.2.3';
   const DEBUG_LOG = false;
   const ERROR_LOG = true;
   const PAGE_ZOOM_DEFAULT = 86;
@@ -8072,6 +8072,16 @@
     if (cs.display === 'none' || cs.visibility === 'hidden') return false;
     return true;
   }
+  const EMBY_PLAYBACK_UI_SELECTOR = '.view-videoosd-videoosd, .videoOsdBottom, .videoOsdText';
+  function isEmbyPlaybackUiNode(el) { return !!el?.closest?.(EMBY_PLAYBACK_UI_SELECTOR); }
+  function removeEmbyPlaybackButtons() {
+    document.querySelectorAll('.jav-jump-btn-group[data-laosiji-jump="1"]').forEach(group => {
+      if (!isEmbyPlaybackUiNode(group)) return;
+      const titleElem = group.previousElementSibling;
+      if (titleElem?.dataset.enhanced === '1') delete titleElem.dataset.enhanced;
+      group.remove();
+    });
+  }
   function resolveEmbyTitleElem() {
     const nodes = Array.from(document.querySelectorAll(
       'h1, h2, h3.itemName, .itemName-primary, .pageTitle, .nameContainer h3, [class*="itemName"]'
@@ -8080,6 +8090,7 @@
     for (const el of nodes) {
       const txt = (el.textContent || '').trim();
       if (!txt) continue;
+      if (isEmbyPlaybackUiNode(el)) continue;
       if (!isElemVisible(el)) continue;
       if (!firstVisible) firstVisible = el;
       if (Utils.extractCode(txt)) return el;
@@ -8089,6 +8100,7 @@
   function renderButtonsForCurrentPage() {
     const site = SiteManager.getJumpSite();
     if (!site) return;
+    if (site.id === 'emby') removeEmbyPlaybackButtons();
     let titleElem = SiteManager.getJumpTitleElement(site);
     if (!titleElem) return;
     if (site.id === 'emby' && !Utils.extractCode(titleElem.textContent || '')) return;
