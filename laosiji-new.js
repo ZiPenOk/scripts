@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.2.3
+// @version      2.7.3
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、详情页比例调整、剧照浏览、瀑布流加载、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -46,7 +46,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.2.3';
+  const SCRIPT_VERSION = '2.7.3';
   const DEBUG_LOG = false;
   const ERROR_LOG = true;
   const PAGE_ZOOM_DEFAULT = 86;
@@ -118,6 +118,13 @@
     btnShowPreview: { key: 'btn_show_preview', def: true, bool: true },
     btnShowPan115: { key: 'btn_show_pan115', def: false, bool: true },
     magnetTable: { key: 'magnet_table_enabled', def: true, bool: true },
+    magnetDisplayMode: {
+      key: 'magnet_display_mode',
+      def: () => GM_getValue('magnet_table_enabled', true) ? 'sidebar' : 'native',
+      normalize: value => ['sidebar', 'native-replace', 'native'].includes(value) ? value
+        : (GM_getValue('magnet_table_enabled', true) ? 'sidebar' : 'native'),
+    },
+    nativeMagnetDefaultTab: { key: 'native_magnet_default_tab', def: 'native', normalize: value => ['native', 'aggregate'].includes(value) ? value : 'native' },
     magnetSort: { key: 'magnet_sort_mode', def: 'size', normalize: value => ['size', 'newest', 'oldest'].includes(value) ? value : 'size' },
     infiniteScroll: { key: 'infinite_scroll_enabled', def: false, bool: true },
     cardFx: { key: 'card_fx_enabled', def: true, bool: true },
@@ -617,7 +624,7 @@
     else anchor.after(btn);
   }
   function injectSettingsPanelStyles() {
-    GM_addStyle(`#jav-settings-overlay{position:fixed;inset:0;z-index:10000020;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(7px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#jav-settings-panel{width:min(800px,94vw);max-height:88vh;background:linear-gradient(180deg,#f8fbff 0%,#f6f3ff 46%,#fff7ed 100%);color:#111827;border:1px solid rgba(148,163,184,.38);border-radius:16px;box-shadow:0 26px 76px rgba(15,23,42,.36);display:flex;flex-direction:column;overflow:hidden}#jav-settings-panel *{box-sizing:border-box}#jav-settings-panel .sp-header{padding:18px 22px;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 54%,#7c2d12 100%);border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between}#jav-settings-panel .sp-title{font-size:18px;font-weight:750;color:#fff}#jav-settings-panel .sp-close{width:32px;height:32px;border:1px solid rgba(255,255,255,.24);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:18px;line-height:1}#jav-settings-panel .sp-close:hover{background:rgba(255,255,255,.18)}#jav-settings-panel .sp-body{padding:18px 22px;overflow:auto;display:grid;gap:14px}#jav-settings-panel .sp-card{position:relative;background:rgba(255,255,255,.92);border:1px solid rgba(203,213,225,.88);border-radius:10px;padding:15px;box-shadow:0 10px 24px rgba(15,23,42,.06);overflow:hidden}#jav-settings-panel .sp-card::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#2563eb}#jav-settings-panel .sp-card-magnet::before{background:#16a34a}#jav-settings-panel .sp-card-features::before{background:#00a85a}#jav-settings-panel .sp-card-order::before{background:#dc2626}#jav-settings-panel .sp-card-title{font-size:13px;font-weight:750;color:#1e293b;margin-bottom:12px}#jav-settings-panel .sp-card-jump::before{background:#6366f1}#jav-settings-panel .sp-card-jump .sp-grid{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}#jav-settings-panel .sp-feature-order-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:stretch}#jav-settings-panel .sp-feature-order-row>.sp-card{height:100%}#jav-settings-panel .sp-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#jav-settings-panel .sp-feature-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-item:has(#sp-magnet-table){order:1;grid-column:1}#jav-settings-panel .sp-feature-item:has(#sp-clear-preview-cache){order:2;grid-column:1}#jav-settings-panel .sp-feature-item:has(#sp-clear-trailer-cache){order:2;grid-column:2}#jav-settings-panel .sp-feature-item .sp-desc{margin-top:2px;font-size:11px}#jav-settings-panel .sp-feature-select{order:1;grid-column:2;display:grid;grid-template-columns:1fr 64px;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-select .sp-select{height:28px;padding:3px 2px 3px 4px;font-size:12px;text-align:left}#jav-settings-panel .sp-cache-clean{background:linear-gradient(135deg,#fff 0%,#f8fbff 58%,#f0f9ff 100%)}#jav-settings-panel .sp-cache-clear-btn{position:relative;width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border:1px solid #bae6fd;border-radius:10px;background:linear-gradient(180deg,#f0f9ff,#fff);color:#0284c7;cursor:pointer;overflow:hidden;transition:transform .16s,border-color .16s,background .16s,color .16s,box-shadow .16s}#jav-settings-panel .sp-cache-clear-btn::after{content:'';position:absolute;inset:-8px;border-radius:inherit;background:radial-gradient(circle,rgba(14,165,233,.22),transparent 62%);opacity:0;transform:scale(.45);transition:opacity .22s,transform .22s}#jav-settings-panel .sp-cache-clear-btn:hover{transform:translateY(-1px);border-color:#38bdf8;color:#0369a1;box-shadow:0 8px 18px rgba(14,165,233,.18)}#jav-settings-panel .sp-cache-clear-btn:active{transform:translateY(0) scale(.96)}#jav-settings-panel .sp-cache-clear-btn.is-clearing::after{opacity:1;transform:scale(1)}#jav-settings-panel .sp-cache-clear-btn.is-done{border-color:#86efac;background:linear-gradient(180deg,#ecfdf5,#fff);color:#15803d}#jav-settings-panel .sp-cache-clear-icon{position:relative;z-index:1;display:inline-block;font-size:15px;line-height:1}#jav-settings-panel .sp-cache-clear-btn.is-clearing .sp-cache-clear-icon{animation:spCacheSpin .48s ease}@keyframes spCacheSpin{to{transform:rotate(360deg)}}#jav-settings-panel .sp-field{display:flex;flex-direction:column;gap:6px;min-width:0}#jav-settings-panel .sp-label{font-size:12px;font-weight:650;color:#475569}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{width:100%;min-width:0;height:34px;padding:6px 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:13px;outline:none}#jav-settings-panel .sp-input:focus,#jav-settings-panel .sp-select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.13)}#jav-settings-panel .sp-engine-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:end}#jav-settings-panel .sp-cache-actions{display:flex;align-items:center;gap:8px;margin-right:auto}#jav-settings-panel .sp-cache-feedback{min-width:64px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-footer-links{display:flex;align-items:center;gap:8px;margin-right:4px}#jav-settings-panel .sp-footer-link{color:#475569;font-size:12px;font-weight:700;text-decoration:none;padding:6px 8px;border-radius:7px}#jav-settings-panel .sp-footer-link:hover{color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-footer-sep{width:1px;height:16px;background:#cbd5e1}#jav-settings-panel .sp-desc{font-size:12px;color:#64748b;line-height:1.45}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;width:42px;height:24px;flex:0 0 auto}#jav-settings-panel .sp-toggle input{opacity:0;width:0;height:0}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform .18s}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#2563eb}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-order-list{display:flex;flex-direction:column;gap:8px}#jav-settings-panel .sp-order-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(90deg,#fff 0%,#f8fafc 100%);user-select:none}#jav-settings-panel .sp-order-name{font-size:13px;font-weight:700;color:#1e293b}#jav-settings-panel .sp-dot{width:9px;height:9px;border-radius:50%}#jav-settings-panel .sp-order-actions{display:flex;gap:5px}#jav-settings-panel .sp-order-btn{width:28px;height:28px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;cursor:pointer;font-size:14px;line-height:1}#jav-settings-panel .sp-order-btn:hover:not(:disabled){border-color:#2563eb;color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-order-btn:disabled{opacity:.36;cursor:not-allowed}#jav-settings-panel .sp-footer{padding:14px 22px;background:rgba(255,255,255,.92);border-top:1px solid rgba(203,213,225,.86);display:flex;align-items:center;justify-content:flex-end;gap:10px}#jav-settings-panel .sp-btn{height:34px;padding:0 16px;border-radius:8px;border:1px solid transparent;font-size:13px;font-weight:700;cursor:pointer}#jav-settings-panel .sp-btn-cancel{background:#fff;color:#475569;border-color:#cbd5e1}#jav-settings-panel .sp-btn-clear{background:#fff7ed;color:#9a3412;border-color:#fed7aa}#jav-settings-panel .sp-btn-clear:hover{background:#ffedd5}#jav-settings-panel .sp-btn-save{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;box-shadow:0 8px 20px rgba(79,70,229,.25)}@media (max-width:640px){#jav-settings-panel .sp-grid,#jav-settings-panel .sp-engine-row,#jav-settings-panel .sp-feature-grid,#jav-settings-panel .sp-feature-order-row{grid-template-columns:1fr}#jav-settings-panel .sp-feature-item{grid-column:auto!important}#jav-settings-panel .sp-cache-actions{margin-right:0}#jav-settings-panel .sp-footer{flex-wrap:wrap}}#jav-settings-panel .sp-chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}#jav-settings-panel .sp-chip input{display:none}#jav-settings-panel .sp-chip-label{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:999px;border:.5px solid var(--color-border-secondary,#cbd5e1);background:var(--color-background-secondary,#f8fafc);color:var(--color-text-secondary,#64748b);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;user-select:none}#jav-settings-panel .sp-chip input:checked+.sp-chip-label{border-color:#6366f1;background:#eef2ff;color:#4338ca}#jav-settings-panel .sp-chip-label:hover{border-color:#a5b4fc;background:#f0f4ff;color:#4338ca}#jav-settings-panel .sp-chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex:0 0 auto}`);
+    GM_addStyle(`#jav-settings-overlay{position:fixed;inset:0;z-index:10000020;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(7px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#jav-settings-panel{width:min(800px,94vw);max-height:88vh;background:linear-gradient(180deg,#f8fbff 0%,#f6f3ff 46%,#fff7ed 100%);color:#111827;border:1px solid rgba(148,163,184,.38);border-radius:16px;box-shadow:0 26px 76px rgba(15,23,42,.36);display:flex;flex-direction:column;overflow:hidden}#jav-settings-panel *{box-sizing:border-box}#jav-settings-panel .sp-header{padding:18px 22px;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 54%,#7c2d12 100%);border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between}#jav-settings-panel .sp-title{font-size:18px;font-weight:750;color:#fff}#jav-settings-panel .sp-close{width:32px;height:32px;border:1px solid rgba(255,255,255,.24);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:18px;line-height:1}#jav-settings-panel .sp-close:hover{background:rgba(255,255,255,.18)}#jav-settings-panel .sp-body{padding:18px 22px;overflow:auto;display:grid;gap:14px}#jav-settings-panel .sp-card{position:relative;background:rgba(255,255,255,.92);border:1px solid rgba(203,213,225,.88);border-radius:10px;padding:15px;box-shadow:0 10px 24px rgba(15,23,42,.06);overflow:hidden}#jav-settings-panel .sp-card::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#2563eb}#jav-settings-panel .sp-card-magnet::before{background:#16a34a}#jav-settings-panel .sp-card-features::before{background:#00a85a}#jav-settings-panel .sp-card-order::before{background:#dc2626}#jav-settings-panel .sp-card-title{font-size:13px;font-weight:750;color:#1e293b;margin-bottom:12px}#jav-settings-panel .sp-card-jump::before{background:#6366f1}#jav-settings-panel .sp-card-jump .sp-grid{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}#jav-settings-panel .sp-feature-order-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:stretch}#jav-settings-panel .sp-feature-order-row>.sp-card{height:100%}#jav-settings-panel .sp-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#jav-settings-panel .sp-feature-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-item:has(#sp-clear-preview-cache){order:2;grid-column:1}#jav-settings-panel .sp-feature-item:has(#sp-clear-trailer-cache){order:2;grid-column:2}#jav-settings-panel .sp-feature-item .sp-desc{margin-top:2px;font-size:11px}#jav-settings-panel .sp-feature-select{order:1;grid-column:2;display:grid;grid-template-columns:1fr 64px;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-select .sp-select{height:28px;padding:3px 2px 3px 4px;font-size:12px;text-align:left}#jav-settings-panel .sp-feature-magnet-display{order:1;grid-column:1;grid-template-columns:minmax(0,1fr) 100px}#jav-settings-panel .sp-cache-clean{background:linear-gradient(135deg,#fff 0%,#f8fbff 58%,#f0f9ff 100%)}#jav-settings-panel .sp-cache-clear-btn{position:relative;width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border:1px solid #bae6fd;border-radius:10px;background:linear-gradient(180deg,#f0f9ff,#fff);color:#0284c7;cursor:pointer;overflow:hidden;transition:transform .16s,border-color .16s,background .16s,color .16s,box-shadow .16s}#jav-settings-panel .sp-cache-clear-btn::after{content:'';position:absolute;inset:-8px;border-radius:inherit;background:radial-gradient(circle,rgba(14,165,233,.22),transparent 62%);opacity:0;transform:scale(.45);transition:opacity .22s,transform .22s}#jav-settings-panel .sp-cache-clear-btn:hover{transform:translateY(-1px);border-color:#38bdf8;color:#0369a1;box-shadow:0 8px 18px rgba(14,165,233,.18)}#jav-settings-panel .sp-cache-clear-btn:active{transform:translateY(0) scale(.96)}#jav-settings-panel .sp-cache-clear-btn.is-clearing::after{opacity:1;transform:scale(1)}#jav-settings-panel .sp-cache-clear-btn.is-done{border-color:#86efac;background:linear-gradient(180deg,#ecfdf5,#fff);color:#15803d}#jav-settings-panel .sp-cache-clear-icon{position:relative;z-index:1;display:inline-block;font-size:15px;line-height:1}#jav-settings-panel .sp-cache-clear-btn.is-clearing .sp-cache-clear-icon{animation:spCacheSpin .48s ease}@keyframes spCacheSpin{to{transform:rotate(360deg)}}#jav-settings-panel .sp-field{display:flex;flex-direction:column;gap:6px;min-width:0}#jav-settings-panel .sp-label{font-size:12px;font-weight:650;color:#475569}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{width:100%;min-width:0;height:34px;padding:6px 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:13px;outline:none}#jav-settings-panel .sp-input:focus,#jav-settings-panel .sp-select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.13)}#jav-settings-panel .sp-engine-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:end}#jav-settings-panel .sp-cache-actions{display:flex;align-items:center;gap:8px;margin-right:auto}#jav-settings-panel .sp-cache-feedback{min-width:64px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-footer-links{display:flex;align-items:center;gap:8px;margin-right:4px}#jav-settings-panel .sp-footer-link{color:#475569;font-size:12px;font-weight:700;text-decoration:none;padding:6px 8px;border-radius:7px}#jav-settings-panel .sp-footer-link:hover{color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-footer-sep{width:1px;height:16px;background:#cbd5e1}#jav-settings-panel .sp-desc{font-size:12px;color:#64748b;line-height:1.45}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;width:42px;height:24px;flex:0 0 auto}#jav-settings-panel .sp-toggle input{opacity:0;width:0;height:0}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform .18s}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#2563eb}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-order-list{display:flex;flex-direction:column;gap:8px}#jav-settings-panel .sp-order-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(90deg,#fff 0%,#f8fafc 100%);user-select:none}#jav-settings-panel .sp-order-name{font-size:13px;font-weight:700;color:#1e293b}#jav-settings-panel .sp-dot{width:9px;height:9px;border-radius:50%}#jav-settings-panel .sp-order-actions{display:flex;gap:5px}#jav-settings-panel .sp-order-btn{width:28px;height:28px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;cursor:pointer;font-size:14px;line-height:1}#jav-settings-panel .sp-order-btn:hover:not(:disabled){border-color:#2563eb;color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-order-btn:disabled{opacity:.36;cursor:not-allowed}#jav-settings-panel .sp-footer{padding:14px 22px;background:rgba(255,255,255,.92);border-top:1px solid rgba(203,213,225,.86);display:flex;align-items:center;justify-content:flex-end;gap:10px}#jav-settings-panel .sp-btn{height:34px;padding:0 16px;border-radius:8px;border:1px solid transparent;font-size:13px;font-weight:700;cursor:pointer}#jav-settings-panel .sp-btn-cancel{background:#fff;color:#475569;border-color:#cbd5e1}#jav-settings-panel .sp-btn-clear{background:#fff7ed;color:#9a3412;border-color:#fed7aa}#jav-settings-panel .sp-btn-clear:hover{background:#ffedd5}#jav-settings-panel .sp-btn-save{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;box-shadow:0 8px 20px rgba(79,70,229,.25)}@media (max-width:640px){#jav-settings-panel .sp-grid,#jav-settings-panel .sp-engine-row,#jav-settings-panel .sp-feature-grid,#jav-settings-panel .sp-feature-order-row{grid-template-columns:1fr}#jav-settings-panel .sp-feature-item{grid-column:auto!important}#jav-settings-panel .sp-cache-actions{margin-right:0}#jav-settings-panel .sp-footer{flex-wrap:wrap}}#jav-settings-panel .sp-chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}#jav-settings-panel .sp-chip input{display:none}#jav-settings-panel .sp-chip-label{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:999px;border:.5px solid var(--color-border-secondary,#cbd5e1);background:var(--color-background-secondary,#f8fafc);color:var(--color-text-secondary,#64748b);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;user-select:none}#jav-settings-panel .sp-chip input:checked+.sp-chip-label{border-color:#6366f1;background:#eef2ff;color:#4338ca}#jav-settings-panel .sp-chip-label:hover{border-color:#a5b4fc;background:#f0f4ff;color:#4338ca}#jav-settings-panel .sp-chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex:0 0 auto}`);
   }
   const SettingsPanel = (() => {
     const MAGNET_ENGINES = [
@@ -658,7 +665,7 @@
       overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
       const panel = document.createElement('div');
       panel.id = 'jav-settings-panel';
-      panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><section class="sp-card sp-card-magnet"><div class="sp-card-title">磁力搜索</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认磁力引擎</span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-engine-row"><label class="sp-field"><span class="sp-label">编辑引擎</span><select class="sp-select" id="sp-engine-picker"></select></label><label class="sp-field"><span class="sp-label">域名</span><input class="sp-input" id="sp-engine-domain"></label></div></div></section><div class="sp-feature-order-row"><section class="sp-card sp-card-features"><div class="sp-card-title">功能项开关</div><div class="sp-feature-grid"><div class="sp-feature-item"><div><div class="sp-label">磁力引擎</div></div><label class="sp-toggle"><input id="sp-magnet-table" type="checkbox"><span class="sp-toggle-track"></span></label></div><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预览图缓存</div><div class="sp-desc">清理本页会话缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-preview-cache" type="button" title="清理预览图缓存"><span class="sp-cache-clear-icon">↻</span></button></div><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预告片缓存</div><div class="sp-desc">清理解析结果缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-trailer-cache" type="button" title="清理预告片缓存"><span class="sp-cache-clear-icon">↻</span></button></div><label class="sp-feature-select"><div><div class="sp-label">115播放器</div></div><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option></select></label></div></section><section class="sp-card sp-card-order"><div class="sp-card-title">预览图来源顺序</div><div class="sp-order-list" id="sp-thumb-order"></div></section></div><section class="sp-card sp-card-jump" style="--card-color:#6366f1;"><div class="sp-card-title">跳转入口与按钮控制</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认搜索入口</span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-field"><span class="sp-label">默认视频入口</span><select class="sp-select" id="sp-video-engine"></select></label></div><div class="sp-chip-group"> ${renderButtonToggles()} </div></section></div><div class="sp-footer"><div class="sp-cache-actions"><div class="sp-footer-links"><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-clear" id="sp-clear-cache" type="button">清空缓存</button><span class="sp-cache-feedback" id="sp-cache-feedback"></span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+      panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><section class="sp-card sp-card-magnet"><div class="sp-card-title">磁力搜索</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认磁力引擎</span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-engine-row"><label class="sp-field"><span class="sp-label">编辑引擎</span><select class="sp-select" id="sp-engine-picker"></select></label><label class="sp-field"><span class="sp-label">域名</span><input class="sp-input" id="sp-engine-domain"></label></div></div></section><div class="sp-feature-order-row"><section class="sp-card sp-card-features"><div class="sp-card-title">功能项开关</div><div class="sp-feature-grid"><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预览图缓存</div><div class="sp-desc">清理本页会话缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-preview-cache" type="button" title="清理预览图缓存"><span class="sp-cache-clear-icon">↻</span></button></div><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预告片缓存</div><div class="sp-desc">清理解析结果缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-trailer-cache" type="button" title="清理预告片缓存"><span class="sp-cache-clear-icon">↻</span></button></div><label class="sp-feature-select sp-feature-magnet-display"><div><div class="sp-label">聚合搜索</div></div><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-feature-select"><div><div class="sp-label">115播放器</div></div><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option></select></label></div></section><section class="sp-card sp-card-order"><div class="sp-card-title">预览图来源顺序</div><div class="sp-order-list" id="sp-thumb-order"></div></section></div><section class="sp-card sp-card-jump" style="--card-color:#6366f1;"><div class="sp-card-title">跳转入口与按钮控制</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认搜索入口</span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-field"><span class="sp-label">默认视频入口</span><select class="sp-select" id="sp-video-engine"></select></label></div><div class="sp-chip-group"> ${renderButtonToggles()} </div></section></div><div class="sp-footer"><div class="sp-cache-actions"><div class="sp-footer-links"><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-clear" id="sp-clear-cache" type="button">清空缓存</button><span class="sp-cache-feedback" id="sp-cache-feedback"></span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
       overlay.appendChild(panel);
       document.body.appendChild(overlay);
       const defaultSelect = panel.querySelector('#sp-default-engine');
@@ -666,7 +673,7 @@
       const domainInput = panel.querySelector('#sp-engine-domain');
       const jumpEngineSelect = panel.querySelector('#sp-jump-engine');
       const videoEngineSelect = panel.querySelector('#sp-video-engine');
-      const magnetTableCheckbox = panel.querySelector('#sp-magnet-table');
+      const magnetDisplaySelect = panel.querySelector('#sp-magnet-display');
       const clearPreviewCacheBtn = panel.querySelector('#sp-clear-preview-cache');
       const clearTrailerCacheBtn = panel.querySelector('#sp-clear-trailer-cache');
       const pan115PlayerSelect = panel.querySelector('#sp-pan115-player');
@@ -706,7 +713,7 @@
       jumpEngineSelect.value = String(GM_getValue('default_search_engine', 2));
       Ui.setSelectValue(videoEngineSelect, CFG.defaultVideoEngine, 'missav');
       if (pan115PlayerSelect) pan115PlayerSelect.value = CFG.pan115Player === '115master' ? '115master' : 'official';
-      magnetTableCheckbox.checked = CFG.magnetTable;
+      Ui.setSelectValue(magnetDisplaySelect, CFG.magnetDisplayMode, 'sidebar');
       BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { btnToggles[key].checked = CFG[cfgKey]; });
       const renderOrder = () => {
         orderList.innerHTML = '';
@@ -772,7 +779,7 @@
             javdb: CFG.javdbCardColumns,
             javlib: CFG.javlibCardColumns,
           },
-          magnetTable: CFG.magnetTable,
+          magnetDisplayMode: CFG.magnetDisplayMode,
           infiniteScroll: CFG.infiniteScroll,
           buttons: Object.fromEntries(BUTTON_TOGGLE_META.map(({ key, cfgKey }) => [key, CFG[cfgKey]])),
           thumbOrder: GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']),
@@ -785,7 +792,8 @@
         GM_setValue('default_search_engine', parseInt(jumpEngineSelect.value, 10) || 0);
         CFG.defaultVideoEngine = videoEngineSelect.value || 'missav';
         CFG.pan115Player = nextPan115Player;
-        CFG.magnetTable = magnetTableCheckbox.checked;
+        CFG.magnetDisplayMode = magnetDisplaySelect.value;
+        CFG.magnetTable = CFG.magnetDisplayMode === 'sidebar';
         BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { CFG[cfgKey] = btnToggles[key].checked; });
         GM_setValue('thumb_source_order', currentOrder);
         const pan115Changed = beforePan115Player !== nextPan115Player;
@@ -2032,9 +2040,445 @@
       runSearch(table, avid, engineKey);
       return wrapper;
     }
-    return { createMagnetWidget, javdbApi: MagnetApi.client };
+    return { createMagnetWidget, formatDate: formatMagnetDate, sortData: sortMagnetData, javdbApi: MagnetApi.client };
   })();
   Core.expose('__LAOSIJI_MAGNET__', Magnet);
+  const NativeMagnetPanelStyles = {
+    install() {
+      GM_addStyle(`.laosiji-native-magnet-panel{width:100%;box-sizing:border-box;margin:14px 0;color:#172033;background:#fffdfa;border:1px solid #e6ddd3;border-radius:7px;box-shadow:0 8px 24px rgba(68,49,31,.07)}.laosiji-native-magnet-head,.laosiji-native-magnet-controls,.laosiji-native-magnet-tabs,.laosiji-native-magnet-tab-tools,.laosiji-native-magnet-actions,.laosiji-native-magnet-metadata,.laosiji-native-magnet-title-line{display:flex;align-items:center}.laosiji-native-magnet-controls[hidden]{display:none!important}.laosiji-native-magnet-head{justify-content:space-between;gap:14px;min-height:55px;padding:10px 14px;border-bottom:1px solid #e6ddd3}.laosiji-native-magnet-title{color:#172033;font-size:16px;font-weight:720}.laosiji-native-magnet-count{margin-left:9px;color:#667085;font-size:12px;font-weight:500}.laosiji-native-magnet-tabs{flex-wrap:wrap;gap:5px}.laosiji-native-magnet-tab-tools{flex-wrap:wrap;justify-content:flex-end;gap:8px}.laosiji-native-magnet-tab,.laosiji-native-magnet-refresh,.laosiji-native-magnet-action{min-height:30px;padding:3px 8px;border:1px solid #cdd6e2;border-radius:4px;color:#475467;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease}.laosiji-native-magnet-tab{border-color:transparent}.laosiji-native-magnet-tab[aria-selected="true"]{color:#1d4ed8;background:#e8f0ff;border-color:#c9d9ff}.laosiji-native-magnet-refresh{color:#1d4ed8;border-color:#bdd0ff;background:#f6f9ff}.laosiji-native-magnet-refresh:hover,.laosiji-native-magnet-action:hover,.laosiji-native-magnet-tab:not([aria-selected="true"]):hover{color:#1d4ed8;background:#f5f8fc;border-color:#a8c2ff}.laosiji-native-magnet-refresh:active,.laosiji-native-magnet-action:active,.laosiji-native-magnet-tab:active{background:#e8f0ff}.laosiji-native-magnet-tab:focus-visible,.laosiji-native-magnet-refresh:focus-visible,.laosiji-native-magnet-action:focus-visible,.laosiji-native-magnet-select:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px}.laosiji-native-magnet-controls{gap:8px;min-height:48px;padding:9px 14px;background:#fffbf6;border-bottom:1px solid #e6ddd3}.laosiji-native-magnet-select{height:30px;max-width:150px;padding:2px 24px 2px 8px;border:1px solid #cdd6e2;border-radius:4px;color:#344054;background:#fff;font-size:12px}.laosiji-native-magnet-default-tab{height:30px;padding:2px 24px 2px 8px;border:1px solid #ddd2c4;border-radius:4px;color:#77543b;background:#fffbf6;font-size:11px;cursor:pointer}.laosiji-native-magnet-default-tab:focus-visible{outline:2px solid #a85b2d;outline-offset:2px}.laosiji-native-magnet-rows{display:grid}.laosiji-native-magnet-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto;grid-template-areas:"index name actions" "index metadata actions";align-items:center;column-gap:10px;row-gap:6px;min-height:64px;padding:10px 14px;border-bottom:1px solid #eee7df;transition:background .16s ease}.laosiji-native-magnet-row:last-child{border-bottom:0}.laosiji-native-magnet-row:hover{background:#fff9f1}.laosiji-native-magnet-index{grid-area:index;color:#8a98a9;font-size:12px;font-variant-numeric:tabular-nums;text-align:right}.laosiji-native-magnet-name,.laosiji-native-magnet-title-line{min-width:0}.laosiji-native-magnet-name{grid-area:name}.laosiji-native-magnet-title-line{gap:7px}.laosiji-native-magnet-title-line>a{flex:0 1 auto;max-width:100%;min-width:0;overflow:hidden;color:#243b67;font-size:13px;font-weight:650;line-height:1.45;text-decoration:none;text-overflow:ellipsis;white-space:nowrap}.laosiji-native-magnet-title-line>a:hover{color:#1d4ed8;text-decoration:underline}.laosiji-native-magnet-tags{display:flex;flex:0 0 auto;flex-wrap:wrap;gap:5px}.laosiji-native-magnet-tag{display:inline-flex;align-items:center;min-height:20px;padding:1px 6px;border:1px solid #dfe5eb;border-radius:3px;color:#58677a;background:#f3f5f7;font-size:11px;font-weight:700;line-height:1;white-space:nowrap}.laosiji-native-magnet-tag[data-kind="four-k"]{color:#1d4ed8;background:#e8f0ff;border-color:#c9d9ff}.laosiji-native-magnet-tag[data-kind="subtitle"]{color:#a85b00;background:#fff2d9;border-color:#ffe0a5}.laosiji-native-magnet-metadata{grid-area:metadata;display:flex;flex-wrap:wrap;gap:5px 15px}.laosiji-native-magnet-meta{display:inline-flex;align-items:baseline;gap:4px;color:#344054;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.laosiji-native-magnet-meta::before{content:attr(data-label);color:#7b8796;font-size:11px;font-weight:500}.laosiji-native-magnet-actions{grid-area:actions;align-self:center;justify-content:flex-end;gap:6px;min-width:max-content}.laosiji-native-magnet-action-copy{color:#4b3d87;border-color:#d0c7ee;background:#f6f4ff}.laosiji-native-magnet-action-check{color:#176b9e;border-color:#b8d9ed;background:#f0f9ff}.laosiji-native-magnet-action-offline{color:#137553;border-color:#b7ddce;background:#effaf5}.laosiji-native-magnet-action-copy:hover{color:#3d3075;border-color:#b9aae5;background:#eeebff}.laosiji-native-magnet-action-check:hover{color:#115b89;border-color:#91c5e4;background:#e5f5ff}.laosiji-native-magnet-action-offline:hover{color:#0f6548;border-color:#8ac9b3;background:#e3f6ed}.laosiji-native-magnet-actions .mag-btn-group{display:inline-flex!important;align-items:center;gap:4px;margin:0!important;white-space:nowrap}.laosiji-native-magnet-actions .mag-btn-group .mag-btn{margin:0!important}.laosiji-native-magnet-empty{padding:22px 14px;color:#64748b;text-align:center;font-size:13px}.laosiji-native-magnet-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;color:#667085;background:#fffbf6;border-top:1px solid #eee7df;font-size:11px}html[data-theme="dark"] .laosiji-native-magnet-panel{color:#e5e7eb;background:#222b38;border-color:#435062;box-shadow:none}html[data-theme="dark"] .laosiji-native-magnet-head,html[data-theme="dark"] .laosiji-native-magnet-controls{border-color:#435062}html[data-theme="dark"] .laosiji-native-magnet-controls,html[data-theme="dark"] .laosiji-native-magnet-foot{background:#1d2632}html[data-theme="dark"] .laosiji-native-magnet-title,html[data-theme="dark"] .laosiji-native-magnet-meta,html[data-theme="dark"] .laosiji-native-magnet-title-line>a{color:#e5e7eb}html[data-theme="dark"] .laosiji-native-magnet-row{border-color:#374454}html[data-theme="dark"] .laosiji-native-magnet-row:hover{background:#293545}html[data-theme="dark"] .laosiji-native-magnet-count,html[data-theme="dark"] .laosiji-native-magnet-foot,html[data-theme="dark"] .laosiji-native-magnet-empty,html[data-theme="dark"] .laosiji-native-magnet-meta::before,html[data-theme="dark"] .laosiji-native-magnet-index{color:#aeb9c7}html[data-theme="dark"] .laosiji-native-magnet-tab,html[data-theme="dark"] .laosiji-native-magnet-action,html[data-theme="dark"] .laosiji-native-magnet-select,html[data-theme="dark"] .laosiji-native-magnet-default-tab{color:#d9e1ea;background:#253141;border-color:#536276}html[data-theme="dark"] .laosiji-native-magnet-refresh{color:#c8dbff;background:#1f3658;border-color:#4775bc}html[data-theme="dark"] .laosiji-native-magnet-tab[aria-selected="true"]{color:#dce9ff;background:#244b89;border-color:#4e82d5}@media (max-width:760px){.laosiji-native-magnet-head{align-items:flex-start;flex-direction:column;gap:8px;padding:11px 12px}.laosiji-native-magnet-controls{width:100%;align-items:flex-start;flex-wrap:wrap;min-height:0;padding:9px 12px}.laosiji-native-magnet-tab,.laosiji-native-magnet-refresh,.laosiji-native-magnet-action,.laosiji-native-magnet-select,.laosiji-native-magnet-default-tab{min-height:44px}.laosiji-native-magnet-row{grid-template-columns:24px minmax(0,1fr);grid-template-areas:none;gap:8px;min-height:0;padding:11px 12px}.laosiji-native-magnet-name{grid-column:2;grid-row:1}.laosiji-native-magnet-title-line{align-items:flex-start;flex-wrap:wrap}.laosiji-native-magnet-title-line>a{flex:1 1 100%;overflow:visible;white-space:normal}.laosiji-native-magnet-metadata{grid-column:2;grid-row:2;gap:10px}.laosiji-native-magnet-meta{text-align:left}.laosiji-native-magnet-actions{grid-column:2;grid-row:3;justify-content:flex-start;flex-wrap:wrap}.laosiji-native-magnet-foot{padding:10px 12px}}`);
+    },
+  };
+  const NativeMagnetPanel = (() => {
+    NativeMagnetPanelStyles.install();
+    const PANEL_CLASS = 'laosiji-native-magnet-panel';
+    const mountObservers = new Map();
+    function cleanText(node, removeSelectors = []) {
+      if (!node) return '';
+      const copy = node.cloneNode(true);
+      removeSelectors.forEach(selector => copy.querySelectorAll(selector).forEach(el => el.remove()));
+      return (copy.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+    function addText(el, text) {
+      el.textContent = String(text || '').trim();
+      return el;
+    }
+    function toAbsoluteUrl(url) {
+      if (!url) return '';
+      try {
+        return new URL(url, location.href).href;
+      } catch (_) { return url; }
+    }
+    function getAssistantGroup(node) {
+      const group = node?.querySelector('.mag-btn-group');
+      if (!group) return null;
+      return { group, parent: group.parentNode, next: group.nextSibling };
+    }
+    function parseNativeTags(node) {
+      return [...node.querySelectorAll('.tags .tag, .btn-mini-new')] .map(tag => cleanText(tag)) .filter(Boolean);
+    }
+    function normalizeQualityTags(title, nativeTags = []) {
+      const tags = new Set();
+      const text =`${title || ''} ${nativeTags.join(' ')}`;
+      nativeTags.forEach(tag => {
+        const value = String(tag || '').trim();
+        if (!value) return;
+        if (/(?:4k|2160p)/i.test(value)) tags.add('4K');
+        else if (/(?:中字|字幕|CHS|CHT)/i.test(value)) tags.add('中字');
+        else tags.add(value);
+      });
+      if (/(?:4k|2160p)/i.test(text)) tags.add('4K');
+      if (/(?:中字|中文字幕|中文.*字幕|CHS|CHT|(?:^|[^A-Z])CH(?:$|[^A-Z]))/i.test(text)) tags.add('中字');
+      if (/(?:^|[^A-Z])(?:HD|FHD|1080P|720P)(?:$|[^A-Z])/i.test(text)) tags.add('高清');
+      return [...tags].slice(0, 3);
+    }
+    function tagKind(value) {
+      if (value === '4K') return 'four-k';
+      if (value === '中字') return 'subtitle';
+      return '';
+    }
+    function parseJavbusItems(container) {
+      return [...container.querySelectorAll('tr')] .map(row => {
+          const cells = [...row.querySelectorAll(':scope > td')];
+          const magnetLink = row.querySelector('a[href^="magnet:"]');
+          if (!magnetLink || cells.length < 2) return null;
+          const title = cleanText(cells[0], ['.mag-btn-group', '.btn-mini-new']) || cleanText(magnetLink);
+          return {
+            title,
+            maglink: magnetLink.href,
+            size: cleanText(cells[1]),
+            files: '',
+            date: cleanText(cells[2]),
+            tags: normalizeQualityTags(title, parseNativeTags(cells[0])),
+            assistant: getAssistantGroup(cells[0]),
+          };
+        }) .filter(Boolean);
+    }
+    function parseJavdbItems(container) {
+      return [...container.querySelectorAll('.item')] .map(row => {
+          const magnetLink = row.querySelector('.magnet-name a[href^="magnet:"]');
+          if (!magnetLink) return null;
+          const metaText = cleanText(row.querySelector('.magnet-name .meta'));
+          const [size = '', files = ''] = metaText.split(/[,，]/).map(part => part.trim());
+          const title = cleanText(row.querySelector('.magnet-name .name')) || cleanText(magnetLink);
+          return {
+            title,
+            maglink: magnetLink.href,
+            size,
+            files,
+            date: cleanText(row.querySelector('.date .time, .date')),
+            tags: normalizeQualityTags(title, parseNativeTags(row)),
+            assistant: getAssistantGroup(row.querySelector('.magnet-name')),
+          };
+        }) .filter(Boolean);
+    }
+    function buildNativeItems(site, container) {
+      if (site === 'javbus') return parseJavbusItems(container);
+      if (site === 'javdb') return parseJavdbItems(container);
+      return [];
+    }
+    function normalizeAggregateItems(data, { titleAsMagnet = false } = {}) {
+      return data.map(item => ({
+        title: String(item?.title || item?.maglink || ''),
+        maglink: item?.maglink || '',
+        src: titleAsMagnet ? '' : toAbsoluteUrl(item?.src || ''),
+        size: String(item?.size || ''),
+        files: String(item?.files || ''),
+        date: Magnet.formatDate(item),
+        tags: normalizeQualityTags(item?.title, [
+          item?.cnsub ? '中字' : '',
+          item?.hd ? '高清' : '',
+        ]),
+      })).filter(item => item.title && item.maglink);
+    }
+    function createButton(label, className, onClick) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      button.textContent = label;
+      button.addEventListener('click', onClick);
+      return button;
+    }
+    function appendFallbackActions(actions, item) {
+      const copyButton = createButton('复制', 'laosiji-native-magnet-action laosiji-native-magnet-action-copy', () => {
+        GM_setClipboard(item.maglink);
+        copyButton.textContent = '已复制';
+        setTimeout(() => { copyButton.textContent = '复制'; }, 900);
+      });
+      const checkButton = createButton('验车', 'laosiji-native-magnet-action laosiji-native-magnet-action-check', () => {
+        MagnetActions.checkWhatslink(item.maglink);
+      });
+      const offlineButton = createButton('115离线', 'laosiji-native-magnet-action laosiji-native-magnet-action-offline', () => {
+        MagnetActions.offline115(item.maglink);
+      });
+      actions.append(copyButton, checkButton, offlineButton);
+    }
+    function appendActions(actions, item) {
+      if (item.assistant?.group) {
+        item.assistant.group._laosijiNativeOrigin = item.assistant;
+        actions.appendChild(item.assistant.group);
+        return;
+      }
+      appendFallbackActions(actions, item);
+    }
+    function restoreAssistantGroups(panel) {
+      panel.querySelectorAll('.mag-btn-group').forEach(group => {
+        const origin = group._laosijiNativeOrigin;
+        if (!origin?.parent?.isConnected) return;
+        origin.parent.insertBefore(group, origin.next || null);
+        delete group._laosijiNativeOrigin;
+      });
+    }
+    function createMeta(value, label) {
+      const meta = document.createElement('span');
+      meta.className = 'laosiji-native-magnet-meta';
+      meta.title = label;
+      meta.dataset.label = label;
+      meta.textContent = value || '—';
+      return meta;
+    }
+    function renderRows(state) {
+      const rows = state.panel.querySelector('.laosiji-native-magnet-rows');
+      const count = state.panel.querySelector('.laosiji-native-magnet-count');
+      const source = state.panel.querySelector('.laosiji-native-magnet-source');
+      const items = state.activeTab === 'aggregate' ? Magnet.sortData(state.aggregateItems, CFG.magnetSort)
+        : state.nativeItems;
+      restoreAssistantGroups(rows);
+      rows.replaceChildren();
+      count.textContent =`${items.length} 条`;
+      source.textContent = state.activeTab === 'aggregate'
+        ?`聚合：${MagnetEngines.labels()[state.engineKey] || state.engineKey}`                : '站内原始条目';
+      if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'laosiji-native-magnet-empty';
+        empty.textContent = state.activeTab === 'aggregate' ? '没有搜索到可用磁力' : '站内暂时没有可用磁力';
+        rows.appendChild(empty);
+        return;
+      }
+      items.forEach((item, index) => {
+        const row = document.createElement('article');
+        row.className = 'laosiji-native-magnet-row';
+        const rowIndex = document.createElement('span');
+        rowIndex.className = 'laosiji-native-magnet-index';
+        rowIndex.textContent = String(index + 1).padStart(2, '0');
+        const name = document.createElement('div');
+        name.className = 'laosiji-native-magnet-name';
+        const titleLine = document.createElement('div');
+        titleLine.className = 'laosiji-native-magnet-title-line';
+        const title = document.createElement('a');
+        title.href = item.src || item.maglink;
+        title.target = item.src ? '_blank' : '_self';
+        title.rel = item.src ? 'noopener noreferrer' : '';
+        title.title = item.title;
+        addText(title, item.title);
+        titleLine.appendChild(title);
+        if (item.tags?.length) {
+          const tags = document.createElement('div');
+          tags.className = 'laosiji-native-magnet-tags';
+          item.tags.forEach(value => {
+            const tag = document.createElement('span');
+            tag.className = 'laosiji-native-magnet-tag';
+            const kind = tagKind(value);
+            if (kind) tag.dataset.kind = kind;
+            addText(tag, value);
+            tags.appendChild(tag);
+          });
+          titleLine.appendChild(tags);
+        }
+        name.appendChild(titleLine);
+        const metadata = document.createElement('div');
+        metadata.className = 'laosiji-native-magnet-metadata';
+        metadata.append( createMeta(item.size, '大小'), createMeta(item.files, '文件'), createMeta(item.date, '日期') );
+        const actions = document.createElement('div');
+        actions.className = 'laosiji-native-magnet-actions';
+        appendActions(actions, item);
+        row.append(rowIndex, name, metadata, actions);
+        rows.appendChild(row);
+      });
+    }
+    function syncTabControls(state) {
+      const nativeButton = state.panel.querySelector('[data-native-magnet-tab="native"]');
+      const aggregateButton = state.panel.querySelector('[data-native-magnet-tab="aggregate"]');
+      const aggregateControls = state.panel.querySelector('.laosiji-native-magnet-controls');
+      const isAggregate = state.activeTab === 'aggregate';
+      nativeButton?.setAttribute('aria-selected', String(!isAggregate));
+      aggregateButton?.setAttribute('aria-selected', String(isAggregate));
+      aggregateControls.hidden = !isAggregate;
+    }
+    async function loadAggregate(state) {
+      const rows = state.panel.querySelector('.laosiji-native-magnet-rows');
+      const select = state.panel.querySelector('[data-native-magnet-engine]');
+      const refresh = state.panel.querySelector('.laosiji-native-magnet-refresh');
+      const empty = document.createElement('div');
+      empty.className = 'laosiji-native-magnet-empty';
+      empty.textContent = '正在搜索聚合磁力…';
+      rows.replaceChildren(empty);
+      select.disabled = true;
+      refresh.disabled = true;
+      try {
+        const engines = MagnetEngines.getAll();
+        const search = engines[state.engineKey] || Object.values(engines)[0];
+        const result = await search(state.avid);
+        state.aggregateItems = normalizeAggregateItems(result?.data || [], {
+          titleAsMagnet: state.engineKey === CFG.javdbSearchUrl,
+        });
+        state.aggregateUrl = result?.url || '';
+        renderRows(state);
+      } catch (error) {
+        errorLog('磁力聚合搜索出错:', error);
+        empty.textContent = '聚合搜索失败，请刷新重试';
+      } finally {
+        select.disabled = false;
+        refresh.disabled = false;
+      }
+    }
+    function activateTab(state, tab) {
+      state.activeTab = tab;
+      syncTabControls(state);
+      if (tab === 'aggregate') {
+        if (state.aggregateItems === null) loadAggregate(state);
+        else renderRows(state);
+        return;
+      }
+      renderRows(state);
+    }
+    function createPanel(site, avid, nativeItems) {
+      const panel = document.createElement('section');
+      panel.className =`${PANEL_CLASS} laosiji-native-magnet-${site}`;
+      panel.dataset.site = site;
+      const state = {
+        panel,
+        site,
+        avid,
+        nativeItems,
+        aggregateItems: null,
+        aggregateUrl: '',
+        engineKey: CFG.defaultEngine,
+        activeTab: nativeItems.length ? CFG.nativeMagnetDefaultTab : 'aggregate',
+      };
+      const head = document.createElement('header');
+      head.className = 'laosiji-native-magnet-head';
+      const heading = document.createElement('div');
+      const title = document.createElement('span');
+      title.className = 'laosiji-native-magnet-title';
+      title.textContent = '磁力资源';
+      const count = document.createElement('span');
+      count.className = 'laosiji-native-magnet-count';
+      heading.append(title, count);
+      const tabs = document.createElement('div');
+      tabs.className = 'laosiji-native-magnet-tabs';
+      if (nativeItems.length) {
+        const nativeButton = createButton('站内磁力', 'laosiji-native-magnet-tab', () => activateTab(state, 'native'));
+        nativeButton.dataset.nativeMagnetTab = 'native';
+        tabs.appendChild(nativeButton);
+      }
+      const aggregateButton = createButton('聚合搜索', 'laosiji-native-magnet-tab', () => activateTab(state, 'aggregate'));
+      aggregateButton.dataset.nativeMagnetTab = 'aggregate';
+      tabs.appendChild(aggregateButton);
+      const tabTools = document.createElement('div');
+      tabTools.className = 'laosiji-native-magnet-tab-tools';
+      tabTools.appendChild(tabs);
+      if (nativeItems.length) {
+        const defaultTabSelect = document.createElement('select');
+        defaultTabSelect.className = 'laosiji-native-magnet-default-tab';
+        defaultTabSelect.setAttribute('aria-label', '默认显示的磁力页签');
+        defaultTabSelect.title = '设置以后进入详情页时默认显示的页签';
+        defaultTabSelect.add(new Option('默认：站内磁力', 'native'));
+        defaultTabSelect.add(new Option('默认：聚合搜索', 'aggregate'));
+        defaultTabSelect.value = CFG.nativeMagnetDefaultTab;
+        defaultTabSelect.addEventListener('change', () => {
+          CFG.nativeMagnetDefaultTab = defaultTabSelect.value;
+          activateTab(state, defaultTabSelect.value);
+        });
+        tabTools.appendChild(defaultTabSelect);
+      }
+      head.append(heading, tabTools);
+      const controls = document.createElement('div');
+      controls.className = 'laosiji-native-magnet-controls';
+      const engineSelect = document.createElement('select');
+      engineSelect.className = 'laosiji-native-magnet-select';
+      engineSelect.dataset.nativeMagnetEngine = '1';
+      engineSelect.setAttribute('aria-label', '磁力引擎');
+      const engines = MagnetEngines.getAll();
+      const labels = MagnetEngines.labels();
+      Object.keys(engines).forEach(key => {
+        engineSelect.add(new Option(labels[key] || key, key, false, key === state.engineKey));
+      });
+      engineSelect.addEventListener('change', () => {
+        state.engineKey = engineSelect.value;
+        state.aggregateItems = null;
+        loadAggregate(state);
+      });
+      const sortSelect = document.createElement('select');
+      sortSelect.className = 'laosiji-native-magnet-select';
+      sortSelect.setAttribute('aria-label', '聚合结果排序');
+      [['size', '大小优先'], ['newest', '最新收录'], ['oldest', '最早收录']]
+        .forEach(([value, label]) => sortSelect.add(new Option(label, value)));
+      sortSelect.value = CFG.magnetSort;
+      sortSelect.addEventListener('change', () => {
+        CFG.magnetSort = sortSelect.value;
+        if (state.aggregateItems) renderRows(state);
+      });
+      const refresh = createButton('刷新', 'laosiji-native-magnet-refresh', () => {
+        if (state.activeTab === 'aggregate') {
+          state.aggregateItems = null;
+          loadAggregate(state);
+        } else { renderRows(state); }
+      });
+      controls.append(engineSelect, sortSelect, refresh);
+      const rows = document.createElement('div');
+      rows.className = 'laosiji-native-magnet-rows';
+      const foot = document.createElement('footer');
+      foot.className = 'laosiji-native-magnet-foot';
+      const source = document.createElement('span');
+      source.className = 'laosiji-native-magnet-source';
+      const hint = document.createElement('span');
+      hint.textContent = nativeItems.length ? '聚合结果不会覆盖站内磁力' : '聚合搜索沿用已配置的磁力引擎';
+      foot.append(source, hint);
+      panel.append(head, controls, rows, foot);
+      panel._laosijiNativeMagnetState = state;
+      activateTab(state, state.activeTab);
+      return panel;
+    }
+    function hideNativeSource(source) {
+      source.dataset.laosijiNativeDisplay = source.style.display || '';
+      source.dataset.laosijiNativeHidden = '1';
+      source.style.display = 'none';
+    }
+    function restoreNativeSource(source) {
+      if (source.dataset.laosijiNativeHidden !== '1') return;
+      source.style.display = source.dataset.laosijiNativeDisplay || '';
+      delete source.dataset.laosijiNativeDisplay;
+      delete source.dataset.laosijiNativeHidden;
+    }
+    function remove(site) {
+      if (site) {
+        mountObservers.get(site)?.disconnect();
+        mountObservers.delete(site);
+      } else {
+        mountObservers.forEach(observer => observer.disconnect());
+        mountObservers.clear();
+      }
+      document.querySelectorAll(`.${PANEL_CLASS}${site ? `[data-site="${site}"]` : ''}`).forEach(panel => {
+        restoreAssistantGroups(panel);
+        panel.remove();
+      });
+      document.querySelectorAll('[data-laosiji-native-hidden="1"]').forEach(restoreNativeSource);
+      document.querySelectorAll('.laosiji-native-magnet-divider').forEach(divider => divider.remove());
+    }
+    function mount(site, avid) {
+      if (CFG.magnetDisplayMode !== 'native-replace') return false;
+      if (document.querySelector(`.${PANEL_CLASS}[data-site="${site}"]`)) return true;
+      if (site === 'javlib') {
+        const reviews = document.querySelector('#video_reviews');
+        if (!reviews) return false;
+        const panel = createPanel(site, avid, []);
+        const divider = document.createElement('hr');
+        divider.className = 'grey laosiji-native-magnet-divider';
+        reviews.insertAdjacentElement('beforebegin', panel);
+        panel.insertAdjacentElement('afterend', divider);
+        return true;
+      }
+      const source = site === 'javbus' ? document.querySelector('#magnet-table')
+        : document.querySelector('#magnets-content');
+      if (!source) return false;
+      const nativeItems = buildNativeItems(site, source);
+      if (!nativeItems.length) return false;
+      const panel = createPanel(site, avid, nativeItems);
+      source.insertAdjacentElement('afterend', panel);
+      hideNativeSource(source);
+      return true;
+    }
+    function scheduleMount(site, avid) {
+      mountObservers.get(site)?.disconnect();
+      mountObservers.delete(site);
+      const tryMount = () => {
+        if (CFG.magnetDisplayMode !== 'native-replace' || mount(site, avid)) {
+          mountObservers.get(site)?.disconnect();
+          mountObservers.delete(site);
+          return true;
+        }
+        return false;
+      };
+      if (tryMount()) return;
+      if (typeof MutationObserver === 'undefined' || !document.documentElement) {
+        [300, 800, 1600, 3000, 6000, 10000].forEach(delay => setTimeout(tryMount, delay));
+        return;
+      }
+      let pending = false;
+      const observer = new MutationObserver(() => {
+        if (pending) return;
+        pending = true;
+        queueMicrotask(() => {
+          pending = false;
+          tryMount();
+        });
+      });
+      mountObservers.set(site, observer);
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+    }
+    return { mount, scheduleMount, remove };
+  })();
+  Core.expose('__LAOSIJI_NATIVE_MAGNET_PANEL__', NativeMagnetPanel);
   function openJavdbApiLoginDialog(nextUrl = '') {
     if (!document.body) {
       setTimeout(() => openJavdbApiLoginDialog(nextUrl), 50);
@@ -2165,6 +2609,12 @@
       insertAvidCopyBtn(anchor || infoCol.querySelector('h3'), avid, null, true);
     },
     _insertMagnet(avid) {
+      if (CFG.magnetDisplayMode === 'native-replace') {
+        document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
+        NativeMagnetPanel.scheduleMount('javbus', avid);
+        return;
+      }
+      NativeMagnetPanel.remove('javbus');
       if (!CFG.magnetTable) return;
       const infoCol = document.querySelector("div[class='col-md-3 info']");
       if (!infoCol) return;
@@ -2742,7 +3192,6 @@
   const JavdbApiTabStyles = {
     installMovieTabs() {
       injectStyle('javdb-api-movie-tab-style',`#tabs-container[data-laosiji-api-movie-tabs] .top-meta{display:none!important}.javdb-api-tab-loading,.javdb-api-tab-empty,.javdb-api-tab-error,.javdb-api-tab-end{padding:12px 14px!important;color:#64748b!important;font-size:13px!important;font-weight:700!important}.javdb-api-tab-error{color:#be123c!important}.javdb-api-review,.javdb-api-related{margin:0!important;padding:11px 12px!important;border-bottom:1px solid #edf2f7!important;background:#fff!important;word-break:break-word!important}.javdb-api-review-head,.javdb-api-related-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important;color:#334155!important;font-size:13px!important}.javdb-api-review-content,.javdb-api-related-desc{margin-top:7px!important;color:#1f2937!important;font-size:var(--laosiji-review-font-size,15px)!important;line-height:1.65!important;white-space:normal!important}.javdb-api-related-meta{display:flex!important;gap:10px!important;flex-wrap:wrap!important;margin-top:7px!important;color:#64748b!important;font-size:12px!important}.javdb-api-tab-footer{padding:10px 0 0!important}.javdb-api-tab-load-more{width:100%!important;min-height:34px!important;border:1px solid #bfdbfe!important;border-radius:6px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:13px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-toggle{width:100%!important;min-height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:13px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-review-toggle::before{content:"▸";color:#64748b;font-size:13px}.javdb-api-review-collapse-bar{display:flex!important;align-items:center!important;gap:8px!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-collapse{min-height:28px!important;padding:0 10px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-default-row{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-default-toggle{display:inline-flex!important;align-items:center!important;gap:6px!important;color:#475569!important;font-size:12px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important}.javdb-api-review-default-toggle input{position:absolute!important;opacity:0!important;pointer-events:none!important}.javdb-api-review-default-switch{position:relative!important;width:28px!important;height:16px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#e5e7eb!important;transition:background .16s ease,border-color .16s ease!important}.javdb-api-review-default-switch::before{content:""!important;position:absolute!important;top:2px!important;left:2px!important;width:10px!important;height:10px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 2px rgba(15,23,42,.22)!important;transition:transform .16s ease!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch{border-color:#2563eb!important;background:#2563eb!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch::before{transform:translateX(12px)!important}html[data-theme="dark"] .javdb-api-review-default-toggle{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-review-default-switch{border-color:#52525b!important;background:#3f3f46!important}.javdb-api-review-font-size{display:inline-flex!important;align-items:center!important;gap:5px!important;color:#475569!important;font-size:12px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important}.javdb-api-review-font-size select{min-height:24px!important;padding:0 18px 0 7px!important;border:1px solid #cbd5e1!important;border-radius:6px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;outline:none!important}html[data-theme="dark"] .javdb-api-review-font-size{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-review-font-size select{border-color:#52525b!important;background:#2f2f2f!important;color:#e5e7eb!important}.javdb-api-tab-badge-item{display:flex!important;align-items:center!important;margin-left:4px!important;pointer-events:auto!important}.javdb-api-tab-badge{margin-left:0!important;align-self:center!important;display:inline-flex!important;align-items:center!important;height:20px!important;padding:0 7px!important;border:1px solid #bfdbfe!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}.javdb-api-tab-default-item{display:flex!important;align-items:center!important;margin-left:auto!important;pointer-events:auto!important}.javdb-api-tab-default-control{display:inline-flex!important;align-items:center!important;gap:3px!important;height:24px!important;padding:2px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#f8fafc!important;color:#64748b!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}.javdb-api-tab-default-label{padding:0 5px!important}.javdb-api-tab-default-btn{min-width:34px!important;height:18px!important;padding:0 7px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:#64748b!important;font-size:11px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-tab-default-btn.is-active{background:#2563eb!important;color:#fff!important}html[data-theme="dark"] .javdb-api-tab-default-control{border-color:#52525b!important;background:#2f2f2f!important;color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-default-btn{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-default-btn.is-active{background:#3b82f6!important;color:#fff!important}`);
-      injectStyle('javdb-api-movie-magnet-style',`#tabs-container[data-laosiji-api-movie-tabs] .magnet-links[data-laosiji-api-source="1"]{display:grid!important;gap:6px!important}#tabs-container[data-laosiji-api-movie-tabs] .magnet-links[data-laosiji-api-source="1"] .javdb-api-magnet-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto 92px!important;align-items:center!important;gap:8px!important;margin:0!important;padding:8px 10px!important;border:1px solid #e5e7eb!important;border-radius:8px!important;background:#fff!important}#tabs-container[data-laosiji-api-movie-tabs] .magnet-links[data-laosiji-api-source="1"] .javdb-api-magnet-row.odd{background:#f8fafc!important}#tabs-container[data-laosiji-api-movie-tabs] .magnet-links[data-laosiji-api-source="1"] .javdb-api-magnet-row>.column{width:auto!important;margin:0!important;padding:0!important;flex:none!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-row .magnet-name{min-width:0!important;display:flex!important;align-items:center!important;gap:8px!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-link{min-width:0!important;flex:1 1 auto!important;display:flex!important;align-items:center!important;gap:8px!important;overflow:hidden!important;text-decoration:none!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-link .name{min-width:0!important;flex:1 1 auto!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:13px!important;font-weight:760!important;line-height:1.35!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-meta{flex:0 0 auto!important;color:#64748b!important;font-size:12px!important;font-weight:700!important;white-space:nowrap!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-tags{flex:0 0 auto!important;display:inline-flex!important;align-items:center!important;gap:4px!important;margin:0!important;white-space:nowrap!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-tags .tag{height:18px!important;margin:0!important;padding:0 6px!important;font-size:11px!important;font-weight:850!important;line-height:18px!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;margin:0!important;min-width:100px!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-actions .button{height:24px!important;min-height:24px!important;padding:0 8px!important;border-radius:6px!important;font-size:12px!important;line-height:1!important;margin:0!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-date{min-width:82px!important;text-align:right!important;color:#64748b!important;font-size:12px!important;font-weight:700!important;white-space:nowrap!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-row .mag-btn-group{flex:0 0 auto!important;display:inline-flex!important;align-items:center!important;gap:4px!important;margin-left:0!important;white-space:nowrap!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-row .mag-btn{width:22px!important;height:22px!important;min-width:22px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links[data-laosiji-api-source="1"] .javdb-api-magnet-row{background:#252525!important;border-color:#3f3f46!important;color:#e5e7eb!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links[data-laosiji-api-source="1"] .javdb-api-magnet-row.odd{background:#2a2a2a!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-meta,html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-date{color:#94a3b8!important}@media (max-width:760px){#tabs-container[data-laosiji-api-movie-tabs] .magnet-links[data-laosiji-api-source="1"] .javdb-api-magnet-row{grid-template-columns:minmax(0,1fr)!important;align-items:stretch!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-link{flex-wrap:wrap!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-link .name{flex-basis:100%!important}#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-actions,#tabs-container[data-laosiji-api-movie-tabs] .javdb-api-magnet-date{justify-content:flex-start!important;text-align:left!important}}`);
     },
   };
   const JavdbApiTabs = {
@@ -2932,6 +3381,7 @@
           const magnets = Array.isArray(json?.data?.magnets) ? json.data.magnets : [];
           pane.innerHTML = this._renderApiMagnets(magnets);
           pane.dataset.laosijiApiLoaded = '1';
+          if (CFG.magnetDisplayMode === 'native-replace') { NativeMagnetPanel.scheduleMount('javdb', this.getVid()); }
           return;
         }
         if (tab === 'reviews') {
@@ -2979,6 +3429,7 @@
         reviews: document.querySelector('[data-movie-tab-target="reviewTab"] a'),
         lists: document.querySelector('[data-movie-tab-target="listTab"] a'),
       };
+      const useNativeMagnets = () => CFG.magnetDisplayMode !== 'sidebar';
       Object.entries(tabLinks).forEach(([key, link]) => {
         if (!link) return;
         link.dataset.laosijiApiTab = key;
@@ -3020,8 +3471,10 @@
             } else if (pane && pane.dataset.laosijiApiLoaded !== '1' && !pane.querySelector('[data-laosiji-api-expand-reviews]')) {
               pane.innerHTML = this._renderApiReviewCollapsed();
             }
-          } else if (pane && pane.dataset.laosijiApiLoaded !== '1') {
+          } else if (!useNativeMagnets() && pane && pane.dataset.laosijiApiLoaded !== '1') {
             this._loadApiMovieTab(movieId, tab);
+          } else if (CFG.magnetDisplayMode === 'native-replace') {
+            NativeMagnetPanel.scheduleMount('javdb', this.getVid());
           }
           return;
         }
@@ -3071,6 +3524,10 @@
         const tab = tabLink.dataset.laosijiApiTab;
         this._setApiMovieTab(tab);
         const pane = document.getElementById(tab === 'magnets' ? 'magnets' : tab);
+        if (tab === 'magnets' && useNativeMagnets()) {
+          if (CFG.magnetDisplayMode === 'native-replace') { NativeMagnetPanel.scheduleMount('javdb', this.getVid()); }
+          return;
+        }
         if (pane && pane.dataset.laosijiApiLoaded !== '1') {
           if (tab === 'reviews') {
             if (CFG.reviewsDefaultExpanded) {
@@ -3084,7 +3541,9 @@
       const defaultTab = CFG.apiMovieDefaultTab;
       this._setApiMovieTab(defaultTab);
       if (defaultTab === 'magnets') {
-        this._loadApiMovieTab(movieId, 'magnets');
+        if (useNativeMagnets()) {
+          if (CFG.magnetDisplayMode === 'native-replace') { NativeMagnetPanel.scheduleMount('javdb', this.getVid()); }
+        } else { this._loadApiMovieTab(movieId, 'magnets'); }
         reviewsPane.innerHTML = this._renderApiReviewCollapsed();
       } else if (CFG.reviewsDefaultExpanded) {
         this._loadApiMovieTab(movieId, 'reviews');
@@ -3724,7 +4183,7 @@
       });
     },
     _ensureDarkThemeStyle() {
-      injectStyle('javdb-dark-style',`html[data-theme="dark"] .jav-card{background:#252525!important;border-color:#3f3f46!important;box-shadow:0 1px 4px rgba(0,0,0,.34)!important}html[data-theme="dark"] .jav-card:hover{border-color:rgba(96,165,250,.58)!important;box-shadow:0 12px 26px rgba(0,0,0,.38)!important}html[data-theme="dark"] .jav-card-link,html[data-theme="dark"] .javdb-card-grid .item .javdb-card-link.box{background:#252525!important;color:#8ab4ff!important}html[data-theme="dark"] .jav-card-link:visited{color:#94a3b8!important}html[data-theme="dark"] .jav-card-cover,html[data-theme="dark"] .jav-card-image{background:#18181b!important;border-color:#3f3f46!important}html[data-theme="dark"] .javdb-card-score{color:#cbd5e1!important}html[data-theme="dark"] .javdb-card-meta{color:#94a3b8!important}html[data-theme="dark"] .javdb-card-tags .tag:not(.is-success):not(.is-info):not(.is-primary):not(.is-warning):not(.is-danger){background:#333333!important;color:#d1d5db!important}html[data-theme="dark"] .jav-nong-wrapper{background:transparent!important;color:#d1d5db!important}html[data-theme="dark"] #jav-nong-table{background:#2f2f2f!important;color:#d1d5db!important}html[data-theme="dark"] #jav-nong-table th,html[data-theme="dark"] #jav-nong-table td{background:#262626!important;border-color:#3f3f46!important;color:#d1d5db!important}html[data-theme="dark"] #jav-nong-table .nong-head-row th{background:#303030!important;color:#e5e7eb!important}html[data-theme="dark"] #jav-nong-table .nong-magnet-name>a{color:#8ab4ff!important}html[data-theme="dark"] #jav-nong-notice,html[data-theme="dark"] #jav-nong-refresh{color:#cbd5e1!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] article.message.video-panel,html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] article.message.video-panel .message-body{background:#252525!important;border-color:#3f3f46!important;color:#e5e7eb!important}html[data-theme="dark"] .javdb-api-review,html[data-theme="dark"] .javdb-api-related{background:#252525!important;border-bottom-color:#3f3f46!important}html[data-theme="dark"] .javdb-api-review-head,html[data-theme="dark"] .javdb-api-related-head,html[data-theme="dark"] .javdb-api-review-content,html[data-theme="dark"] .javdb-api-related-desc{color:#e5e7eb!important}html[data-theme="dark"] .javdb-api-related-meta,html[data-theme="dark"] .javdb-api-tab-loading,html[data-theme="dark"] .javdb-api-tab-empty,html[data-theme="dark"] .javdb-api-tab-end{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-error{color:#fb7185!important}html[data-theme="dark"] .javdb-api-review-toggle,html[data-theme="dark"] .javdb-api-review-collapse,html[data-theme="dark"] .javdb-api-tab-load-more{background:#2f3b4f!important;border-color:#4b5f80!important;color:#dbeafe!important}html[data-theme="dark"] .javdb-api-review-toggle::before{color:#93c5fd!important}html[data-theme="dark"] .javdb-api-tab-badge{background:#1e3a5f!important;border-color:#3b82f6!important;color:#dbeafe!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .item{background:#252525!important;border-color:#3f3f46!important;color:#e5e7eb!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .item.odd{background:#2a2a2a!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .magnet-name a,html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links a{color:#8ab4ff!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .meta,html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] .magnet-links .date{color:#94a3b8!important}html[data-theme="dark"] .jav-stills-shell{background:#252525!important;border-color:#3f3f46!important;box-shadow:0 8px 18px rgba(0,0,0,.28)!important}html[data-theme="dark"] .jav-stills-rail>a,html[data-theme="dark"] .jav-stills-rail>.tile-item,html[data-theme="dark"] .jav-stills-rail>.preview-video-container{background:#1f2937!important;border-color:#4b5563!important;box-shadow:none!important}html[data-theme="dark"] .jav-stills-arrow{background:rgba(39,39,42,.92)!important;border-color:#52525b!important;color:#e5e7eb!important}html[data-theme="dark"] .jav-stills-arrow:hover{background:#303030!important;border-color:rgba(96,165,250,.58)!important}`);
+      injectStyle('javdb-dark-style',`html[data-theme="dark"] .jav-card{background:#252525!important;border-color:#3f3f46!important;box-shadow:0 1px 4px rgba(0,0,0,.34)!important}html[data-theme="dark"] .jav-card:hover{border-color:rgba(96,165,250,.58)!important;box-shadow:0 12px 26px rgba(0,0,0,.38)!important}html[data-theme="dark"] .jav-card-link,html[data-theme="dark"] .javdb-card-grid .item .javdb-card-link.box{background:#252525!important;color:#8ab4ff!important}html[data-theme="dark"] .jav-card-link:visited{color:#94a3b8!important}html[data-theme="dark"] .jav-card-cover,html[data-theme="dark"] .jav-card-image{background:#18181b!important;border-color:#3f3f46!important}html[data-theme="dark"] .javdb-card-score{color:#cbd5e1!important}html[data-theme="dark"] .javdb-card-meta{color:#94a3b8!important}html[data-theme="dark"] .javdb-card-tags .tag:not(.is-success):not(.is-info):not(.is-primary):not(.is-warning):not(.is-danger){background:#333333!important;color:#d1d5db!important}html[data-theme="dark"] .jav-nong-wrapper{background:transparent!important;color:#d1d5db!important}html[data-theme="dark"] #jav-nong-table{background:#2f2f2f!important;color:#d1d5db!important}html[data-theme="dark"] #jav-nong-table th,html[data-theme="dark"] #jav-nong-table td{background:#262626!important;border-color:#3f3f46!important;color:#d1d5db!important}html[data-theme="dark"] #jav-nong-table .nong-head-row th{background:#303030!important;color:#e5e7eb!important}html[data-theme="dark"] #jav-nong-table .nong-magnet-name>a{color:#8ab4ff!important}html[data-theme="dark"] #jav-nong-notice,html[data-theme="dark"] #jav-nong-refresh{color:#cbd5e1!important}html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] article.message.video-panel,html[data-theme="dark"] #tabs-container[data-laosiji-api-movie-tabs] article.message.video-panel .message-body{background:#252525!important;border-color:#3f3f46!important;color:#e5e7eb!important}html[data-theme="dark"] .javdb-api-review,html[data-theme="dark"] .javdb-api-related{background:#252525!important;border-bottom-color:#3f3f46!important}html[data-theme="dark"] .javdb-api-review-head,html[data-theme="dark"] .javdb-api-related-head,html[data-theme="dark"] .javdb-api-review-content,html[data-theme="dark"] .javdb-api-related-desc{color:#e5e7eb!important}html[data-theme="dark"] .javdb-api-related-meta,html[data-theme="dark"] .javdb-api-tab-loading,html[data-theme="dark"] .javdb-api-tab-empty,html[data-theme="dark"] .javdb-api-tab-end{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-error{color:#fb7185!important}html[data-theme="dark"] .javdb-api-review-toggle,html[data-theme="dark"] .javdb-api-review-collapse,html[data-theme="dark"] .javdb-api-tab-load-more{background:#2f3b4f!important;border-color:#4b5f80!important;color:#dbeafe!important}html[data-theme="dark"] .javdb-api-review-toggle::before{color:#93c5fd!important}html[data-theme="dark"] .javdb-api-tab-badge{background:#1e3a5f!important;border-color:#3b82f6!important;color:#dbeafe!important}html[data-theme="dark"] .jav-stills-shell{background:#252525!important;border-color:#3f3f46!important;box-shadow:0 8px 18px rgba(0,0,0,.28)!important}html[data-theme="dark"] .jav-stills-rail>a,html[data-theme="dark"] .jav-stills-rail>.tile-item,html[data-theme="dark"] .jav-stills-rail>.preview-video-container{background:#1f2937!important;border-color:#4b5563!important;box-shadow:none!important}html[data-theme="dark"] .jav-stills-arrow{background:rgba(39,39,42,.92)!important;border-color:#52525b!important;color:#e5e7eb!important}html[data-theme="dark"] .jav-stills-arrow:hover{background:#303030!important;border-color:rgba(96,165,250,.58)!important}`);
     },
     _dismissOver18Modal() {
       if (!this.match()) return;
@@ -3817,6 +4276,7 @@
       coverCol.style.setProperty('width', 'auto', 'important');
       coverCol.style.setProperty('max-width', 'none', 'important');
       coverCol.style.setProperty('min-width', '0', 'important');
+      coverCol.style.setProperty('align-self', 'flex-start', 'important');
       infoCol.style.setProperty('flex', 'var(--javdb-info-flex) 1 0', 'important');
       infoCol.style.setProperty('width', 'auto', 'important');
       infoCol.style.setProperty('max-width', 'none', 'important');
@@ -3828,19 +4288,36 @@
       infoPanel.style.setProperty('box-sizing', 'border-box', 'important');
       const coverBox = coverCol.querySelector('.cover, .box');
       if (coverBox) {
+        coverBox.style.setProperty('display', 'block', 'important');
         coverBox.style.setProperty('width', '100%', 'important');
-        coverBox.style.setProperty('max-width', '100%', 'important');
+        coverBox.style.setProperty('height', 'auto', 'important');
         coverBox.style.setProperty('box-sizing', 'border-box', 'important');
       }
       const coverImg = coverCol.querySelector('img');
       if (coverImg) {
+        coverImg.removeAttribute('width');
+        coverImg.removeAttribute('height');
+        const coverLink = coverImg.closest('a');
+        if (coverLink) {
+          coverLink.style.setProperty('display', 'block', 'important');
+          coverLink.style.setProperty('width', '100%', 'important');
+          coverLink.style.setProperty('height', 'auto', 'important');
+        }
+        coverImg.style.setProperty('display', 'block', 'important');
         coverImg.style.setProperty('width', '100%', 'important');
         coverImg.style.setProperty('height', 'auto', 'important');
-        coverImg.style.setProperty('max-width', '100%', 'important');
+        coverImg.style.setProperty('aspect-ratio', 'auto', 'important');
+        coverImg.style.setProperty('object-fit', 'contain', 'important');
       }
       return flexContainer;
     },
     _insertMagnet(avid) {
+      if (CFG.magnetDisplayMode === 'native-replace') {
+        document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
+        NativeMagnetPanel.scheduleMount('javdb', avid);
+        return;
+      }
+      NativeMagnetPanel.remove('javdb');
       if (!CFG.magnetTable) return;
       document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
       const flexContainer = this._ensureDetailLayout();
@@ -4034,6 +4511,12 @@
       return row;
     },
     _insertMagnet(avid) {
+      if (CFG.magnetDisplayMode === 'native-replace') {
+        document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
+        NativeMagnetPanel.mount('javlib', avid);
+        return;
+      }
+      NativeMagnetPanel.remove('javlib');
       if (!CFG.magnetTable) return;
       document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
       const row = this._ensureDetailLayout();
@@ -4159,7 +4642,7 @@
       return code ? normalizeAvid(code) : '';
     },
     initPage(avid) {
-      if (!this.isDetailPage() || !avid || !CFG.magnetTable) return;
+      if (!this.isDetailPage() || !avid) return;
       this._insertDescriptionMagnet(avid);
     },
     _insertDescriptionMagnet(avid) {
