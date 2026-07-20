@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      5.7.1
+// @version      5.7.2
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅✅javrate ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -17,6 +17,7 @@
 // @match        *://javrate.com/*
 // @match        *://*.javrate.com/*
 // @match        *://169bbs.com/*
+// @match        *://*169bbs*.com/*
 // @match        *://hjd2048.com/2048/*
 // @match        *://missav.ws/*
 // @match        *://jable.tv/videos/*
@@ -37,35 +38,80 @@
 (function () {
     'use strict';
 
+    const cloneJSON = (value) => JSON.parse(JSON.stringify(value));
+
+    const parseStoredValue = (value, fallback) => {
+        if (typeof value !== 'string') {
+            return value ?? fallback;
+        }
+
+        const trimmed = value.trim();
+        if (!trimmed) return fallback;
+
+        try {
+            return JSON.parse(trimmed);
+        } catch (error) {
+            return fallback;
+        }
+    };
+
+    const normalizeServerList = (value) => {
+        const parsed = parseStoredValue(value, []);
+        const list = Array.isArray(parsed)
+            ? parsed
+            : (parsed && typeof parsed === 'object' && ('baseUrl' in parsed || 'apiKey' in parsed) ? [parsed] : []);
+
+        return list
+            .filter(server => server && typeof server === 'object')
+            .map((server, index) => ({
+                name: String(server.name || '').trim() || `服务器 ${index + 1}`,
+                baseUrl: String(server.baseUrl || '').trim(),
+                apiKey: String(server.apiKey || '').trim()
+            }))
+            .filter(server => server.baseUrl || server.apiKey);
+    };
+
+    const normalizeActiveServerIndex = (value, servers = []) => {
+        const index = Number.parseInt(value, 10);
+        if (!Number.isFinite(index) || index < 0) return 0;
+        return servers.length > 0 ? Math.min(index, servers.length - 1) : 0;
+    };
+
+    const setStoredValue = (key, value) => Promise.resolve(GM_setValue(key, value));
+
     // 全局配置对象
     const Config = {
         // 服务器列表
         get embyServers() {
-            return GM_getValue('embyServers', []);
+            const servers = normalizeServerList(GM_getValue('embyServers', []));
+            if (servers.length > 0) return servers;
+
+            const legacyServer = normalizeServerList({
+                name: '默认服务器',
+                baseUrl: GM_getValue('embyBaseUrl', ''),
+                apiKey: GM_getValue('embyAPI', '')
+            });
+            return legacyServer;
         },
         set embyServers(val) {
-            GM_setValue('embyServers', val);
+            setStoredValue('embyServers', normalizeServerList(val));
         },
         get activeServerIndex() {
-            return GM_getValue('activeServerIndex', 0);
+            return normalizeActiveServerIndex(GM_getValue('activeServerIndex', 0), this.embyServers);
         },
         set activeServerIndex(val) {
-            GM_setValue('activeServerIndex', val);
+            setStoredValue('activeServerIndex', normalizeActiveServerIndex(val, this.embyServers));
+        },
+        get activeServer() {
+            const servers = this.embyServers;
+            return servers[this.activeServerIndex] || servers[0] || null;
         },
 
         get embyBaseUrl() {
-            const servers = this.embyServers;
-            if (servers.length > 0 && this.activeServerIndex < servers.length) {
-                return servers[this.activeServerIndex].baseUrl;
-            }
-            return '';
+            return this.activeServer?.baseUrl || '';
         },
         get embyAPI() {
-            const servers = this.embyServers;
-            if (servers.length > 0 && this.activeServerIndex < servers.length) {
-                return servers[this.activeServerIndex].apiKey;
-            }
-            return '';
+            return this.activeServer?.apiKey || '';
         },
         set embyBaseUrl(val) {
             let servers = this.embyServers;
@@ -73,8 +119,9 @@
                 servers = [{ name: '默认服务器', baseUrl: val, apiKey: '' }];
                 this.embyServers = servers;
                 this.activeServerIndex = 0;
-            } else if (this.activeServerIndex < servers.length) {
-                servers[this.activeServerIndex].baseUrl = val;
+            } else {
+                const index = normalizeActiveServerIndex(this.activeServerIndex, servers);
+                servers[index].baseUrl = val;
                 this.embyServers = servers;
             }
         },
@@ -84,8 +131,9 @@
                 servers = [{ name: '默认服务器', baseUrl: '', apiKey: val }];
                 this.embyServers = servers;
                 this.activeServerIndex = 0;
-            } else if (this.activeServerIndex < servers.length) {
-                servers[this.activeServerIndex].apiKey = val;
+            } else {
+                const index = normalizeActiveServerIndex(this.activeServerIndex, servers);
+                servers[index].apiKey = val;
                 this.embyServers = servers;
             }
         },
@@ -151,7 +199,7 @@
         _migrateOldConfig() {
             const oldBaseUrl = GM_getValue('embyBaseUrl', '');
             const oldApiKey = GM_getValue('embyAPI', '');
-            const servers = this.embyServers;
+            const servers = normalizeServerList(GM_getValue('embyServers', []));
             if ((oldBaseUrl || oldApiKey) && servers.length === 0) {
                 this.embyServers = [{
                     name: '默认服务器',
@@ -162,12 +210,22 @@
             }
         },
 
+        async saveServers(servers, activeIndex) {
+            const normalizedServers = normalizeServerList(servers);
+            const normalizedIndex = normalizeActiveServerIndex(activeIndex, normalizedServers);
+            const activeServer = normalizedServers[normalizedIndex] || {};
+
+            await Promise.all([
+                setStoredValue('embyServers', normalizedServers),
+                setStoredValue('activeServerIndex', normalizedIndex),
+                setStoredValue('embyBaseUrl', activeServer.baseUrl || ''),
+                setStoredValue('embyAPI', activeServer.apiKey || '')
+            ]);
+        },
+
         isValid() {
-            const servers = this.embyServers;
-            return servers.length > 0 &&
-                   this.activeServerIndex < servers.length &&
-                   !!servers[this.activeServerIndex].baseUrl &&
-                   !!servers[this.activeServerIndex].apiKey;
+            const server = this.activeServer;
+            return !!(server?.baseUrl && server?.apiKey);
         }
     };
 
@@ -855,8 +913,7 @@
         show() {
             let panel = document.getElementById('emby-jump-settings-panel');
             if (panel) {
-                panel.style.display = 'block';
-                return;
+                panel.remove();
             }
 
             panel = document.createElement('div');
@@ -876,8 +933,10 @@
                 badgeTextColor: Config.badgeTextColor,
                 darkMode: Config.darkMode
             };
-            const initialServers = JSON.parse(JSON.stringify(Config.embyServers));
+            const initialServers = normalizeServerList(cloneJSON(Config.embyServers));
             const initialActiveIndex = Config.activeServerIndex;
+            let draftServers = normalizeServerList(cloneJSON(initialServers));
+            let draftActiveIndex = normalizeActiveServerIndex(initialActiveIndex, draftServers);
 
             const escapeHtml = (str) => String(str ?? '')
                 .replace(/&/g, '&amp;')
@@ -898,12 +957,12 @@
             let draftServer = emptyServer();
 
             function generateServersHTML() {
-                const servers = Config.embyServers;
+                const servers = draftServers;
                 if (!servers || servers.length === 0) {
                     return '<div class="servers-empty">暂无服务器，请先在下方添加</div>';
                 }
                 return servers.map((server, index) => {
-                    const isActive = index === Config.activeServerIndex;
+                    const isActive = index === draftActiveIndex;
                     const apiTail = server.apiKey ? `•••• ${server.apiKey.slice(-4)}` : '未设置';
                     return `
                         <div class="server-row ${index === editingServerIndex ? 'editing' : ''}" data-index="${index}">
@@ -1108,6 +1167,36 @@
                 });
             }
 
+            function commitVisibleServerDraft() {
+                if (!serverFormPopover || serverFormPopover.hidden) return true;
+
+                syncDraftFromInputs();
+                const hasDraftValue = [draftServer.name, draftServer.baseUrl, draftServer.apiKey]
+                    .some(value => String(value || '').trim());
+                if (editingServerIndex < 0 && !hasDraftValue) {
+                    resetDraft();
+                    return true;
+                }
+
+                const payload = normalizeServer(draftServer);
+                if (!payload.baseUrl || !payload.apiKey) {
+                    alert('请填写服务器地址和 API 密钥');
+                    showServerEditor();
+                    return false;
+                }
+
+                const servers = draftServers.slice();
+                if (editingServerIndex >= 0 && editingServerIndex < servers.length) {
+                    servers[editingServerIndex] = payload;
+                } else {
+                    servers.push(payload);
+                    editingServerIndex = servers.length - 1;
+                }
+                draftServers = normalizeServerList(servers);
+                if (draftActiveIndex >= draftServers.length) draftActiveIndex = 0;
+                return true;
+            }
+
             function attachFormEvents() {
                 const nameInput = panel.querySelector('#server-name');
                 const urlInput = panel.querySelector('#server-url');
@@ -1124,26 +1213,12 @@
                 });
 
                 panel.querySelector('#server-form-fill-current')?.addEventListener('click', () => {
-                    const current = Config.embyServers[Config.activeServerIndex] || Config.embyServers[0] || emptyServer();
+                    const current = draftServers[draftActiveIndex] || draftServers[0] || emptyServer();
                     setDraft(current, editingServerIndex);
                 });
 
                 panel.querySelector('#server-form-submit')?.addEventListener('click', () => {
-                    syncDraftFromInputs();
-                    const payload = normalizeServer(draftServer);
-                    if (!payload.baseUrl || !payload.apiKey) {
-                        alert('请填写服务器地址和 API 密钥');
-                        return;
-                    }
-                    const servers = Config.embyServers.slice();
-                    if (editingServerIndex >= 0 && editingServerIndex < servers.length) {
-                        servers[editingServerIndex] = payload;
-                    } else {
-                        servers.push(payload);
-                        editingServerIndex = servers.length - 1;
-                    }
-                    Config.embyServers = servers;
-                    if (Config.activeServerIndex >= servers.length) Config.activeServerIndex = 0;
+                    if (!commitVisibleServerDraft()) return;
                     refreshServersList();
                     hideServerEditor();
                     refreshServerForm();
@@ -1155,7 +1230,7 @@
                     btn.addEventListener('click', (e) => {
                         const row = e.target.closest('.server-row');
                         const index = parseInt(row.dataset.index, 10);
-                        Config.activeServerIndex = index;
+                        draftActiveIndex = normalizeActiveServerIndex(index, draftServers);
                         refreshServersList();
                         refreshServerForm();
                     });
@@ -1165,7 +1240,7 @@
                     btn.addEventListener('click', (e) => {
                         const row = e.target.closest('.server-row');
                         const index = parseInt(row.dataset.index, 10);
-                        const server = Config.embyServers[index];
+                        const server = draftServers[index];
                         setDraft(server, index);
                         showServerEditor();
                         serverFormPopover?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1177,19 +1252,19 @@
                         if (btn.disabled) return;
                         const row = e.target.closest('.server-row');
                         const index = parseInt(row.dataset.index, 10);
-                        const servers = Config.embyServers.slice();
+                        const servers = draftServers.slice();
                         if (servers.length <= 1) {
                             alert('至少保留一个服务器');
                             return;
                         }
                         if (!confirm(`确定删除服务器 "${servers[index].name}" 吗？`)) return;
                         servers.splice(index, 1);
-                        if (Config.activeServerIndex === index) {
-                            Config.activeServerIndex = 0;
-                        } else if (Config.activeServerIndex > index) {
-                            Config.activeServerIndex--;
+                        if (draftActiveIndex === index) {
+                            draftActiveIndex = 0;
+                        } else if (draftActiveIndex > index) {
+                            draftActiveIndex--;
                         }
-                        Config.embyServers = servers;
+                        draftServers = normalizeServerList(servers);
                         if (editingServerIndex === index) {
                             resetDraft();
                             if (serverFormPopover) serverFormPopover.hidden = true;
@@ -1213,8 +1288,9 @@
 
             // 测试连接按钮
             panel.querySelector('#test-connection').addEventListener('click', async () => {
-                const url = Config.embyBaseUrl;
-                const apiKey = Config.embyAPI;
+                const activeServer = draftServers[draftActiveIndex] || draftServers[0] || emptyServer();
+                const url = activeServer.baseUrl;
+                const apiKey = activeServer.apiKey;
                 const testResultSpan = panel.querySelector('#test-result');
 
                 testResultSpan.textContent = '';
@@ -1269,36 +1345,58 @@
                 if (isDark) {
                     panel.classList.remove('dark-mode');
                     darkModeToggle.textContent = '🌙';
-                    Config.darkMode = false;
+                    currentConfig.darkMode = false;
                     darkModeToggle.title = '切换深色模式';   // 切换后为浅色，提示可切回深色
                 } else {
                     panel.classList.add('dark-mode');
                     darkModeToggle.textContent = '☀️';
-                    Config.darkMode = true;
+                    currentConfig.darkMode = true;
                     darkModeToggle.title = '切换浅色模式';   // 切换后为深色，提示可切回浅色
                 }
             });
 
             const closePanel = () => {
                 hideServerEditor();
-                panel.style.display = 'none';
+                panel.remove();
             };
             panel.querySelector('.close-btn').addEventListener('click', closePanel);
             panel.querySelector('#panel-cancel-btn').addEventListener('click', closePanel);
 
-            panel.querySelector('#panel-save-btn').addEventListener('click', () => {
-                syncDraftFromInputs();
+            panel.querySelector('#panel-save-btn').addEventListener('click', async () => {
+                if (!commitVisibleServerDraft()) return;
                 hideServerEditor();
 
-                Config.highlightColor = document.getElementById('highlight-color').value;
-                Config.maxConcurrentRequests = parseInt(document.getElementById('max-requests').value, 10);
-                Config.badgeSize = document.getElementById('badge-size').value;
-                Config.badgeColor = document.getElementById('badge-color').value;
-                Config.badgeTextColor = document.getElementById('badge-text-color').value;
+                const savedServers = normalizeServerList(draftServers);
+                const savedActiveIndex = normalizeActiveServerIndex(draftActiveIndex, savedServers);
+                const activeServer = savedServers[savedActiveIndex];
+                if (!activeServer?.baseUrl || !activeServer?.apiKey) {
+                    alert('请至少保留一个完整的默认 Emby 服务器');
+                    showServerEditor();
+                    return;
+                }
 
                 refreshServersList();
                 refreshServerForm();
                 hideServerEditor();
+
+                const saveBtn = panel.querySelector('#panel-save-btn');
+                if (saveBtn) saveBtn.disabled = true;
+
+                try {
+                    await Promise.all([
+                        Config.saveServers(savedServers, savedActiveIndex),
+                        setStoredValue('highlightColor', panel.querySelector('#highlight-color').value),
+                        setStoredValue('maxConcurrentRequests', parseInt(panel.querySelector('#max-requests').value, 10)),
+                        setStoredValue('badgeSize', panel.querySelector('#badge-size').value),
+                        setStoredValue('badgeColor', panel.querySelector('#badge-color').value),
+                        setStoredValue('badgeTextColor', panel.querySelector('#badge-text-color').value),
+                        setStoredValue('darkMode', currentConfig.darkMode)
+                    ]);
+                } catch (error) {
+                    if (saveBtn) saveBtn.disabled = false;
+                    alert(`保存设置失败：${error?.message || error}`);
+                    return;
+                }
 
                 const msgEl = document.getElementById('save-message');
                 if (msgEl) {
@@ -1306,15 +1404,15 @@
                     msgEl.style.display = 'block';
                 }
 
-                const serversChanged = JSON.stringify(initialServers) !== JSON.stringify(Config.embyServers) ||
-                                       initialActiveIndex !== Config.activeServerIndex;
+                const serversChanged = JSON.stringify(initialServers) !== JSON.stringify(savedServers) ||
+                                       initialActiveIndex !== savedActiveIndex;
 
                 if (serversChanged) {
-                    setTimeout(() => location.reload(), 300);
+                    setTimeout(() => location.reload(), 600);
                 } else {
                     setTimeout(() => {
                         if (msgEl) msgEl.style.display = 'none';
-                        panel.style.display = 'none';
+                        panel.remove();
                     }, 500);
                 }
             });
