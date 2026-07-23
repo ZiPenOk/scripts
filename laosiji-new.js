@@ -1851,8 +1851,8 @@
         || /(?:\u4e2d\u5b57|\u4e2d\u6587|\u5b57\u5e55|\u4e2d\u6587\u5b57\u5e55|\u7e41\u9ad4\u4e2d\u5b57|\u7e41\u4f53\u4e2d\u5b57|\u7e41\u9ad4\u4e2d\u6587|\u7e41\u4f53\u4e2d\u6587|\u7e41\u9ad4\u5b57\u5e55|\u7e41\u4f53\u5b57\u5e55|\u7e41\u4e2d|\u7e41\u5b57|\u81ea\u63d0|\u5f81\u7528|\u5fb5\u7528|\u6f22\u5316|\u6c49\u5316|\u5167\u5d4c|\u5185\u5d4c|\u5167\u5c01|\u5185\u5c01|\u96d9\u8a9e|\u53cc\u8bed)/.test(text)
         || (hasCJK && !hasJP);
       const is4K = /(?:[^A-Za-z0-9]|^)(?:4K(?:UHD)?|2160P)(?:[^A-Za-z0-9]|$)/i.test(text);
-      const isCracked = /(?:\u7834\u89e3|\u7834\u574f|\u7834\u58de|\u65e0\u7801|\u7121\u78bc)/.test(text) || /\b(?:uncensored|mosaic)\b/i.test(text)
-        || hasCrackedCode(text);
+      const isCracked = /(?:\u7834\u89e3|\u7834\u574f|\u7834\u58de|\u7834\u58ca|\u65e0\u7801|\u7121\u78bc)/.test(text)
+        || /\b(?:uncensored|mosaic)\b/i.test(text) || hasCrackedCode(text);
       return { isChinese, is4K, isCracked };
     }
     function sortMagnetData(data, mode) {
