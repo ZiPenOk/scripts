@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.2.0
+// @version      2.2.1
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -874,7 +874,7 @@
             return new Promise((resolve, reject) => {
                 GM_xmlhttpRequest({
                     method: 'GET',
-                    url: `${cloudUrl}/thumbs/?ids=${ids}`,
+                    url: `${cloudUrl}/thumbs/?ids=${encodeURIComponent(ids)}`,
                     timeout: 3000,
                     onload: res => {
                         try {
@@ -889,14 +889,14 @@
             })
         }
         const getThumbs = async ids => {
+            const responses = await Promise.all(CLOUD_URLS.map(cloudUrl => getThumbsFrom(cloudUrl, ids)))
             const merged = []
-            for(let i = 0; i < CLOUD_URLS.length; i++) {
-                const thumbs = await getThumbsFrom(CLOUD_URLS[i], ids)
-                if(!thumbs || !thumbs.length) continue
+            responses.forEach(thumbs => {
+                if(!thumbs || !thumbs.length) return
                 for(let j = 0; j < thumbs.length; j++) {
                     if(!merged[j] && thumbs[j]) merged[j] = thumbs[j]
                 }
-            }
+            })
             return merged
         }
         const saveThumb = (id, thumb) => {
@@ -1030,9 +1030,10 @@
             })
             if(cloudLinks.length) {
                 const ids = cloudLinks.map(idOf).join(',')
+                // 云端查询最长 3 秒；过早回退会和云端已完成的自主探测产生重复详情请求。
                 const cloudFallbackTimer = setTimeout(() => {
                     cloudLinks.forEach(link => resolveLink(link))
-                }, 600)
+                }, 3500)
                 getThumbs(ids).then(thumbs => {
                     clearTimeout(cloudFallbackTimer)
                     thumbs = thumbs || []
