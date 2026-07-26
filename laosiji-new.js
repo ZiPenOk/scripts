@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.4.4
+// @version      2.7.7.4
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -46,7 +46,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.4.4';
+  const SCRIPT_VERSION = '2.7.7.4';
   const DEBUG_LOG = false;
   const ERROR_LOG = true;
   const PAGE_ZOOM_DEFAULT = 86;
@@ -1831,30 +1831,6 @@
       const timestamp = magnetItemTimestamp(item);
       return timestamp ? new Date(timestamp).toISOString().slice(0, 10) : '';
     }
-    function hasCrackedCode(text) {
-      const codePattern = /\b(?:UN|UC)\b/g;
-      let match;
-      while ((match = codePattern.exec(text))) {
-        const before = text.slice(0, match.index);
-        const after = text.slice(match.index + match[0].length);
-        const adjacentNumber = /\d$/.test(before) || /^\d/.test(after);
-        const adjacentSubtitle = /\u5b57\u5e55$/.test(before) || /^\u5b57\u5e55/.test(after);
-        if (!adjacentNumber && !adjacentSubtitle) return true;
-      }
-      return false;
-    }
-    function classifyQuality(title) {
-      const text = String(title || '');
-      const hasCJK = /[\u4e00-\u9fff]/.test(text);
-      const hasJP = /[\u3040-\u309f\u30a0-\u30ff]/.test(text);
-      const isChinese = /(?:[^A-Za-z]|^)FHDC(?:[^A-Za-z]|$)/i.test(text) || /[-_]CH?(?:[^A-Za-z]|$)/.test(text)
-        || /(?:\u4e2d\u5b57|\u4e2d\u6587|\u5b57\u5e55|\u4e2d\u6587\u5b57\u5e55|\u7e41\u9ad4\u4e2d\u5b57|\u7e41\u4f53\u4e2d\u5b57|\u7e41\u9ad4\u4e2d\u6587|\u7e41\u4f53\u4e2d\u6587|\u7e41\u9ad4\u5b57\u5e55|\u7e41\u4f53\u5b57\u5e55|\u7e41\u4e2d|\u7e41\u5b57|\u81ea\u63d0|\u5f81\u7528|\u5fb5\u7528|\u6f22\u5316|\u6c49\u5316|\u5167\u5d4c|\u5185\u5d4c|\u5167\u5c01|\u5185\u5c01|\u96d9\u8a9e|\u53cc\u8bed)/.test(text)
-        || (hasCJK && !hasJP);
-      const is4K = /(?:[^A-Za-z0-9]|^)(?:4K(?:UHD)?|2160P)(?:[^A-Za-z0-9]|$)/i.test(text);
-      const isCracked = /(?:\u7834\u89e3|\u7834\u574f|\u7834\u58de|\u7834\u58ca|\u65e0\u7801|\u7121\u78bc)/.test(text)
-        || /\b(?:uncensored|mosaic)\b/i.test(text) || hasCrackedCode(text);
-      return { isChinese, is4K, isCracked };
-    }
     function sortMagnetData(data, mode) {
       return [...data] .map((item, index) => ({ item, index })) .sort((a, b) => {
           const sizeDelta = parseMagnetSize(b.item?.size) - parseMagnetSize(a.item?.size);
@@ -1989,7 +1965,11 @@
         const nameSpan = document.createElement('span');
         nameSpan.className = 'nong-magnet-name';
         nameSpan.title = item.title;
-        const { isChinese, is4K, isCracked } = classifyQuality(item.title);
+        const _hasCJK = /[\u4e00-\u9fff]/.test(item.title);
+        const _hasJP  = /[\u3040-\u309f\u30a0-\u30ff]/.test(item.title);
+        const isChinese = /(?:[^A-Za-z]|^)FHDC(?:[^A-Za-z]|$)/i.test(item.title) || /[-_]CH?(?:[^A-Za-z]|$)/.test(item.title)
+          || /(?:中字|中文|字幕|中文字幕|繁體中字|繁体中字|繁體中文|繁体中文|繁體字幕|繁体字幕|繁中|繁字|自提|征用|徵用|漢化|汉化|內嵌|内嵌|內封|内封|雙語|双语)/.test(item.title) || (_hasCJK && !_hasJP);
+        const is4K = /(?:[^A-Za-z0-9]|^)(?:4K(?:UHD)?|2160P)(?:[^A-Za-z0-9]|$)/i.test(item.title);
         if (isChinese) {
           const badge = document.createElement('span');
           badge.textContent = '[中字]';
@@ -1998,17 +1978,6 @@
           nameSpan.style.background = 'linear-gradient(90deg,#dcfce7 0%,#f0fdf4 55%,#fff 100%)';
           nameSpan.style.borderLeft = '4px solid #16a34a';
           nameSpan.style.paddingLeft = '5px';
-        }
-        if (isCracked) {
-          const crackedBadge = document.createElement('span');
-          crackedBadge.textContent = '[破解]';
-          crackedBadge.style.cssText = 'display:inline-block;margin-right:5px;padding:1px 5px;font-size:11px;font-weight:800;color:#fff;background:#be123c;border-radius:4px;vertical-align:middle;flex-shrink:0;box-shadow:0 0 0 1px rgba(190,18,60,.18);';
-          nameSpan.appendChild(crackedBadge);
-          if (!isChinese && !is4K) {
-            nameSpan.style.background = 'linear-gradient(90deg,#ffe4e6 0%,#fff1f2 55%,#fff 100%)';
-            nameSpan.style.borderLeft = '4px solid #be123c';
-            nameSpan.style.paddingLeft = '5px';
-          }
         }
         if (is4K) {
           const badge4k = document.createElement('span');
@@ -2167,12 +2136,12 @@
       runSearch(table, avid, engineKey);
       return wrapper;
     }
-    return { createMagnetWidget, formatDate: formatMagnetDate, sortData: sortMagnetData, classifyQuality, javdbApi: MagnetApi.client };
+    return { createMagnetWidget, formatDate: formatMagnetDate, sortData: sortMagnetData, javdbApi: MagnetApi.client };
   })();
   Core.expose('__LAOSIJI_MAGNET__', Magnet);
   const NativeMagnetPanelStyles = {
     install() {
-      GM_addStyle(`.laosiji-native-magnet-panel{width:100%;box-sizing:border-box;margin:14px 0;color:#172033;background:#fffdfa;border:1px solid #e6ddd3;border-radius:7px;box-shadow:0 8px 24px rgba(68,49,31,.07)}.laosiji-native-magnet-head,.laosiji-native-magnet-controls,.laosiji-native-magnet-tabs,.laosiji-native-magnet-tab-tools,.laosiji-native-magnet-actions,.laosiji-native-magnet-metadata,.laosiji-native-magnet-title-line{display:flex;align-items:center}.laosiji-native-magnet-controls[hidden]{display:none!important}.laosiji-native-magnet-head{justify-content:space-between;gap:14px;min-height:55px;padding:10px 14px;border-bottom:1px solid #e6ddd3}.laosiji-native-magnet-title{color:#172033;font-size:16px;font-weight:720}.laosiji-native-magnet-count{margin-left:9px;color:#667085;font-size:12px;font-weight:500}.laosiji-native-magnet-tabs{flex-wrap:wrap;gap:5px}.laosiji-native-magnet-tab-tools{flex-wrap:wrap;justify-content:flex-end;gap:8px}.laosiji-native-magnet-tab,.laosiji-native-magnet-refresh,.laosiji-native-magnet-action{min-height:30px;padding:3px 8px;border:1px solid #cdd6e2;border-radius:4px;color:#475467;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease}.laosiji-native-magnet-tab{border-color:transparent}.laosiji-native-magnet-tab[aria-selected="true"]{color:#1d4ed8;background:#e8f0ff;border-color:#c9d9ff}.laosiji-native-magnet-refresh{color:#1d4ed8;border-color:#bdd0ff;background:#f6f9ff}.laosiji-native-magnet-refresh:hover,.laosiji-native-magnet-action:hover,.laosiji-native-magnet-tab:not([aria-selected="true"]):hover{color:#1d4ed8;background:#f5f8fc;border-color:#a8c2ff}.laosiji-native-magnet-refresh:active,.laosiji-native-magnet-action:active,.laosiji-native-magnet-tab:active{background:#e8f0ff}.laosiji-native-magnet-tab:focus-visible,.laosiji-native-magnet-refresh:focus-visible,.laosiji-native-magnet-action:focus-visible,.laosiji-native-magnet-select:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px}.laosiji-native-magnet-controls{gap:8px;min-height:48px;padding:9px 14px;background:#fffbf6;border-bottom:1px solid #e6ddd3}.laosiji-native-magnet-select{height:30px;max-width:150px;padding:2px 24px 2px 8px;border:1px solid #cdd6e2;border-radius:4px;color:#344054;background:#fff;font-size:12px}.laosiji-native-magnet-default-tab{height:30px;padding:2px 24px 2px 8px;border:1px solid #ddd2c4;border-radius:4px;color:#77543b;background:#fffbf6;font-size:11px;cursor:pointer}.laosiji-native-magnet-default-tab:focus-visible{outline:2px solid #a85b2d;outline-offset:2px}.laosiji-native-magnet-rows{display:grid}.laosiji-native-magnet-row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;grid-template-areas:"index name actions" "index metadata actions";align-items:center;column-gap:6px;row-gap:6px;min-height:64px;padding:10px 12px;border-bottom:1px solid #eee7df;transition:background .16s ease}.laosiji-native-magnet-row:last-child{border-bottom:0}.laosiji-native-magnet-row:hover{background:#fff9f1}.laosiji-native-magnet-index{grid-area:index;color:#8a98a9;font-size:12px;font-variant-numeric:tabular-nums;text-align:right}.laosiji-native-magnet-name,.laosiji-native-magnet-title-line{min-width:0}.laosiji-native-magnet-name{grid-area:name}.laosiji-native-magnet-title-line{gap:7px}.laosiji-native-magnet-title-line>a{flex:0 1 auto;max-width:100%;min-width:0;overflow:hidden;color:#243b67;font-size:13px;font-weight:650;line-height:1.45;text-decoration:none;text-overflow:ellipsis;white-space:nowrap}.laosiji-native-magnet-title-line>a:hover{color:#1d4ed8;text-decoration:underline}.laosiji-native-magnet-assistant-trigger{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}.laosiji-native-magnet-tags{display:flex;flex:0 0 auto;flex-wrap:wrap;gap:5px}.laosiji-native-magnet-tag{display:inline-flex;align-items:center;min-height:20px;padding:1px 6px;border:1px solid #dfe5eb;border-radius:3px;color:#58677a;background:#f3f5f7;font-size:11px;font-weight:700;line-height:1;white-space:nowrap}.laosiji-native-magnet-tag[data-kind="four-k"]{color:#1d4ed8;background:#e8f0ff;border-color:#c9d9ff}.laosiji-native-magnet-tag[data-kind="subtitle"]{color:#a85b00;background:#fff2d9;border-color:#ffe0a5}.laosiji-native-magnet-tag[data-kind="cracked"]{color:#9f1239;background:#ffe4e6;border-color:#fecdd3}.laosiji-native-magnet-metadata{grid-area:metadata;display:flex;flex-wrap:wrap;gap:5px 15px}.laosiji-native-magnet-meta{display:inline-flex;align-items:baseline;gap:4px;color:#344054;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.laosiji-native-magnet-meta::before{content:attr(data-label);color:#7b8796;font-size:11px;font-weight:500}.laosiji-native-magnet-actions{grid-area:actions;align-self:center;justify-content:flex-end;gap:6px;min-width:max-content}.laosiji-native-magnet-action-copy{color:#4b3d87;border-color:#d0c7ee;background:#f6f4ff}.laosiji-native-magnet-action-check{color:#176b9e;border-color:#b8d9ed;background:#f0f9ff}.laosiji-native-magnet-action-offline{color:#137553;border-color:#b7ddce;background:#effaf5}.laosiji-native-magnet-action-copy:hover{color:#3d3075;border-color:#b9aae5;background:#eeebff}.laosiji-native-magnet-action-check:hover{color:#115b89;border-color:#91c5e4;background:#e5f5ff}.laosiji-native-magnet-action-offline:hover{color:#0f6548;border-color:#8ac9b3;background:#e3f6ed}.laosiji-native-magnet-actions .mag-btn-group{display:inline-flex!important;align-items:center;gap:4px;margin:0!important;white-space:nowrap}.laosiji-native-magnet-actions .mag-btn-group .mag-btn{margin:0!important}.laosiji-native-magnet-empty{padding:22px 14px;color:#64748b;text-align:center;font-size:13px}.laosiji-native-magnet-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;color:#667085;background:#fffbf6;border-top:1px solid #eee7df;font-size:11px}html[data-theme="dark"] .laosiji-native-magnet-panel{color:#e5e7eb;background:#222b38;border-color:#435062;box-shadow:none}html[data-theme="dark"] .laosiji-native-magnet-head,html[data-theme="dark"] .laosiji-native-magnet-controls{border-color:#435062}html[data-theme="dark"] .laosiji-native-magnet-controls,html[data-theme="dark"] .laosiji-native-magnet-foot{background:#1d2632}html[data-theme="dark"] .laosiji-native-magnet-title,html[data-theme="dark"] .laosiji-native-magnet-meta,html[data-theme="dark"] .laosiji-native-magnet-title-line>a{color:#e5e7eb}html[data-theme="dark"] .laosiji-native-magnet-row{border-color:#374454}html[data-theme="dark"] .laosiji-native-magnet-row:hover{background:#293545}html[data-theme="dark"] .laosiji-native-magnet-count,html[data-theme="dark"] .laosiji-native-magnet-foot,html[data-theme="dark"] .laosiji-native-magnet-empty,html[data-theme="dark"] .laosiji-native-magnet-meta::before,html[data-theme="dark"] .laosiji-native-magnet-index{color:#aeb9c7}html[data-theme="dark"] .laosiji-native-magnet-tab,html[data-theme="dark"] .laosiji-native-magnet-action,html[data-theme="dark"] .laosiji-native-magnet-select,html[data-theme="dark"] .laosiji-native-magnet-default-tab{color:#d9e1ea;background:#253141;border-color:#536276}html[data-theme="dark"] .laosiji-native-magnet-refresh{color:#c8dbff;background:#1f3658;border-color:#4775bc}html[data-theme="dark"] .laosiji-native-magnet-tab[aria-selected="true"]{color:#dce9ff;background:#244b89;border-color:#4e82d5}@media (max-width:760px){.laosiji-native-magnet-head{align-items:flex-start;flex-direction:column;gap:8px;padding:11px 12px}.laosiji-native-magnet-controls{width:100%;align-items:flex-start;flex-wrap:wrap;min-height:0;padding:9px 12px}.laosiji-native-magnet-tab,.laosiji-native-magnet-refresh,.laosiji-native-magnet-action,.laosiji-native-magnet-select,.laosiji-native-magnet-default-tab{min-height:44px}.laosiji-native-magnet-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name index" "metadata metadata" "actions actions";gap:8px;min-height:0;padding:11px 12px}.laosiji-native-magnet-name{grid-area:name}.laosiji-native-magnet-index{grid-area:index;align-self:start;padding-top:2px}.laosiji-native-magnet-title-line{align-items:flex-start;flex-wrap:wrap}.laosiji-native-magnet-title-line>a{flex:1 1 100%;overflow:visible;white-space:normal}.laosiji-native-magnet-metadata{grid-area:metadata;gap:10px}.laosiji-native-magnet-meta{text-align:left}.laosiji-native-magnet-actions{grid-area:actions;justify-content:flex-start;flex-wrap:wrap}.laosiji-native-magnet-foot{padding:10px 12px}}`);
+      GM_addStyle(`.laosiji-native-magnet-panel{width:100%;box-sizing:border-box;margin:14px 0;color:#172033;background:#fffdfa;border:1px solid #e6ddd3;border-radius:7px;box-shadow:0 8px 24px rgba(68,49,31,.07)}.laosiji-native-magnet-head,.laosiji-native-magnet-controls,.laosiji-native-magnet-tabs,.laosiji-native-magnet-tab-tools,.laosiji-native-magnet-actions,.laosiji-native-magnet-metadata,.laosiji-native-magnet-title-line{display:flex;align-items:center}.laosiji-native-magnet-controls[hidden]{display:none!important}.laosiji-native-magnet-head{justify-content:space-between;gap:14px;min-height:55px;padding:10px 14px;border-bottom:1px solid #e6ddd3}.laosiji-native-magnet-title{color:#172033;font-size:16px;font-weight:720}.laosiji-native-magnet-count{margin-left:9px;color:#667085;font-size:12px;font-weight:500}.laosiji-native-magnet-tabs{flex-wrap:wrap;gap:5px}.laosiji-native-magnet-tab-tools{flex-wrap:wrap;justify-content:flex-end;gap:8px}.laosiji-native-magnet-tab,.laosiji-native-magnet-refresh,.laosiji-native-magnet-action{min-height:30px;padding:3px 8px;border:1px solid #cdd6e2;border-radius:4px;color:#475467;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease}.laosiji-native-magnet-tab{border-color:transparent}.laosiji-native-magnet-tab[aria-selected="true"]{color:#1d4ed8;background:#e8f0ff;border-color:#c9d9ff}.laosiji-native-magnet-refresh{color:#1d4ed8;border-color:#bdd0ff;background:#f6f9ff}.laosiji-native-magnet-refresh:hover,.laosiji-native-magnet-action:hover,.laosiji-native-magnet-tab:not([aria-selected="true"]):hover{color:#1d4ed8;background:#f5f8fc;border-color:#a8c2ff}.laosiji-native-magnet-refresh:active,.laosiji-native-magnet-action:active,.laosiji-native-magnet-tab:active{background:#e8f0ff}.laosiji-native-magnet-tab:focus-visible,.laosiji-native-magnet-refresh:focus-visible,.laosiji-native-magnet-action:focus-visible,.laosiji-native-magnet-select:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px}.laosiji-native-magnet-controls{gap:8px;min-height:48px;padding:9px 14px;background:#fffbf6;border-bottom:1px solid #e6ddd3}.laosiji-native-magnet-select{height:30px;max-width:150px;padding:2px 24px 2px 8px;border:1px solid #cdd6e2;border-radius:4px;color:#344054;background:#fff;font-size:12px}.laosiji-native-magnet-default-tab{height:30px;padding:2px 24px 2px 8px;border:1px solid #ddd2c4;border-radius:4px;color:#77543b;background:#fffbf6;font-size:11px;cursor:pointer}.laosiji-native-magnet-default-tab:focus-visible{outline:2px solid #a85b2d;outline-offset:2px}.laosiji-native-magnet-rows{display:grid}.laosiji-native-magnet-row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;grid-template-areas:"index name actions" "index metadata actions";align-items:center;column-gap:6px;row-gap:6px;min-height:64px;padding:10px 12px;border-bottom:1px solid #eee7df;transition:background .16s ease}.laosiji-native-magnet-row:last-child{border-bottom:0}.laosiji-native-magnet-row:hover{background:#fff9f1}.laosiji-native-magnet-index{grid-area:index;color:#8a98a9;font-size:12px;font-variant-numeric:tabular-nums;text-align:right}.laosiji-native-magnet-name,.laosiji-native-magnet-title-line{min-width:0}.laosiji-native-magnet-name{grid-area:name}.laosiji-native-magnet-title-line{gap:7px}.laosiji-native-magnet-title-line>a{flex:0 1 auto;max-width:100%;min-width:0;overflow:hidden;color:#243b67;font-size:13px;font-weight:650;line-height:1.45;text-decoration:none;text-overflow:ellipsis;white-space:nowrap}.laosiji-native-magnet-title-line>a:hover{color:#1d4ed8;text-decoration:underline}.laosiji-native-magnet-assistant-trigger{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}.laosiji-native-magnet-tags{display:flex;flex:0 0 auto;flex-wrap:wrap;gap:5px}.laosiji-native-magnet-tag{display:inline-flex;align-items:center;min-height:20px;padding:1px 6px;border:1px solid #dfe5eb;border-radius:3px;color:#58677a;background:#f3f5f7;font-size:11px;font-weight:700;line-height:1;white-space:nowrap}.laosiji-native-magnet-tag[data-kind="four-k"]{color:#1d4ed8;background:#e8f0ff;border-color:#c9d9ff}.laosiji-native-magnet-tag[data-kind="subtitle"]{color:#a85b00;background:#fff2d9;border-color:#ffe0a5}.laosiji-native-magnet-metadata{grid-area:metadata;display:flex;flex-wrap:wrap;gap:5px 15px}.laosiji-native-magnet-meta{display:inline-flex;align-items:baseline;gap:4px;color:#344054;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.laosiji-native-magnet-meta::before{content:attr(data-label);color:#7b8796;font-size:11px;font-weight:500}.laosiji-native-magnet-actions{grid-area:actions;align-self:center;justify-content:flex-end;gap:6px;min-width:max-content}.laosiji-native-magnet-action-copy{color:#4b3d87;border-color:#d0c7ee;background:#f6f4ff}.laosiji-native-magnet-action-check{color:#176b9e;border-color:#b8d9ed;background:#f0f9ff}.laosiji-native-magnet-action-offline{color:#137553;border-color:#b7ddce;background:#effaf5}.laosiji-native-magnet-action-copy:hover{color:#3d3075;border-color:#b9aae5;background:#eeebff}.laosiji-native-magnet-action-check:hover{color:#115b89;border-color:#91c5e4;background:#e5f5ff}.laosiji-native-magnet-action-offline:hover{color:#0f6548;border-color:#8ac9b3;background:#e3f6ed}.laosiji-native-magnet-actions .mag-btn-group{display:inline-flex!important;align-items:center;gap:4px;margin:0!important;white-space:nowrap}.laosiji-native-magnet-actions .mag-btn-group .mag-btn{margin:0!important}.laosiji-native-magnet-empty{padding:22px 14px;color:#64748b;text-align:center;font-size:13px}.laosiji-native-magnet-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;color:#667085;background:#fffbf6;border-top:1px solid #eee7df;font-size:11px}html[data-theme="dark"] .laosiji-native-magnet-panel{color:#e5e7eb;background:#222b38;border-color:#435062;box-shadow:none}html[data-theme="dark"] .laosiji-native-magnet-head,html[data-theme="dark"] .laosiji-native-magnet-controls{border-color:#435062}html[data-theme="dark"] .laosiji-native-magnet-controls,html[data-theme="dark"] .laosiji-native-magnet-foot{background:#1d2632}html[data-theme="dark"] .laosiji-native-magnet-title,html[data-theme="dark"] .laosiji-native-magnet-meta,html[data-theme="dark"] .laosiji-native-magnet-title-line>a{color:#e5e7eb}html[data-theme="dark"] .laosiji-native-magnet-row{border-color:#374454}html[data-theme="dark"] .laosiji-native-magnet-row:hover{background:#293545}html[data-theme="dark"] .laosiji-native-magnet-count,html[data-theme="dark"] .laosiji-native-magnet-foot,html[data-theme="dark"] .laosiji-native-magnet-empty,html[data-theme="dark"] .laosiji-native-magnet-meta::before,html[data-theme="dark"] .laosiji-native-magnet-index{color:#aeb9c7}html[data-theme="dark"] .laosiji-native-magnet-tab,html[data-theme="dark"] .laosiji-native-magnet-action,html[data-theme="dark"] .laosiji-native-magnet-select,html[data-theme="dark"] .laosiji-native-magnet-default-tab{color:#d9e1ea;background:#253141;border-color:#536276}html[data-theme="dark"] .laosiji-native-magnet-refresh{color:#c8dbff;background:#1f3658;border-color:#4775bc}html[data-theme="dark"] .laosiji-native-magnet-tab[aria-selected="true"]{color:#dce9ff;background:#244b89;border-color:#4e82d5}@media (max-width:760px){.laosiji-native-magnet-head{align-items:flex-start;flex-direction:column;gap:8px;padding:11px 12px}.laosiji-native-magnet-controls{width:100%;align-items:flex-start;flex-wrap:wrap;min-height:0;padding:9px 12px}.laosiji-native-magnet-tab,.laosiji-native-magnet-refresh,.laosiji-native-magnet-action,.laosiji-native-magnet-select,.laosiji-native-magnet-default-tab{min-height:44px}.laosiji-native-magnet-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name index" "metadata metadata" "actions actions";gap:8px;min-height:0;padding:11px 12px}.laosiji-native-magnet-name{grid-area:name}.laosiji-native-magnet-index{grid-area:index;align-self:start;padding-top:2px}.laosiji-native-magnet-title-line{align-items:flex-start;flex-wrap:wrap}.laosiji-native-magnet-title-line>a{flex:1 1 100%;overflow:visible;white-space:normal}.laosiji-native-magnet-metadata{grid-area:metadata;gap:10px}.laosiji-native-magnet-meta{text-align:left}.laosiji-native-magnet-actions{grid-area:actions;justify-content:flex-start;flex-wrap:wrap}.laosiji-native-magnet-foot{padding:10px 12px}}`);
     },
   };
   const NativeMagnetPanel = (() => {
@@ -2219,18 +2188,24 @@
     function parseNativeTags(node) {
       return [...node.querySelectorAll('.tags .tag, .btn-mini-new')] .map(tag => cleanText(tag)) .filter(Boolean);
     }
-    function magnetHash(maglink) {
-      const match = String(maglink || '').match(/[?&]xt=urn:btih:([^&]+)/i);
-      return match ? match[1].toLowerCase() : '';
-    }
-    function qualityTags(title) {
-      const { isChinese, is4K, isCracked } = Magnet.classifyQuality(title);
-      return [is4K ? '4K' : '', isChinese ? '中字' : '', isCracked ? '破解' : ''].filter(Boolean);
+    function normalizeQualityTags(title, nativeTags = []) {
+      const tags = new Set();
+      const text =`${title || ''} ${nativeTags.join(' ')}`;
+      nativeTags.forEach(tag => {
+        const value = String(tag || '').trim();
+        if (!value) return;
+        if (/(?:4k|2160p)/i.test(value)) tags.add('4K');
+        else if (/(?:中字|字幕|CHS|CHT)/i.test(value)) tags.add('中字');
+        else tags.add(value);
+      });
+      if (/(?:4k|2160p)/i.test(text)) tags.add('4K');
+      if (/(?:中字|中文字幕|中文.*字幕|CHS|CHT|(?:^|[^A-Z])CH(?:$|[^A-Z]))/i.test(text)) tags.add('中字');
+      if (/(?:^|[^A-Z])(?:HD|FHD|1080P|720P)(?:$|[^A-Z])/i.test(text)) tags.add('高清');
+      return [...tags].slice(0, 3);
     }
     function tagKind(value) {
       if (value === '4K') return 'four-k';
       if (value === '中字') return 'subtitle';
-      if (value === '破解') return 'cracked';
       return '';
     }
     function parseJavbusItems(container) {
@@ -2245,8 +2220,7 @@
             size: cleanText(cells[1]),
             files: '',
             date: cleanText(cells[2]),
-            qualityTags: qualityTags(title),
-            nativeTags: parseNativeTags(cells[0]),
+            tags: normalizeQualityTags(title, parseNativeTags(cells[0])),
             assistant: getAssistantGroup(cells[0]),
           };
         }) .filter(Boolean);
@@ -2264,8 +2238,7 @@
             size,
             files,
             date: cleanText(row.querySelector('.date .time, .date')),
-            qualityTags: qualityTags(title),
-            nativeTags: parseNativeTags(row),
+            tags: normalizeQualityTags(title, parseNativeTags(row)),
             assistant: getAssistantGroup(row.querySelector('.magnet-name')),
           };
         }) .filter(Boolean);
@@ -2275,10 +2248,7 @@
       if (site === 'javdb') return parseJavdbItems(container);
       return [];
     }
-    function normalizeAggregateItems(data, { titleAsMagnet = false, nativeItems = [] } = {}) {
-      const nativeTagMap = new Map(
-        nativeItems .map(item => [magnetHash(item?.maglink), item?.nativeTags || []]) .filter(([hash]) => hash)
-      );
+    function normalizeAggregateItems(data, { titleAsMagnet = false } = {}) {
       return data.map(item => ({
         title: String(item?.title || item?.maglink || ''),
         maglink: item?.maglink || '',
@@ -2286,8 +2256,10 @@
         size: String(item?.size || ''),
         files: String(item?.files || ''),
         date: Magnet.formatDate(item),
-        qualityTags: qualityTags(item?.title),
-        nativeTags: nativeTagMap.get(magnetHash(item?.maglink)) || [],
+        tags: normalizeQualityTags(item?.title, [
+          item?.cnsub ? '中字' : '',
+          item?.hd ? '高清' : '',
+        ]),
       })).filter(item => item.title && item.maglink);
     }
     function createButton(label, className, onClick) {
@@ -2308,20 +2280,6 @@
       trigger.setAttribute('aria-hidden', 'true');
       trigger.tabIndex = -1;
       titleLine.appendChild(trigger);
-    }
-    function createTagGroup(values, withKinds = false) {
-      if (!values?.length) return null;
-      const tags = document.createElement('div');
-      tags.className = 'laosiji-native-magnet-tags';
-      values.forEach(value => {
-        const tag = document.createElement('span');
-        tag.className = 'laosiji-native-magnet-tag';
-        const kind = withKinds ? tagKind(value) : '';
-        if (kind) tag.dataset.kind = kind;
-        addText(tag, value);
-        tags.appendChild(tag);
-      });
-      return tags;
     }
     function appendFallbackActions(actions, item) {
       const copyButton = createButton('复制', 'laosiji-native-magnet-action laosiji-native-magnet-action-copy', () => {
@@ -2394,12 +2352,21 @@
         title.rel = item.src ? 'noopener noreferrer' : '';
         title.title = item.title;
         addText(title, item.title);
-        const qualityTags = createTagGroup(item.qualityTags, true);
-        if (qualityTags) titleLine.appendChild(qualityTags);
         titleLine.appendChild(title);
         appendAssistantTrigger(titleLine, item);
-        const nativeTags = createTagGroup(item.nativeTags);
-        if (nativeTags) titleLine.appendChild(nativeTags);
+        if (item.tags?.length) {
+          const tags = document.createElement('div');
+          tags.className = 'laosiji-native-magnet-tags';
+          item.tags.forEach(value => {
+            const tag = document.createElement('span');
+            tag.className = 'laosiji-native-magnet-tag';
+            const kind = tagKind(value);
+            if (kind) tag.dataset.kind = kind;
+            addText(tag, value);
+            tags.appendChild(tag);
+          });
+          titleLine.appendChild(tags);
+        }
         name.appendChild(titleLine);
         const metadata = document.createElement('div');
         metadata.className = 'laosiji-native-magnet-metadata';
@@ -2436,7 +2403,6 @@
         const result = await search(state.avid);
         state.aggregateItems = normalizeAggregateItems(result?.data || [], {
           titleAsMagnet: state.engineKey === CFG.javdbSearchUrl,
-          nativeItems: state.nativeItems,
         });
         state.aggregateUrl = result?.url || '';
         renderRows(state);
@@ -3204,26 +3170,111 @@
         return text && /\/actors\/[^/?#]+/i.test(href);
       });
     },
+    _getJavdbActorPath(value) {
+      try {
+        const path = new URL(value || '', location.origin).pathname.toLowerCase();
+        return path.match(/^\/actors\/[^/?#]+/i)?.[0] || '';
+      } catch { return ''; }
+    },
+    _getJavdbActorId(value) {
+      const path = this._getJavdbActorPath(value);
+      return path.match(/^\/actors\/([^/?#]+)/i)?.[1] || '';
+    },
     _readFavoriteActorsCache() {
       try {
         const raw = GM_getValue('javdb_favorite_actors_cache', null);
         const cache = typeof raw === 'string' ? JSON.parse(raw) : raw;
         if (!cache || !Number.isFinite(cache.ts)) return null;
-        return { names: new Set(Array.isArray(cache.names) ? cache.names : []), paths: new Set(Array.isArray(cache.paths) ? cache.paths : []), ts: cache.ts };
+        return {
+          names: new Set(Array.isArray(cache.names) ? cache.names : []),
+          paths: new Set(Array.isArray(cache.paths) ? cache.paths : []),
+          ids: new Set(
+            Array.isArray(cache.ids) ? cache.ids : (Array.isArray(cache.paths) ? cache.paths : []) .map(path => this._getJavdbActorId(path)) .filter(Boolean)
+          ),
+          ts: cache.ts,
+        };
       } catch { return null; }
     },
-    _writeFavoriteActorsCache(names, paths) {
+    _writeFavoriteActorsCache(names, paths, ids) {
+      const ts = Date.now();
       GM_setValue('javdb_favorite_actors_cache', JSON.stringify({
         names: [...names],
         paths: [...paths],
-        ts: Date.now(),
+        ids: [...ids],
+        ts,
       }));
+      return ts;
+    },
+    _readFavoriteActorsCacheDirtyAt() {
+      const dirtyAt = Number(GM_getValue('javdb_favorite_actors_cache_dirty_at', 0));
+      return Number.isFinite(dirtyAt) ? dirtyAt : 0;
+    },
+    _markFavoriteActorsCacheDirty() {
+      GM_setValue('javdb_favorite_actors_cache_dirty_at', Date.now());
+    },
+    _clearFavoriteActorsCacheDirty(ts) {
+      if (this._readFavoriteActorsCacheDirtyAt() <= ts && !this._readFavoriteActorsPending()) { GM_setValue('javdb_favorite_actors_cache_dirty_at', 0); }
+    },
+    _readFavoriteActorsPending() {
+      try {
+        const raw = GM_getValue('javdb_favorite_actors_pending', null);
+        const pending = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        if (!pending) return null;
+        const normalized = {
+          addIds: new Set(Array.isArray(pending.addIds) ? pending.addIds : []),
+          removeIds: new Set(Array.isArray(pending.removeIds) ? pending.removeIds : []),
+          addPaths: new Set(Array.isArray(pending.addPaths) ? pending.addPaths : []),
+          removePaths: new Set(Array.isArray(pending.removePaths) ? pending.removePaths : []),
+          addNames: new Set(Array.isArray(pending.addNames) ? pending.addNames : []),
+          removeNames: new Set(Array.isArray(pending.removeNames) ? pending.removeNames : []),
+        };
+        return Object.values(normalized).some(value => value.size) ? normalized : null;
+      } catch { return null; }
+    },
+    _writeFavoriteActorsPending(pending) {
+      const keys = ['addIds', 'removeIds', 'addPaths', 'removePaths', 'addNames', 'removeNames'];
+      const hasPending = keys.some(key => pending[key]?.size);
+      if (!hasPending) { GM_setValue('javdb_favorite_actors_pending', null); return; }
+      GM_setValue('javdb_favorite_actors_pending', JSON.stringify(
+        Object.fromEntries(keys.map(key => [key, [...pending[key]]]))
+      ));
+    },
+    _mergeFavoriteActorsPending(names, paths, ids) {
+      const pending = this._readFavoriteActorsPending();
+      if (!pending) return { names, paths, ids };
+      pending.addIds.forEach(id => {
+        if (ids.has(id)) pending.addIds.delete(id);
+      });
+      pending.removeIds.forEach(id => {
+        if (!ids.has(id)) pending.removeIds.delete(id);
+      });
+      pending.addPaths.forEach(path => {
+        if (paths.has(path)) pending.addPaths.delete(path);
+      });
+      pending.removePaths.forEach(path => {
+        if (!paths.has(path)) pending.removePaths.delete(path);
+      });
+      pending.addNames.forEach(name => {
+        if (names.has(name)) pending.addNames.delete(name);
+      });
+      pending.removeNames.forEach(name => {
+        if (!names.has(name)) pending.removeNames.delete(name);
+      });
+      pending.addIds.forEach(id => ids.add(id));
+      pending.removeIds.forEach(id => ids.delete(id));
+      pending.addPaths.forEach(path => paths.add(path));
+      pending.removePaths.forEach(path => paths.delete(path));
+      pending.addNames.forEach(name => names.add(name));
+      pending.removeNames.forEach(name => names.delete(name));
+      this._writeFavoriteActorsPending(pending);
+      return { names, paths, ids };
     },
     async _fetchFavoriteActors({ force = false } = {}) {
       const cached = !force ? this._readFavoriteActorsCache() : null;
       if (cached) return cached;
       const names = new Set();
       const paths = new Set();
+      const ids = new Set();
       const seen = new Set();
       let url = new URL('/users/collection_actors', location.origin).href;
       for (let page = 0; url && page < 30; page++) {
@@ -3235,11 +3286,9 @@
         doc.querySelectorAll('a[href*="/actors/"]').forEach(a => {
           const text = this._normalizeActorKey(a.textContent);
           let path = '';
-          try {
-            path = new URL(a.getAttribute('href') || '', location.origin).pathname.toLowerCase();
-          } catch {}
+          path = this._getJavdbActorPath(a.getAttribute('href'));
           if (text) names.add(text);
-          if (/^\/actors\/[^/?#]+/i.test(path)) paths.add(path);
+          if (path) { paths.add(path); ids.add(this._getJavdbActorId(path)); }
         });
         const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]');
         url = '';
@@ -3252,30 +3301,93 @@
           } catch {}
         }
       }
-      this._writeFavoriteActorsCache(names, paths);
-      return { names, paths, ts: Date.now() };
+      const merged = this._mergeFavoriteActorsPending(names, paths, ids);
+      const ts = this._writeFavoriteActorsCache(merged.names, merged.paths, merged.ids);
+      return { ...merged, ts };
     },
     _applyFavoriteActorHighlight(links, fav) {
       if (!links?.length || !fav) return;
       links.forEach(a => {
-        let path = '';
+        const path = this._getJavdbActorPath(a.getAttribute('href'));
+        const id = this._getJavdbActorId(path);
         const name = this._normalizeActorKey(a.textContent);
-        try {
-          path = new URL(a.getAttribute('href') || '', location.origin).pathname.toLowerCase();
-        } catch {}
-        const matched = (name && fav.names?.has(name)) || (path && fav.paths?.has(path));
+        const matched = id ? fav.ids?.has(id) : (path && fav.paths?.has(path)) || (name && fav.names?.has(name));
         a.classList.toggle('javdb-favorite-actor', !!matched);
         if (matched) a.title = a.title || '已收藏演员';
       });
     },
+    _updateFavoriteActorsCacheFromAction(action) {
+      const href = action?.getAttribute('href') || '';
+      const id = this._getJavdbActorId(href);
+      const path = this._getJavdbActorPath(href);
+      if (!id || !path) return null;
+      const cached = this._readFavoriteActorsCache() || {
+        names: new Set(),
+        paths: new Set(),
+        ids: new Set(),
+        ts: 0,
+      };
+      const isUncollect = /\/uncollect(?:[/?#]|$)/i.test(href);
+      const name = this._normalizeActorKey(document.querySelector('.actor-section-name')?.textContent);
+      const pending = this._readFavoriteActorsPending() || {
+        addIds: new Set(),
+        removeIds: new Set(),
+        addPaths: new Set(),
+        removePaths: new Set(),
+        addNames: new Set(),
+        removeNames: new Set(),
+      };
+      if (isUncollect) {
+        cached.ids.delete(id);
+        cached.paths.delete(path);
+        if (name) cached.names.delete(name);
+        pending.addIds.delete(id);
+        pending.addPaths.delete(path);
+        pending.addNames.delete(name);
+        pending.removeIds.add(id);
+        pending.removePaths.add(path);
+        if (name) pending.removeNames.add(name);
+      } else {
+        cached.ids.add(id);
+        cached.paths.add(path);
+        if (name) cached.names.add(name);
+        pending.removeIds.delete(id);
+        pending.removePaths.delete(path);
+        pending.removeNames.delete(name);
+        pending.addIds.add(id);
+        pending.addPaths.add(path);
+        if (name) pending.addNames.add(name);
+      }
+      this._writeFavoriteActorsPending(pending);
+      const ts = this._writeFavoriteActorsCache(cached.names, cached.paths, cached.ids);
+      return { ...cached, ts };
+    },
     _refreshFavoriteActorsCache({ applyCurrentPage = true, delay = 500 } = {}) {
-      if (document.documentElement.dataset.laosijiJavdbFavoriteActorsRefreshing === '1') return;
-      document.documentElement.dataset.laosijiJavdbFavoriteActorsRefreshing = '1';
+      const root = document.documentElement;
+      const refreshingKey = 'laosijiJavdbFavoriteActorsRefreshing';
+      const pendingKey = 'laosijiJavdbFavoriteActorsRefreshPending';
+      const pendingApplyKey = 'laosijiJavdbFavoriteActorsRefreshPendingApply';
+      if (root.dataset[refreshingKey] === '1') {
+        root.dataset[pendingKey] = '1';
+        if (applyCurrentPage) root.dataset[pendingApplyKey] = '1';
+        return;
+      }
+      root.dataset[refreshingKey] = '1';
       setTimeout(() => {
         this._fetchFavoriteActors({ force: true }) .then(fav => {
+            this._clearFavoriteActorsCacheDirty(fav.ts);
             if (applyCurrentPage) this._applyFavoriteActorHighlight(this._getJavdbActorLinks(), fav);
-          }) .catch(err => debugLog('JavDB 收藏演员缓存刷新失败:', err))
-          .finally(() => { delete document.documentElement.dataset.laosijiJavdbFavoriteActorsRefreshing; });
+          }) .catch(err => debugLog('JavDB 收藏演员缓存刷新失败:', err)) .finally(() => {
+            delete root.dataset[refreshingKey];
+            if (root.dataset[pendingKey] !== '1') return;
+            const pendingApply = root.dataset[pendingApplyKey] === '1';
+            delete root.dataset[pendingKey];
+            delete root.dataset[pendingApplyKey];
+            this._refreshFavoriteActorsCache({
+              applyCurrentPage: pendingApply,
+              delay: 0,
+            });
+          });
       }, delay);
     },
     _isLoggedIn() {
@@ -3288,8 +3400,11 @@
       return /登出|退出|我的|帳號|账号|收藏/i.test(navbarText) && !/登入|登录|註冊|注册/i.test(navbarText);
     },
     _primeFavoriteActorsCacheIfNeeded() {
-      if (this._readFavoriteActorsCache() || !this._isLoggedIn()) return;
-      this._refreshFavoriteActorsCache({ delay: 300 });
+      if (!this._isLoggedIn()) return;
+      const cached = this._readFavoriteActorsCache();
+      const dirtyAt = this._readFavoriteActorsCacheDirtyAt();
+      if (cached && dirtyAt <= cached.ts) return;
+      this._refreshFavoriteActorsCache({ delay: dirtyAt ? 900 : 300 });
     },
     _watchFavoriteActorActions() {
       if (document.documentElement.dataset.laosijiJavdbFavoriteActorActionWatch === '1') return;
@@ -3301,6 +3416,9 @@
           'a[href*="/actors/"][href$="/uncollect"][data-method="post"]'
         );
         if (!action) return;
+        const cached = this._updateFavoriteActorsCacheFromAction(action);
+        this._markFavoriteActorsCacheDirty();
+        if (cached) this._applyFavoriteActorHighlight(this._getJavdbActorLinks(), cached);
         this._refreshFavoriteActorsCache({ delay: 900 });
       }, true);
     },
