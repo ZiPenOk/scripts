@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.4.5
+// @version      2.7.4.6
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -46,7 +46,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.4.5';
+  const SCRIPT_VERSION = '2.7.4.6';
   const DEBUG_LOG = false;
   const ERROR_LOG = true;
   const PAGE_ZOOM_DEFAULT = 86;
@@ -5741,6 +5741,10 @@
       const raw = String(code || '').trim();
       if (!raw) return '';
       const normalized = raw .replace(/\s+/g, '-') .replace(/^FC2[-_]?PPV[-_]?/i, 'FC2-') .toUpperCase();
+      const heyDouga = normalized.match(/^HEYDOUGA[-_]?([A-Z0-9]+[-_][A-Z0-9]+)$/i);
+      if (heyDouga) return heyDouga[1].replace(/_/g, '-');
+      const tokyoHot = normalized.match(/^TOKYO[-_]?HOT[-_]?([A-Z0-9]+(?:[-_][A-Z0-9]+)?)$/i);
+      if (tokyoHot) return tokyoHot[1].replace(/_/g, '-');
       const uncensoredNumeric = normalized.match(/(\d{6})[-_](\d{2,3})/);
       if (uncensoredNumeric) {
         const sep = uncensoredNumeric[0].includes('_') ? '_' : '-';
@@ -5751,13 +5755,37 @@
         const number = compact[2].replace(/^0+(?=\d{3})/, '');
         return `${compact[1]}-${number}`;
       }
+      const mixedCompact = normalized.match(/^([A-Z][A-Z0-9]{2,14}?)(\d{3,6})$/);
+      if (mixedCompact) {
+        const number = mixedCompact[2].replace(/^0+(?=\d{3})/, '');
+        return `${mixedCompact[1]}-${number}`;
+      }
       const trimmed = normalized.match(/^([A-Z0-9]{2,15}[-_]\d{2,9})/);
       if (trimmed) return trimmed[1];
       return normalized;
     },
     extractCode(text, options = {}) {
       if (!text) return null;
-      const uncensoredHit = String(text).match(/(?:(PACOPACOMAMA|PACO|10MUSUME|10MU|1PONDO|CARIBBEANCOM|CARIB|HEYZO)[-_\s]*)?(\d{6})([-_])(\d{2,3})/i);
+      const sourceText = String(text);
+      const fc2 = sourceText.match(/\bFC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})\b/i);
+      if (fc2) return Utils.normalizeCode(`FC2-PPV-${fc2[1]}`);
+      const heyDouga = sourceText.match(/\bHEYDOUGA[-_\s]*(\d{4})[-_\s]+([A-Z0-9]+)\b/i);
+      if (heyDouga) {
+        const code = Utils.normalizeCode(`${heyDouga[1]}-${heyDouga[2]}`);
+        return options.keepUncensoredSource ? `HEYDOUGA_${code}` : code;
+      }
+      const gachi = sourceText.match(/\bGACHI[-_\s]*(\d{3,6})\b/i);
+      if (gachi) {
+        const code = Utils.normalizeCode(`GACHI-${gachi[1]}`);
+        return options.keepUncensoredSource ? `HEYDOUGA_${code}` : code;
+      }
+      const duga = sourceText.match(/\bDUGA[-_\s]+([A-Z0-9]+[-_][A-Z0-9]+)\b/i);
+      if (duga) return Utils.normalizeCode(`DUGA-${duga[1]}`);
+      const myWife = sourceText.match(/\bMY[-_\s]?WIFE[-_\s]*(\d+)\b/i);
+      if (myWife) return Utils.normalizeCode(`MYWIFE-${myWife[1]}`);
+      const tokyoHot = sourceText.match(/\bTOKYO[-_\s]?HOT[-_\s]*([A-Z0-9]+(?:[-_][A-Z0-9]+)?)\b/i);
+      if (tokyoHot) return Utils.normalizeCode(tokyoHot[1]);
+      const uncensoredHit = String(text).match(/(?:(PACOPACOMAMA|PACO|10MUSUME|10MU|1PONDO|CARIBBEANCOM|CARIBBEAN|CARIB|HEYZO)[-_\s]*)?(\d{6})([-_])(\d{2,3})/i);
       if (uncensoredHit) {
         const code = Utils.normalizeCode(`${uncensoredHit[2]}${uncensoredHit[3]}${uncensoredHit[4]}`);
         if (options.keepUncensoredSource && uncensoredHit[1]) {
@@ -5770,10 +5798,11 @@
         return Utils.normalizeCode(`${mgstageFull[1]}-${mgstageFull[2]}`);
       }
       const patterns = [
+        { regex: /([A-Z][A-Z0-9]{1,14})[-_\s](\d{2,10})(?:[-_](\d{1,3}))?/i, type: 'standard' },
         { regex: /([A-Z]{2,15})[-_\s]([A-Z]{1,2}\d{2,10})/i, type: 'alphanum' },
-        { regex: /FC2[-\s_]?(?:PPV)?[-\s_]?(\d{6,9})/i, type: 'fc2' },
         { regex: /([A-Z]{2,15})[-_\s](\d{2,10})(?:[-_](\d{1,3}))?/i, type: 'standard' },
         { regex: /(\d{6})([-_\s]?)(\d{2,3})/, type: 'numeric' },
+        { regex: /\b([A-Z][A-Z0-9]{2,14}?)(\d{3,6})\b/i, type: 'mixedCompact' },
         { regex: /\b([A-Z]{2,10})(\d{3,6})\b/i, type: 'compactStandard' },
         { regex: /([A-Z]{1,2})(\d{3,4})/i, type: 'compact' }
       ];
@@ -5788,11 +5817,15 @@
           const prefix = match[1].toUpperCase();
           if (ignoreList.includes(prefix)) continue;
           return Utils.normalizeCode(match[3] ? `${prefix}-${match[2]}-${match[3]}` : `${prefix}-${match[2]}`);
-        } else if (type === 'fc2') {
-          return Utils.normalizeCode(`FC2-PPV-${match[1]}`);
         } else if (type === 'numeric') {
           if (match[2] === '_') return Utils.normalizeCode(`${match[1]}_${match[3]}`);
           return Utils.normalizeCode(`${match[1]}-${match[3]}`);
+        } else if (type === 'mixedCompact') {
+          const prefix = match[1].toUpperCase();
+          if (/^[A-Z]+$/.test(prefix) || /\d$/.test(prefix)) continue;
+          if (ignoreList.includes(prefix)) continue;
+          const number = match[2].replace(/^0+(?=\d{3})/, '');
+          return Utils.normalizeCode(`${prefix}-${number}`);
         } else if (type === 'compactStandard') {
           const prefix = match[1].toUpperCase();
           if (ignoreList.includes(prefix)) continue;
@@ -6474,6 +6507,9 @@
       const normalizedSourceName = (value = activeJavxySource) => {
         const raw = String(value || '').trim().toLowerCase();
         if (raw.includes('mgstage')) return 'MGStage';
+        if (raw.includes('heydouga')) return 'HeyDouga';
+        if (raw.includes('mywife')) return 'MYWIFE';
+        if (raw.includes('duga')) return 'DUGA';
         if (raw.includes('javdb')) return 'JavDB';
         if (raw.includes('avwikidb')) return 'AVWikiDB';
         if (raw.includes('javdatabase')) return 'JAVDatabase';
@@ -7477,10 +7513,11 @@
     return { sync, remove };
   })();
   Core.expose('__LAOSIJI_DETAIL_PREVIEW_INLINE__', DetailPreviewInline);
+  const JAVXY_DEV_API_BASE = '';
   const Trailer = {
     normalize(code) { return Utils.normalizeCode(code); },
     cacheKey(code) {
-      return`trailer_cache_v10_${this.normalize(code)}`;
+      return`trailer_cache_v17_${this.normalize(code)}`;
     },
     isDynamicTrailer(result) {
       const url = String(result?.url || '');
@@ -7510,9 +7547,11 @@
           urls: result.urls,
           javxySource: result.javxySource || result.source,
           fallbackResolver: async (failedSources = []) => {
+            const fallbackSources = Array.isArray(result.fallbackSources) ? result.fallbackSources : [];
+            if (!fallbackSources.length) return null;
             const failed = [...new Set(failedSources.map(source => this.normalizeJavxySource(source)).filter(Boolean))];
             if (failed.includes('DMM')) this.markJpSourceTemporarilyFailed('DMM');
-            return this.fallbackJavxyResult(normalizedCode, rawCode, failed);
+            return this.fallbackJavxyResult(normalizedCode, rawCode, failed, { prefer: fallbackSources });
           }
         });
       } else {
@@ -7586,11 +7625,16 @@
     },
     normalizeJavxySource(value) {
       const raw = String(value || '').trim().toLowerCase();
+      if (raw.includes('fc2')) return 'FC2';
       if (raw.includes('mgstage')) return 'MGStage';
+      if (raw.includes('heydouga')) return 'Direct';
+      if (raw.includes('mywife')) return 'MYWIFE';
+      if (raw.includes('duga')) return 'DUGA';
       if (raw.includes('javdb')) return 'JavDB';
       if (raw.includes('avwikidb')) return 'AVWikiDB';
       if (raw.includes('javdatabase')) return 'JAVDatabase';
       if (raw.includes('dmm')) return 'DMM';
+      if (raw === 'direct' || raw.includes('heyzo') || raw.includes('heydouga') || raw.includes('paco') || raw.includes('10musume') || raw.includes('10mu') || raw.includes('1pondo') || raw.includes('caribbean') || raw.includes('tokyo-hot') || raw.includes('tokyohot')) return 'Direct';
       return String(value || '').trim();
     },
     jpSourceFailedKey(source = 'DMM') {
@@ -7606,15 +7650,17 @@
     },
     async fallbackJavxyResult(code, rawCode = '', failedSources = [], options = {}) {
       const skip = [...new Set((failedSources || []).map(source => this.normalizeJavxySource(source)).filter(Boolean))];
-      if (!skip.length) return null;
+      const prefer = [...new Set((options.prefer || []).map(source => String(source || '').trim()).filter(Boolean))];
+      if (!skip.length && !prefer.length) return null;
       if (!options.silent) {
         this.debug('Javxy 播放失败回落查询', {
           code,
           skip,
+          prefer,
           rule: '仅跳过失败来源，后续顺序按服务端后台设置'
         });
       }
-      return this.fromJavxyCcCd(code, rawCode, { skip });
+      return this.fromJavxyCcCd(code, rawCode, { skip, prefer });
     },
     installFallbackDebugHelper() {
       const targetWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : globalThis;
@@ -7650,9 +7696,18 @@
       return Object.keys(qualityMap || {}) .filter(key => qualityMap[key]) .sort((a, b) => (rank.get(a) ?? -1) - (rank.get(b) ?? -1));
     },
     javxySourceLabels: {
+      'Tokyo-Hot': 'Javxy | Tokyo-Hot',
+      FC2: 'Javxy | FC2',
+      Direct: 'Javxy | Direct',
       DMM: 'Javxy | dmm',
+      MGStage: 'Javxy | MGStage',
+      DUGA: 'Javxy | DUGA',
+      MYWIFE: 'Javxy | MyWife',
       JavDB: 'Javxy | Javdb',
+      AVWikiDB: 'Javxy | AVWikiDB',
+      JAVDatabase: 'Javxy | JAVDatabase',
       HEYZO: 'Javxy | Heyzo',
+      HeyDouga: 'Javxy | HeyDouga',
       PACO: 'Javxy | Paco',
       '10MU': 'Javxy | 10mu',
       Caribbean: 'Javxy | 加勒比',
@@ -7661,16 +7716,18 @@
     async fromJavxyCcCd(id, rawCode = '', options = {}) {
       const query = String(id || rawCode || '').trim();
       if (!query) { this.debug('Javxy 跳过：查询词为空'); return null; }
-      const endpoints = [
-        { host: String.fromCharCode(106,97,118,120,121,46,99,99,46,99,100), label: 'Javxy' },
-        { host: String.fromCharCode(119,111,114,107,101,114,46,106,97,118,120,121,46,99,99,46,99,100), label: 'Javxy Worker' }
-      ];
+      const localApiBase = String(JAVXY_DEV_API_BASE || '').trim().replace(/\/+$/, '');
+      const endpoints = localApiBase ? [{ base: localApiBase, label: 'Javxy Local' }] : [
+          { host: String.fromCharCode(106,97,118,120,121,46,99,99,46,99,100), label: 'Javxy' },
+          { host: String.fromCharCode(119,111,114,107,101,114,46,106,97,118,120,121,46,99,99,46,99,100), label: 'Javxy Worker' }
+        ];
       for (const endpoint of endpoints) {
         const params = new URLSearchParams({ client: 'laosiji-new' });
         if (Array.isArray(options.skip) && options.skip.length) params.set('skip', options.skip.join(','));
         if (Array.isArray(options.prefer) && options.prefer.length) params.set('prefer', options.prefer.join(','));
         if (Array.isArray(options.source) && options.source.length) params.set('source', options.source.join(','));
-        const apiUrl =`${endpoint.protocol || 'https'}://${endpoint.host}/trailers/${encodeURIComponent(query)}?${params}`;
+        const apiUrl = endpoint.base
+          ?`${endpoint.base}/trailers/${encodeURIComponent(query)}?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/trailers/${encodeURIComponent(query)}?${params}`;
         this.debug('Javxy \u8bf7\u6c42 API', { query, apiUrl, endpoint: endpoint.label });
         const r = await this.request(apiUrl, {
           timeout: 8000,
@@ -7717,9 +7774,11 @@
         const source = sourceBase;
         this.debug('Javxy 返回结果', { endpoint: endpoint.label, source: data?.source, quality, qualities: Object.keys(qualityMap) });
         const resultType = String(data?.type || '').trim() || 'video';
-        return this.result(qualityMap[quality] || trailerUrl, source, resultType, {
+        const directUrl = qualityMap[quality] || trailerUrl;
+        return this.result(directUrl, source, resultType, {
           qualities: qualityMap,
           quality,
+          directUrl,
           code: this.normalize(query),
           rawCode,
           javxySource: String(data?.source || '').trim(),
