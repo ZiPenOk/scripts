@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.4.7
+// @version      2.7.4.8
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -46,7 +46,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.4.7';
+  const SCRIPT_VERSION = '2.7.4.8';
   const DEBUG_LOG = false;
   const ERROR_LOG = true;
   const PAGE_ZOOM_DEFAULT = 86;
@@ -6442,6 +6442,7 @@
       let overlayClosed = false;
       let playbackStarted = false;
       let qualityBar = null;
+      let qualityBarMount = null;
       const failedSources = new Set();
       let seekingByProgress = false;
       let footer = null;
@@ -6504,12 +6505,35 @@
           video._hls = null;
         }
       };
+      const renderQualityBar = (result = {}) => {
+        if (isIframe || !qualityBarMount) return;
+        const nextQualityBar = createTrailerQualitySelector({
+          qualities: result.qualities,
+          initialQuality: result.quality,
+          getVideo: () => video,
+          getActiveQuality: () => activeQuality,
+          setActiveQuality: (nextQuality, nextUrl) => {
+            activeQuality = nextQuality;
+            activeUrl = nextUrl;
+          },
+          getFallbackUrls: () => fallbackUrls,
+          setFallbackIndex: nextIndex => { fallbackIndex = nextIndex; },
+          writePlaybackTime,
+          destroyActiveHls,
+          resetPlaybackReady: () => { playbackStarted = false; },
+          attachVideoSrc,
+          sourceLink,
+        });
+        qualityBar?.replaceWith(nextQualityBar);
+        qualityBar = nextQualityBar;
+      };
       const normalizedSourceName = (value = activeJavxySource) => {
         const raw = String(value || '').trim().toLowerCase();
         if (raw.includes('mgstage')) return 'MGStage';
         if (raw.includes('heydouga')) return 'HeyDouga';
         if (raw.includes('mywife')) return 'MYWIFE';
         if (raw.includes('duga')) return 'DUGA';
+        if (raw.includes('javtrailers')) return 'JavTrailers';
         if (raw.includes('javdb')) return 'JavDB';
         if (raw.includes('avwikidb')) return 'AVWikiDB';
         if (raw.includes('javdatabase')) return 'JAVDatabase';
@@ -6536,7 +6560,7 @@
         sourceLink.href = activeUrl;
         playbackKeyBase = playbackKey(activeUrl);
         if (sourceBadge) sourceBadge.textContent = activeSource;
-        if (qualityBar) qualityBar.style.display = 'none';
+        renderQualityBar(result);
       };
       const handlePlaybackFailure = async (reason = 'error') => {
         if (overlayClosed || !video || sourceFallbackInProgress) return;
@@ -6791,6 +6815,7 @@
       }
       const footerRight = document.createElement('div');
       footerRight.className = 'trailer-control-right';
+      qualityBarMount = footerRight;
       footerRight.appendChild(qualityBar);
       footer.appendChild(footerLeft);
       footerRight.appendChild(fullscreenBtn);
@@ -7547,11 +7572,11 @@
           urls: result.urls,
           javxySource: result.javxySource || result.source,
           fallbackResolver: async (failedSources = []) => {
-            const fallbackSources = Array.isArray(result.fallbackSources) ? result.fallbackSources : [];
-            if (!fallbackSources.length) return null;
             const failed = [...new Set(failedSources.map(source => this.normalizeJavxySource(source)).filter(Boolean))];
+            if (failed.includes('JavDB')) return null;
             if (failed.includes('DMM')) this.markJpSourceTemporarilyFailed('DMM');
-            return this.fallbackJavxyResult(normalizedCode, rawCode, failed, { prefer: fallbackSources });
+            const sources = failed.includes('JavTrailers') ? ['JavDB'] : ['JavTrailers', 'JavDB'];
+            return this.fallbackJavxyResult(normalizedCode, rawCode, failed, { source: sources });
           }
         });
       } else {
@@ -7630,6 +7655,7 @@
       if (raw.includes('heydouga')) return 'Direct';
       if (raw.includes('mywife')) return 'MYWIFE';
       if (raw.includes('duga')) return 'DUGA';
+      if (raw.includes('javtrailers')) return 'JavTrailers';
       if (raw.includes('javdb')) return 'JavDB';
       if (raw.includes('avwikidb')) return 'AVWikiDB';
       if (raw.includes('javdatabase')) return 'JAVDatabase';
@@ -7651,16 +7677,18 @@
     async fallbackJavxyResult(code, rawCode = '', failedSources = [], options = {}) {
       const skip = [...new Set((failedSources || []).map(source => this.normalizeJavxySource(source)).filter(Boolean))];
       const prefer = [...new Set((options.prefer || []).map(source => String(source || '').trim()).filter(Boolean))];
-      if (!skip.length && !prefer.length) return null;
+      const source = [...new Set((options.source || []).map(source => String(source || '').trim()).filter(Boolean))];
+      if (!skip.length && !prefer.length && !source.length) return null;
       if (!options.silent) {
         this.debug('Javxy 播放失败回落查询', {
           code,
           skip,
           prefer,
+          source,
           rule: '仅跳过失败来源，后续顺序按服务端后台设置'
         });
       }
-      return this.fromJavxyCcCd(code, rawCode, { skip, prefer, playbackFallback: true });
+      return this.fromJavxyCcCd(code, rawCode, { skip, prefer, source, playbackFallback: true });
     },
     installFallbackDebugHelper() {
       const targetWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : globalThis;
@@ -7703,6 +7731,7 @@
       MGStage: 'Javxy | MGStage',
       DUGA: 'Javxy | DUGA',
       MYWIFE: 'Javxy | MyWife',
+      JavTrailers: 'Javxy | JavTrailers',
       JavDB: 'Javxy | Javdb',
       AVWikiDB: 'Javxy | AVWikiDB',
       JAVDatabase: 'Javxy | JAVDatabase',
@@ -7787,7 +7816,8 @@
           fallbackSources: Array.isArray(data?.fallback) ? data.fallback.filter(Boolean) : [],
           fallbackQuery: {
             skip: Array.isArray(options.skip) ? options.skip.filter(Boolean) : [],
-            prefer: Array.isArray(options.prefer) ? options.prefer.filter(Boolean) : []
+            prefer: Array.isArray(options.prefer) ? options.prefer.filter(Boolean) : [],
+            source: Array.isArray(options.source) ? options.source.filter(Boolean) : []
           },
           urls: Array.isArray(data?.urls) && data.urls.length ? data.urls : this.sortQualityKeys(qualityMap).map(key => qualityMap[key])
         });
