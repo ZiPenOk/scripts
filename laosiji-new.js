@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.4.8
+// @version      2.7.5
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -10,6 +10,8 @@
 // @match        *://*.javbus.com/*
 // @match        *://javbus.com/*
 // @match        *://javdb.com/*
+// @match        *://115.com/*
+// @match        *://www.115.com/*
 // @match        *://sukebei.nyaa.si/*
 // @match        *://169bbs.com/*
 // @match        *://*169bbs*.com/*
@@ -46,7 +48,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.4.8';
+  const SCRIPT_VERSION = '2.7.5';
   const DEBUG_LOG = false;
   const ERROR_LOG = true;
   const PAGE_ZOOM_DEFAULT = 86;
@@ -129,6 +131,7 @@
     infiniteScroll: { key: 'infinite_scroll_enabled', def: false, bool: true },
     cardFx: { key: 'card_fx_enabled', def: true, bool: true },
     coverHoverPreview: { key: 'cover_hover_preview_enabled', def: false, bool: true },
+    pan115CoverHoverPreview: { key: 'pan115_cover_hover_preview_enabled', def: true, bool: true },
   };
   Object.entries(CFG_MAP).forEach(([prop, meta]) => {
     Object.defineProperty(CFG, prop, {
@@ -634,7 +637,7 @@
     const NARROW_VIEWPORT_QUERY = '(max-width:720px)';
     const LANDSCAPE_VIEWPORT_QUERY = '(orientation:landscape) and (max-height:720px)';
     const COARSE_POINTER_QUERY = '(pointer:coarse)';
-    const DISABLED_FEATURES = new Set(['pageZoom', 'portraitCards', 'detailFlex', 'cardFx', 'coverHoverPreview', 'detailPreviewInline']);
+    const DISABLED_FEATURES = new Set(['pageZoom', 'portraitCards', 'detailFlex', 'cardFx', 'coverHoverPreview', 'pan115CoverHoverPreview', 'detailPreviewInline']);
     const listeners = new Set();
     let mediaQueries = [];
     let mobile = false;
@@ -825,7 +828,7 @@
         }, 260);
       };
       clearPreviewCacheBtn.addEventListener('click', () => {
-        const count = Ui.clearSessionByPrefixes(['thumb_cache_']);
+        const count = Ui.clearSessionByPrefixes(['thumb_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_']);
         flashCacheButton(clearPreviewCacheBtn, '预览图已清理', count);
       });
       clearTrailerCacheBtn.addEventListener('click', () => {
@@ -833,7 +836,7 @@
         flashCacheButton(clearTrailerCacheBtn, '预告片已清理', count);
       });
       clearCacheBtn.addEventListener('click', () => {
-        const count = Ui.clearSessionByPrefixes(['thumb_cache_', 'trailer_cache_', 'pan115_cache_']);
+        const count = Ui.clearSessionByPrefixes(['thumb_cache_', 'trailer_cache_', 'pan115_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_']);
         cacheFeedback.textContent = count ?`已清空 ${count} 项` : '无缓存';
         setTimeout(() => { cacheFeedback.textContent = ''; }, 1800);
       });
@@ -887,7 +890,7 @@
     injectStyle('jav-quick-settings-style',`#jav-quick-settings-popover{position:fixed;z-index:10000030;width:286px;padding:10px;border:1px solid rgba(203,213,225,.85);border-radius:10px;background:rgba(255,255,255,.985);color:#0f172a;box-shadow:0 12px 28px rgba(15,23,42,.16);backdrop-filter:blur(6px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-sizing:border-box}#jav-quick-settings-popover *{box-sizing:border-box}#jav-quick-settings-popover .qs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}#jav-quick-settings-popover .qs-title{font-size:13px;font-weight:800;color:#1e293b}#jav-quick-settings-popover .qs-site{margin-top:1px;font-size:11px;font-weight:650;color:#64748b}#jav-quick-settings-popover .qs-close{width:24px;height:24px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#64748b;cursor:pointer;line-height:1;font-size:14px}#jav-quick-settings-popover .qs-close:hover{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}#jav-quick-settings-popover .qs-row{display:grid;grid-template-columns:72px 1fr 42px;align-items:center;gap:9px;padding:4px 0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-row+.qs-row{margin-top:4px}#jav-quick-settings-popover .qs-mobile-columns-row{grid-template-columns:72px minmax(0,1fr)}#jav-quick-settings-popover .qs-segmented{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;border:1px solid #bfdbfe;border-radius:6px}#jav-quick-settings-popover .qs-segment{min-height:28px;padding:0 8px;border:0;border-right:1px solid #bfdbfe;background:#fff;color:#475569;font-size:12px;font-weight:750;cursor:pointer}#jav-quick-settings-popover .qs-segment:last-child{border-right:0}#jav-quick-settings-popover .qs-segment.is-active{background:#2563eb;color:#fff}#jav-quick-settings-popover .qs-segment:focus-visible{position:relative;outline:2px solid #1d4ed8;outline-offset:-2px}#jav-quick-settings-popover .qs-detail-flex{display:none;margin-top:8px;padding-top:7px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-detail-flex.is-visible{display:block}#jav-quick-settings-popover .qs-section-title{margin-bottom:3px;font-size:12px;font-weight:850;color:#1e293b}#jav-quick-settings-popover .qs-row.is-disabled{opacity:.48}#jav-quick-settings-popover .qs-row.is-disabled .qs-range{cursor:not-allowed;background:#e2e8f0}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-webkit-slider-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-moz-range-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-switch-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px}#jav-quick-settings-popover .qs-switch-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-name{font-size:12px;font-weight:750;color:#334155;white-space:nowrap}#jav-quick-settings-popover .qs-value{display:grid;place-items:center;min-width:34px;height:22px;border-radius:999px;background:#fff;color:#1d4ed8;font-size:12px;font-weight:800;border:1px solid #dbeafe}#jav-quick-settings-popover .qs-range{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:999px;background:linear-gradient(90deg,#93c5fd 0%,#dbeafe 100%);outline:none}#jav-quick-settings-popover .qs-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;border:2px solid #fff;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-range::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-toggle{position:relative;display:inline-block;width:36px;height:20px;flex:0 0 auto}#jav-quick-settings-popover .qs-toggle input{opacity:0;width:0;height:0}#jav-quick-settings-popover .qs-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-quick-settings-popover .qs-toggle-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.22);transition:transform .18s}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track{background:#2563eb}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track::before{transform:translateX(14px)}#jav-quick-settings-popover .qs-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-more{height:28px;padding:0 12px;border:1px solid #c7d2fe;border-radius:7px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:800;cursor:pointer}#jav-quick-settings-popover .qs-more:hover{background:#e0e7ff;border-color:#a5b4fc}#jav-quick-settings-popover.is-mobile{left:10px!important;right:10px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;top:auto!important;width:auto!important;max-height:calc(100dvh - 20px);overflow:auto}#jav-quick-settings-popover.is-mobile .qs-page-zoom-row,#jav-quick-settings-popover.is-mobile .qs-columns-row,#jav-quick-settings-popover.is-mobile .qs-detail-flex{display:none!important}#jav-quick-settings-popover.is-mobile .qs-switch-row[data-mobile-disabled="1"]{opacity:.5}#jav-quick-settings-popover.is-mobile .qs-toggle-track,#jav-quick-settings-popover.is-mobile .qs-toggle input:disabled{cursor:not-allowed}`);
   }
   const QuickSettingsPanel = (() => {
-    const siteLabelMap = { javbus: 'JavBus', javdb: 'JavDB', javlib: 'JavLibrary' };
+    const siteLabelMap = { javbus: 'JavBus', javdb: 'JavDB', javlib: 'JavLibrary', pan115: '115网盘' };
     const TOGGLE_META = [
       { id: 'pan115', label: '115匹配', cfgKey: 'btnShowPan115', sync: 'syncPan115' },
       { id: 'infinite-scroll', label: '瀑布流', cfgKey: 'infiniteScroll', sync: 'syncInfiniteScroll' },
@@ -899,10 +902,16 @@
       { id: 'list-preview', label: '首页快捷查看', cfgKey: 'listPreviewQuick', sync: 'syncListPreview' },
       { id: 'detail-preview-inline', label: '预览图直显', cfgKey: 'detailPreviewInline', sync: 'syncDetailPreview', mobileDisabled: true },
     ];
-    function renderToggleRows() {
-      return TOGGLE_META.map(({ id, label, mobileDisabled }) =>`<div class="qs-switch-row"${mobileDisabled ? ' data-mobile-disabled="1"' : ''}><div class="qs-name">${label}</div><label class="qs-toggle"><input id="qs-${id}" type="checkbox"><span class="qs-toggle-track"></span></label></div>`).join('');
+    const PAN115_TOGGLE_META = [
+      { id: 'pan115-cover-hover-preview', label: '115封面预览', cfgKey: 'pan115CoverHoverPreview', sync: 'syncCoverHoverPreview', mobileDisabled: true },
+    ];
+    function renderToggleRows(toggleMeta = TOGGLE_META) {
+      return toggleMeta.map(({ id, label, mobileDisabled }) =>`<div class="qs-switch-row"${mobileDisabled ? ' data-mobile-disabled="1"' : ''}><div class="qs-name">${label}</div><label class="qs-toggle"><input id="qs-${id}" type="checkbox"><span class="qs-toggle-track"></span></label></div>`).join('');
     }
-    function getCurrentSite() { return CardColumns.detectCurrentSite() || PageZoom.detectCurrentSite(); }
+    function getCurrentSite() {
+      if (/^(?:www\.)?115\.com$/i.test(location.hostname)) return 'pan115';
+      return CardColumns.detectCurrentSite() || PageZoom.detectCurrentSite();
+    }
     function positionPanel(panel, anchor) {
       if (MobilePolicy.isMobile()) {
         panel.classList.add('is-mobile');
@@ -929,15 +938,25 @@
       const panel = document.createElement('div');
       panel.id = 'jav-quick-settings-popover';
       panel.classList.toggle('is-mobile', MobilePolicy.isMobile());
-      const showMobilePortraitColumns = MobilePolicy.isMobile() && !window.matchMedia?.('(orientation:landscape)').matches;
-      panel.innerHTML =`<div class="qs-head"><div><div class="qs-title">快捷设置</div><div class="qs-site"> ${siteLabelMap[site] || '当前站点'} </div></div><button class="qs-close" type="button" title="关闭">×</button></div><div class="qs-row qs-columns-row"><div class="qs-name">卡片列数</div><input class="qs-range" id="qs-columns" type="range" min="2" max="10" step="1"><span class="qs-value" id="qs-columns-value">5</span></div> ${showMobilePortraitColumns ? `
+      const isPan115 = site === 'pan115';
+      const toggleMeta = isPan115 ? PAN115_TOGGLE_META : TOGGLE_META;
+      const showMobilePortraitColumns = !isPan115 && MobilePolicy.isMobile() && !window.matchMedia?.('(orientation:landscape)').matches;
+      panel.innerHTML =`<div class="qs-head"><div><div class="qs-title">快捷设置</div><div class="qs-site"> ${siteLabelMap[site] || '当前站点'} </div></div><button class="qs-close" type="button" title="关闭">×</button></div> ${isPan115 ? '' : `<div class="qs-row qs-columns-row">
+                    <div class="qs-name">卡片列数</div>
+                    <input class="qs-range" id="qs-columns" type="range" min="2" max="10" step="1">
+                    <span class="qs-value" id="qs-columns-value">5</span>
+                </div>`} ${showMobilePortraitColumns ? `
                 <div class="qs-row qs-mobile-columns-row">
                     <div class="qs-name">竖屏卡片</div>
                     <div class="qs-segmented" role="group" aria-label="竖屏卡片列数">
                         <button class="qs-segment" type="button" data-mobile-columns="1">单列</button>
                         <button class="qs-segment" type="button" data-mobile-columns="2">双列</button>
                     </div>
-                </div>` : ''} <div class="qs-row qs-page-zoom-row"><div class="qs-name">页面宽度</div><input class="qs-range" id="qs-zoom" type="range" min="60" max="100" step="1"><span class="qs-value" id="qs-zoom-value">100%</span></div><div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力</div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${renderToggleRows()} </div><div class="qs-footer"><button class="qs-more" type="button">更多设置</button></div>`;
+                </div>` : ''} ${isPan115 ? '' : `<div class="qs-row qs-page-zoom-row">
+                    <div class="qs-name">页面宽度</div>
+                    <input class="qs-range" id="qs-zoom" type="range" min="60" max="100" step="1">
+                    <span class="qs-value" id="qs-zoom-value">100%</span>
+                </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力</div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"><button class="qs-more" type="button">更多设置</button></div>`;
       document.body.appendChild(panel);
       const close = () => panel.remove();
       const columnsInput = panel.querySelector('#qs-columns');
@@ -1010,7 +1029,7 @@
         });
         syncDetailMagnetState();
       }
-      TOGGLE_META.forEach(({ id, cfgKey, sync, persist = true, refreshColumns = false, mobileDisabled = false }) => {
+      toggleMeta.forEach(({ id, cfgKey, sync, persist = true, refreshColumns = false, mobileDisabled = false }) => {
         Ui.bindCheckbox(panel.querySelector(`#qs-${id}`), CFG[cfgKey], checked => {
           if (persist) CFG[cfgKey] = checked;
           Runtime[sync](checked);
@@ -1084,6 +1103,82 @@
     return { install, sync };
   })();
   Core.expose('__LAOSIJI_MOBILE_SETTINGS_ENTRY__', MobileSettingsEntry);
+  const Pan115SettingsEntry = (() => {
+    const ENTRY_ID = 'jav-pan115-settings-entry';
+    let observer = null;
+    let pending = false;
+    function is115Page() { return /^(?:www\.)?115\.com$/i.test(location.hostname); }
+    function ensureStyle() {
+      injectStyle('jav-pan115-settings-entry-style',`#${ENTRY_ID}{display:inline-flex;align-items:center;vertical-align:top;height:34px;box-sizing:border-box;color:#3a4783!important;white-space:nowrap}#${ENTRY_ID}:hover{color:#263365!important;background:#f4f6ff!important}#${ENTRY_ID}:focus-visible{outline:2px solid rgba(58,71,131,.45);outline-offset:1px}#${ENTRY_ID} .entry-icon{display:inline-flex;align-items:center;font-size:16px;line-height:1}#${ENTRY_ID}.is-modern{height:32px;margin:0;padding:0 12px;border:1px solid #d1d4d6;border-radius:4px;background:#fff;color:#4b5563!important;font-size:14px;line-height:1;cursor:pointer}#${ENTRY_ID}.is-modern:hover{background:#f9fafb!important;color:#111827!important}`);
+    }
+    function scheduleSync() {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => {
+        pending = false;
+        sync();
+      });
+    }
+    function isDisplayed(element) {
+      if (!element) return false;
+      const style = window.getComputedStyle?.(element);
+      if (style && (style.display === 'none' || style.visibility === 'hidden')) return false;
+      return !!(element.getClientRects?.().length || element.offsetWidth || element.offsetHeight);
+    }
+    function createEntry(modern = false) {
+      const entry = document.createElement(modern ? 'button' : 'a');
+      entry.id = ENTRY_ID;
+      entry.className = modern ? 'is-modern flex items-center gap-1' : 'button btn-line';
+      if (modern) entry.type = 'button';
+      else entry.href = 'javascript:void(0)';
+      entry.title = '打开老司机快捷设置';
+      entry.setAttribute('aria-label', '打开老司机快捷设置');
+      entry.innerHTML =`<span class="entry-icon" aria-hidden="true">⚙</span><span>老司机设置</span>`;
+      entry.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        QuickSettingsPanel.open(event.currentTarget);
+      });
+      return entry;
+    }
+    function sync() {
+      const existing = document.getElementById(ENTRY_ID);
+      if (!is115Page()) { existing?.remove(); return; }
+      const modernHeader = [...document.querySelectorAll('.justify-between.w-full.pl-6.pr-5')]
+        .find(root => isDisplayed(root) && root.querySelector('button[title="更多操作"]'));
+      const modernMoreButton = modernHeader?.querySelector('button[title="更多操作"]');
+      const modernActionGroup = modernMoreButton?.parentElement;
+      if (modernActionGroup) {
+        if (existing && existing.parentElement !== modernActionGroup) existing.remove();
+        if (existing) return;
+        const viewModeGroup = modernActionGroup.querySelector('button[title="列表视图"]')?.parentElement;
+        const entry = createEntry(true);
+        modernActionGroup.insertBefore(entry, viewModeGroup || modernMoreButton);
+        return;
+      }
+      const topBar = document.querySelector('#js_top_panel_box .left-tvf[rel="left_tvf"]');
+      if (topBar) {
+        if (existing && existing.parentElement !== topBar) existing.remove();
+        if (existing) return;
+        const entry = createEntry();
+        const previewButton = topBar.querySelector('.master-preview-switch-btn');
+        if (previewButton) previewButton.insertAdjacentElement('afterend', entry);
+        else topBar.appendChild(entry);
+        return;
+      }
+    }
+    function install() {
+      if (observer) return;
+      ensureStyle();
+      sync();
+      const root = document.body || document.documentElement;
+      if (!root || typeof MutationObserver === 'undefined') return;
+      observer = new MutationObserver(scheduleSync);
+      observer.observe(root, { childList: true, subtree: true });
+    }
+    return { install, sync };
+  })();
+  Core.expose('__LAOSIJI_PAN115_SETTINGS_ENTRY__', Pan115SettingsEntry);
   const MagnetApi = (() => {
     const JAVDB_API_BASE = 'https://jdforrepam.com/api';
     const JAVDB_SIGN_SALT = '71cf27bb3c0bcdf207b64abecddc970098c7421ee7203b9cdae54478478a199e7d5a6e1a57691123c1a931c057842fb73ba3b3c83bcd69c17ccf174081e3d8aa';
@@ -5798,7 +5893,7 @@
         return Utils.normalizeCode(`${mgstageFull[1]}-${mgstageFull[2]}`);
       }
       const patterns = [
-        { regex: /([A-Z][A-Z0-9]{1,14})[-_\s](\d{2,10})(?:[-_](\d{1,3}))?/i, type: 'standard' },
+        { regex: /\b([A-Z0-9][A-Z0-9]{1,14})[-_\s](\d{2,10})(?:[-_](\d{1,3}))?/i, type: 'standard' },
         { regex: /([A-Z]{2,15})[-_\s]([A-Z]{1,2}\d{2,10})/i, type: 'alphanum' },
         { regex: /([A-Z]{2,15})[-_\s](\d{2,10})(?:[-_](\d{1,3}))?/i, type: 'standard' },
         { regex: /(\d{6})([-_\s]?)(\d{2,3})/, type: 'numeric' },
@@ -7334,8 +7429,17 @@
     let timer = null;
     let popup = null;
     let lastEvent = null;
+    let lastAnchor = null;
     const titleStore = new Map();
-    function enabled() { return MobilePolicy.featureEnabled('coverHoverPreview', !!CFG.coverHoverPreview) && !SiteManager.isDetailPage(); }
+    const pan115CoverCache = new Map();
+    const pan115CoverPending = new Map();
+    const PAN115_COVER_CACHE_PREFIX = 'pan115_cover_v2_';
+    const DMM_GRAPHQL_URL = 'https://api.video.dmm.co.jp/graphql';
+    function enabled() {
+      const feature = is115Page() ? 'pan115CoverHoverPreview' : 'coverHoverPreview';
+      const configured = is115Page() ? CFG.pan115CoverHoverPreview : CFG.coverHoverPreview;
+      return MobilePolicy.featureEnabled(feature, !!configured) && !SiteManager.isDetailPage();
+    }
     function ensureStyle() {
       injectStyle('jav-cover-hover-preview-style',`.jav-cover-hover-preview{position:fixed;z-index:2147483000;pointer-events:none;padding:4px;border-radius:6px;background:rgba(15,23,42,.84);box-shadow:0 18px 42px rgba(15,23,42,.34);opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}.jav-cover-hover-preview.is-visible{opacity:1;transform:translateY(0)}.jav-cover-hover-preview img{display:block;width:auto;border-radius:4px;object-fit:contain;background:#0f172a}`);
     }
@@ -7349,21 +7453,141 @@
       popup?.remove();
       popup = null;
       lastEvent = null;
+      lastAnchor = null;
       restoreTitles();
     }
-    function coverFromEvent(target) {
+    function is115Page() { return /^(?:www\.)?115\.com$/i.test(location.hostname); }
+    function pan115ItemFromEvent(target) {
+      const legacyItem = target?.closest?.('li[rel="item"]');
+      if (legacyItem) {
+        const fileType = legacyItem.getAttribute('file_type') || '';
+        if (fileType !== '0' && fileType !== '1') return null;
+        const name = legacyItem.getAttribute('title') || legacyItem.querySelector('.file-name .name')?.textContent || '';
+        if (fileType === '1' && !Pan115.isVideoName(name)) return null;
+        const code = Utils.extractCode(name);
+        if (!code) return null;
+        return { anchor: legacyItem, src: '', code: Utils.normalizeCode(code) };
+      }
+      const item = target?.closest?.('.file-list-item');
+      if (!item) return null;
+      const nameNode = item.querySelector('.file-name-responsive[title], .file-name-responsive');
+      const name = nameNode?.getAttribute('title') || nameNode?.textContent || '';
+      const isFolder = !!item.querySelector('img[src*="/icons/types/folder.svg"], img[alt="文件夹"]') || /(?:^|\s)文件夹(?:\s|$)/.test(item.textContent || '');
+      if (!isFolder && !Pan115.isVideoName(name)) return null;
+      const code = Utils.extractCode(name);
+      if (!code) return null;
+      return { anchor: item, src: '', code: Utils.normalizeCode(code) };
+    }
+    function targetFromEvent(target) {
+      if (is115Page()) return pan115ItemFromEvent(target);
       const cover = target?.closest?.('.jav-card-cover');
       if (!cover || !cover.closest?.('.jav-card')) return null;
-      return cover;
+      return { anchor: cover, src: imageSrc(cover), code: '' };
     }
     function imageSrc(cover) {
       const img = cover?.querySelector?.('img[src]');
       if (!img) return '';
       return img.dataset.laosijiLandscapeSrc || img.dataset.laosijiCoverSrc || img.currentSrc || img.src || '';
     }
+    function javdbImageUrl(value) {
+      return String(value || '').trim().replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
+    }
+    function pickJavdbCover(movie) {
+      const preview = Array.isArray(movie?.preview_images) ? movie.preview_images[0] : null;
+      return javdbImageUrl(
+        movie?.cover_url || movie?.thumb_url || movie?.cover?.url || preview?.large_url || preview?.url || preview?.thumb_url
+      );
+    }
+    function readPan115CoverCache(code) {
+      const key =`${PAN115_COVER_CACHE_PREFIX}${code}`;
+      if (pan115CoverCache.has(key)) return pan115CoverCache.get(key);
+      try {
+        const raw = sessionStorage.getItem(key);
+        if (raw === null) return undefined;
+        const value = JSON.parse(raw);
+        pan115CoverCache.set(key, value || null);
+        return value || null;
+      } catch { return undefined; }
+    }
+    function writePan115CoverCache(code, value) {
+      const key =`${PAN115_COVER_CACHE_PREFIX}${code}`;
+      pan115CoverCache.set(key, value || null);
+      try { sessionStorage.setItem(key, JSON.stringify(value || null)); } catch {}
+    }
+    async function loadJavdbCover(code) {
+      const movie = await MagnetApi.client.searchMovieByNumber(code, { limit: 5, fallbackFirst: false });
+      let cover = pickJavdbCover(movie);
+      if (!cover && movie?.id) { const detail = await MagnetApi.client.movieDetail(movie.id); cover = pickJavdbCover(detail?.data?.movie); }
+      if (!cover) throw new Error('JavDB cover missing');
+      return cover;
+    }
+    function dmmGraphQLKeyword(code) {
+      const match = String(code || '').trim().toUpperCase().match(/^([A-Z0-9]{2,10})-(\d{1,6})$/);
+      if (!match) return '';
+      return`${match[1].toLowerCase()}${match[2].padStart(5, '0')}`;
+    }
+    async function dmmGraphQLRequest(query) {
+      const response = await gmFetch(DMM_GRAPHQL_URL, {
+        method: 'POST',
+        data: JSON.stringify({ query }),
+        timeout: 12000,
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Referer: 'https://video.dmm.co.jp/',
+          'Fanza-Device': 'BROWSER',
+          'Cache-Control': 'no-cache',
+        },
+      });
+      if (!response.loadstuts || response.status < 200 || response.status >= 400) {
+        throw new Error(`DMM GraphQL HTTP ${response.status || 0}`);
+      }
+      const json = JSON.parse(response.responseText || '{}');
+      if (Array.isArray(json.errors) && json.errors.length) throw new Error(json.errors[0]?.message || 'DMM GraphQL error');
+      return json.data || {};
+    }
+    async function loadDmmCover(code) {
+      const keyword = dmmGraphQLKeyword(code);
+      if (!keyword) throw new Error('DMM cover keyword missing');
+      for (const searchKeyword of [...new Set([keyword,`${keyword}#`])]) {
+        const query =`{ legacySearchPPV(limit: 5, offset: 0, sort: SALES_RANK_SCORE, floor: AV, queryWord: ${JSON.stringify(searchKeyword)}) { result { contents { id } } } }`;
+        const data = await dmmGraphQLRequest(query);
+        const ids = Array.isArray(data?.legacySearchPPV?.result?.contents)
+          ? data.legacySearchPPV.result.contents.map(item => String(item?.id || '').trim()).filter(Boolean) : [];
+        const compactKeyword = keyword.replace(/[^a-z0-9]/gi, '').toLowerCase();
+        const contentID = ids.find(id => id.replace(/[^a-z0-9]/gi, '').toLowerCase().includes(compactKeyword)) || (ids.length === 1 ? ids[0] : '');
+        if (contentID) {
+          const encoded = encodeURIComponent(contentID);
+          return`https://pics.dmm.co.jp/digital/video/${encoded}/${encoded}pl.jpg`;
+        }
+      }
+      throw new Error('DMM cover missing');
+    }
+    async function loadPan115Cover(code) {
+      const normalized = Utils.normalizeCode(code);
+      if (!normalized) return '';
+      const cached = readPan115CoverCache(normalized);
+      if (cached !== undefined) return cached || '';
+      if (pan115CoverPending.has(normalized)) return pan115CoverPending.get(normalized);
+      const task = Promise.any([
+        loadJavdbCover(normalized),
+        loadDmmCover(normalized),
+      ]).then(cover => {
+        writePan115CoverCache(normalized, cover);
+        return cover;
+      }).catch(err => {
+        errorLog('115 JavDB/DMM 封面查询失败:', normalized, err);
+        writePan115CoverCache(normalized, '');
+        return '';
+      }).finally(() => pan115CoverPending.delete(normalized));
+      pan115CoverPending.set(normalized, task);
+      return task;
+    }
     function titleTargets(cover) {
       return [
         cover,
+        cover?.querySelector?.('.file-name .name[title]'),
+        cover?.querySelector?.('.file-name-responsive[title]'),
         cover?.querySelector?.('img[title]'),
         cover?.closest?.('a[title]'),
         cover?.closest?.('.jav-card')?.querySelector?.('a[title]'),
@@ -7415,14 +7639,18 @@
     }
     function onOver(event) {
       if (!enabled()) return;
-      const cover = coverFromEvent(event.target);
-      if (!cover) return;
-      const src = imageSrc(cover);
-      if (!src) return;
-      suppressTitles(cover);
+      const target = targetFromEvent(event.target);
+      if (!target) return;
+      suppressTitles(target.anchor);
       lastEvent = event;
+      lastAnchor = target.anchor;
       clearTimer();
-      timer = setTimeout(() => show(src, lastEvent), 500);
+      timer = setTimeout(async () => {
+        const current = targetFromEvent(lastEvent?.target);
+        if (!current || current.anchor !== target.anchor || !active) return;
+        const src = target.src || await loadPan115Cover(target.code);
+        if (src && active && lastAnchor === target.anchor) show(src, lastEvent);
+      }, 500);
     }
     function onMove(event) {
       if (!popup && !timer) return;
@@ -7430,10 +7658,14 @@
       if (popup) position(popup, event);
     }
     function onOut(event) {
-      const cover = coverFromEvent(event.target);
-      if (!cover) return;
+      const target = targetFromEvent(event.target);
+      if (!target) return;
       const next = event.relatedTarget;
-      if (next && cover.contains(next)) return;
+      if (next && targetFromEvent(next)?.anchor === target.anchor) return;
+      hide();
+    }
+    function onPointerDown(event) {
+      if (!targetFromEvent(event.target)) return;
       hide();
     }
     function sync() {
@@ -7447,10 +7679,12 @@
         document.addEventListener('mouseover', onOver, true);
         document.addEventListener('mousemove', onMove, true);
         document.addEventListener('mouseout', onOut, true);
+        document.addEventListener('pointerdown', onPointerDown, true);
       } else {
         document.removeEventListener('mouseover', onOver, true);
         document.removeEventListener('mousemove', onMove, true);
         document.removeEventListener('mouseout', onOut, true);
+        document.removeEventListener('pointerdown', onPointerDown, true);
         hide();
       }
     }
@@ -9691,6 +9925,7 @@
       this.started = true;
       MobilePolicy.start();
       MobileSettingsEntry.install();
+      Pan115SettingsEntry.install();
       CardFx.apply(MobilePolicy.featureEnabled('cardFx', CFG.cardFx));
       Trailer.installFallbackDebugHelper();
       this.initRuntimeObserver();
