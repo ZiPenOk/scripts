@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.5
+// @version      2.7.5.1
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -48,11 +48,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.5';
-  const DEBUG_LOG = false;
-  const ERROR_LOG = true;
-  const PAGE_ZOOM_DEFAULT = 86;
-  const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+  const SCRIPT_VERSION = '2.7.5.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
   const PAGE_ZOOM_2K_WIDTH = 2560;
   const getPageZoomDefault = () => {
     const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -62,14 +58,11 @@
     const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
     return screenLongSide >= PAGE_ZOOM_2K_WIDTH;
   };
-  const JAVDB_REVIEW_INITIAL_LIMIT = 6;
-  const JAVDB_REVIEW_MORE_LIMIT = 20;
+  const JAVDB_REVIEW_INITIAL_LIMIT = 6; const JAVDB_REVIEW_MORE_LIMIT = 20;
   const CFG = {};
   const resolveCfgDefault = meta => typeof meta.def === 'function' ? meta.def() : meta.def;
   const clampCfgNumber = (value, meta) => {
-    const fallback = resolveCfgDefault(meta);
-    const parsed = parseInt(value, 10);
-    const next = Number.isFinite(parsed) ? parsed : fallback;
+    const fallback = resolveCfgDefault(meta); const parsed = parseInt(value, 10); const next = Number.isFinite(parsed) ? parsed : fallback;
     return Math.min(meta.max, Math.max(meta.min, next));
   };
   const normalizeCfgValue = (value, meta) => {
@@ -160,12 +153,10 @@
     try {
       url = new URL(href, location.href);
     } catch { return true; }
-    const path = url.pathname.replace(/\/+$/, '') || '/';
-    const params = url.searchParams;
+    const path = url.pathname.replace(/\/+$/, '') || '/'; const params = url.searchParams;
     if (siteId === 'javbus') { return !/^\/(?:[a-z]{2}\/)?uncensored(?:\/|$)/i.test(path); }
     if (siteId === 'javdb') {
-      const rankType = (params.get('t') || '').toLowerCase();
-      const tagName = (path.match(/^\/tags\/([^/]+)$/i)?.[1] || '').toLowerCase();
+      const rankType = (params.get('t') || '').toLowerCase(); const tagName = (path.match(/^\/tags\/([^/]+)$/i)?.[1] || '').toLowerCase();
       const isC10 = params.get('c10') === '1';
       if (params.get('laosiji_detail') === 'fc2' || params.get('laosiji_rank') === 'fc2' || params.get('laosiji_fc2') === '1') return false;
       if (path === '/fc2') return false;
@@ -267,10 +258,8 @@
     }
     function apply(on = enabled()) {
       ensureStyle();
-      const site = CardColumns.detectCurrentSite();
-      const active = !!on && isPortraitCardsPageAllowed(site);
-      document.documentElement.classList.toggle('jav-card-portrait-mode', active);
-      syncImages(active);
+      const site = CardColumns.detectCurrentSite(); const active = !!on && isPortraitCardsPageAllowed(site);
+      document.documentElement.classList.toggle('jav-card-portrait-mode', active); syncImages(active);
       if (site) CardColumns.apply(site);
     }
     function set(value) {
@@ -301,10 +290,8 @@
     function reflowJavbusActorWaterfall() {
       const waterfall = document.querySelector('#waterfall');
       if (!waterfall || !waterfall.querySelector('.avatar-box')) return;
-      waterfall.style.removeProperty('width');
-      waterfall.style.setProperty('max-width', '100%', 'important');
-      waterfall.style.setProperty('margin-left', 'auto', 'important');
-      waterfall.style.setProperty('margin-right', 'auto', 'important');
+      waterfall.style.removeProperty('width'); waterfall.style.setProperty('max-width', '100%', 'important');
+      waterfall.style.setProperty('margin-left', 'auto', 'important'); waterfall.style.setProperty('margin-right', 'auto', 'important');
       const run = () => {
         const jq = window.jQuery || window.$;
         try {
@@ -318,8 +305,7 @@
         } catch (err) {  }
         window.dispatchEvent(new Event('resize'));
       };
-      requestAnimationFrame(run);
-      setTimeout(run, 160);
+      requestAnimationFrame(run); setTimeout(run, 160);
     }
     function apply(siteId, value = get(siteId)) {
       const meta = SITE_META[siteId];
@@ -330,38 +316,26 @@
       if (siteId === 'javlib') {
         const content = document.querySelector('#content');
         if (content) {
-          content.style.setProperty('zoom', '1');
-          content.style.setProperty('width', widthValue, 'important');
-          content.style.setProperty('max-width', 'none', 'important');
-          content.style.setProperty('margin-left', 'auto', 'important');
-          content.style.setProperty('margin-right', 'auto', 'important');
-          content.style.setProperty('box-sizing', 'border-box', 'important');
-          content.style.setProperty('padding-left', '12px', 'important');
-          content.style.setProperty('padding-right', '12px', 'important');
-          content.style.setProperty('min-width', '0', 'important');
-          content.style.setProperty('overflow', 'visible', 'important');
+          content.style.setProperty('zoom', '1'); content.style.setProperty('width', widthValue, 'important');
+          content.style.setProperty('max-width', 'none', 'important'); content.style.setProperty('margin-left', 'auto', 'important');
+          content.style.setProperty('margin-right', 'auto', 'important'); content.style.setProperty('box-sizing', 'border-box', 'important');
+          content.style.setProperty('padding-left', '12px', 'important'); content.style.setProperty('padding-right', '12px', 'important');
+          content.style.setProperty('min-width', '0', 'important'); content.style.setProperty('overflow', 'visible', 'important');
         }
-        document.documentElement?.style.setProperty('background', '#fff', 'important');
-        document.body?.style.setProperty('background', '#fff', 'important');
+        document.documentElement?.style.setProperty('background', '#fff', 'important'); document.body?.style.setProperty('background', '#fff', 'important');
         document.querySelectorAll('#page, #content, #rightcolumn').forEach(el => {
-          el?.style.setProperty('background', '#fff', 'important');
-          el?.style.setProperty('box-sizing', 'border-box', 'important');
-          el?.style.setProperty('max-width', '100%', 'important');
-          el?.style.setProperty('overflow', 'visible', 'important');
+          el?.style.setProperty('background', '#fff', 'important'); el?.style.setProperty('box-sizing', 'border-box', 'important');
+          el?.style.setProperty('max-width', '100%', 'important'); el?.style.setProperty('overflow', 'visible', 'important');
         });
         document.querySelectorAll('#rightcolumn > .videothumblist, #rightcolumn > .videothumblist .videos').forEach(el => {
-          el.style.setProperty('box-sizing', 'border-box', 'important');
-          el.style.setProperty('max-width', '100%', 'important');
+          el.style.setProperty('box-sizing', 'border-box', 'important'); el.style.setProperty('max-width', '100%', 'important');
         });
         return;
       }
       document.querySelectorAll(meta.selector).forEach(el => {
         if (!el) return;
-        el.style.setProperty('zoom', '1');
-        el.style.setProperty('width', widthValue, 'important');
-        el.style.setProperty('max-width', 'none', 'important');
-        el.style.setProperty('margin-left', 'auto', 'important');
-        el.style.setProperty('margin-right', 'auto', 'important');
+        el.style.setProperty('zoom', '1'); el.style.setProperty('width', widthValue, 'important'); el.style.setProperty('max-width', 'none', 'important');
+        el.style.setProperty('margin-left', 'auto', 'important'); el.style.setProperty('margin-right', 'auto', 'important');
         el.style.setProperty('box-sizing', 'border-box', 'important');
       });
       if (siteId === 'javbus' && isJavbusActorIndexPage()) { reflowJavbusActorWaterfall(); }
@@ -428,8 +402,7 @@
       return saved && typeof saved === 'object' ? saved : {};
     }
     function get(siteId) {
-      const all = getAll();
-      const defaults = DEFAULTS[siteId] || DEFAULTS.javbus;
+      const all = getAll(); const defaults = DEFAULTS[siteId] || DEFAULTS.javbus;
       const saved = all[siteId] || {};
       return { cover: clamp(saved.cover ?? defaults.cover), info: clamp(saved.info ?? defaults.info), magnet: clamp(saved.magnet ?? defaults.magnet) };
     }
@@ -459,8 +432,7 @@
       const root = meta.root();
       if (!root) return;
       const values = get(siteId);
-      root.style.setProperty(meta.vars.cover, toFlex(values.cover));
-      root.style.setProperty(meta.vars.info, toFlex(values.info));
+      root.style.setProperty(meta.vars.cover, toFlex(values.cover)); root.style.setProperty(meta.vars.info, toFlex(values.info));
       if (hasMagnet(siteId)) { root.style.setProperty(meta.vars.magnet, toFlex(values.magnet)); }
     }
     return { LIMITS, DEFAULTS, clamp, detectCurrentSite, get, set, apply, hasMagnet, hasLayout, defaultCss };
@@ -524,8 +496,7 @@
     },
     setSelectValue(select, value, fallback = '') {
       if (!select) return '';
-      const options = [...select.options];
-      const next = options.some(opt => opt.value === value) ? value : fallback;
+      const options = [...select.options]; const next = options.some(opt => opt.value === value) ? value : fallback;
       if (next && options.some(opt => opt.value === next)) {
         select.value = next;
       } else if (options.length) {
@@ -567,12 +538,9 @@
       textEl.textContent = text;
       toast.appendChild(textEl);
     }
-    parent.appendChild(toast);
-    requestAnimationFrame(() => toast.classList.add('show'));
+    parent.appendChild(toast); requestAnimationFrame(() => toast.classList.add('show'));
     setTimeout(() => {
-      toast.classList.remove('show');
-      toast.classList.add('hide');
-      setTimeout(() => toast.remove(), 240);
+      toast.classList.remove('show'); toast.classList.add('hide'); setTimeout(() => toast.remove(), 240);
     }, 3400);
   }
   function notify(title, text, url) {
@@ -613,10 +581,8 @@
   }
   function insertAvidCopyBtn(anchor, avid, nativeCopyBtn = null, append = false) {
     if (!anchor || !avid) return;
-    const code = normalizeAvid(avid);
-    const parent = anchor.parentElement || anchor;
-    parent.querySelectorAll('.jav-avid-copy').forEach(btn => btn.remove());
-    nativeCopyBtn?.style.setProperty('display', 'none', 'important');
+    const code = normalizeAvid(avid); const parent = anchor.parentElement || anchor;
+    parent.querySelectorAll('.jav-avid-copy').forEach(btn => btn.remove()); nativeCopyBtn?.style.setProperty('display', 'none', 'important');
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'jav-avid-copy';
@@ -624,9 +590,7 @@
     btn.title =`复制番号：${code}`;
     btn.style.cssText = 'display:inline-block;min-width:62px;margin-left:8px;padding:2px 8px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Segoe UI",sans-serif;font-weight:600;text-align:center;background:#e8f4fd;border:1px solid #90c5e8;border-radius:4px;cursor:pointer;color:#1a6fa8;vertical-align:middle;white-space:nowrap;box-sizing:border-box;';
     btn.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      GM_setClipboard(code);
+      e.preventDefault(); e.stopPropagation(); GM_setClipboard(code);
       btn.textContent = '已复制';
       setTimeout(() => { btn.textContent = '复制番号'; }, 900);
     });
@@ -634,14 +598,10 @@
     else anchor.after(btn);
   }
   const MobilePolicy = (() => {
-    const NARROW_VIEWPORT_QUERY = '(max-width:720px)';
-    const LANDSCAPE_VIEWPORT_QUERY = '(orientation:landscape) and (max-height:720px)';
+    const NARROW_VIEWPORT_QUERY = '(max-width:720px)'; const LANDSCAPE_VIEWPORT_QUERY = '(orientation:landscape) and (max-height:720px)';
     const COARSE_POINTER_QUERY = '(pointer:coarse)';
     const DISABLED_FEATURES = new Set(['pageZoom', 'portraitCards', 'detailFlex', 'cardFx', 'coverHoverPreview', 'pan115CoverHoverPreview', 'detailPreviewInline']);
-    const listeners = new Set();
-    let mediaQueries = [];
-    let mobile = false;
-    let started = false;
+    const listeners = new Set(); let mediaQueries = []; let mobile = false; let started = false;
     function isMobile() { return mobile; }
     function matches(query) { return !!window.matchMedia?.(query).matches; }
     function isMobileClient() {
@@ -658,8 +618,7 @@
     function applyRootState() {
       const root = document.documentElement;
       if (!root) return;
-      root.toggleAttribute('data-laosiji-mobile', mobile);
-      root.classList.toggle('laosiji-mobile', mobile);
+      root.toggleAttribute('data-laosiji-mobile', mobile); root.classList.toggle('laosiji-mobile', mobile);
     }
     function syncConsumers() {
       if (typeof PageZoom !== 'undefined') PageZoom.applyCurrent();
@@ -696,8 +655,7 @@
     }
     function onChange(listener) {
       if (typeof listener !== 'function') return () => {};
-      listeners.add(listener);
-      return () => listeners.delete(listener);
+      listeners.add(listener); return () => listeners.delete(listener);
     }
     return { start, isMobile, featureEnabled, effectiveMagnetDisplayMode, usesDesktopMagnetTable, onChange };
   })();
@@ -737,32 +695,24 @@
     }
     const stripProtocol = value => String(value || '').trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
     function open() {
-      document.getElementById('jav-settings-overlay')?.remove();
-      injectSettingsPanelStyles();
+      document.getElementById('jav-settings-overlay')?.remove(); injectSettingsPanelStyles();
       const overlay = document.createElement('div');
       overlay.id = 'jav-settings-overlay';
       overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
       const panel = document.createElement('div');
       panel.id = 'jav-settings-panel';
       panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><section class="sp-card sp-card-magnet"><div class="sp-card-title">磁力搜索</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认磁力引擎</span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-engine-row"><label class="sp-field"><span class="sp-label">编辑引擎</span><select class="sp-select" id="sp-engine-picker"></select></label><label class="sp-field"><span class="sp-label">域名</span><input class="sp-input" id="sp-engine-domain"></label></div></div></section><div class="sp-feature-order-row"><section class="sp-card sp-card-features"><div class="sp-card-title">功能项开关</div><div class="sp-feature-grid"><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预览图缓存</div><div class="sp-desc">清理本页会话缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-preview-cache" type="button" title="清理预览图缓存"><span class="sp-cache-clear-icon">↻</span></button></div><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预告片缓存</div><div class="sp-desc">清理解析结果缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-trailer-cache" type="button" title="清理预告片缓存"><span class="sp-cache-clear-icon">↻</span></button></div><label class="sp-feature-select sp-feature-magnet-display"><div><div class="sp-label">聚合搜索</div></div><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-feature-select"><div><div class="sp-label">115播放器</div></div><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option></select></label></div></section><section class="sp-card sp-card-order"><div class="sp-card-title">预览图来源顺序</div><div class="sp-order-list" id="sp-thumb-order"></div></section></div><section class="sp-card sp-card-jump" style="--card-color:#6366f1;"><div class="sp-card-title">跳转入口与按钮控制</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认搜索入口</span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-field"><span class="sp-label">默认视频入口</span><select class="sp-select" id="sp-video-engine"></select></label></div><div class="sp-chip-group"> ${renderButtonToggles()} </div></section></div><div class="sp-footer"><div class="sp-cache-actions"><div class="sp-footer-links"><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-clear" id="sp-clear-cache" type="button">清空缓存</button><span class="sp-cache-feedback" id="sp-cache-feedback"></span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
-      overlay.appendChild(panel);
-      document.body.appendChild(overlay);
-      const defaultSelect = panel.querySelector('#sp-default-engine');
-      const picker = panel.querySelector('#sp-engine-picker');
-      const domainInput = panel.querySelector('#sp-engine-domain');
-      const jumpEngineSelect = panel.querySelector('#sp-jump-engine');
-      const videoEngineSelect = panel.querySelector('#sp-video-engine');
-      const magnetDisplaySelect = panel.querySelector('#sp-magnet-display');
-      const clearPreviewCacheBtn = panel.querySelector('#sp-clear-preview-cache');
-      const clearTrailerCacheBtn = panel.querySelector('#sp-clear-trailer-cache');
+      overlay.appendChild(panel); document.body.appendChild(overlay);
+      const defaultSelect = panel.querySelector('#sp-default-engine'); const picker = panel.querySelector('#sp-engine-picker');
+      const domainInput = panel.querySelector('#sp-engine-domain'); const jumpEngineSelect = panel.querySelector('#sp-jump-engine');
+      const videoEngineSelect = panel.querySelector('#sp-video-engine'); const magnetDisplaySelect = panel.querySelector('#sp-magnet-display');
+      const clearPreviewCacheBtn = panel.querySelector('#sp-clear-preview-cache'); const clearTrailerCacheBtn = panel.querySelector('#sp-clear-trailer-cache');
       const pan115PlayerSelect = panel.querySelector('#sp-pan115-player');
       const btnToggles = Object.fromEntries(BUTTON_TOGGLE_META.map(({ key }) => (
         [key, panel.querySelector(`#sp-btn-${key}`)]
       )));
-      const clearCacheBtn = panel.querySelector('#sp-clear-cache');
-      const cacheFeedback = panel.querySelector('#sp-cache-feedback');
-      const orderList = panel.querySelector('#sp-thumb-order');
-      const domainDraft = Object.fromEntries(MAGNET_ENGINES.map(item => [item.key, CFG[item.key]]));
+      const clearCacheBtn = panel.querySelector('#sp-clear-cache'); const cacheFeedback = panel.querySelector('#sp-cache-feedback');
+      const orderList = panel.querySelector('#sp-thumb-order'); const domainDraft = Object.fromEntries(MAGNET_ENGINES.map(item => [item.key, CFG[item.key]]));
       let currentOrder = GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']);
       Object.keys(THUMB_META).forEach(src => { if (!currentOrder.includes(src)) currentOrder.push(src); });
       currentOrder = currentOrder.filter(src => THUMB_META[src]);
@@ -797,8 +747,7 @@
       const renderOrder = () => {
         orderList.innerHTML = '';
         currentOrder.forEach((src, index) => {
-          const meta = THUMB_META[src];
-          const item = document.createElement('div');
+          const meta = THUMB_META[src]; const item = document.createElement('div');
           item.className = 'sp-order-item';
           item.dataset.src = src;
           item.innerHTML =`<div><div class="sp-order-name"> ${meta.label} </div></div><span class="sp-dot" style="background: ${meta.color} "></span><div class="sp-order-actions"><button class="sp-order-btn" type="button" data-dir="-1" title="上移" ${index === 0 ? 'disabled' : ''} >↑</button><button class="sp-order-btn" type="button" data-dir="1" title="下移" ${index === currentOrder.length - 1 ? 'disabled' : ''} >↓</button></div>`;
@@ -808,20 +757,16 @@
       orderList.addEventListener('click', e => {
         const btn = e.target.closest('.sp-order-btn');
         if (!btn) return;
-        const item = btn.closest('.sp-order-item');
-        const from = currentOrder.indexOf(item?.dataset.src);
-        const to = from + parseInt(btn.dataset.dir, 10);
+        const item = btn.closest('.sp-order-item'); const from = currentOrder.indexOf(item?.dataset.src); const to = from + parseInt(btn.dataset.dir, 10);
         if (from < 0 || to < 0 || to >= currentOrder.length) return;
         [currentOrder[from], currentOrder[to]] = [currentOrder[to], currentOrder[from]];
         renderOrder();
       });
       const flashCacheButton = (btn, label, count) => {
         if (!btn) return;
-        btn.classList.remove('is-done');
-        btn.classList.add('is-clearing');
+        btn.classList.remove('is-done'); btn.classList.add('is-clearing');
         setTimeout(() => {
-          btn.classList.remove('is-clearing');
-          btn.classList.add('is-done');
+          btn.classList.remove('is-clearing'); btn.classList.add('is-done');
           cacheFeedback.textContent = count ?`${label} ${count} 项` :`${label}无缓存`;
           setTimeout(() => btn.classList.remove('is-done'), 900);
           setTimeout(() => { cacheFeedback.textContent = ''; }, 1800);
@@ -841,12 +786,9 @@
         setTimeout(() => { cacheFeedback.textContent = ''; }, 1800);
       });
       picker.value = 'javdbSearchUrl';
-      loadPickedDomain();
-      syncDefaultOptions();
-      renderOrder();
+      loadPickedDomain(); syncDefaultOptions(); renderOrder();
       const closePanel = () => overlay.remove();
-      panel.querySelector('.sp-close').addEventListener('click', closePanel);
-      panel.querySelector('.sp-btn-cancel').addEventListener('click', closePanel);
+      panel.querySelector('.sp-close').addEventListener('click', closePanel); panel.querySelector('.sp-btn-cancel').addEventListener('click', closePanel);
       panel.querySelector('.sp-btn-save').addEventListener('click', () => {
         const snapshotNonPan115 = () => JSON.stringify({
           domains: MAGNET_ENGINES.map(item => CFG[item.key]),
@@ -863,8 +805,7 @@
           buttons: Object.fromEntries(BUTTON_TOGGLE_META.map(({ key, cfgKey }) => [key, CFG[cfgKey]])),
           thumbOrder: GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']),
         });
-        const beforeNonPan115 = snapshotNonPan115();
-        const beforePan115Player = CFG.pan115Player;
+        const beforeNonPan115 = snapshotNonPan115(); const beforePan115Player = CFG.pan115Player;
         const nextPan115Player = pan115PlayerSelect?.value === '115master' ? '115master' : 'official';
         MAGNET_ENGINES.forEach(item => { CFG[item.key] = stripProtocol(domainDraft[item.key]); });
         CFG.defaultEngine = defaultSelect.value;
@@ -875,8 +816,7 @@
         CFG.magnetTable = CFG.magnetDisplayMode === 'sidebar';
         BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { CFG[cfgKey] = btnToggles[key].checked; });
         GM_setValue('thumb_source_order', currentOrder);
-        const pan115Changed = beforePan115Player !== nextPan115Player;
-        const nonPan115Changed = beforeNonPan115 !== snapshotNonPan115();
+        const pan115Changed = beforePan115Player !== nextPan115Player; const nonPan115Changed = beforeNonPan115 !== snapshotNonPan115();
         closePanel();
         if (nonPan115Changed) { location.reload(); return; }
         if (pan115Changed) Runtime.syncPan115(CFG.btnShowPan115);
@@ -884,8 +824,7 @@
     }
     return { open };
   })();
-  Core.expose('__LAOSIJI_OPEN_SETTINGS__', () => SettingsPanel.open());
-  GM_registerMenuCommand('⚙️ 老司机设置', () => SettingsPanel.open());
+  Core.expose('__LAOSIJI_OPEN_SETTINGS__', () => SettingsPanel.open()); GM_registerMenuCommand('⚙️ 老司机设置', () => SettingsPanel.open());
   function ensureQuickSettingsPanelStyles() {
     injectStyle('jav-quick-settings-style',`#jav-quick-settings-popover{position:fixed;z-index:10000030;width:286px;padding:10px;border:1px solid rgba(203,213,225,.85);border-radius:10px;background:rgba(255,255,255,.985);color:#0f172a;box-shadow:0 12px 28px rgba(15,23,42,.16);backdrop-filter:blur(6px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-sizing:border-box}#jav-quick-settings-popover *{box-sizing:border-box}#jav-quick-settings-popover .qs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}#jav-quick-settings-popover .qs-title{font-size:13px;font-weight:800;color:#1e293b}#jav-quick-settings-popover .qs-site{margin-top:1px;font-size:11px;font-weight:650;color:#64748b}#jav-quick-settings-popover .qs-close{width:24px;height:24px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#64748b;cursor:pointer;line-height:1;font-size:14px}#jav-quick-settings-popover .qs-close:hover{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}#jav-quick-settings-popover .qs-row{display:grid;grid-template-columns:72px 1fr 42px;align-items:center;gap:9px;padding:4px 0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-row+.qs-row{margin-top:4px}#jav-quick-settings-popover .qs-mobile-columns-row{grid-template-columns:72px minmax(0,1fr)}#jav-quick-settings-popover .qs-segmented{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;border:1px solid #bfdbfe;border-radius:6px}#jav-quick-settings-popover .qs-segment{min-height:28px;padding:0 8px;border:0;border-right:1px solid #bfdbfe;background:#fff;color:#475569;font-size:12px;font-weight:750;cursor:pointer}#jav-quick-settings-popover .qs-segment:last-child{border-right:0}#jav-quick-settings-popover .qs-segment.is-active{background:#2563eb;color:#fff}#jav-quick-settings-popover .qs-segment:focus-visible{position:relative;outline:2px solid #1d4ed8;outline-offset:-2px}#jav-quick-settings-popover .qs-detail-flex{display:none;margin-top:8px;padding-top:7px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-detail-flex.is-visible{display:block}#jav-quick-settings-popover .qs-section-title{margin-bottom:3px;font-size:12px;font-weight:850;color:#1e293b}#jav-quick-settings-popover .qs-row.is-disabled{opacity:.48}#jav-quick-settings-popover .qs-row.is-disabled .qs-range{cursor:not-allowed;background:#e2e8f0}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-webkit-slider-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-moz-range-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-switch-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px}#jav-quick-settings-popover .qs-switch-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-name{font-size:12px;font-weight:750;color:#334155;white-space:nowrap}#jav-quick-settings-popover .qs-value{display:grid;place-items:center;min-width:34px;height:22px;border-radius:999px;background:#fff;color:#1d4ed8;font-size:12px;font-weight:800;border:1px solid #dbeafe}#jav-quick-settings-popover .qs-range{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:999px;background:linear-gradient(90deg,#93c5fd 0%,#dbeafe 100%);outline:none}#jav-quick-settings-popover .qs-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;border:2px solid #fff;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-range::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-toggle{position:relative;display:inline-block;width:36px;height:20px;flex:0 0 auto}#jav-quick-settings-popover .qs-toggle input{opacity:0;width:0;height:0}#jav-quick-settings-popover .qs-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-quick-settings-popover .qs-toggle-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.22);transition:transform .18s}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track{background:#2563eb}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track::before{transform:translateX(14px)}#jav-quick-settings-popover .qs-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-more{height:28px;padding:0 12px;border:1px solid #c7d2fe;border-radius:7px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:800;cursor:pointer}#jav-quick-settings-popover .qs-more:hover{background:#e0e7ff;border-color:#a5b4fc}#jav-quick-settings-popover.is-mobile{left:10px!important;right:10px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;top:auto!important;width:auto!important;max-height:calc(100dvh - 20px);overflow:auto}#jav-quick-settings-popover.is-mobile .qs-page-zoom-row,#jav-quick-settings-popover.is-mobile .qs-columns-row,#jav-quick-settings-popover.is-mobile .qs-detail-flex{display:none!important}#jav-quick-settings-popover.is-mobile .qs-switch-row[data-mobile-disabled="1"]{opacity:.5}#jav-quick-settings-popover.is-mobile .qs-toggle-track,#jav-quick-settings-popover.is-mobile .qs-toggle input:disabled{cursor:not-allowed}`);
   }
@@ -914,32 +853,24 @@
     }
     function positionPanel(panel, anchor) {
       if (MobilePolicy.isMobile()) {
-        panel.classList.add('is-mobile');
-        panel.style.removeProperty('left');
-        panel.style.removeProperty('top');
+        panel.classList.add('is-mobile'); panel.style.removeProperty('left'); panel.style.removeProperty('top');
         return;
       }
-      const rect = anchor?.getBoundingClientRect?.();
-      const margin = 10;
-      const width = panel.offsetWidth || 286;
-      const height = panel.offsetHeight || 150;
-      let left = rect ? rect.right - width : window.innerWidth - width - 18;
-      let top = rect ? rect.bottom + 8 : 64;
+      const rect = anchor?.getBoundingClientRect?.(); const margin = 10; const width = panel.offsetWidth || 286; const height = panel.offsetHeight || 150;
+      let left = rect ? rect.right - width : window.innerWidth - width - 18; let top = rect ? rect.bottom + 8 : 64;
       left = Math.max(margin, Math.min(left, window.innerWidth - width - margin));
       top = Math.max(margin, Math.min(top, window.innerHeight - height - margin));
       panel.style.left =`${left}px`;
       panel.style.top =`${top}px`;
     }
     function open(anchor = null) {
-      document.getElementById('jav-quick-settings-popover')?.remove();
-      ensureQuickSettingsPanelStyles();
+      document.getElementById('jav-quick-settings-popover')?.remove(); ensureQuickSettingsPanelStyles();
       const site = getCurrentSite();
       if (!site) { SettingsPanel.open(); return; }
       const panel = document.createElement('div');
       panel.id = 'jav-quick-settings-popover';
       panel.classList.toggle('is-mobile', MobilePolicy.isMobile());
-      const isPan115 = site === 'pan115';
-      const toggleMeta = isPan115 ? PAN115_TOGGLE_META : TOGGLE_META;
+      const isPan115 = site === 'pan115'; const toggleMeta = isPan115 ? PAN115_TOGGLE_META : TOGGLE_META;
       const showMobilePortraitColumns = !isPan115 && MobilePolicy.isMobile() && !window.matchMedia?.('(orientation:landscape)').matches;
       panel.innerHTML =`<div class="qs-head"><div><div class="qs-title">快捷设置</div><div class="qs-site"> ${siteLabelMap[site] || '当前站点'} </div></div><button class="qs-close" type="button" title="关闭">×</button></div> ${isPan115 ? '' : `<div class="qs-row qs-columns-row">
                     <div class="qs-name">卡片列数</div>
@@ -958,14 +889,10 @@
                     <span class="qs-value" id="qs-zoom-value">100%</span>
                 </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力</div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"><button class="qs-more" type="button">更多设置</button></div>`;
       document.body.appendChild(panel);
-      const close = () => panel.remove();
-      const columnsInput = panel.querySelector('#qs-columns');
-      const columnsValue = panel.querySelector('#qs-columns-value');
-      const mobileColumnButtons = [...panel.querySelectorAll('[data-mobile-columns]')];
-      const zoomInput = panel.querySelector('#qs-zoom');
-      const zoomValue = panel.querySelector('#qs-zoom-value');
-      const detailSite = DetailFlex.detectCurrentSite();
-      const detailWrap = panel.querySelector('#qs-detail-flex');
+      const close = () => panel.remove(); const columnsInput = panel.querySelector('#qs-columns');
+      const columnsValue = panel.querySelector('#qs-columns-value'); const mobileColumnButtons = [...panel.querySelectorAll('[data-mobile-columns]')];
+      const zoomInput = panel.querySelector('#qs-zoom'); const zoomValue = panel.querySelector('#qs-zoom-value');
+      const detailSite = DetailFlex.detectCurrentSite(); const detailWrap = panel.querySelector('#qs-detail-flex');
       const detailInputs = {
         cover: panel.querySelector('#qs-detail-cover'),
         info: panel.querySelector('#qs-detail-info'),
@@ -983,8 +910,7 @@
       };
       const formatFlexValue = value => (DetailFlex.clamp(value) / 100).toFixed(2).replace(/\.?0+$/, '');
       const syncDetailMagnetState = () => {
-        const hasMagnet = detailSite && DetailFlex.hasMagnet(detailSite);
-        const row = panel.querySelector('[data-detail-flex-row="magnet"]');
+        const hasMagnet = detailSite && DetailFlex.hasMagnet(detailSite); const row = panel.querySelector('[data-detail-flex-row="magnet"]');
         if (row) row.classList.toggle('is-disabled', !hasMagnet);
         if (detailInputs.magnet) detailInputs.magnet.disabled = !hasMagnet;
         if (detailValues.magnet && !hasMagnet) detailValues.magnet.textContent = MobilePolicy.usesDesktopMagnetTable() ? '未渲染' : '关闭';
@@ -992,8 +918,7 @@
       };
       Ui.bindRange(columnsInput, columnsValue, CardColumns.get(site), v => String(CardColumns.clamp(v)), value => {
         const next = CardColumns.clamp(value);
-        CardColumns.set(site, next);
-        CardColumns.apply(site, next);
+        CardColumns.set(site, next); CardColumns.apply(site, next);
       });
       const syncMobileColumnsControl = () => {
         const value = CardColumns.getMobilePortrait();
@@ -1002,15 +927,13 @@
       mobileColumnButtons.forEach(button => {
         Ui.click(button, () => {
           const next = CardColumns.setMobilePortrait(Number(button.dataset.mobileColumns));
-          CardColumns.apply(site, next);
-          syncMobileColumnsControl();
+          CardColumns.apply(site, next); syncMobileColumnsControl();
         });
       });
       syncMobileColumnsControl();
       Ui.bindRange(zoomInput, zoomValue, PageZoom.get(site), v =>`${PageZoom.clamp(v)}%`, value => {
         const next = PageZoom.clamp(value);
-        PageZoom.set(site, next);
-        PageZoom.apply(site, next);
+        PageZoom.set(site, next); PageZoom.apply(site, next);
       });
       if (detailSite && DetailFlex.hasLayout(detailSite)) {
         const flexValues = DetailFlex.get(detailSite);
@@ -1023,8 +946,7 @@
             if (!hasMagnet) return;
             const next = DetailFlex.clamp(value);
             valueEl.textContent = formatFlexValue(next);
-            DetailFlex.set(detailSite, key, next);
-            DetailFlex.apply(detailSite);
+            DetailFlex.set(detailSite, key, next); DetailFlex.apply(detailSite);
           });
         });
         syncDetailMagnetState();
@@ -1040,8 +962,7 @@
       });
       Ui.click(panel.querySelector('.qs-close'), close);
       Ui.click(panel.querySelector('.qs-more'), () => {
-        close();
-        SettingsPanel.open();
+        close(); SettingsPanel.open();
       });
       panel.addEventListener('click', e => e.stopPropagation());
       setTimeout(() => {
@@ -1056,9 +977,7 @@
   })();
   Core.expose('__LAOSIJI_OPEN_QUICK_SETTINGS__', anchor => QuickSettingsPanel.open(anchor));
   const MobileSettingsEntry = (() => {
-    const BUTTON_ID = 'jav-mobile-settings-entry';
-    let observer = null;
-    let pending = false;
+    const BUTTON_ID = 'jav-mobile-settings-entry'; let observer = null; let pending = false;
     function ensureStyle() {
       injectStyle('jav-mobile-settings-entry-style',`#${BUTTON_ID}{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:2147483000;width:46px;height:46px;display:grid;place-items:center;padding:0;border:1px solid rgba(37,99,235,.3);border-radius:50%;background:#fff;color:#1d4ed8;box-shadow:0 6px 18px rgba(15,23,42,.2);cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:22px;line-height:1}#${BUTTON_ID}:active{transform:scale(.95)}#${BUTTON_ID}:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}html:not([data-laosiji-mobile]) #${BUTTON_ID}{display:none}`);
     }
@@ -1078,9 +997,7 @@
       button.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
       button.setAttribute('aria-label', '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e');
       button.addEventListener('click', event => {
-        event.preventDefault();
-        event.stopPropagation();
-        QuickSettingsPanel.open(button);
+        event.preventDefault(); event.stopPropagation(); QuickSettingsPanel.open(button);
       });
       return button;
     }
@@ -1093,9 +1010,7 @@
     }
     function install() {
       if (observer) return;
-      ensureStyle();
-      MobilePolicy.onChange(sync);
-      sync();
+      ensureStyle(); MobilePolicy.onChange(sync); sync();
       if (!document.body || typeof MutationObserver === 'undefined') return;
       observer = new MutationObserver(scheduleSync);
       observer.observe(document.body, { childList: true, subtree: true });
@@ -1104,9 +1019,7 @@
   })();
   Core.expose('__LAOSIJI_MOBILE_SETTINGS_ENTRY__', MobileSettingsEntry);
   const Pan115SettingsEntry = (() => {
-    const ENTRY_ID = 'jav-pan115-settings-entry';
-    let observer = null;
-    let pending = false;
+    const ENTRY_ID = 'jav-pan115-settings-entry'; let observer = null; let pending = false;
     function is115Page() { return /^(?:www\.)?115\.com$/i.test(location.hostname); }
     function ensureStyle() {
       injectStyle('jav-pan115-settings-entry-style',`#${ENTRY_ID}{display:inline-flex;align-items:center;vertical-align:top;height:34px;box-sizing:border-box;color:#3a4783!important;white-space:nowrap}#${ENTRY_ID}:hover{color:#263365!important;background:#f4f6ff!important}#${ENTRY_ID}:focus-visible{outline:2px solid rgba(58,71,131,.45);outline-offset:1px}#${ENTRY_ID} .entry-icon{display:inline-flex;align-items:center;font-size:16px;line-height:1}#${ENTRY_ID}.is-modern{height:32px;margin:0;padding:0 12px;border:1px solid #d1d4d6;border-radius:4px;background:#fff;color:#4b5563!important;font-size:14px;line-height:1;cursor:pointer}#${ENTRY_ID}.is-modern:hover{background:#f9fafb!important;color:#111827!important}`);
@@ -1135,9 +1048,7 @@
       entry.setAttribute('aria-label', '打开老司机快捷设置');
       entry.innerHTML =`<span class="entry-icon" aria-hidden="true">⚙</span><span>老司机设置</span>`;
       entry.addEventListener('click', event => {
-        event.preventDefault();
-        event.stopPropagation();
-        QuickSettingsPanel.open(event.currentTarget);
+        event.preventDefault(); event.stopPropagation(); QuickSettingsPanel.open(event.currentTarget);
       });
       return entry;
     }
@@ -1146,13 +1057,11 @@
       if (!is115Page()) { existing?.remove(); return; }
       const modernHeader = [...document.querySelectorAll('.justify-between.w-full.pl-6.pr-5')]
         .find(root => isDisplayed(root) && root.querySelector('button[title="更多操作"]'));
-      const modernMoreButton = modernHeader?.querySelector('button[title="更多操作"]');
-      const modernActionGroup = modernMoreButton?.parentElement;
+      const modernMoreButton = modernHeader?.querySelector('button[title="更多操作"]'); const modernActionGroup = modernMoreButton?.parentElement;
       if (modernActionGroup) {
         if (existing && existing.parentElement !== modernActionGroup) existing.remove();
         if (existing) return;
-        const viewModeGroup = modernActionGroup.querySelector('button[title="列表视图"]')?.parentElement;
-        const entry = createEntry(true);
+        const viewModeGroup = modernActionGroup.querySelector('button[title="列表视图"]')?.parentElement; const entry = createEntry(true);
         modernActionGroup.insertBefore(entry, viewModeGroup || modernMoreButton);
         return;
       }
@@ -1160,8 +1069,7 @@
       if (topBar) {
         if (existing && existing.parentElement !== topBar) existing.remove();
         if (existing) return;
-        const entry = createEntry();
-        const previewButton = topBar.querySelector('.master-preview-switch-btn');
+        const entry = createEntry(); const previewButton = topBar.querySelector('.master-preview-switch-btn');
         if (previewButton) previewButton.insertAdjacentElement('afterend', entry);
         else topBar.appendChild(entry);
         return;
@@ -1169,8 +1077,7 @@
     }
     function install() {
       if (observer) return;
-      ensureStyle();
-      sync();
+      ensureStyle(); sync();
       const root = document.body || document.documentElement;
       if (!root || typeof MutationObserver === 'undefined') return;
       observer = new MutationObserver(scheduleSync);
@@ -1184,11 +1091,7 @@
     const JAVDB_SIGN_SALT = '71cf27bb3c0bcdf207b64abecddc970098c7421ee7203b9cdae54478478a199e7d5a6e1a57691123c1a931c057842fb73ba3b3c83bcd69c17ccf174081e3d8aa';
     let javdbSignCache = { ts: 0, sign: '' };
     function javdbMd5(str) {
-      const b = new TextEncoder().encode(str);
-      const l = b.length;
-      const n = ((l + 8) >> 6) + 1;
-      const m = new Uint32Array(n * 16);
-      const k = [];
+      const b = new TextEncoder().encode(str); const l = b.length; const n = ((l + 8) >> 6) + 1; const m = new Uint32Array(n * 16); const k = [];
       const s = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
       for (let i = 0; i < 64; i++) k[i] = Math.floor(2 ** 32 * Math.abs(Math.sin(i + 1)));
       for (let i = 0; i < l; i++) m[i >> 2] |= b[i] << ((i % 4) << 3);
@@ -1196,14 +1099,10 @@
       m[n * 16 - 2] = l * 8;
       let [a0, b0, c0, d0] = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476];
       for (let i = 0; i < n; i++) {
-        const g = m.slice(i * 16, (i + 1) * 16);
-        let [a, b, c, d] = [a0, b0, c0, d0];
+        const g = m.slice(i * 16, (i + 1) * 16); let [a, b, c, d] = [a0, b0, c0, d0];
         for (let j = 0; j < 64; j++) {
-          const q = Math.floor(j / 16);
-          const f = [(b & c) | (~b & d), (d & b) | (~d & c), b ^ c ^ d, c ^ (b | ~d)][q];
-          const p = [j, (5 * j + 1) % 16, (3 * j + 5) % 16, (7 * j) % 16][q];
-          const sum = (a + f + k[j] + g[p]) | 0;
-          const shift = s[(q << 2) | (j % 4)];
+          const q = Math.floor(j / 16); const f = [(b & c) | (~b & d), (d & b) | (~d & c), b ^ c ^ d, c ^ (b | ~d)][q];
+          const p = [j, (5 * j + 1) % 16, (3 * j + 5) % 16, (7 * j) % 16][q]; const sum = (a + f + k[j] + g[p]) | 0; const shift = s[(q << 2) | (j % 4)];
           const nextA = d;
           d = c;
           c = b;
@@ -1265,8 +1164,7 @@
       });
       const r = await gmFetch(`${JAVDB_API_BASE}/v2/search?${params.toString()}`, { headers, timeout: 20000 });
       if (!r.loadstuts || r.status < 200 || r.status >= 400) return null;
-      const json = parseJson(r.responseText);
-      const movies = Array.isArray(json?.data?.movies) ? json.data.movies : [];
+      const json = parseJson(r.responseText); const movies = Array.isArray(json?.data?.movies) ? json.data.movies : [];
       const compactKw = compactJavdbNumber(kw);
       const exact = movies.find(item => {
         const number = compactJavdbNumber(item?.number);
@@ -1282,8 +1180,7 @@
       const magnetsUrl =`${JAVDB_API_BASE}/v1/movies/${encodeURIComponent(movie.id)}/magnets`;
       const r2 = await gmFetch(magnetsUrl, { headers: { accept: 'application/json', jdSignature: buildJavdbSignature() } });
       if (!r2.loadstuts || r2.status < 200 || r2.status >= 400) return { url: detailUrl, data: [] };
-      const magnetsJson = parseJson(r2.responseText);
-      const magnets = Array.isArray(magnetsJson?.data?.magnets) ? magnetsJson.data.magnets : [];
+      const magnetsJson = parseJson(r2.responseText); const magnets = Array.isArray(magnetsJson?.data?.magnets) ? magnetsJson.data.magnets : [];
       const data = magnets.map(item => {
         const hash = String(item?.hash || '').trim();
         if (!hash) return null;
@@ -1335,8 +1232,7 @@
       return normalized;
     }
     async function javdbApiLogin(username, password) {
-      const account = String(username || '').trim();
-      const secret = String(password || '');
+      const account = String(username || '').trim(); const secret = String(password || '');
       if (!account || !secret) throw new Error('请输入 JavDB 用户名和密码');
       const params = new URLSearchParams({
         username: account,
@@ -1360,8 +1256,7 @@
         jdsignature: signature,
       };
       const attempts = [ { method: 'POST', data: 'null', headers, timeout: 20000 }, { method: 'POST', data: undefined, headers, timeout: 20000 } ];
-      let r = null;
-      let lastJson = null;
+      let r = null; let lastJson = null;
       for (const opts of attempts) {
         r = await gmFetch(url, opts);
         if (!r.loadstuts || r.status < 200 || r.status >= 400) continue;
@@ -1429,8 +1324,7 @@
           type: '3',
         });
         if (json.success !== 1) return json;
-        const movies = Array.isArray(json?.data?.movies) ? json.data.movies : [];
-        const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit;
+        const movies = Array.isArray(json?.data?.movies) ? json.data.movies : []; const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit;
         const items = movies.slice(start, start + limit);
         return {
           success: 1,
@@ -1446,8 +1340,7 @@
           filter_by: filterBy,
         });
         if (json.success !== 1) return json;
-        const movies = Array.isArray(json?.data?.movies) ? json.data.movies : [];
-        const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit;
+        const movies = Array.isArray(json?.data?.movies) ? json.data.movies : []; const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit;
         const items = movies.slice(start, start + limit);
         return {
           success: 1,
@@ -1522,8 +1415,7 @@
             }
             const res = parseJson(r.responseText);
             if (!res) {
-              notify('115 离线失败', '115返回异常，可能是登录失效或跨源权限未完整允许', offlineUrl);
-              done();
+              notify('115 离线失败', '115返回异常，可能是登录失效或跨源权限未完整允许', offlineUrl); done();
               return;
             }
             if (res.state) {
@@ -1535,16 +1427,13 @@
             done();
           },
           onerror() {
-            notify('115 离线失败', '推送请求失败，请检查跨源权限或网络状态', offlineUrl);
-            done();
+            notify('115 离线失败', '推送请求失败，请检查跨源权限或网络状态', offlineUrl); done();
           },
           ontimeout() {
-            notify('115 离线失败', '推送请求超时，请稍后重试', offlineUrl);
-            done();
+            notify('115 离线失败', '推送请求超时，请稍后重试', offlineUrl); done();
           },
           onabort() {
-            notify('115 离线失败', '推送请求已取消，可能是跨源权限被拒绝', offlineUrl);
-            done();
+            notify('115 离线失败', '推送请求已取消，可能是跨源权限被拒绝', offlineUrl); done();
           },
         });
       });
@@ -1552,9 +1441,7 @@
     function formatBytes(bytes) {
       const num = Number(bytes) || 0;
       if (!num) return '-';
-      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-      let value = num;
-      let index = 0;
+      const units = ['B', 'KB', 'MB', 'GB', 'TB']; let value = num; let index = 0;
       while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
       return`${value.toFixed(index >= 3 ? 2 : 1)} ${units[index]}`;
     }
@@ -1566,21 +1453,15 @@
     }
     function showWhatslinkModal(payload, magnet) {
       document.querySelector('.whatslink-overlay')?.remove();
-      const shots = Array.isArray(payload?.screenshots) ? payload.screenshots.map(item => item?.screenshot).filter(Boolean) : [];
-      let index = 0;
-      const resourceType = formatWhatslinkType(payload);
-      const overlay = document.createElement('div');
+      const shots = Array.isArray(payload?.screenshots) ? payload.screenshots.map(item => item?.screenshot).filter(Boolean) : []; let index = 0;
+      const resourceType = formatWhatslinkType(payload); const overlay = document.createElement('div');
       overlay.className = 'whatslink-overlay';
       const modal = document.createElement('section');
       modal.className =`whatslink-modal${shots.length ? '' : ' no-shots'}`;
       modal.innerHTML =`<div class="whatslink-viewer"><div class="whatslink-stage"><button class="whatslink-nav whatslink-prev" type="button">‹</button><img class="whatslink-hero" alt="截图预览"><button class="whatslink-nav whatslink-next" type="button">›</button><div class="whatslink-counter"></div><div class="whatslink-empty"><div class="whatslink-empty-icon">?</div><div class="whatslink-empty-title">暂无截图</div><p class="whatslink-empty-text">WhatsLink 已返回资源基础信息，但没有可展示的截图。可以通过名称、大小和文件数量先做基础判断。</p></div></div><div class="whatslink-thumbs"></div></div><aside class="whatslink-info"><div class="whatslink-head"><div><div class="whatslink-kicker">磁力验车</div><h2 class="whatslink-title"></h2><span class="whatslink-tag"></span></div><button class="whatslink-close" type="button">×</button></div><div class="whatslink-meta"><div class="whatslink-metric"><b> ${formatBytes(payload?.size)} </b><span>资源大小</span></div><div class="whatslink-metric"><b> ${payload?.count ?? '-'} </b><span>文件数量</span></div><div class="whatslink-metric"><b> ${resourceType} </b><span>资源结构</span></div><div class="whatslink-metric"><b> ${shots.length} </b><span>截图数量</span></div><div class="whatslink-metric"><b> ${payload?.error ? '异常' : '无错误'} </b><span>接口状态</span></div></div><div class="whatslink-section"><h3>磁力链接</h3><div class="whatslink-magnet"></div></div><div class="whatslink-summary"><div class="whatslink-summary-card"><strong>验车结论</strong><p> ${shots.length ? 'WhatsLink 已返回截图，优先用左侧大图确认内容是否匹配番号。' : '当前没有截图，建议结合资源名称、大小和文件数量判断。'} </p></div></div></aside>`;
-      overlay.appendChild(modal);
-      document.body.appendChild(overlay);
-      modal.querySelector('.whatslink-title').textContent = payload?.name || '未知资源';
-      modal.querySelector('.whatslink-tag').textContent = resourceType;
-      modal.querySelector('.whatslink-magnet').textContent = magnet;
-      const hero = modal.querySelector('.whatslink-hero');
-      const thumbs = modal.querySelector('.whatslink-thumbs');
+      overlay.appendChild(modal); document.body.appendChild(overlay); modal.querySelector('.whatslink-title').textContent = payload?.name || '未知资源';
+      modal.querySelector('.whatslink-tag').textContent = resourceType; modal.querySelector('.whatslink-magnet').textContent = magnet;
+      const hero = modal.querySelector('.whatslink-hero'); const thumbs = modal.querySelector('.whatslink-thumbs');
       const counter = modal.querySelector('.whatslink-counter');
       const render = () => {
         if (!shots.length) return;
@@ -1614,8 +1495,7 @@
         const r = await gmFetch(url, { timeout: 20000 });
         if (!r.loadstuts) throw new Error('WhatsLink 请求失败');
         const data = JSON.parse(r.responseText || '{}');
-        overlay.remove();
-        showWhatslinkModal(data, magnet);
+        overlay.remove(); showWhatslinkModal(data, magnet);
       } catch (e) {
         overlay.remove();
         showWhatslinkModal({ error: e.message || '查询失败', name: '查询失败', type: '-', file_type: '-', size: 0, count: '-', screenshots: [] }, magnet);
@@ -1648,8 +1528,7 @@
         };
       },
       getCurrent() {
-        const all = this.getAll();
-        const key = CFG.defaultEngine;
+        const all = this.getAll(); const key = CFG.defaultEngine;
         return all[key] ? { key, fn: all[key] } : { key: Object.keys(all)[0], fn: Object.values(all)[0] };
       },
     };
@@ -1664,22 +1543,17 @@
         },
       });
       if (!r.loadstuts) return { url: searchUrl, data: [] };
-      const doc = parseHTML(r.responseText);
-      const data = [];
+      const doc = parseHTML(r.responseText); const data = [];
       doc.querySelectorAll('#Search_list_wrapper li').forEach(li => {
         const titleA = li.querySelector('a.SearchListTitle_result_title');
         if (!titleA) return;
-        const href = titleA.getAttribute('href') || '';
-        const hash = href.split('/').pop();
+        const href = titleA.getAttribute('href') || ''; const hash = href.split('/').pop();
         if (!hash) return;
         const maglink =`magnet:?xt=urn:btih:${hash}`;
-        const src = base + href;
-        const title = titleA.textContent.trim();
-        const infoText = li.querySelector('.Search_list_info')?.textContent || '';
+        const src = base + href; const title = titleA.textContent.trim(); const infoText = li.querySelector('.Search_list_info')?.textContent || '';
         const sizeMatch = infoText.match(/文件大小[：:]\s*([\d.,]+\s*(?:TiB|GiB|MiB|KiB|TB|GB|MB|KB|B))/i);
         const dateMatch = infoText.match(/创建时间[：:]\s*(\d{4}[-/]\d{1,2}[-/]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/);
-        const size = sizeMatch ? sizeMatch[1] : '';
-        const date = dateMatch ? dateMatch[1] : '';
+        const size = sizeMatch ? sizeMatch[1] : ''; const date = dateMatch ? dateMatch[1] : '';
         data.push({ title, maglink, size, date, src });
       });
       return { url: searchUrl, data };
@@ -1699,11 +1573,9 @@
         headers: { Referer: base + '/' },
       });
       if (!r.loadstuts) return { url: searchUrl, data: [] };
-      const doc = parseHTML(r.responseText);
-      const normalizedKeyword = String(kw || '').toUpperCase().replace(/[-_\s]/g, '');
+      const doc = parseHTML(r.responseText); const normalizedKeyword = String(kw || '').toUpperCase().replace(/[-_\s]/g, '');
       const data = [...doc.querySelectorAll('table.torrent-list tbody tr.default, table.torrent-list tbody tr.success')] .map(row => {
-          const titleA = row.querySelector('td:nth-child(2) a[href*="/view?id="]');
-          const magnetA = row.querySelector('td:nth-child(3) a[href^="magnet:"]');
+          const titleA = row.querySelector('td:nth-child(2) a[href*="/view?id="]'); const magnetA = row.querySelector('td:nth-child(3) a[href^="magnet:"]');
           const title = titleA?.getAttribute('title')?.trim() || titleA?.textContent?.trim() || '';
           if (!title || !magnetA?.href) return null;
           if (normalizedKeyword && !title.toUpperCase().replace(/[-_\s]/g, '').includes(normalizedKeyword)) return null;
@@ -1731,8 +1603,7 @@
       return (doc.body?.textContent || raw.replace(/<[^>]+>/g, '')) .replace(/\s+/g, ' ') .trim();
     }
     function normalizeBTSearchItem(item, base, searchUrl, keyword) {
-      const title = cleanBTSearchText(item?.name);
-      const hash = String(item?.hash || '').replace(/^magnet:\?xt=urn:btih:/i, '').replace(/[^a-z0-9]/gi, '');
+      const title = cleanBTSearchText(item?.name); const hash = String(item?.hash || '').replace(/^magnet:\?xt=urn:btih:/i, '').replace(/[^a-z0-9]/gi, '');
       if (!/^[a-f0-9]{32,40}$/i.test(hash)) return null;
       const maglink =`magnet:?xt=urn:btih:${hash}`;
       const size = formatBytes(item?.size);
@@ -1754,14 +1625,12 @@
       return { title: title || maglink, maglink, size, date, src, files };
     }
     function randomBTSearchNonce(length = 8) {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let nonce = '';
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; let nonce = '';
       for (let i = 0; i < length; i++) nonce += chars.charAt(Math.floor(Math.random() * chars.length));
       return nonce;
     }
     function buildBTSearchHeaders(params, referer) {
-      const timestamp = Math.floor(Date.now() / 1000).toString();
-      const nonce = randomBTSearchNonce();
+      const timestamp = Math.floor(Date.now() / 1000).toString(); const nonce = randomBTSearchNonce();
       const parts = [`timestamp=${timestamp}`,`nonce=${nonce}`];
       Object.keys(params).forEach(key => parts.push(`${key}=${params[key]}`));
       const signText =`${parts.sort().join('&')}&key=long2ice`;
@@ -1790,8 +1659,7 @@
       const base = 'https://' + CFG.sukebeiUrl;
       const r = await gmFetch(`${base}/?f=0&c=0_0&q=${kw}`);
       if (!r.loadstuts) return { url: base, data: [] };
-      const doc = parseHTML(r.responseText);
-      const rows = doc.querySelectorAll('tr.default, tr.success');
+      const doc = parseHTML(r.responseText); const rows = doc.querySelectorAll('tr.default, tr.success');
       const data = [...rows].map(el => {
         const dateCell = el.querySelector('td:nth-child(5)');
         return {
@@ -1806,8 +1674,7 @@
       return { url: r.finalUrl || base, data };
     }
     function magnetTitleMatchesKeyword(title, keyword) {
-      const rawTitle = String(title || '').toUpperCase();
-      const compactKeyword = String(keyword || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const rawTitle = String(title || '').toUpperCase(); const compactKeyword = String(keyword || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
       if (!rawTitle || !compactKeyword) return false;
       const code = compactKeyword.match(/^([A-Z]{2,15})0*(\d{2,10})$/);
       if (code) {
@@ -1828,13 +1695,10 @@
         },
       });
       if (!r.loadstuts) return { url: searchUrl, data: [] };
-      const doc = parseHTML(r.responseText);
-      const rows = doc.querySelectorAll('table.torrent-list tbody tr.default, table.torrent-list tbody tr.success');
+      const doc = parseHTML(r.responseText); const rows = doc.querySelectorAll('table.torrent-list tbody tr.default, table.torrent-list tbody tr.success');
       const data = [...rows].map(el => {
-        const titleA = el.querySelector('td:nth-child(2)>a:nth-child(1)');
-        const magnetA = el.querySelector('td:nth-child(3)>a[href^="magnet:"]');
-        const href = titleA?.getAttribute('href') || '';
-        const src = href ? href.startsWith('http') ? href : new URL(href, base).href : searchUrl;
+        const titleA = el.querySelector('td:nth-child(2)>a:nth-child(1)'); const magnetA = el.querySelector('td:nth-child(3)>a[href^="magnet:"]');
+        const href = titleA?.getAttribute('href') || ''; const src = href ? href.startsWith('http') ? href : new URL(href, base).href : searchUrl;
         return {
           title: titleA?.getAttribute('title') || titleA?.textContent?.trim() || '',
           maglink: magnetA?.href || '',
@@ -1852,10 +1716,7 @@
         headers: { 'Referer': base + '/' },
       });
       if (!r.loadstuts) return { url: searchUrl, data: [] };
-      const doc = parseHTML(r.responseText);
-      const normalize = s => s.toUpperCase().replace(/[-_\s]/g, '');
-      const kwNorm = normalize(kw);
-      const data = [];
+      const doc = parseHTML(r.responseText); const normalize = s => s.toUpperCase().replace(/[-_\s]/g, ''); const kwNorm = normalize(kw); const data = [];
       doc.querySelectorAll('.panel.search-panel').forEach(panel => {
         const titleA = panel.querySelector('h3.panel-title > a.list-title');
         if (!titleA) return;
@@ -1866,10 +1727,8 @@
         const title = titleA.textContent.trim();
         if (!normalize(title).includes(kwNorm)) return;
         const maglink =`magnet:?xt=urn:btih:${hash}`;
-        const src = base + href;
-        const infoItems = [...panel.querySelectorAll('.panel-footer .info-item')];
-        const size = infoItems[0]?.textContent?.trim() || '';
-        const date = infoItems[2]?.textContent?.trim() || '';
+        const src = base + href; const infoItems = [...panel.querySelectorAll('.panel-footer .info-item')];
+        const size = infoItems[0]?.textContent?.trim() || ''; const date = infoItems[2]?.textContent?.trim() || '';
         data.push({ title, maglink, size, date, src });
       });
       return { url: searchUrl, data };
@@ -1893,8 +1752,7 @@
     function parseMagnetSize(value) {
       const match = String(value || '').replace(/,/g, '').match(/([\d.]+)\s*(TiB|GiB|MiB|KiB|TB|GB|MB|KB|B)?/i);
       if (!match) return 0;
-      const number = parseFloat(match[1]);
-      const unit = (match[2] || 'B').toUpperCase();
+      const number = parseFloat(match[1]); const unit = (match[2] || 'B').toUpperCase();
       const multipliers = {
         TIB: 1099511627776,
         TB: 1099511627776,
@@ -1927,21 +1785,16 @@
       return timestamp ? new Date(timestamp).toISOString().slice(0, 10) : '';
     }
     function hasCrackedCode(text) {
-      const codePattern = /\b(?:UN|UC)\b/g;
-      let match;
+      const codePattern = /\b(?:UN|UC)\b/g; let match;
       while ((match = codePattern.exec(text))) {
-        const before = text.slice(0, match.index);
-        const after = text.slice(match.index + match[0].length);
-        const adjacentNumber = /\d$/.test(before) || /^\d/.test(after);
-        const adjacentSubtitle = /\u5b57\u5e55$/.test(before) || /^\u5b57\u5e55/.test(after);
+        const before = text.slice(0, match.index); const after = text.slice(match.index + match[0].length);
+        const adjacentNumber = /\d$/.test(before) || /^\d/.test(after); const adjacentSubtitle = /\u5b57\u5e55$/.test(before) || /^\u5b57\u5e55/.test(after);
         if (!adjacentNumber && !adjacentSubtitle) return true;
       }
       return false;
     }
     function classifyQuality(title) {
-      const text = String(title || '');
-      const hasCJK = /[\u4e00-\u9fff]/.test(text);
-      const hasJP = /[\u3040-\u309f\u30a0-\u30ff]/.test(text);
+      const text = String(title || ''); const hasCJK = /[\u4e00-\u9fff]/.test(text); const hasJP = /[\u3040-\u309f\u30a0-\u30ff]/.test(text);
       const isChinese = /(?:[^A-Za-z]|^)FHDC(?:[^A-Za-z]|$)/i.test(text) || /[-_]CH?(?:[^A-Za-z]|$)/.test(text)
         || /(?:\u4e2d\u5b57|\u4e2d\u6587|\u5b57\u5e55|\u4e2d\u6587\u5b57\u5e55|\u7e41\u9ad4\u4e2d\u5b57|\u7e41\u4f53\u4e2d\u5b57|\u7e41\u9ad4\u4e2d\u6587|\u7e41\u4f53\u4e2d\u6587|\u7e41\u9ad4\u5b57\u5e55|\u7e41\u4f53\u5b57\u5e55|\u7e41\u4e2d|\u7e41\u5b57|\u81ea\u63d0|\u5f81\u7528|\u5fb5\u7528|\u6f22\u5316|\u6c49\u5316|\u5167\u5d4c|\u5185\u5d4c|\u5167\u5c01|\u5185\u5c01|\u96d9\u8a9e|\u53cc\u8bed)/.test(text)
         || (hasCJK && !hasJP);
@@ -1954,8 +1807,7 @@
       return [...data] .map((item, index) => ({ item, index })) .sort((a, b) => {
           const sizeDelta = parseMagnetSize(b.item?.size) - parseMagnetSize(a.item?.size);
           if (mode === 'size') return sizeDelta || a.index - b.index;
-          const aTime = magnetItemTimestamp(a.item);
-          const bTime = magnetItemTimestamp(b.item);
+          const aTime = magnetItemTimestamp(a.item); const bTime = magnetItemTimestamp(b.item);
           if (!aTime && !bTime) return sizeDelta || a.index - b.index;
           if (!aTime) return 1;
           if (!bTime) return -1;
@@ -1977,9 +1829,7 @@
       headRow.className = 'nong-head-row';
       const thEngine = document.createElement('th');
       thEngine.style.textAlign = 'left';
-      const allEngines = MagnetEngines.getAll();
-      const curKey = CFG.defaultEngine;
-      const controls = document.createElement('div');
+      const allEngines = MagnetEngines.getAll(); const curKey = CFG.defaultEngine; const controls = document.createElement('div');
       controls.className = 'nong-head-controls';
       const sel = document.createElement('select');
       sel.className = 'nong-engine-select';
@@ -1994,8 +1844,7 @@
       };
       requestAnimationFrame(fitSelWidth);
       sel.addEventListener('change', () => {
-        runSearch(table, avid, sel.value);
-        requestAnimationFrame(fitSelWidth);
+        runSearch(table, avid, sel.value); requestAnimationFrame(fitSelWidth);
       });
       const sortSel = document.createElement('select');
       sortSel.className = 'nong-sort-select';
@@ -2015,10 +1864,7 @@
         CFG.magnetSort = sortSel.value;
         if (Array.isArray(table._laosijiMagnetData)) { fillTable(table, table._laosijiMagnetData, table._laosijiMagnetEngineUrl || ''); }
       });
-      controls.appendChild(sel);
-      controls.appendChild(sortSel);
-      thEngine.appendChild(controls);
-      headRow.appendChild(thEngine);
+      controls.appendChild(sel); controls.appendChild(sortSel); thEngine.appendChild(controls); headRow.appendChild(thEngine);
       ['大小', '文件', '操作', '115'].forEach(txt => {
         const th = document.createElement('th');
         th.textContent = txt;
@@ -2028,39 +1874,30 @@
         if (txt === '115') th.className = 'nong-115-head';
         headRow.appendChild(th);
       });
-      syncFileCountColumn(table, curKey);
-      table.appendChild(headRow);
-      const loadRow = document.createElement('tr');
-      const loadTd = document.createElement('td');
+      syncFileCountColumn(table, curKey); table.appendChild(headRow);
+      const loadRow = document.createElement('tr'); const loadTd = document.createElement('td');
       loadTd.colSpan = magnetTableColSpan(table);
       loadTd.id = 'jav-nong-notice';
-      const loadText = document.createTextNode('Loading…');
-      const refreshBtn = document.createElement('a');
+      const loadText = document.createTextNode('Loading…'); const refreshBtn = document.createElement('a');
       refreshBtn.id = 'jav-nong-refresh';
       refreshBtn.href = '#';
       refreshBtn.textContent = '🔄 刷新';
       refreshBtn.title = '网络加载失败，点击重试';
       refreshBtn.addEventListener('click', e => {
-        e.preventDefault();
-        runSearch(table, avid, sel.value);
+        e.preventDefault(); runSearch(table, avid, sel.value);
       });
-      loadTd.appendChild(loadText);
-      loadTd.appendChild(refreshBtn);
-      loadRow.appendChild(loadTd);
-      table.appendChild(loadRow);
+      loadTd.appendChild(loadText); loadTd.appendChild(refreshBtn); loadRow.appendChild(loadTd); table.appendChild(loadRow);
       return table;
     }
     function fillTable(table, data, engineUrl) {
       table._laosijiMagnetData = [...data];
       table._laosijiMagnetEngineUrl = engineUrl;
       data = sortMagnetData(table._laosijiMagnetData, table.dataset.sortMode || CFG.magnetSort);
-      const showFileCount = table.dataset.fileCountEnabled === '1';
-      const sortSelect = table.querySelector('[data-magnet-sort]');
+      const showFileCount = table.dataset.fileCountEnabled === '1'; const sortSelect = table.querySelector('[data-magnet-sort]');
       [...table.querySelectorAll('tr:not(.nong-head-row)')].forEach(row => row.remove());
       if (sortSelect) sortSelect.disabled = !data.length;
       if (!data.length) {
-        const emptyRow = document.createElement('tr');
-        const td = document.createElement('td');
+        const emptyRow = document.createElement('tr'); const td = document.createElement('td');
         td.colSpan = magnetTableColSpan(table);
         td.innerHTML =`无搜索结果 <a href="${engineUrl}" target="_blank" style="color:red">前往查看</a>`;
         const refresh = document.createElement('a');
@@ -2072,16 +1909,13 @@
           const engineKey = table.querySelector('[data-magnet-engine]')?.value || CFG.defaultEngine;
           runSearch(table, table.dataset.avid || '', engineKey);
         });
-        td.appendChild(refresh);
-        emptyRow.appendChild(td);
-        table.appendChild(emptyRow);
+        td.appendChild(refresh); emptyRow.appendChild(td); table.appendChild(emptyRow);
         return;
       }
       data.forEach(item => {
         const tr = document.createElement('tr');
         tr.setAttribute('data-maglink', item.maglink);
-        const tdTitle = document.createElement('td');
-        const nameSpan = document.createElement('span');
+        const tdTitle = document.createElement('td'); const nameSpan = document.createElement('span');
         nameSpan.className = 'nong-magnet-name';
         nameSpan.title = item.title;
         const { isChinese, is4K, isCracked } = classifyQuality(item.title);
@@ -2129,8 +1963,7 @@
           dateSpan.title = item.date ?`收录时间：${item.date}` : '收录时间';
           nameSpan.appendChild(dateSpan);
         }
-        tdTitle.appendChild(nameSpan);
-        tr.appendChild(tdTitle);
+        tdTitle.appendChild(nameSpan); tr.appendChild(tdTitle);
         const tdSize = document.createElement('td');
         tdSize.className = 'nong-size-cell';
         tdSize.style.whiteSpace = 'nowrap';
@@ -2146,8 +1979,7 @@
         const tdOp = document.createElement('td');
         tdOp.className = 'nong-op-cell';
         tdOp.style.cssText = 'white-space:nowrap;padding-left:3px;padding-right:3px;';
-        const copyBtn = document.createElement('a');
-        const magShort = item.maglink.substring(0, 60);
+        const copyBtn = document.createElement('a'); const magShort = item.maglink.substring(0, 60);
         const _extractCode = (text) => {
           if (!text) return null;
           const patterns = [
@@ -2172,8 +2004,7 @@
         copyBtn.className = 'nong-copy';
         copyBtn.textContent = '复制';
         copyBtn.addEventListener('click', e => {
-          e.preventDefault();
-          GM_setClipboard(magWithDn);
+          e.preventDefault(); GM_setClipboard(magWithDn);
           copyBtn.textContent = '✓';
           setTimeout(() => { copyBtn.textContent = '复制'; }, 1000);
         });
@@ -2183,11 +2014,9 @@
         checkBtn.className = 'nong-check';
         checkBtn.textContent = '验车';
         checkBtn.addEventListener('click', e => {
-          e.preventDefault();
-          MagnetActions.checkWhatslink(item.maglink);
+          e.preventDefault(); MagnetActions.checkWhatslink(item.maglink);
         });
-        tdOp.appendChild(checkBtn);
-        tr.appendChild(tdOp);
+        tdOp.appendChild(checkBtn); tr.appendChild(tdOp);
         const tdOffline = document.createElement('td');
         tdOffline.className = 'nong-115-cell';
         const offBtn = document.createElement('a');
@@ -2195,12 +2024,9 @@
         offBtn.className = 'nong-offline-115';
         offBtn.textContent = '115';
         offBtn.addEventListener('click', e => {
-          e.preventDefault();
-          MagnetActions.offline115(item.maglink);
+          e.preventDefault(); MagnetActions.offline115(item.maglink);
         });
-        tdOffline.appendChild(offBtn);
-        tr.appendChild(tdOffline);
-        table.appendChild(tr);
+        tdOffline.appendChild(offBtn); tr.appendChild(tdOffline); table.appendChild(tr);
       });
     }
     async function runSearch(table, avid, engineKey) {
@@ -2210,21 +2036,16 @@
       const sortSelect = table.querySelector('[data-magnet-sort]');
       if (sortSelect) sortSelect.disabled = true;
       syncFileCountColumn(table, engineKey);
-      const loadRow = document.createElement('tr');
-      const loadTd = document.createElement('td');
+      const loadRow = document.createElement('tr'); const loadTd = document.createElement('td');
       loadTd.colSpan = magnetTableColSpan(table);
       loadTd.id = 'jav-nong-notice';
-      const loadText = document.createTextNode('Loading…');
-      const refreshBtn = table.querySelector('#jav-nong-refresh') || document.createElement('a');
+      const loadText = document.createTextNode('Loading…'); const refreshBtn = table.querySelector('#jav-nong-refresh') || document.createElement('a');
       refreshBtn.id = 'jav-nong-refresh';
       refreshBtn.href = '#';
       refreshBtn.textContent = '🔄 刷新';
       refreshBtn.style.cssText = 'display:none;margin-left:8px;color:#e74c3c;font-weight:bold;cursor:pointer;';
       refreshBtn.onclick = e => { e.preventDefault(); runSearch(table, avid, engineKey); };
-      loadTd.appendChild(loadText);
-      loadTd.appendChild(refreshBtn);
-      loadRow.appendChild(loadTd);
-      table.appendChild(loadRow);
+      loadTd.appendChild(loadText); loadTd.appendChild(refreshBtn); loadRow.appendChild(loadTd); table.appendChild(loadRow);
       let timedOut = false;
       const timer = setTimeout(() => {
         timedOut = true;
@@ -2232,15 +2053,13 @@
         refreshBtn.style.display = 'inline';
       }, 8000);
       try {
-        const allEngines = MagnetEngines.getAll();
-        const fn = allEngines[engineKey] || Object.values(allEngines)[0];
+        const allEngines = MagnetEngines.getAll(); const fn = allEngines[engineKey] || Object.values(allEngines)[0];
         const { url, data } = await fn(avid);
         clearTimeout(timer);
         if (timedOut) return;
         fillTable(table, data, url);
       } catch(e) {
-        clearTimeout(timer);
-        errorLog('磁力搜索出错:', e);
+        clearTimeout(timer); errorLog('磁力搜索出错:', e);
         loadText.textContent = '搜索出错 ';
         refreshBtn.style.display = 'inline';
       }
@@ -2254,8 +2073,7 @@
       const title = document.createElement('span');
       title.style.cssText = 'color:#0066cc;font-size:14px;font-weight:600;';
       title.textContent = '🔥 磁力搜索';
-      header.appendChild(title);
-      wrapper.appendChild(header);
+      header.appendChild(title); wrapper.appendChild(header);
       const table = buildTable(avid);
       wrapper.appendChild(table);
       const engineKey = table.querySelector('[data-magnet-engine]')?.value || CFG.defaultEngine;
@@ -2272,8 +2090,7 @@
   };
   const NativeMagnetPanel = (() => {
     NativeMagnetPanelStyles.install();
-    const PANEL_CLASS = 'laosiji-native-magnet-panel';
-    const mountObservers = new Map();
+    const PANEL_CLASS = 'laosiji-native-magnet-panel'; const mountObservers = new Map();
     function assistantGroups(root) { return [...(root?.querySelectorAll?.('.mag-btn-group[data-mag-assistant="1"]') || [])]; }
     function syncAssistantGroups(root) {
       root?.querySelectorAll?.('.laosiji-native-magnet-row').forEach(row => {
@@ -2281,8 +2098,7 @@
         if (!groups.length) return;
         const actions = row.querySelector('.laosiji-native-magnet-actions');
         if (!actions) return;
-        const actionGroup = actions.querySelector('.mag-btn-group[data-mag-assistant="1"]');
-        const keep = actionGroup || groups[0];
+        const actionGroup = actions.querySelector('.mag-btn-group[data-mag-assistant="1"]'); const keep = actionGroup || groups[0];
         actions.querySelectorAll('.laosiji-native-magnet-action').forEach(button => button.remove());
         if (keep.parentNode !== actions) actions.appendChild(keep);
         groups.forEach(group => {
@@ -2334,8 +2150,7 @@
     }
     function parseJavbusItems(container) {
       return [...container.querySelectorAll('tr')] .map(row => {
-          const cells = [...row.querySelectorAll(':scope > td')];
-          const magnetLink = row.querySelector('a[href^="magnet:"]');
+          const cells = [...row.querySelectorAll(':scope > td')]; const magnetLink = row.querySelector('a[href^="magnet:"]');
           if (!magnetLink || cells.length < 2) return null;
           const title = cleanText(cells[0], ['.mag-btn-group', '.btn-mini-new']) || cleanText(magnetLink);
           return {
@@ -2354,8 +2169,7 @@
       return [...container.querySelectorAll('.item')] .map(row => {
           const magnetLink = row.querySelector('.magnet-name a[href^="magnet:"]');
           if (!magnetLink) return null;
-          const metaText = cleanText(row.querySelector('.magnet-name .meta'));
-          const [size = '', files = ''] = metaText.split(/[,，]/).map(part => part.trim());
+          const metaText = cleanText(row.querySelector('.magnet-name .meta')); const [size = '', files = ''] = metaText.split(/[,，]/).map(part => part.trim());
           const title = cleanText(row.querySelector('.magnet-name .name')) || cleanText(magnetLink);
           return {
             title,
@@ -2417,8 +2231,7 @@
         tag.className = 'laosiji-native-magnet-tag';
         const kind = withKinds ? tagKind(value) : '';
         if (kind) tag.dataset.kind = kind;
-        addText(tag, value);
-        tags.appendChild(tag);
+        addText(tag, value); tags.appendChild(tag);
       });
       return tags;
     }
@@ -2461,12 +2274,10 @@
       return meta;
     }
     function renderRows(state) {
-      const rows = state.panel.querySelector('.laosiji-native-magnet-rows');
-      const count = state.panel.querySelector('.laosiji-native-magnet-count');
+      const rows = state.panel.querySelector('.laosiji-native-magnet-rows'); const count = state.panel.querySelector('.laosiji-native-magnet-count');
       const source = state.panel.querySelector('.laosiji-native-magnet-source');
       const items = state.activeTab === 'aggregate' ? Magnet.sortData(state.aggregateItems, CFG.magnetSort) : state.nativeItems;
-      restoreAssistantGroups(rows);
-      rows.replaceChildren();
+      restoreAssistantGroups(rows); rows.replaceChildren();
       count.textContent =`${items.length} 条`;
       source.textContent = state.activeTab === 'aggregate'
         ?`聚合：${MagnetEngines.labels()[state.engineKey] || state.engineKey}`                : '站内原始条目';
@@ -2495,8 +2306,7 @@
         addText(title, item.title);
         const qualityTags = createTagGroup(item.qualityTags, true);
         if (qualityTags) titleLine.appendChild(qualityTags);
-        titleLine.appendChild(title);
-        appendAssistantTrigger(titleLine, item);
+        titleLine.appendChild(title); appendAssistantTrigger(titleLine, item);
         const nativeTags = createTagGroup(item.nativeTags);
         if (nativeTags) titleLine.appendChild(nativeTags);
         name.appendChild(titleLine);
@@ -2505,34 +2315,26 @@
         metadata.append( createMeta(item.size, '大小'), createMeta(item.files, '文件'), createMeta(item.date, '日期') );
         const actions = document.createElement('div');
         actions.className = 'laosiji-native-magnet-actions';
-        appendActions(actions, item);
-        row.append(rowIndex, name, metadata, actions);
-        rows.appendChild(row);
+        appendActions(actions, item); row.append(rowIndex, name, metadata, actions); rows.appendChild(row);
       });
     }
     function syncTabControls(state) {
       const nativeButton = state.panel.querySelector('[data-native-magnet-tab="native"]');
       const aggregateButton = state.panel.querySelector('[data-native-magnet-tab="aggregate"]');
-      const aggregateControls = state.panel.querySelector('.laosiji-native-magnet-controls');
-      const isAggregate = state.activeTab === 'aggregate';
-      nativeButton?.setAttribute('aria-selected', String(!isAggregate));
-      aggregateButton?.setAttribute('aria-selected', String(isAggregate));
+      const aggregateControls = state.panel.querySelector('.laosiji-native-magnet-controls'); const isAggregate = state.activeTab === 'aggregate';
+      nativeButton?.setAttribute('aria-selected', String(!isAggregate)); aggregateButton?.setAttribute('aria-selected', String(isAggregate));
       aggregateControls.hidden = !isAggregate;
     }
     async function loadAggregate(state) {
-      const rows = state.panel.querySelector('.laosiji-native-magnet-rows');
-      const select = state.panel.querySelector('[data-native-magnet-engine]');
-      const refresh = state.panel.querySelector('.laosiji-native-magnet-refresh');
-      const empty = document.createElement('div');
+      const rows = state.panel.querySelector('.laosiji-native-magnet-rows'); const select = state.panel.querySelector('[data-native-magnet-engine]');
+      const refresh = state.panel.querySelector('.laosiji-native-magnet-refresh'); const empty = document.createElement('div');
       empty.className = 'laosiji-native-magnet-empty';
       empty.textContent = '正在搜索聚合磁力…';
       rows.replaceChildren(empty);
       select.disabled = true;
       refresh.disabled = true;
       try {
-        const engines = MagnetEngines.getAll();
-        const search = engines[state.engineKey] || Object.values(engines)[0];
-        const result = await search(state.avid);
+        const engines = MagnetEngines.getAll(); const search = engines[state.engineKey] || Object.values(engines)[0]; const result = await search(state.avid);
         state.aggregateItems = normalizeAggregateItems(result?.data || [], {
           titleAsMagnet: state.engineKey === CFG.javdbSearchUrl,
           nativeItems: state.nativeItems,
@@ -2573,8 +2375,7 @@
       };
       const head = document.createElement('header');
       head.className = 'laosiji-native-magnet-head';
-      const heading = document.createElement('div');
-      const title = document.createElement('span');
+      const heading = document.createElement('div'); const title = document.createElement('span');
       title.className = 'laosiji-native-magnet-title';
       title.textContent = '磁力资源';
       const count = document.createElement('span');
@@ -2598,8 +2399,7 @@
         defaultTabSelect.className = 'laosiji-native-magnet-default-tab';
         defaultTabSelect.setAttribute('aria-label', '默认显示的磁力页签');
         defaultTabSelect.title = '设置以后进入详情页时默认显示的页签';
-        defaultTabSelect.add(new Option('默认：站内磁力', 'native'));
-        defaultTabSelect.add(new Option('默认：聚合搜索', 'aggregate'));
+        defaultTabSelect.add(new Option('默认：站内磁力', 'native')); defaultTabSelect.add(new Option('默认：聚合搜索', 'aggregate'));
         defaultTabSelect.value = CFG.nativeMagnetDefaultTab;
         defaultTabSelect.addEventListener('change', () => {
           CFG.nativeMagnetDefaultTab = defaultTabSelect.value;
@@ -2614,8 +2414,7 @@
       engineSelect.className = 'laosiji-native-magnet-select';
       engineSelect.dataset.nativeMagnetEngine = '1';
       engineSelect.setAttribute('aria-label', '磁力引擎');
-      const engines = MagnetEngines.getAll();
-      const labels = MagnetEngines.labels();
+      const engines = MagnetEngines.getAll(); const labels = MagnetEngines.labels();
       Object.keys(engines).forEach(key => { engineSelect.add(new Option(labels[key] || key, key, false, key === state.engineKey)); });
       engineSelect.addEventListener('change', () => {
         state.engineKey = engineSelect.value;
@@ -2646,8 +2445,7 @@
       source.className = 'laosiji-native-magnet-source';
       const hint = document.createElement('span');
       hint.textContent = nativeItems.length ? '聚合结果不会覆盖站内磁力' : '聚合搜索沿用已配置的磁力引擎';
-      foot.append(source, hint);
-      panel.append(head, controls, rows, foot);
+      foot.append(source, hint); panel.append(head, controls, rows, foot);
       panel._laosijiNativeMagnetState = state;
       let assistantSyncPending = false;
       const assistantObserver = new MutationObserver(() => {
@@ -2688,16 +2486,12 @@
     }
     function remove(site) {
       if (site) {
-        mountObservers.get(site)?.disconnect();
-        mountObservers.delete(site);
+        mountObservers.get(site)?.disconnect(); mountObservers.delete(site);
       } else {
-        mountObservers.forEach(observer => observer.disconnect());
-        mountObservers.clear();
+        mountObservers.forEach(observer => observer.disconnect()); mountObservers.clear();
       }
       document.querySelectorAll(`.${PANEL_CLASS}${site ? `[data-site="${site}"]` : ''}`).forEach(panel => {
-        panel._laosijiNativeAssistantObserver?.disconnect();
-        restoreAssistantGroups(panel);
-        panel.remove();
+        panel._laosijiNativeAssistantObserver?.disconnect(); restoreAssistantGroups(panel); panel.remove();
       });
       document.querySelectorAll('[data-laosiji-native-hidden="1"]').forEach(restoreNativeSource);
       document.querySelectorAll('[data-laosiji-native-parent-hidden="1"]').forEach(restoreNativeParent);
@@ -2709,11 +2503,9 @@
       if (site === 'javlib') {
         const reviews = document.querySelector('#video_reviews');
         if (!reviews) return false;
-        const panel = createPanel(site, avid, []);
-        const divider = document.createElement('hr');
+        const panel = createPanel(site, avid, []); const divider = document.createElement('hr');
         divider.className = 'grey laosiji-native-magnet-divider';
-        reviews.insertAdjacentElement('beforebegin', panel);
-        panel.insertAdjacentElement('afterend', divider);
+        reviews.insertAdjacentElement('beforebegin', panel); panel.insertAdjacentElement('afterend', divider);
         return true;
       }
       const source = site === 'javbus' ? document.querySelector('#magnet-table') : document.querySelector('#magnets-content');
@@ -2729,12 +2521,10 @@
       return true;
     }
     function scheduleMount(site, avid) {
-      mountObservers.get(site)?.disconnect();
-      mountObservers.delete(site);
+      mountObservers.get(site)?.disconnect(); mountObservers.delete(site);
       const tryMount = () => {
         if (MobilePolicy.effectiveMagnetDisplayMode() !== 'native-replace' || mount(site, avid)) {
-          mountObservers.get(site)?.disconnect();
-          mountObservers.delete(site);
+          mountObservers.get(site)?.disconnect(); mountObservers.delete(site);
           return true;
         }
         return false;
@@ -2766,16 +2556,13 @@
   Core.expose('__LAOSIJI_NATIVE_MAGNET_PANEL__', NativeMagnetPanel);
   function openJavdbApiLoginDialog(nextUrl = '') {
     if (!document.body) { setTimeout(() => openJavdbApiLoginDialog(nextUrl), 50); return; }
-    addJavdbApiLoginStyles();
-    document.querySelector('#javdb-api-login-overlay')?.remove();
+    addJavdbApiLoginStyles(); document.querySelector('#javdb-api-login-overlay')?.remove();
     const overlay = document.createElement('div');
     overlay.id = 'javdb-api-login-overlay';
     overlay.innerHTML =`<div class="javdb-api-login-panel"><div class="javdb-api-login-title">登录 JavDB</div><input class="javdb-api-login-input" id="javdb-api-login-account" type="text" autocomplete="username" placeholder="用户名 / 邮箱"><input class="javdb-api-login-input" id="javdb-api-login-password" type="password" autocomplete="current-password" placeholder="密码"><div class="javdb-api-login-actions"><button class="javdb-api-login-cancel" type="button">取消</button><button class="javdb-api-login-submit" type="button">登录</button></div></div>`;
     document.body.appendChild(overlay);
-    const close = () => overlay.remove();
-    const submit = overlay.querySelector('.javdb-api-login-submit');
-    const accountInput = overlay.querySelector('#javdb-api-login-account');
-    const passwordInput = overlay.querySelector('#javdb-api-login-password');
+    const close = () => overlay.remove(); const submit = overlay.querySelector('.javdb-api-login-submit');
+    const accountInput = overlay.querySelector('#javdb-api-login-account'); const passwordInput = overlay.querySelector('#javdb-api-login-password');
     overlay.addEventListener('click', event => {
       if (event.target === overlay || event.target.closest('.javdb-api-login-cancel')) close();
     });
@@ -2784,15 +2571,12 @@
       if (event.key === 'Enter') submit.click();
     });
     submit.addEventListener('click', async () => {
-      const account = accountInput.value.trim();
-      const password = passwordInput.value;
+      const account = accountInput.value.trim(); const password = passwordInput.value;
       if (!account || !password) { notify('JavDB App API', '请输入用户名和密码'); return; }
       submit.disabled = true;
       submit.textContent = '登录中...';
       try {
-        await Magnet.javdbApi.login(account, password);
-        notify('JavDB App API', '登录成功，已保存授权');
-        close();
+        await Magnet.javdbApi.login(account, password); notify('JavDB App API', '登录成功，已保存授权'); close();
         if (nextUrl) location.href = nextUrl;
         else if (location.hostname.includes('javdb') && /rankings|advanced_search/.test(location.pathname + location.search)) location.reload();
       } catch (err) {
@@ -2839,17 +2623,13 @@
       );
     },
     initPage(avid) {
-      document.querySelector('.ad-box')?.remove();
-      this._insertTopSettingsButton();
-      setTimeout(() => this._insertTopSettingsButton(), 500);
+      document.querySelector('.ad-box')?.remove(); this._insertTopSettingsButton(); setTimeout(() => this._insertTopSettingsButton(), 500);
       if (this.isActorIndexPage()) return;
       if (document.querySelector('#waterfall div.item')) { this._initListPage(); return; }
       this._insertCopyButton(avid);
       const detailDefaults = DetailFlex.defaultCss('javbus');
       GM_addStyle(`.container{max-width:100%!important;width:100%!important;padding-left:20px!important;padding-right:20px!important}.row.movie{display:flex!important;gap:20px!important;align-items:flex-start!important;flex-wrap:nowrap!important;margin:0!important}.row.movie{--javbus-cover-flex:${detailDefaults.cover};--javbus-info-flex:${detailDefaults.info};--javbus-magnet-flex:${detailDefaults.magnet}}.col-md-9.screencap{flex:var(--javbus-cover-flex) 1 0!important;min-width:0!important;width:auto!important;float:none!important;padding:0!important}.col-md-3.info{flex:var(--javbus-info-flex) 1 0!important;min-width:0!important;width:auto!important;float:none!important;overflow:hidden!important;word-break:break-word!important}.jav-nong-slot{flex:var(--javbus-magnet-flex) 1 0!important;min-width:0!important;align-self:flex-start!important;overflow:hidden!important}.jav-nong-wrapper{width:560px;max-width:100%}.screencap img{width:100%;max-width:100%}.footer{padding:20px 0}`);
-      this._insertMagnet(avid);
-      this._replaceRecommendWithJavdbReviews(avid);
-      setTimeout(() => this._replaceRecommendWithJavdbReviews(avid), 900);
+      this._insertMagnet(avid); this._replaceRecommendWithJavdbReviews(avid); setTimeout(() => this._replaceRecommendWithJavdbReviews(avid), 900);
       this._scheduleNativeMagnetAssistantFix();
     },
     _insertTopSettingsButton() {
@@ -2862,9 +2642,7 @@
       settingsNav.className = 'nav navbar-nav navbar-right javbus-top-settings-nav';
       settingsNav.innerHTML =`<li><a href="javascript:void(0)" class="javbus-top-settings-btn" title="\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e"><span class="glyphicon glyphicon-cog" style="font-size:12px;"></span><span class="hidden-md hidden-sm">\u8001\u53f8\u673a\u8bbe\u7f6e</span></a></li>`;
       settingsNav.querySelector('.javbus-top-settings-btn')?.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        QuickSettingsPanel.open(e.currentTarget);
+        e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget);
       });
       if (magnetNav) {
         magnetNav.insertAdjacentElement('afterend', settingsNav);
@@ -2879,8 +2657,7 @@
     },
     _insertMagnet(avid) {
       if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') {
-        document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
-        NativeMagnetPanel.scheduleMount('javbus', avid);
+        document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.scheduleMount('javbus', avid);
         return;
       }
       NativeMagnetPanel.remove('javbus');
@@ -2888,12 +2665,10 @@
       const infoCol = document.querySelector("div[class='col-md-3 info']");
       if (!infoCol) return;
       document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
-      const widget = Magnet.createMagnetWidget(avid);
-      const slot = document.createElement('div');
+      const widget = Magnet.createMagnetWidget(avid); const slot = document.createElement('div');
       slot.className = 'jav-nong-slot';
       slot.style.overflow = 'hidden';
-      slot.appendChild(widget);
-      infoCol.after(slot);
+      slot.appendChild(widget); infoCol.after(slot);
     },
     _scheduleNativeMagnetAssistantFix() {
       this._dedupeNativeMagnetAssistantButtons();
@@ -2940,8 +2715,7 @@
     _placeJavbusReviewsPanel(panel) {
       const magnetSubmit = this._findMagnetSubmitHeading();
       const stillsShell = document.querySelector('.jav-stills-javbus[data-laosiji-stills="1"], .jav-stills-javbus');
-      const anchor = stillsShell?.parentNode ? stillsShell.nextSibling : magnetSubmit;
-      const parent = stillsShell?.parentNode || magnetSubmit?.parentNode;
+      const anchor = stillsShell?.parentNode ? stillsShell.nextSibling : magnetSubmit; const parent = stillsShell?.parentNode || magnetSubmit?.parentNode;
       if (!panel || !parent) return false;
       if (stillsShell?.parentNode) {
         if (stillsShell.nextElementSibling !== panel) { parent.insertBefore(panel, anchor); }
@@ -2970,9 +2744,7 @@
       if (!avid) return;
       const existing = document.querySelector('.javbus-javdb-reviews');
       if (existing) {
-        this._bindJavbusReviewLoadMore(existing);
-        this._placeJavbusReviewsPanel(existing);
-        this._removeRecommendBlock();
+        this._bindJavbusReviewLoadMore(existing); this._placeJavbusReviewsPanel(existing); this._removeRecommendBlock();
         return;
       }
       const heading = this._findRecommendHeading();
@@ -2989,8 +2761,7 @@
         heading.replaceWith(panel);
         if (this._isRecommendContainer(next)) next.remove();
       }
-      this._bindJavbusReviewLoadMore(panel);
-      this._applyJavbusReviewsDefault(panel);
+      this._bindJavbusReviewLoadMore(panel); this._applyJavbusReviewsDefault(panel);
     },
     _renderJavbusReviewFooter(hasMore, shownCount) {
       return`<div class="javdb-api-tab-footer javbus-javdb-reviews-footer"> ${hasMore
@@ -3007,8 +2778,7 @@
     },
     _setJavbusReviewsExpanded(panel, expanded) {
       if (!panel) return;
-      const body = panel.querySelector('.javbus-javdb-reviews-body');
-      const toggle = panel.querySelector('.javbus-javdb-reviews-toggle');
+      const body = panel.querySelector('.javbus-javdb-reviews-body'); const toggle = panel.querySelector('.javbus-javdb-reviews-toggle');
       panel.classList.toggle('is-expanded', !!expanded);
       if (body) body.hidden = !expanded;
       toggle?.setAttribute('aria-expanded', expanded ? 'true' : 'false');
@@ -3035,8 +2805,7 @@
       panel.addEventListener('click', e => {
         const toggle = e.target?.closest?.('.javbus-javdb-reviews-toggle');
         if (toggle && panel.contains(toggle)) {
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault(); e.stopPropagation();
           e.stopImmediatePropagation?.();
           const expanded = panel.classList.toggle('is-expanded');
           this._setJavbusReviewsExpanded(panel, expanded);
@@ -3045,16 +2814,14 @@
         }
         const collapse = e.target?.closest?.('[data-javbus-reviews-collapse]');
         if (collapse && panel.contains(collapse)) {
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault(); e.stopPropagation();
           e.stopImmediatePropagation?.();
           this._setJavbusReviewsExpanded(panel, false);
           return;
         }
         const btn = e.target?.closest?.('.javbus-javdb-reviews-load-more');
         if (!btn || !panel.contains(btn)) return;
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         e.stopImmediatePropagation?.();
         this._loadMoreJavdbReviewsForJavbus(panel, btn);
       }, true);
@@ -3073,8 +2840,7 @@
         if (link) link.href =`https://javdb.com/v/${encodeURIComponent(movie.id)}`;
         panel.dataset.movieId = movie.id;
         const json = await Magnet.javdbApi.movieReviews(movie.id, { page: 1, limit: JAVDB_REVIEW_INITIAL_LIMIT + 1 });
-        const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : [];
-        const reviews = allReviews.slice(0, JAVDB_REVIEW_INITIAL_LIMIT);
+        const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : []; const reviews = allReviews.slice(0, JAVDB_REVIEW_INITIAL_LIMIT);
         body.innerHTML = reviews.length ? this._renderJavbusReviews(reviews, 0, allReviews.length > JAVDB_REVIEW_INITIAL_LIMIT)
           : '<div class="javdb-api-tab-empty">暂无短评</div>';
       } catch (err) {
@@ -3083,27 +2849,22 @@
       }
     },
     async _loadMoreJavdbReviewsForJavbus(panel, btn) {
-      const movieId = panel?.dataset?.movieId || '';
-      const body = panel?.querySelector('.javbus-javdb-reviews-body');
+      const movieId = panel?.dataset?.movieId || ''; const body = panel?.querySelector('.javbus-javdb-reviews-body');
       if (!movieId || !body || !btn) return;
-      const shown = body.querySelectorAll('.javdb-api-review').length;
-      const take = Math.max(1, parseInt(btn.dataset.loadLimit, 10) || JAVDB_REVIEW_MORE_LIMIT);
+      const shown = body.querySelectorAll('.javdb-api-review').length; const take = Math.max(1, parseInt(btn.dataset.loadLimit, 10) || JAVDB_REVIEW_MORE_LIMIT);
       const oldText = btn.textContent;
       btn.textContent = '加载中...';
       btn.disabled = true;
       try {
         const json = await Magnet.javdbApi.movieReviews(movieId, { page: 1, limit: shown + take + 1 });
-        const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : [];
-        const nextReviews = allReviews.slice(shown, shown + take);
-        const items = body.querySelector('.javdb-api-tab-items');
-        const footer = body.querySelector('.javbus-javdb-reviews-footer');
+        const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : []; const nextReviews = allReviews.slice(shown, shown + take);
+        const items = body.querySelector('.javdb-api-tab-items'); const footer = body.querySelector('.javbus-javdb-reviews-footer');
         if (!nextReviews.length) {
           if (footer) footer.outerHTML = this._renderJavbusReviewFooter(false, shown);
           return;
         }
         items?.insertAdjacentHTML('beforeend', JavdbReviews.renderItems(nextReviews, shown, take));
-        const nextShown = shown + nextReviews.length;
-        const hasMore = allReviews.length > nextShown;
+        const nextShown = shown + nextReviews.length; const hasMore = allReviews.length > nextShown;
         if (footer) footer.outerHTML = this._renderJavbusReviewFooter(hasMore, nextShown);
       } catch (err) {
         errorLog('JavBus JavDB 更多短评读取失败:', err);
@@ -3144,28 +2905,21 @@
       if (!item) return;
       if (item.dataset.laosijiGridCard === '1') { ListPreview.attach(item); return; }
       item.dataset.laosijiGridCard = '1';
-      item.classList.add('jav-card', 'javbus-grid-card');
-      item.style.removeProperty('position');
-      item.style.removeProperty('top');
-      item.style.removeProperty('left');
-      item.style.removeProperty('width');
+      item.classList.add('jav-card', 'javbus-grid-card'); item.style.removeProperty('position'); item.style.removeProperty('top');
+      item.style.removeProperty('left'); item.style.removeProperty('width');
       const anchor = item.querySelector(':scope > a.movie-box[href]') || item.querySelector('a.movie-box[href]');
       anchor?.classList.add('jav-card-link', 'javbus-card-link');
       const frame = item.querySelector('.photo-frame');
       frame?.classList.add('jav-card-cover', 'javbus-cover-frame');
       const img = frame?.querySelector('img[src]') || item.querySelector('img[src]');
       if (img) {
-        img.removeAttribute('width');
-        img.removeAttribute('height');
-        img.classList.add('jav-card-image', 'javbus-card-image');
-        this._swapCover(img);
+        img.removeAttribute('width'); img.removeAttribute('height'); img.classList.add('jav-card-image', 'javbus-card-image'); this._swapCover(img);
       }
       const info = item.querySelector('.photo-info');
       info?.classList.add('jav-card-title', 'javbus-card-title');
       const infoBody = info?.querySelector(':scope > span') || info;
       if (infoBody && !infoBody.querySelector(':scope > .video-title')) {
-        const nodes = Array.from(infoBody.childNodes);
-        const titleNodes = [];
+        const nodes = Array.from(infoBody.childNodes); const titleNodes = [];
         for (const node of nodes) {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const el = node;
@@ -3180,8 +2934,7 @@
         if (titleNodes.some(node => (node.textContent || '').trim())) {
           const headline = document.createElement('span');
           headline.className = 'video-title javbus-card-headline';
-          infoBody.insertBefore(headline, titleNodes[0]);
-          titleNodes.forEach(node => headline.appendChild(node));
+          infoBody.insertBefore(headline, titleNodes[0]); titleNodes.forEach(node => headline.appendChild(node));
           while (headline.nextSibling?.nodeType === Node.TEXT_NODE && !headline.nextSibling.textContent.trim()) { headline.nextSibling.remove(); }
           if (headline.nextSibling?.nodeType === Node.ELEMENT_NODE && headline.nextSibling.matches('br')) { headline.nextSibling.remove(); }
         }
@@ -3196,15 +2949,10 @@
           while (nested.firstChild) wf.insertBefore(nested.firstChild, nested);
           nested.remove();
         });
-        wf.classList.remove('masonry');
-        wf.style.setProperty('position', 'static', 'important');
-        wf.style.setProperty('height', 'auto', 'important');
+        wf.classList.remove('masonry'); wf.style.setProperty('position', 'static', 'important'); wf.style.setProperty('height', 'auto', 'important');
         wf.style.setProperty('width', 'auto', 'important');
         wf.querySelectorAll(':scope > .item').forEach(item => {
-          item.style.removeProperty('position');
-          item.style.removeProperty('top');
-          item.style.removeProperty('left');
-          item.style.removeProperty('width');
+          item.style.removeProperty('position'); item.style.removeProperty('top'); item.style.removeProperty('left'); item.style.removeProperty('width');
         });
       });
     },
@@ -3215,8 +2963,7 @@
     },
     _listPageNo(url = location.href) {
       try {
-        const path = new URL(url, location.href).pathname.replace(/\/+$/, '');
-        let m = path.match(/\/page\/(\d+)$/i);
+        const path = new URL(url, location.href).pathname.replace(/\/+$/, ''); let m = path.match(/\/page\/(\d+)$/i);
         if (m) return parseInt(m[1], 10) || 1;
         m = path.match(/\/(\d+)$/);
         if (m) return parseInt(m[1], 10) || 1;
@@ -3226,9 +2973,7 @@
     _resolveListNext(doc, baseUrl) {
       const result = { nextUrl: '', maxPage: 0, curPage: this._listPageNo(baseUrl) };
       try {
-        const nav = doc.querySelector('.pagination') || doc;
-        const links = [...nav.querySelectorAll('li > a[href], a[href]')];
-        const pageMap = new Map();
+        const nav = doc.querySelector('.pagination') || doc; const links = [...nav.querySelectorAll('li > a[href], a[href]')]; const pageMap = new Map();
         links.forEach(a => {
           const href = a.getAttribute('href') || '';
           if (!href || /^(?:#|javascript:)/i.test(href)) return;
@@ -3249,8 +2994,7 @@
     },
     _buildListPageUrl(baseUrl, page) {
       try {
-        const u = new URL(baseUrl, location.href);
-        let path = u.pathname.replace(/\/+$/, '');
+        const u = new URL(baseUrl, location.href); let path = u.pathname.replace(/\/+$/, '');
         if (/\/page\/\d+$/i.test(path)) {
           path = path.replace(/\/page\/\d+$/i, page <= 1 ? '' :`/page/${page}`);
         } else if (/\/\d+$/.test(path)) {
@@ -3268,15 +3012,11 @@
       this._flattenWaterfall();
       const container = this._getGridContainer();
       if (!container) return;
-      this._destroyMasonry(container);
-      container.classList.remove('masonry');
-      container.style.setProperty('position', 'static', 'important');
-      container.style.setProperty('height', 'auto', 'important');
-      container.style.setProperty('width', 'auto', 'important');
+      this._destroyMasonry(container); container.classList.remove('masonry'); container.style.setProperty('position', 'static', 'important');
+      container.style.setProperty('height', 'auto', 'important'); container.style.setProperty('width', 'auto', 'important');
       const needStyle = container.dataset.laosijiGrid !== '1';
       if (needStyle) { container.dataset.laosijiGrid = '1'; container.classList.add('jav-card-grid', 'javbus-card-grid'); }
-      CardColumns.apply('javbus');
-      container.querySelectorAll(':scope > .item').forEach(item => this._decorateCard(item));
+      CardColumns.apply('javbus'); container.querySelectorAll(':scope > .item').forEach(item => this._decorateCard(item));
       if (needStyle) {
         GM_addStyle(`.jav-card-grid{height:auto!important}.jav-card{position:static!important}.jav-card-link:visited .jav-card-title,.jav-card-link:visited .javbus-card-headline,.jav-card-link:visited .javbus-card-code{color:#64748b!important}.jav-card-cover{margin:0!important}.jav-card-image{transition:opacity .18s ease!important}.jav-card-title{display:block!important;height:auto!important;max-height:none!important;flex:1 1 auto!important;min-height:0!important;padding:7px 8px 9px!important;overflow:visible!important;line-height:var(--jav-card-title-line-height,1.5)!important}.javbus-card-grid{position:static!important;--jav-card-columns:5;box-sizing:border-box!important}#waterfall.javbus-card-grid{display:grid!important;grid-template-columns:repeat(var(--jav-card-columns,5),minmax(0,1fr))!important;gap:14px!important;align-items:stretch!important;min-height:0!important}body .container-fluid{padding-left:28px!important;padding-right:28px!important;box-sizing:border-box!important}#waterfall.javbus-card-grid>.item,.javbus-card-grid .item.javbus-grid-card{position:static!important;width:auto!important;float:none!important;margin:0!important;top:auto!important;left:auto!important}.javbus-card-grid .item .jav-card-link.javbus-card-link{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;border-radius:0!important;overflow:hidden!important}.javbus-card-grid .item .javbus-cover-frame.photo-frame{margin:0!important;height:auto!important}.javbus-card-grid .item .javbus-card-image{height:100%!important;margin:0!important}.javbus-card-title>span{display:block!important}.javbus-card-title .video-title{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--jav-card-title-lines,2)!important;line-clamp:var(--jav-card-title-lines,2)!important;height:calc(var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)!important;max-height:calc(var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)!important;min-height:calc(var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:normal!important;word-break:break-word!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;line-height:var(--jav-card-title-line-height,1.5)!important;margin-bottom:6px!important}.javbus-card-grid .item .javbus-card-title .jav-pan115-badge{display:inline-flex!important;width:auto!important;max-width:max-content!important;float:none!important;vertical-align:middle!important;margin:0 6px 4px 0!important}.javbus-card-title .item-tag{margin:6px 0 4px!important}.javbus-card-title date{color:#94a3b8!important;font-size:12px!important}.javbus-card-title date.javbus-card-code{display:inline-block!important;color:inherit!important;font-size:15px!important;font-weight:800!important;margin-top:2px!important}@media (max-width:1100px){.javbus-card-grid{--jav-card-columns:4}}@media (max-width:820px){.javbus-card-grid{--jav-card-columns:3}}@media (max-width:560px){.javbus-card-grid{--jav-card-columns:2;gap:10px!important}}`);
       }
@@ -3284,9 +3024,7 @@
         Runtime.refreshListPage();
       }, 0);
       setTimeout(() => {
-        this._flattenWaterfall();
-        container.querySelectorAll(':scope > .item').forEach(item => this._decorateCard(item));
-        Runtime.syncListPreview();
+        this._flattenWaterfall(); container.querySelectorAll(':scope > .item').forEach(item => this._decorateCard(item)); Runtime.syncListPreview();
       }, 450);
     },
   };
@@ -3298,8 +3036,7 @@
     _getJavdbActorLinks(root = document) {
       const panel = root.querySelector?.('.movie-panel-info') || root;
       return [...panel.querySelectorAll?.('a[href*="/actors/"]') || []].filter(a => {
-        const href = a.getAttribute('href') || '';
-        const text = (a.textContent || '').trim();
+        const href = a.getAttribute('href') || ''; const text = (a.textContent || '').trim();
         return text && /\/actors\/[^/?#]+/i.test(href);
       });
     },
@@ -3315,8 +3052,7 @@
     },
     _readFavoriteActorsCache() {
       try {
-        const raw = GM_getValue('javdb_favorite_actors_cache', null);
-        const cache = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        const raw = GM_getValue('javdb_favorite_actors_cache', null); const cache = typeof raw === 'string' ? JSON.parse(raw) : raw;
         if (!cache || !Number.isFinite(cache.ts)) return null;
         return {
           names: new Set(Array.isArray(cache.names) ? cache.names : []),
@@ -3350,8 +3086,7 @@
     },
     _readFavoriteActorsPending() {
       try {
-        const raw = GM_getValue('javdb_favorite_actors_pending', null);
-        const pending = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        const raw = GM_getValue('javdb_favorite_actors_pending', null); const pending = typeof raw === 'string' ? JSON.parse(raw) : raw;
         if (!pending) return null;
         const normalized = {
           addIds: new Set(Array.isArray(pending.addIds) ? pending.addIds : []),
@@ -3365,8 +3100,7 @@
       } catch { return null; }
     },
     _writeFavoriteActorsPending(pending) {
-      const keys = ['addIds', 'removeIds', 'addPaths', 'removePaths', 'addNames', 'removeNames'];
-      const hasPending = keys.some(key => pending[key]?.size);
+      const keys = ['addIds', 'removeIds', 'addPaths', 'removePaths', 'addNames', 'removeNames']; const hasPending = keys.some(key => pending[key]?.size);
       if (!hasPending) { GM_setValue('javdb_favorite_actors_pending', null); return; }
       GM_setValue('javdb_favorite_actors_pending', JSON.stringify(
         Object.fromEntries(keys.map(key => [key, [...pending[key]]]))
@@ -3393,22 +3127,15 @@
       pending.removeNames.forEach(name => {
         if (!names.has(name)) pending.removeNames.delete(name);
       });
-      pending.addIds.forEach(id => ids.add(id));
-      pending.removeIds.forEach(id => ids.delete(id));
-      pending.addPaths.forEach(path => paths.add(path));
-      pending.removePaths.forEach(path => paths.delete(path));
-      pending.addNames.forEach(name => names.add(name));
-      pending.removeNames.forEach(name => names.delete(name));
-      this._writeFavoriteActorsPending(pending);
+      pending.addIds.forEach(id => ids.add(id)); pending.removeIds.forEach(id => ids.delete(id)); pending.addPaths.forEach(path => paths.add(path));
+      pending.removePaths.forEach(path => paths.delete(path)); pending.addNames.forEach(name => names.add(name));
+      pending.removeNames.forEach(name => names.delete(name)); this._writeFavoriteActorsPending(pending);
       return { names, paths, ids };
     },
     async _fetchFavoriteActors({ force = false } = {}) {
       const cached = !force ? this._readFavoriteActorsCache() : null;
       if (cached) return cached;
-      const names = new Set();
-      const paths = new Set();
-      const ids = new Set();
-      const seen = new Set();
+      const names = new Set(); const paths = new Set(); const ids = new Set(); const seen = new Set();
       let url = new URL('/users/collection_actors', location.origin).href;
       for (let page = 0; url && page < 30; page++) {
         const currentUrl = url;
@@ -3417,8 +3144,7 @@
         if (!res.loadstuts || !res.responseText) throw new Error('JavDB 收藏演员读取失败');
         const doc = parseHTML(res.responseText);
         doc.querySelectorAll('a[href*="/actors/"]').forEach(a => {
-          const text = this._normalizeActorKey(a.textContent);
-          let path = '';
+          const text = this._normalizeActorKey(a.textContent); let path = '';
           path = this._getJavdbActorPath(a.getAttribute('href'));
           if (text) names.add(text);
           if (path) { paths.add(path); ids.add(this._getJavdbActorId(path)); }
@@ -3434,15 +3160,13 @@
           } catch {}
         }
       }
-      const merged = this._mergeFavoriteActorsPending(names, paths, ids);
-      const ts = this._writeFavoriteActorsCache(merged.names, merged.paths, merged.ids);
+      const merged = this._mergeFavoriteActorsPending(names, paths, ids); const ts = this._writeFavoriteActorsCache(merged.names, merged.paths, merged.ids);
       return { ...merged, ts };
     },
     _applyFavoriteActorHighlight(links, fav) {
       if (!links?.length || !fav) return;
       links.forEach(a => {
-        const path = this._getJavdbActorPath(a.getAttribute('href'));
-        const id = this._getJavdbActorId(path);
+        const path = this._getJavdbActorPath(a.getAttribute('href')); const id = this._getJavdbActorId(path);
         const name = this._normalizeActorKey(a.textContent);
         const matched = id ? fav.ids?.has(id) : (path && fav.paths?.has(path)) || (name && fav.names?.has(name));
         a.classList.toggle('javdb-favorite-actor', !!matched);
@@ -3450,9 +3174,7 @@
       });
     },
     _updateFavoriteActorsCacheFromAction(action) {
-      const href = action?.getAttribute('href') || '';
-      const id = this._getJavdbActorId(href);
-      const path = this._getJavdbActorPath(href);
+      const href = action?.getAttribute('href') || ''; const id = this._getJavdbActorId(href); const path = this._getJavdbActorPath(href);
       if (!id || !path) return null;
       const cached = this._readFavoriteActorsCache() || {
         names: new Set(),
@@ -3471,24 +3193,14 @@
         removeNames: new Set(),
       };
       if (isUncollect) {
-        cached.ids.delete(id);
-        cached.paths.delete(path);
+        cached.ids.delete(id); cached.paths.delete(path);
         if (name) cached.names.delete(name);
-        pending.addIds.delete(id);
-        pending.addPaths.delete(path);
-        pending.addNames.delete(name);
-        pending.removeIds.add(id);
-        pending.removePaths.add(path);
+        pending.addIds.delete(id); pending.addPaths.delete(path); pending.addNames.delete(name); pending.removeIds.add(id); pending.removePaths.add(path);
         if (name) pending.removeNames.add(name);
       } else {
-        cached.ids.add(id);
-        cached.paths.add(path);
+        cached.ids.add(id); cached.paths.add(path);
         if (name) cached.names.add(name);
-        pending.removeIds.delete(id);
-        pending.removePaths.delete(path);
-        pending.removeNames.delete(name);
-        pending.addIds.add(id);
-        pending.addPaths.add(path);
+        pending.removeIds.delete(id); pending.removePaths.delete(path); pending.removeNames.delete(name); pending.addIds.add(id); pending.addPaths.add(path);
         if (name) pending.addNames.add(name);
       }
       this._writeFavoriteActorsPending(pending);
@@ -3496,10 +3208,8 @@
       return { ...cached, ts };
     },
     _refreshFavoriteActorsCache({ applyCurrentPage = true, delay = 500 } = {}) {
-      const root = document.documentElement;
-      const refreshingKey = 'laosijiJavdbFavoriteActorsRefreshing';
-      const pendingKey = 'laosijiJavdbFavoriteActorsRefreshPending';
-      const pendingApplyKey = 'laosijiJavdbFavoriteActorsRefreshPendingApply';
+      const root = document.documentElement; const refreshingKey = 'laosijiJavdbFavoriteActorsRefreshing';
+      const pendingKey = 'laosijiJavdbFavoriteActorsRefreshPending'; const pendingApplyKey = 'laosijiJavdbFavoriteActorsRefreshPendingApply';
       if (root.dataset[refreshingKey] === '1') {
         root.dataset[pendingKey] = '1';
         if (applyCurrentPage) root.dataset[pendingApplyKey] = '1';
@@ -3534,8 +3244,7 @@
     },
     _primeFavoriteActorsCacheIfNeeded() {
       if (!this._isLoggedIn()) return;
-      const cached = this._readFavoriteActorsCache();
-      const dirtyAt = this._readFavoriteActorsCacheDirtyAt();
+      const cached = this._readFavoriteActorsCache(); const dirtyAt = this._readFavoriteActorsCacheDirtyAt();
       if (cached && dirtyAt <= cached.ts) return;
       this._refreshFavoriteActorsCache({ delay: dirtyAt ? 900 : 300 });
     },
@@ -3564,8 +3273,7 @@
     },
     _initFavoriteActorHighlight() {
       if (!CFG.javdbFavoriteActorHighlight) return;
-      this._watchFavoriteActorActions();
-      this._syncFavoriteActorsFromCollectionPage();
+      this._watchFavoriteActorActions(); this._syncFavoriteActorsFromCollectionPage();
       if (location.pathname.startsWith('/v/')) { this._highlightFavoriteActors(); this._primeFavoriteActorsCacheIfNeeded(); }
     },
     _ensureFavoriteActorStyle() {
@@ -3582,7 +3290,7 @@
   };
   const JavdbApiTabStyles = {
     installMovieTabs() {
-      injectStyle('javdb-api-movie-tab-style',`#tabs-container[data-laosiji-api-movie-tabs] .top-meta{display:none!important}.javdb-api-tab-loading,.javdb-api-tab-empty,.javdb-api-tab-error,.javdb-api-tab-end{padding:12px 14px!important;color:#64748b!important;font-size:13px!important;font-weight:700!important}.javdb-api-tab-error{color:#be123c!important}.javdb-api-review,.javdb-api-related{margin:0!important;padding:11px 12px!important;border-bottom:1px solid #edf2f7!important;background:#fff!important;word-break:break-word!important}.javdb-api-review-head,.javdb-api-related-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important;color:#334155!important;font-size:13px!important}.javdb-api-review-content,.javdb-api-related-desc{margin-top:7px!important;color:#1f2937!important;font-size:var(--laosiji-review-font-size,15px)!important;line-height:1.65!important;white-space:normal!important}.javdb-api-related-meta{display:flex!important;gap:10px!important;flex-wrap:wrap!important;margin-top:7px!important;color:#64748b!important;font-size:12px!important}.javdb-api-tab-footer{padding:10px 0 0!important}.javdb-api-tab-load-more{width:100%!important;min-height:34px!important;border:1px solid #bfdbfe!important;border-radius:6px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:13px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-toggle{width:100%!important;min-height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:13px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-review-toggle::before{content:"▸";color:#64748b;font-size:13px}.javdb-api-review-collapse-bar{display:flex!important;align-items:center!important;gap:8px!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-collapse{min-height:28px!important;padding:0 10px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-default-row{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-default-toggle{display:inline-flex!important;align-items:center!important;gap:6px!important;color:#475569!important;font-size:12px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important}.javdb-api-review-default-toggle input{position:absolute!important;opacity:0!important;pointer-events:none!important}.javdb-api-review-default-switch{position:relative!important;width:28px!important;height:16px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#e5e7eb!important;transition:background .16s ease,border-color .16s ease!important}.javdb-api-review-default-switch::before{content:""!important;position:absolute!important;top:2px!important;left:2px!important;width:10px!important;height:10px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 2px rgba(15,23,42,.22)!important;transition:transform .16s ease!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch{border-color:#2563eb!important;background:#2563eb!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch::before{transform:translateX(12px)!important}html[data-theme="dark"] .javdb-api-review-default-toggle{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-review-default-switch{border-color:#52525b!important;background:#3f3f46!important}.javdb-api-review-font-size{display:inline-flex!important;align-items:center!important;gap:5px!important;color:#475569!important;font-size:12px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important}.javdb-api-review-font-size select{min-height:24px!important;padding:0 18px 0 7px!important;border:1px solid #cbd5e1!important;border-radius:6px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;outline:none!important}html[data-theme="dark"] .javdb-api-review-font-size{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-review-font-size select{border-color:#52525b!important;background:#2f2f2f!important;color:#e5e7eb!important}.javdb-api-tab-badge-item{display:flex!important;align-items:center!important;margin-left:4px!important;pointer-events:auto!important}.javdb-api-tab-badge{margin-left:0!important;align-self:center!important;display:inline-flex!important;align-items:center!important;height:20px!important;padding:0 7px!important;border:1px solid #bfdbfe!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}.javdb-api-tab-default-item{display:flex!important;align-items:center!important;margin-left:auto!important;pointer-events:auto!important}.javdb-api-tab-default-control{display:inline-flex!important;align-items:center!important;gap:3px!important;height:24px!important;padding:2px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#f8fafc!important;color:#64748b!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}.javdb-api-tab-default-label{padding:0 5px!important}.javdb-api-tab-default-btn{min-width:34px!important;height:18px!important;padding:0 7px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:#64748b!important;font-size:11px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-tab-default-btn.is-active{background:#2563eb!important;color:#fff!important}html[data-theme="dark"] .javdb-api-tab-default-control{border-color:#52525b!important;background:#2f2f2f!important;color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-default-btn{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-default-btn.is-active{background:#3b82f6!important;color:#fff!important}`);
+      injectStyle('javdb-api-movie-tab-style',`#tabs-container[data-laosiji-api-movie-tabs] .top-meta{display:none!important}.javdb-api-tab-loading,.javdb-api-tab-empty,.javdb-api-tab-error,.javdb-api-tab-end{padding:12px 14px!important;color:#64748b!important;font-size:13px!important;font-weight:700!important}.javdb-api-tab-error{color:#be123c!important}.javdb-api-review,.javdb-api-related{margin:0!important;padding:11px 12px!important;border-bottom:1px solid #edf2f7!important;background:#fff!important;word-break:break-word!important}.javdb-api-review-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important;color:#334155!important;font-size:13px!important}.javdb-api-related-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important;color:#334155!important;font-size:var(--laosiji-review-font-size,17px)!important;line-height:1.65!important}.javdb-api-review-content,.javdb-api-related-desc{margin-top:7px!important;color:#1f2937!important;font-size:var(--laosiji-review-font-size,17px)!important;line-height:1.65!important;white-space:normal!important}.javdb-api-related-meta{display:flex!important;gap:10px!important;flex-wrap:wrap!important;margin-top:7px!important;color:#64748b!important;font-size:var(--laosiji-review-font-size,17px)!important;line-height:1.65!important}.javdb-api-tab-footer{padding:10px 0 0!important}.javdb-api-tab-load-more{width:100%!important;min-height:34px!important;border:1px solid #bfdbfe!important;border-radius:6px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:13px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-toggle{width:100%!important;min-height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:13px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-review-toggle::before{content:"▸";color:#64748b;font-size:13px}.javdb-api-review-collapse-bar{display:flex!important;align-items:center!important;gap:8px!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-collapse{min-height:28px!important;padding:0 10px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-default-row{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-default-toggle{display:inline-flex!important;align-items:center!important;gap:6px!important;color:#475569!important;font-size:12px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important}.javdb-api-review-default-toggle input{position:absolute!important;opacity:0!important;pointer-events:none!important}.javdb-api-review-default-switch{position:relative!important;width:28px!important;height:16px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#e5e7eb!important;transition:background .16s ease,border-color .16s ease!important}.javdb-api-review-default-switch::before{content:""!important;position:absolute!important;top:2px!important;left:2px!important;width:10px!important;height:10px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 2px rgba(15,23,42,.22)!important;transition:transform .16s ease!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch{border-color:#2563eb!important;background:#2563eb!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch::before{transform:translateX(12px)!important}html[data-theme="dark"] .javdb-api-review-default-toggle{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-review-default-switch{border-color:#52525b!important;background:#3f3f46!important}.javdb-api-review-font-size{display:inline-flex!important;align-items:center!important;gap:5px!important;color:#475569!important;font-size:12px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important}.javdb-api-review-font-size select{min-height:24px!important;padding:0 18px 0 7px!important;border:1px solid #cbd5e1!important;border-radius:6px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;outline:none!important}html[data-theme="dark"] .javdb-api-review-font-size{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-review-font-size select{border-color:#52525b!important;background:#2f2f2f!important;color:#e5e7eb!important}.javdb-api-tab-badge-item{display:flex!important;align-items:center!important;margin-left:4px!important;pointer-events:auto!important}.javdb-api-tab-badge{margin-left:0!important;align-self:center!important;display:inline-flex!important;align-items:center!important;height:20px!important;padding:0 7px!important;border:1px solid #bfdbfe!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}.javdb-api-tab-default-item{display:flex!important;align-items:center!important;margin-left:auto!important;pointer-events:auto!important}.javdb-api-tab-default-control{display:inline-flex!important;align-items:center!important;gap:3px!important;height:24px!important;padding:2px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#f8fafc!important;color:#64748b!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}.javdb-api-tab-default-label{padding:0 5px!important}.javdb-api-tab-default-btn{min-width:34px!important;height:18px!important;padding:0 7px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:#64748b!important;font-size:11px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-tab-default-btn.is-active{background:#2563eb!important;color:#fff!important}html[data-theme="dark"] .javdb-api-tab-default-control{border-color:#52525b!important;background:#2f2f2f!important;color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-default-btn{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-default-btn.is-active{background:#3b82f6!important;color:#fff!important}`);
     },
   };
   const JavdbApiTabRenderer = {
@@ -3597,10 +3305,7 @@
       return mb >= 1024 ?`${(mb / 1024).toFixed(mb >= 10240 ? 1 : 2)}GB` :`${Math.round(mb)}MB`;
     },
     renderLinkedText(value) {
-      const text = String(value || '');
-      const re = /((?:magnet:\?|ed2k:\/\/|https?:\/\/)[^\s"'<>]+)/gi;
-      let html = '';
-      let last = 0;
+      const text = String(value || ''); const re = /((?:magnet:\?|ed2k:\/\/|https?:\/\/)[^\s"'<>]+)/gi; let html = ''; let last = 0;
       text.replace(re, (match, _link, offset) => {
         html += this._escapeHtml(text.slice(last, offset));
         const safe = this._escapeHtml(match);
@@ -3703,8 +3408,7 @@
     _ensureApiMovieTabDefaultControl() {
       const tabs = document.querySelector('.tabs.no-bottom');
       if (!tabs) return;
-      const tabList = tabs.querySelector('ul') || tabs;
-      let controlItem = tabs.querySelector('.javdb-api-tab-default-item');
+      const tabList = tabs.querySelector('ul') || tabs; let controlItem = tabs.querySelector('.javdb-api-tab-default-item');
       if (!controlItem) {
         controlItem = document.createElement('li');
         controlItem.className = 'javdb-api-tab-default-item';
@@ -3771,8 +3475,7 @@
       if (!append) pane.innerHTML = this._renderApiTabLoading(tab === 'magnets' ? '正在读取磁力...' : tab === 'reviews' ? '正在读取短评...' : '正在读取相关清单...');
       try {
         if (tab === 'magnets') {
-          const json = await Magnet.javdbApi.movieMagnets(movieId);
-          const magnets = Array.isArray(json?.data?.magnets) ? json.data.magnets : [];
+          const json = await Magnet.javdbApi.movieMagnets(movieId); const magnets = Array.isArray(json?.data?.magnets) ? json.data.magnets : [];
           pane.innerHTML = this._renderApiMagnets(magnets);
           pane.dataset.laosijiApiLoaded = '1';
           if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') { NativeMagnetPanel.scheduleMount('javdb', this.getVid()); }
@@ -3806,17 +3509,13 @@
       }
     },
     _initApiMovieTabs() {
-      const movieId = this._getCurrentMovieId();
-      const tabsContainer = document.getElementById('tabs-container');
-      const magnetsPane = document.getElementById('magnets');
-      const reviewsPane = document.getElementById('reviews');
+      const movieId = this._getCurrentMovieId(); const tabsContainer = document.getElementById('tabs-container');
+      const magnetsPane = document.getElementById('magnets'); const reviewsPane = document.getElementById('reviews');
       const listsPane = document.getElementById('lists');
       if (!movieId || !tabsContainer || !magnetsPane || !reviewsPane || !listsPane) return;
       if (tabsContainer.dataset.laosijiApiMovieTabs === movieId) return;
       tabsContainer.dataset.laosijiApiMovieTabs = movieId;
-      this._ensureApiMovieTabStyle();
-      this._ensureApiMovieTabBadge();
-      this._ensureApiMovieTabDefaultControl();
+      this._ensureApiMovieTabStyle(); this._ensureApiMovieTabBadge(); this._ensureApiMovieTabDefaultControl();
       const tabLinks = {
         magnets: document.querySelector('[data-movie-tab-target="magnetTab"] a'),
         reviews: document.querySelector('[data-movie-tab-target="reviewTab"] a'),
@@ -3826,8 +3525,7 @@
       Object.entries(tabLinks).forEach(([key, link]) => {
         if (!link) return;
         link.dataset.laosijiApiTab = key;
-        link.removeAttribute('data-action');
-        link.removeAttribute('data-url');
+        link.removeAttribute('data-action'); link.removeAttribute('data-url');
       });
       const root = tabsContainer.closest('.columns') || tabsContainer;
       root.addEventListener('change', e => {
@@ -3842,18 +3540,15 @@
       }, true);
       root.addEventListener('click', e => {
         if (e.target?.closest?.('.javdb-api-tab-badge-item')) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
+          e.preventDefault(); e.stopImmediatePropagation();
           return;
         }
         const defaultTabBtn = e.target?.closest?.('[data-laosiji-api-default-tab]');
         if (defaultTabBtn && root.contains(defaultTabBtn)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
+          e.preventDefault(); e.stopImmediatePropagation();
           const tab = defaultTabBtn.dataset.laosijiApiDefaultTab === 'magnets' ? 'magnets' : 'reviews';
           CFG.apiMovieDefaultTab = tab;
-          this._syncApiMovieTabDefaultControl(document);
-          this._setApiMovieTab(tab);
+          this._syncApiMovieTabDefaultControl(document); this._setApiMovieTab(tab);
           const pane = document.getElementById(tab);
           if (tab === 'reviews') {
             if (CFG.reviewsDefaultExpanded) {
@@ -3870,9 +3565,7 @@
         }
         const copyBtn = e.target?.closest?.('.copy-to-clipboard[data-clipboard-text]');
         if (copyBtn && tabsContainer.contains(copyBtn)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          GM_setClipboard(copyBtn.dataset.clipboardText || '');
+          e.preventDefault(); e.stopImmediatePropagation(); GM_setClipboard(copyBtn.dataset.clipboardText || '');
           const oldText = copyBtn.textContent;
           copyBtn.textContent = '已複製';
           setTimeout(() => { copyBtn.textContent = oldText; }, 900);
@@ -3880,12 +3573,9 @@
         }
         const loadMore = e.target?.closest?.('.javdb-api-tab-load-more[data-laosiji-api-load-tab]');
         if (loadMore && tabsContainer.contains(loadMore)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          const tab = loadMore.dataset.laosijiApiLoadTab;
-          const nextPage = parseInt(loadMore.dataset.nextPage || '2', 10) || 2;
-          const pageSize = parseInt(loadMore.dataset.pageSize || '', 10) || null;
-          const shownCount = parseInt(loadMore.dataset.shownCount || '', 10) || null;
+          e.preventDefault(); e.stopImmediatePropagation();
+          const tab = loadMore.dataset.laosijiApiLoadTab; const nextPage = parseInt(loadMore.dataset.nextPage || '2', 10) || 2;
+          const pageSize = parseInt(loadMore.dataset.pageSize || '', 10) || null; const shownCount = parseInt(loadMore.dataset.shownCount || '', 10) || null;
           const loadLimit = parseInt(loadMore.dataset.loadLimit || '', 10) || null;
           loadMore.textContent = '加载中...';
           loadMore.disabled = true;
@@ -3894,23 +3584,19 @@
         }
         const expandReviews = e.target?.closest?.('[data-laosiji-api-expand-reviews]');
         if (expandReviews && tabsContainer.contains(expandReviews)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          this._loadApiMovieTab(movieId, 'reviews');
+          e.preventDefault(); e.stopImmediatePropagation(); this._loadApiMovieTab(movieId, 'reviews');
           return;
         }
         const collapseReviews = e.target?.closest?.('[data-laosiji-api-collapse-reviews]');
         if (collapseReviews && tabsContainer.contains(collapseReviews)) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
+          e.preventDefault(); e.stopImmediatePropagation();
           delete reviewsPane.dataset.laosijiApiLoaded;
           reviewsPane.innerHTML = this._renderApiReviewCollapsed();
           return;
         }
         const tabLink = e.target?.closest?.('[data-laosiji-api-tab]');
         if (!tabLink || !root.contains(tabLink)) return;
-        e.preventDefault();
-        e.stopImmediatePropagation();
+        e.preventDefault(); e.stopImmediatePropagation();
         const tab = tabLink.dataset.laosijiApiTab;
         this._setApiMovieTab(tab);
         const pane = document.getElementById(tab === 'magnets' ? 'magnets' : tab);
@@ -3945,8 +3631,7 @@
       injectStyle('javdb-pagination-jump-style',`.javdb-pagination-jump{display:flex!important;align-items:center!important;gap:.25rem!important;margin:0!important;flex-wrap:nowrap!important}.pagination-list .javdb-pagination-jump-item{display:list-item!important;margin-left:.25rem!important}.javdb-pagination-jump .pagination-link{margin:0!important}.javdb-pagination-jump input.pagination-link{width:4.5em!important;min-width:4.5em!important;text-align:center!important;box-shadow:none!important;appearance:textfield!important}.javdb-pagination-jump input.pagination-link::-webkit-outer-spin-button,.javdb-pagination-jump input.pagination-link::-webkit-inner-spin-button{-webkit-appearance:none!important;margin:0!important}.javdb-pagination-jump button.pagination-link{cursor:pointer!important;font-weight:400!important}@media (max-width:640px){.pagination-list .javdb-pagination-jump-item{flex-basis:100%!important;margin-left:.25rem!important}}`);
     },
     _paginationCurrentPage(nav) {
-      const params = new URLSearchParams(location.search);
-      const fromUrl = parseInt(params.get('page') || '1', 10);
+      const params = new URLSearchParams(location.search); const fromUrl = parseInt(params.get('page') || '1', 10);
       if (Number.isFinite(fromUrl) && fromUrl > 0) return fromUrl;
       const current = parseInt(nav?.querySelector('.pagination-link.is-current')?.textContent?.trim() || '1', 10);
       return Number.isFinite(current) && current > 0 ? current : 1;
@@ -3963,16 +3648,14 @@
       this._ensurePaginationJumpStyle();
       navs.forEach(nav => {
         if (nav.querySelector('.javdb-pagination-jump')) return;
-        const list = nav.querySelector('.pagination-list');
-        const host = document.createElement(list ? 'li' : 'div');
+        const list = nav.querySelector('.pagination-list'); const host = document.createElement(list ? 'li' : 'div');
         host.className = list ? 'javdb-pagination-jump-item' : 'javdb-pagination-jump-item pagination-link';
         const form = document.createElement('form');
         form.className = 'javdb-pagination-jump';
         form.innerHTML = `<input class="pagination-link" type="number" min="1" step="1" inputmode="numeric" aria-label="跳转页码" placeholder="页码" value="${this._escapeHtml(this._paginationCurrentPage(nav))}"><button class="pagination-link" type="submit">跳转</button>`;
         form.addEventListener('submit', e => {
           e.preventDefault();
-          const input = form.querySelector('input');
-          const page = Math.max(1, parseInt(input?.value || '1', 10) || 1);
+          const input = form.querySelector('input'); const page = Math.max(1, parseInt(input?.value || '1', 10) || 1);
           location.href = this._paginationPageUrl(page);
         });
         host.appendChild(form);
@@ -3999,8 +3682,7 @@
         params.set('lsj_category', next.category || 'all');
         if (next.year) params.set('lsj_year', next.year);
       } else if (mode === 'playback') {
-        params.set('lsj_period', next.period || 'daily');
-        params.set('lsj_filter_by', next.filterBy || 'high_score');
+        params.set('lsj_period', next.period || 'daily'); params.set('lsj_filter_by', next.filterBy || 'high_score');
       } else { params.set('lsj_period', next.period || 'daily'); }
       if (next.page && next.page > 1) params.set('lsj_page', String(next.page));
       return `/advanced_search?${params.toString()}`;
@@ -4029,8 +3711,7 @@
       try {
         const url = new URL(href, location.href);
         if (!/javdb/i.test(url.hostname)) return '';
-        const path = url.pathname.replace(/\/+$/, '');
-        const params = new URLSearchParams(url.search);
+        const path = url.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(url.search);
         if (path === '/advanced_search' && /^(top|fc2|playback)$/.test(params.get('laosiji_rank') || '')) {
           return `${url.pathname}${url.search}`;
         }
@@ -4076,8 +3757,7 @@
       return '';
     },
     _isFc2ListContext() {
-      const path = location.pathname.replace(/\/+$/, '');
-      const params = new URLSearchParams(location.search);
+      const path = location.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(location.search);
       if (path === '/advanced_search' && params.get('type') === '3') return true;
       const mode = this._getApiRankingShellMode();
       return mode?.mode === 'fc2';
@@ -4135,8 +3815,7 @@
         if (detailShellUrl) {
           link.href = detailShellUrl;
           if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || link.target === '_blank') return;
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault(); e.stopPropagation();
           location.href = detailShellUrl;
           return;
         }
@@ -4144,25 +3823,19 @@
         if (!shellUrl) return;
         link.href = shellUrl;
         if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || link.target === '_blank') return;
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         if (this._isTopRankingShellUrl(shellUrl) && !Magnet.javdbApi.token()) { openJavdbApiLoginDialog(shellUrl); return; }
         location.href = shellUrl;
       }, true);
-      this._rewriteApiRankingLinks();
-      setTimeout(() => this._rewriteApiRankingLinks(), 500);
-      setTimeout(() => this._rewriteApiRankingLinks(), 1500);
+      this._rewriteApiRankingLinks(); setTimeout(() => this._rewriteApiRankingLinks(), 500); setTimeout(() => this._rewriteApiRankingLinks(), 1500);
       if (document.body) { new MutationObserver(() => this._rewriteApiRankingLinks()).observe(document.body, { childList: true, subtree: true }); }
     },
     _getApiRankingShellMode() {
       const path = location.pathname.replace(/\/+$/, '');
       if (path !== '/advanced_search') return null;
-      const params = new URLSearchParams(location.search);
-      const mode = params.get('laosiji_rank') || '';
+      const params = new URLSearchParams(location.search); const mode = params.get('laosiji_rank') || '';
       if (!/^(top|fc2|playback)$/.test(mode)) return null;
-      const legacyType = params.get('lsj_type') || '';
-      const legacyValue = params.get('lsj_type_value') || '';
-      let category = params.get('lsj_category') || '';
+      const legacyType = params.get('lsj_type') || ''; const legacyValue = params.get('lsj_type_value') || ''; let category = params.get('lsj_category') || '';
       let year = params.get('lsj_year') || '';
       if (!category && legacyType === 'video_type') category = legacyValue;
       if (!year && legacyType === 'year') year = legacyValue;
@@ -4188,12 +3861,10 @@
           const href = this._apiRankingShellUrl('top', { category, year: modeInfo.year, page: 1 });
           return `<a class="${active ? 'is-active' : ''}" href="${href}">${label}</a>`;
         }).join('');
-        const currentYear = new Date().getFullYear();
-        const allYearActive = !modeInfo.year;
+        const currentYear = new Date().getFullYear(); const allYearActive = !modeInfo.year;
         const allYearLink = `<a class="${allYearActive ? 'is-active' : ''}" href="${this._apiRankingShellUrl('top', { category: modeInfo.category, year: '', page: 1 })}">全部年份</a>`;
         const yearLinks = Array.from({ length: Math.max(0, currentYear - 2008 + 1) }, (_, i) => currentYear - i) .map(year => {
-            const value = String(year);
-            const active = modeInfo.year === value;
+            const value = String(year); const active = modeInfo.year === value;
             const href = this._apiRankingShellUrl('top', { category: modeInfo.category, year: value, page: 1 });
             return `<a class="${active ? 'is-active' : ''}" href="${href}">${value}</a>`;
           }).join('');
@@ -4239,8 +3910,7 @@
     _renderApiRankingMovies(movies) {
       const updateCover = value => String(value || '').replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
       return movies.map(raw => {
-        const item = raw?.movie || raw;
-        const title = item?.origin_title || item?.title || '';
+        const item = raw?.movie || raw; const title = item?.origin_title || item?.title || '';
         const score = item?.score ? `<span class="value">${this._escapeHtml(item.score)}分${item?.watched_count ? `, 由${this._escapeHtml(item.watched_count)}人評價` : ''}</span>` : '';
         const tags = [
           item?.has_cnsub ? '<span class="tag is-warning">中文字幕</span>' : '',
@@ -4261,15 +3931,13 @@
       this._ensureApiRankingShellStyle();
       const title = modeInfo.mode === 'top' ? 'Top250' : modeInfo.mode === 'playback' ? '热播' : 'FC2 排行榜';
       container.innerHTML = `<div class="javdb-api-shell"><div class="javdb-api-shell-head"><div class="javdb-api-shell-title"> ${title} </div></div><div class="javdb-api-shell-toolbar"> ${this._renderApiRankingToolbar(modeInfo)} </div><div class="javdb-api-shell-status">正在加载 API 数据...</div><div class="movie-list h cols-4 vcols-8"></div><div class="javdb-api-shell-pagination-wrap"></div></div>`;
-      const status = container.querySelector('.javdb-api-shell-status');
-      const list = container.querySelector('.movie-list');
+      const status = container.querySelector('.javdb-api-shell-status'); const list = container.querySelector('.movie-list');
       const pagination = container.querySelector('.javdb-api-shell-pagination-wrap');
       try {
         let json;
         if (modeInfo.mode === 'top') {
           if (!Magnet.javdbApi.token()) {
-            renderJavdbApiLoginRequired(status);
-            scheduleJavdbApiLoginDialog(location.href);
+            renderJavdbApiLoginRequired(status); scheduleJavdbApiLoginDialog(location.href);
             return true;
           }
           json = await Magnet.javdbApi.top250({
@@ -4300,15 +3968,12 @@
         status.textContent = total ? `已加载 ${movies.length} 条数据，共 ${total} 条匹配` : `已加载 ${movies.length} 条数据`;
         const hasNext = modeInfo.mode === 'top' ? modeInfo.page < 5 : (total ? modeInfo.page * 40 < total : movies.length >= 40);
         pagination.innerHTML = this._renderApiRankingPagination(modeInfo, hasNext);
-        this._initListPage();
-        PageZoom.apply('javdb');
-        Runtime.refreshListPage();
+        this._initListPage(); PageZoom.apply('javdb'); Runtime.refreshListPage();
         return true;
       } catch (err) {
         errorLog('JavDB API 榜单请求失败:', err);
         if (isJavdbApiAuthError(err)) {
-          Magnet.javdbApi.setToken('');
-          renderJavdbApiLoginRequired(status, 'JavDB API 登录状态已失效，请重新登录一次。');
+          Magnet.javdbApi.setToken(''); renderJavdbApiLoginRequired(status, 'JavDB API 登录状态已失效，请重新登录一次。');
           delete document.documentElement.dataset.laosijiJavdbApiLoginPrompted;
           scheduleJavdbApiLoginDialog(location.href);
           return true;
@@ -4358,8 +4023,7 @@
     },
     _renderApiDetailPage(movie) {
       const updateCover = value => String(value || '').replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
-      const number = String(movie?.number || '');
-      const title = movie?.origin_title || movie?.title || '';
+      const number = String(movie?.number || ''); const title = movie?.origin_title || movie?.title || '';
       const actors = (Array.isArray(movie?.actors) ? movie.actors : []).map(item => item?.name || item).filter(Boolean);
       const cover = updateCover(movie?.cover_url || movie?.thumb_url || '');
       return `<div class="video-detail javdb-api-detail" data-javdb-api-detail="1"><h2 class="title is-4 javdb-api-detail-title"><strong>${this._escapeHtml(number)}</strong><strong class="current-title">${this._escapeHtml(title)}</strong></h2><div class="video-meta-panel"><div class="columns is-desktop"><div class="column column-video-cover"><a data-fancybox="gallery" href="${this._escapeHtml(cover)}"><img src="${this._escapeHtml(cover)}" class="video-cover" alt="${this._escapeHtml(title)}"></a></div><div class="column"><nav class="panel movie-panel-info"><div class="panel-block first-block"><strong>番號:</strong>&nbsp;<span class="value">${this._escapeHtml(number)}</span>&nbsp;<a class="button is-white copy-to-clipboard" title="複製番號" data-clipboard-text="${this._escapeHtml(number)}"><span class="icon is-small"><i class="icon-copy"></i></span></a></div> ${this._renderApiDetailField('標題', title)} ${this._renderApiDetailField('日期', movie?.release_date)} ${this._renderApiDetailField('時長', movie?.duration ? `${movie.duration} 分鐘` : '')} ${this._renderApiDetailField('評分', movie?.score ? `${movie.score} / ${movie?.watched_count || 0} 人` : '')} ${this._renderApiDetailField('片商', movie?.maker_name || movie?.publisher_name)} ${this._renderApiDetailField('系列', movie?.series_name)} ${this._renderApiDetailField('導演', movie?.director_name)} ${this._renderApiDetailField('演員', actors)} ${this._renderApiDetailTags(movie?.tags)} </nav></div></div></div> ${this._renderApiDetailImages(movie?.preview_images)} </div>`;
@@ -4379,16 +4043,11 @@
         if (!movie?.number) throw new Error('没有查询到详情数据');
         container.innerHTML = this._renderApiDetailPage(movie);
         const avid = normalizeAvid(movie.number);
-        this._insertCopyButton(avid);
-        this._ensureDetailLayout();
-        this._insertMagnet(avid);
-        PageZoom.apply('javdb');
-        DetailFlex.apply();
+        this._insertCopyButton(avid); this._ensureDetailLayout(); this._insertMagnet(avid); PageZoom.apply('javdb'); DetailFlex.apply();
         Runtime.refresh({ detailPreview: true, infiniteScroll: false });
         return true;
       } catch (err) {
-        errorLog('JavDB API 详情请求失败:', err);
-        status.classList.add('is-error');
+        errorLog('JavDB API 详情请求失败:', err); status.classList.add('is-error');
         status.textContent = err.message || 'JavDB API 详情请求失败';
         return true;
       }
@@ -4400,16 +4059,11 @@
       const list = document.querySelector('.movie-list, .movies, .grid');
       if (!list) return;
       this._neutralizeNativeListLayout(list);
-      const needStyle = list.dataset.laosijiGrid !== '1';
-      const cards = [...list.querySelectorAll(':scope > .item:not([data-laosiji-grid-card="1"])')];
+      const needStyle = list.dataset.laosijiGrid !== '1'; const cards = [...list.querySelectorAll(':scope > .item:not([data-laosiji-grid-card="1"])')];
       if (!cards.length && !needStyle) { JavdbListScoreSort.sync(list); return; }
       list.dataset.laosijiGrid = '1';
-      list.classList.add('jav-card-grid', 'javdb-card-grid');
-      CardColumns.apply('javdb');
-      cards.forEach(card => this._decorateCard(card));
-      JavdbListScoreSort.sync(list, cards);
-      this._rewriteFc2DetailLinks(list);
-      PortraitCards.syncImages();
+      list.classList.add('jav-card-grid', 'javdb-card-grid'); CardColumns.apply('javdb'); cards.forEach(card => this._decorateCard(card));
+      JavdbListScoreSort.sync(list, cards); this._rewriteFc2DetailLinks(list); PortraitCards.syncImages();
       if (needStyle) {
         GM_addStyle(`.jav-card-link:visited .jav-card-title,.jav-card-link:visited .javdb-card-headline,.jav-card-link:visited .jav-card-title strong{color:#64748b!important}.jav-card-title{display:block!important;height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;max-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;flex:0 0 auto!important;min-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;padding:7px 8px 9px!important;overflow:hidden!important;line-height:var(--jav-card-title-line-height,1.5)!important}.javdb-card-headline{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--jav-card-title-lines,2)!important;line-clamp:var(--jav-card-title-lines,2)!important;max-height:calc(var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:normal!important;word-break:break-word!important}.jav-card-title strong{color:inherit!important;font-size:16px!important;font-weight:800!important}.javdb-card-grid{--jav-card-columns:5}.javdb-card-grid .item.javdb-grid-card{position:static!important;width:auto!important;float:none!important;margin:0!important}.javdb-card-grid .item .javdb-card-link.box{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;border-radius:0!important;overflow:hidden!important}.javdb-card-grid .item .javdb-cover-frame.cover{margin:0!important;height:auto!important}.javdb-card-grid .item .javdb-card-image{height:100%!important;margin:0!important}.javdb-card-grid .item .javdb-card-title .jav-pan115-badge{display:inline-flex!important;width:auto!important;max-width:max-content!important;float:none!important;vertical-align:middle!important;margin:0 6px 4px 0!important}.javdb-card-score,.javdb-card-meta,.javdb-card-tags{padding-left:8px!important;padding-right:8px!important}.javdb-card-score{margin-top:2px!important;color:#64748b!important;font-size:12px!important;line-height:1.45!important}.javdb-card-score .value{color:inherit!important;font-size:inherit!important}.javdb-card-meta{margin-top:4px!important;color:#94a3b8!important;font-size:12px!important;line-height:1.45!important}.javdb-card-tags{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-top:auto!important;padding-top:8px!important;padding-bottom:10px!important}.javdb-card-tags .tag{margin:0!important}@media (max-width:1100px){.javdb-card-grid{--jav-card-columns:4}}@media (max-width:820px){.javdb-card-grid{--jav-card-columns:3}}@media (max-width:560px){.javdb-card-grid{--jav-card-columns:2;gap:10px!important}}`);
       }
@@ -4427,13 +4081,11 @@
       if (!card) return;
       const anchor = card.querySelector(':scope > a.box[href], :scope > a[href].box');
       if (!anchor || anchor.querySelector('.cover, .video-title')) return;
-      const moveSelectors = ['.cover', '.video-title', '.score', '.meta', '.tags'];
-      let moved = false;
+      const moveSelectors = ['.cover', '.video-title', '.score', '.meta', '.tags']; let moved = false;
       moveSelectors.forEach(selector => {
         const node = card.querySelector(`:scope > ${selector}`);
         if (!node) return;
-        node.querySelectorAll('.emby-badge, .emby-btn, .emby-button-group').forEach(el => el.remove());
-        anchor.appendChild(node);
+        node.querySelectorAll('.emby-badge, .emby-btn, .emby-button-group').forEach(el => el.remove()); anchor.appendChild(node);
         moved = true;
       });
       if (moved) {
@@ -4454,9 +4106,7 @@
       cover?.classList.add('jav-card-cover', 'javdb-cover-frame');
       const img = cover?.querySelector('img[src]') || card.querySelector('img[src]');
       if (img) {
-        img.removeAttribute('width');
-        img.removeAttribute('height');
-        img.classList.add('jav-card-image', 'javdb-card-image');
+        img.removeAttribute('width'); img.removeAttribute('height'); img.classList.add('jav-card-image', 'javdb-card-image');
         const src = img.getAttribute('src') || '';
         if (/\/covers\//i.test(src)) {
           img.dataset.laosijiLandscapeSrc = img.dataset.laosijiLandscapeSrc || src;
@@ -4477,8 +4127,7 @@
       const metaEl = card.querySelector('.meta');
       metaEl?.classList.add('javdb-card-meta');
       const tagsEl = card.querySelector('.tags');
-      tagsEl?.classList.add('javdb-card-tags');
-      ListPreview.attach(card);
+      tagsEl?.classList.add('javdb-card-tags'); ListPreview.attach(card);
     },
   };
   const JavdbListScoreSort = (() => {
@@ -4500,31 +4149,26 @@
     }
     function scoreData(card) {
       const scoreText = card.querySelector('.javdb-card-score, .score')?.textContent || '';
-      const metaText = card.querySelector('.javdb-card-meta, .meta')?.textContent || '';
-      const rating = Number(scoreText.match(/(\d+(?:\.\d+)?)\s*分/)?.[1]);
+      const metaText = card.querySelector('.javdb-card-meta, .meta')?.textContent || ''; const rating = Number(scoreText.match(/(\d+(?:\.\d+)?)\s*分/)?.[1]);
       const votes = Number((scoreText.match(/(?:由|by\s*)([\d,]+)\s*(?:人(?:评价|評價)|ratings?)/i)?.[1] || '').replace(/,/g, ''));
       const dateText = metaText.match(/\d{4}-\d{2}-\d{2}/)?.[0] || '';
       const date = Date.parse(dateText) || 0;
       return { rating: Number.isFinite(rating) ? rating : -1, votes: Number.isFinite(votes) ? votes : 0, date };
     }
     function compareScores(state, left, right) {
-      const leftScore = scoreData(left);
-      const rightScore = scoreData(right);
+      const leftScore = scoreData(left); const rightScore = scoreData(right);
       return rightScore.rating - leftScore.rating || rightScore.votes - leftScore.votes || rightScore.date - leftScore.date
         || (state.originalOrder.get(left) || 0) - (state.originalOrder.get(right) || 0);
     }
     function compareVotes(state, left, right) {
-      const leftScore = scoreData(left);
-      const rightScore = scoreData(right);
+      const leftScore = scoreData(left); const rightScore = scoreData(right);
       return rightScore.votes - leftScore.votes || rightScore.rating - leftScore.rating || rightScore.date - leftScore.date
         || (state.originalOrder.get(left) || 0) - (state.originalOrder.get(right) || 0);
     }
     function activeControl(mode) { return loadedReorderControls.find(control => control.key === mode) || null; }
     function reorder(list, cards, compare) {
-      const sorted = [...cards].sort(compare);
-      const fragment = document.createDocumentFragment();
-      sorted.forEach(card => fragment.appendChild(card));
-      list.appendChild(fragment);
+      const sorted = [...cards].sort(compare); const fragment = document.createDocumentFragment();
+      sorted.forEach(card => fragment.appendChild(card)); list.appendChild(fragment);
     }
     function findNativeSortButtons(list) {
       const roots = [list.closest('main, section, body'), document].filter(Boolean);
@@ -4535,8 +4179,7 @@
       return null;
     }
     function updateButton(button, active, mode) {
-      button.classList.toggle('is-selected', active);
-      button.setAttribute('aria-pressed', String(active));
+      button.classList.toggle('is-selected', active); button.setAttribute('aria-pressed', String(active));
       button.title = active
         ? `当前已按${mode}排序；再次点击恢复网站顺序`
         : `按${mode}排序当前页；无限滚动的新内容仅在本批内排序`;
@@ -4546,8 +4189,7 @@
         && !!list.querySelector(':scope > .item[data-laosiji-infinite-item="1"]');
     }
     function syncLoadedReorderControl(list, state) {
-      let button = document.querySelector('[data-laosiji-reorder-loaded]');
-      const floatButtons = document.querySelector('.float-buttons');
+      let button = document.querySelector('[data-laosiji-reorder-loaded]'); const floatButtons = document.querySelector('.float-buttons');
       if (!canReorderLoaded(list, state) || !floatButtons) { button?.remove(); return; }
       if (!button) {
         button = document.createElement('button');
@@ -4559,8 +4201,7 @@
           const control = activeControl(state.mode);
           if (!control) return;
           const cards = listCards(list);
-          rememberOrder(state, cards);
-          reorder(list, cards, (left, right) => control.compare(state, left, right));
+          rememberOrder(state, cards); reorder(list, cards, (left, right) => control.compare(state, left, right));
           const top = Math.max(0, window.scrollY + list.getBoundingClientRect().top - 12);
           window.scrollTo({ top, behavior: 'auto' });
         });
@@ -4582,8 +4223,7 @@
           button.dataset[`laosiji${control.key[0].toUpperCase()}${control.key.slice(1)}Sort`] = '1';
         button.textContent = control.text;
         button.addEventListener('click', event => {
-          event.preventDefault();
-          event.stopPropagation();
+          event.preventDefault(); event.stopPropagation();
           state.mode = state.mode === control.key ? '' : control.key;
           const cards = listCards(list);
           rememberOrder(state, cards);
@@ -4604,11 +4244,8 @@
     }
     function sync(list, incomingCards = []) {
       if (!list?.matches('.javdb-card-grid')) return;
-      const state = stateFor(list);
-      const incoming = [...incomingCards].filter(card => card?.parentElement === list);
-      rememberOrder(state, incoming.length ? incoming : listCards(list));
-      installControl(list, state);
-      syncLoadedReorderControl(list, state);
+      const state = stateFor(list); const incoming = [...incomingCards].filter(card => card?.parentElement === list);
+      rememberOrder(state, incoming.length ? incoming : listCards(list)); installControl(list, state); syncLoadedReorderControl(list, state);
       if (state.mode && incoming.length) {
         const compare = state.mode === 'score' ? compareScores : compareVotes;
         reorder(list, incoming, (left, right) => compare(state, left, right));
@@ -4623,26 +4260,16 @@
       return normalizeAvid(el?.dataset?.clipboardText || '');
     },
     initPage(avid) {
-      document.querySelector('.app-desktop-banner')?.remove();
-      this._dismissOver18Modal();
-      this._insertTopSettingsButton();
-      this._ensureDarkThemeStyle();
-      this._hideNativeLayoutSwitcher();
-      this._stripNativeLayoutParam();
-      this._initFavoriteActorHighlight();
-      this._installApiRankingShell();
-      this._hideScriptFc2AdvancedSearchBox();
-      this._initPaginationJump();
+      document.querySelector('.app-desktop-banner')?.remove(); this._dismissOver18Modal(); this._insertTopSettingsButton(); this._ensureDarkThemeStyle();
+      this._hideNativeLayoutSwitcher(); this._stripNativeLayoutParam(); this._initFavoriteActorHighlight(); this._installApiRankingShell();
+      this._hideScriptFc2AdvancedSearchBox(); this._initPaginationJump();
       if (this._redirectCurrentApiRankingEntry()) return;
       if (this._getApiRankingShellMode()) { this._initApiRankingShellPage().catch(err => errorLog('JavDB API 榜单渲染失败:', err)); return; }
       if (this._getApiDetailShellMode()) { this._initApiDetailShellPage().catch(err => errorLog('JavDB API 详情渲染失败:', err)); return; }
       if (!location.pathname.startsWith('/v/')) { this._initListPage(); return; }
-      this._insertCopyButton(avid);
-      this._hideDownloadCorrectionBlock();
+      this._insertCopyButton(avid); this._hideDownloadCorrectionBlock();
       GM_addStyle(`.container{max-width:100%!important}.movie-panel-info{overflow:hidden;word-break:break-word}.movie-panel-info .panel-block{flex-wrap:wrap}.movie-panel-info .value{overflow:hidden;word-break:break-word}.review-buttons>.panel-block:has(a[href="#magnet-links"]),.review-buttons>.panel-block:has(a[href*="/corrections/new"]){display:none!important}`);
-      this._ensureDetailLayout();
-      this._insertMagnet(avid);
-      this._initApiMovieTabs();
+      this._ensureDetailLayout(); this._insertMagnet(avid); this._initApiMovieTabs();
     },
     _hideDownloadCorrectionBlock() {
       document.querySelectorAll('.review-buttons > .panel-block').forEach(block => {
@@ -4663,17 +4290,14 @@
       try {
         const current = new URL(location.href);
         if (current.searchParams.has('lm')) {
-          current.searchParams.delete('lm');
-          history.replaceState(history.state, document.title, current.pathname + current.search + current.hash);
+          current.searchParams.delete('lm'); history.replaceState(history.state, document.title, current.pathname + current.search + current.hash);
         }
       } catch {}
       root.querySelectorAll?.('a[href*="lm="]').forEach(a => {
         try {
-          const raw = a.getAttribute('href') || '';
-          const url = new URL(raw, location.href);
+          const raw = a.getAttribute('href') || ''; const url = new URL(raw, location.href);
           if (!url.searchParams.has('lm')) return;
-          url.searchParams.delete('lm');
-          a.setAttribute('href', url.pathname + url.search + url.hash);
+          url.searchParams.delete('lm'); a.setAttribute('href', url.pathname + url.search + url.hash);
         } catch {}
       });
     },
@@ -4684,8 +4308,7 @@
       if (!this.match()) return;
       const modal = document.querySelector('.modal.is-active.over18-modal');
       if (!modal) return;
-      const ok = modal.querySelector('a.button.is-success[href*="/over18?respond=1"]');
-      const href = ok?.getAttribute('href') || '';
+      const ok = modal.querySelector('a.button.is-success[href*="/over18?respond=1"]'); const href = ok?.getAttribute('href') || '';
       if (href && sessionStorage.getItem('javdb_over18_confirming') !== '1') {
         sessionStorage.setItem('javdb_over18_confirming', '1');
         GM_xmlhttpRequest({
@@ -4696,9 +4319,7 @@
           ontimeout: () => sessionStorage.removeItem('javdb_over18_confirming'),
         });
       }
-      modal.remove();
-      document.documentElement.classList.remove('is-clipped');
-      document.body.classList.remove('is-clipped');
+      modal.remove(); document.documentElement.classList.remove('is-clipped'); document.body.classList.remove('is-clipped');
     },
     _escapeHtml(value) {
       return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -4718,9 +4339,7 @@
       btn.textContent = '\u8001\u53f8\u673a\u8bbe\u7f6e';
       btn.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
       btn.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        QuickSettingsPanel.open(e.currentTarget);
+        e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget);
       });
       const userMenu = navbarEnd.querySelector('a[href="/users/profile"]')?.closest('.navbar-item.has-dropdown');
       navbarEnd.insertBefore(btn, userMenu || null);
@@ -4735,20 +4354,16 @@
       insertAvidCopyBtn(anchor, avid, nativeCopy);
     },
     _ensureDetailLayout() {
-      const coverCol  = document.querySelector('.column.column-video-cover');
-      const infoPanel = document.querySelector('.movie-panel-info');
+      const coverCol  = document.querySelector('.column.column-video-cover'); const infoPanel = document.querySelector('.movie-panel-info');
       if (!coverCol || !infoPanel) return null;
-      const infoCol = infoPanel.closest('.column') || infoPanel;
-      const currentContainer = coverCol.closest('.jav-flex-container');
+      const infoCol = infoPanel.closest('.column') || infoPanel; const currentContainer = coverCol.closest('.jav-flex-container');
       const parent = currentContainer || coverCol.parentElement;
       if (!parent) return null;
       let flexContainer = currentContainer || parent.querySelector(':scope > .jav-flex-container');
       if (!flexContainer) {
         flexContainer = document.createElement('div');
         flexContainer.className = 'jav-flex-container';
-        flexContainer.appendChild(coverCol);
-        flexContainer.appendChild(infoCol);
-        parent.appendChild(flexContainer);
+        flexContainer.appendChild(coverCol); flexContainer.appendChild(infoCol); parent.appendChild(flexContainer);
       } else {
         if (coverCol.parentElement !== flexContainer) flexContainer.insertBefore(coverCol, flexContainer.firstChild);
         if (infoCol.parentElement !== flexContainer) {
@@ -4766,58 +4381,42 @@
         });
         return flexContainer;
       }
-      flexContainer.style.setProperty('display', 'flex', 'important');
-      flexContainer.style.setProperty('gap', '20px', 'important');
-      flexContainer.style.setProperty('align-items', 'flex-start', 'important');
-      flexContainer.style.setProperty('width', '100%', 'important');
+      flexContainer.style.setProperty('display', 'flex', 'important'); flexContainer.style.setProperty('gap', '20px', 'important');
+      flexContainer.style.setProperty('align-items', 'flex-start', 'important'); flexContainer.style.setProperty('width', '100%', 'important');
       flexContainer.style.setProperty('margin-top', '16px', 'important');
       const detailDefaults = DetailFlex.defaultCss('javdb');
       flexContainer.style.setProperty('--javdb-cover-flex', flexContainer.style.getPropertyValue('--javdb-cover-flex') || detailDefaults.cover);
       flexContainer.style.setProperty('--javdb-info-flex', flexContainer.style.getPropertyValue('--javdb-info-flex') || detailDefaults.info);
       flexContainer.style.setProperty('--javdb-magnet-flex', flexContainer.style.getPropertyValue('--javdb-magnet-flex') || detailDefaults.magnet);
-      coverCol.style.setProperty('flex', 'var(--javdb-cover-flex) 1 0', 'important');
-      coverCol.style.setProperty('width', 'auto', 'important');
-      coverCol.style.setProperty('max-width', 'none', 'important');
-      coverCol.style.setProperty('min-width', '0', 'important');
-      coverCol.style.setProperty('align-self', 'flex-start', 'important');
-      infoCol.style.setProperty('flex', 'var(--javdb-info-flex) 1 0', 'important');
-      infoCol.style.setProperty('width', 'auto', 'important');
-      infoCol.style.setProperty('max-width', 'none', 'important');
-      infoCol.style.setProperty('min-width', '0', 'important');
-      infoCol.style.setProperty('overflow', 'hidden', 'important');
-      infoCol.style.setProperty('word-break', 'break-word', 'important');
-      infoPanel.style.setProperty('width', '100%', 'important');
-      infoPanel.style.setProperty('max-width', '100%', 'important');
-      infoPanel.style.setProperty('box-sizing', 'border-box', 'important');
+      coverCol.style.setProperty('flex', 'var(--javdb-cover-flex) 1 0', 'important'); coverCol.style.setProperty('width', 'auto', 'important');
+      coverCol.style.setProperty('max-width', 'none', 'important'); coverCol.style.setProperty('min-width', '0', 'important');
+      coverCol.style.setProperty('align-self', 'flex-start', 'important'); infoCol.style.setProperty('flex', 'var(--javdb-info-flex) 1 0', 'important');
+      infoCol.style.setProperty('width', 'auto', 'important'); infoCol.style.setProperty('max-width', 'none', 'important');
+      infoCol.style.setProperty('min-width', '0', 'important'); infoCol.style.setProperty('overflow', 'hidden', 'important');
+      infoCol.style.setProperty('word-break', 'break-word', 'important'); infoPanel.style.setProperty('width', '100%', 'important');
+      infoPanel.style.setProperty('max-width', '100%', 'important'); infoPanel.style.setProperty('box-sizing', 'border-box', 'important');
       const coverBox = coverCol.querySelector('.cover, .box');
       if (coverBox) {
-        coverBox.style.setProperty('display', 'block', 'important');
-        coverBox.style.setProperty('width', '100%', 'important');
-        coverBox.style.setProperty('height', 'auto', 'important');
-        coverBox.style.setProperty('box-sizing', 'border-box', 'important');
+        coverBox.style.setProperty('display', 'block', 'important'); coverBox.style.setProperty('width', '100%', 'important');
+        coverBox.style.setProperty('height', 'auto', 'important'); coverBox.style.setProperty('box-sizing', 'border-box', 'important');
       }
       const coverImg = coverCol.querySelector('img');
       if (coverImg) {
-        coverImg.removeAttribute('width');
-        coverImg.removeAttribute('height');
+        coverImg.removeAttribute('width'); coverImg.removeAttribute('height');
         const coverLink = coverImg.closest('a');
         if (coverLink) {
-          coverLink.style.setProperty('display', 'block', 'important');
-          coverLink.style.setProperty('width', '100%', 'important');
+          coverLink.style.setProperty('display', 'block', 'important'); coverLink.style.setProperty('width', '100%', 'important');
           coverLink.style.setProperty('height', 'auto', 'important');
         }
-        coverImg.style.setProperty('display', 'block', 'important');
-        coverImg.style.setProperty('width', '100%', 'important');
-        coverImg.style.setProperty('height', 'auto', 'important');
-        coverImg.style.setProperty('aspect-ratio', 'auto', 'important');
+        coverImg.style.setProperty('display', 'block', 'important'); coverImg.style.setProperty('width', '100%', 'important');
+        coverImg.style.setProperty('height', 'auto', 'important'); coverImg.style.setProperty('aspect-ratio', 'auto', 'important');
         coverImg.style.setProperty('object-fit', 'contain', 'important');
       }
       return flexContainer;
     },
     _insertMagnet(avid) {
       if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') {
-        document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
-        NativeMagnetPanel.scheduleMount('javdb', avid);
+        document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.scheduleMount('javdb', avid);
         return;
       }
       NativeMagnetPanel.remove('javdb');
@@ -4827,13 +4426,10 @@
       if (!flexContainer) return;
       const slot = document.createElement('div');
       slot.className = 'jav-nong-slot';
-      slot.style.setProperty('flex', 'var(--javdb-magnet-flex) 1 0', 'important');
-      slot.style.setProperty('min-width', '0', 'important');
-      slot.style.setProperty('align-self', 'flex-start', 'important');
-      slot.style.setProperty('overflow', 'hidden', 'important');
+      slot.style.setProperty('flex', 'var(--javdb-magnet-flex) 1 0', 'important'); slot.style.setProperty('min-width', '0', 'important');
+      slot.style.setProperty('align-self', 'flex-start', 'important'); slot.style.setProperty('overflow', 'hidden', 'important');
       const widget = Magnet.createMagnetWidget(avid);
-      slot.appendChild(widget);
-      flexContainer.appendChild(slot);
+      slot.appendChild(widget); flexContainer.appendChild(slot);
     },
   };
   Object.assign( SiteJavDB, JavdbFavorites, JavdbApiTabs, JavdbPagination, JavdbApiShell, JavdbApiRanking, JavdbApiDetail, JavdbList );
@@ -4844,9 +4440,9 @@
     formatDate(value) { return SiteJavDB._formatApiDate(value); },
     renderLinkedText(value) { return SiteJavDB._renderApiLinkedText(value); },
     renderDefaultToggle() {
-      return `<label class="javdb-api-review-default-toggle" title="控制以后进入详情页时短评默认展开或折叠"><input type="checkbox" data-laosiji-review-default-expanded="1"${CFG.reviewsDefaultExpanded ? ' checked' : ''}><span class="javdb-api-review-default-switch"></span><span>默认展开</span></label><label class="javdb-api-review-font-size" title="调整短评正文大小"><span>字号</span><select data-laosiji-review-font-size="1"><option value="small"${CFG.reviewFontSize === 'small' ? ' selected' : ''}>小</option><option value="medium"${CFG.reviewFontSize === 'medium' ? ' selected' : ''}>中</option><option value="large"${CFG.reviewFontSize === 'large' ? ' selected' : ''}>大</option></select></label>`;
+      return `<label class="javdb-api-review-default-toggle" title="控制以后进入详情页时短评默认展开或折叠"><input type="checkbox" data-laosiji-review-default-expanded="1"${CFG.reviewsDefaultExpanded ? ' checked' : ''}><span class="javdb-api-review-default-switch"></span><span>默认展开</span></label><label class="javdb-api-review-font-size" title="调整短评与清单字号"><span>字号</span><select data-laosiji-review-font-size="1"><option value="small"${CFG.reviewFontSize === 'small' ? ' selected' : ''}>小</option><option value="medium"${CFG.reviewFontSize === 'medium' ? ' selected' : ''}>中</option><option value="large"${CFG.reviewFontSize === 'large' ? ' selected' : ''}>大</option></select></label>`;
     },
-    reviewFontSizeValue() { return ({ small: '13px', medium: '15px', large: '17px' })[CFG.reviewFontSize] || '15px'; },
+    reviewFontSizeValue() { return ({ small: '15px', medium: '17px', large: '19px' })[CFG.reviewFontSize] || '17px'; },
     applyFontSize() {
       document.documentElement.style.setProperty('--laosiji-review-font-size', this.reviewFontSizeValue());
     },
@@ -4862,8 +4458,7 @@
       return `<div class="javdb-api-review-collapse-bar"> ${this.renderDefaultToggle()} <button type="button" class="javdb-api-review-collapse" data-laosiji-api-collapse-reviews="1">收起短评</button></div>`;
     },
     renderItems(reviews, offset = 0, limit = JAVDB_REVIEW_MORE_LIMIT) {
-      const size = Math.max(1, parseInt(limit, 10) || JAVDB_REVIEW_MORE_LIMIT);
-      const list = Array.isArray(reviews) ? reviews.slice(0, size) : [];
+      const size = Math.max(1, parseInt(limit, 10) || JAVDB_REVIEW_MORE_LIMIT); const list = Array.isArray(reviews) ? reviews.slice(0, size) : [];
       return list.map((item, index) => `<div class="javdb-api-review"><div class="javdb-api-review-head"><span><strong>#${offset + index + 1}</strong> ${this.escapeHtml(item?.username || '匿名')}</span><span>${this.renderStars(item?.score)} ${this.escapeHtml(this.formatDate(item?.created_at))} ${Number(item?.likes_count || 0) ? ` · 點讚:${this.escapeHtml(item.likes_count)}` : ''}</span></div><div class="javdb-api-review-content">${this.renderLinkedText(item?.content || '')}</div></div>`).join('');
     },
   };
@@ -4886,24 +4481,19 @@
       return m ? m[1].toUpperCase() : '';
     },
     initPage(avid) {
-      document.body?.setAttribute('data-laosiji-javlib', '');
-      this._insertTopSettingsButton();
-      this._insertTopNavigationDropdown();
+      document.body?.setAttribute('data-laosiji-javlib', ''); this._insertTopSettingsButton(); this._insertTopNavigationDropdown();
       if (!this.isDetailPage()) {
         this._initListPage();
         if (this.isHomePage()) this._initHomePage();
         return;
       }
       if (!avid) return;
-      document.querySelector('.socialmedia')?.remove();
-      this._insertCopyButton(avid);
+      document.querySelector('.socialmedia')?.remove(); this._insertCopyButton(avid);
       GM_addStyle(`#leftmenu{display:none}#rightcolumn{margin:0!important;width:100%!important;float:none!important}#content{padding-top:0;width:100%;margin:0!important}#video_title h3.post-title.text,#video_title h3.post-title.text a{font-size:20px!important;line-height:1.45!important}#video_jacket img{max-width:100%;height:auto}#video_info{text-align:left;font:14px Arial;overflow:hidden;word-break:break-word;margin:0!important;width:100%!important;float:none!important}#video_info .item,#video_info table,#video_info tr,#video_info td,#video_info .header,#video_info .text{text-align:left!important}#video_info table{margin-left:0!important;margin-right:auto!important}#video_info .jav-jump-btn-group{justify-content:flex-start!important}#video_reviews,#video_comments,#video_review_edit,#video_comment_edit{width:100%!important;max-width:100%!important;box-sizing:border-box!important;overflow-x:hidden!important}#video_reviews .comment,#video_comments .comment{width:100%!important;max-width:100%!important;table-layout:fixed!important;box-sizing:border-box!important}#video_reviews .comment td,#video_comments .comment td{box-sizing:border-box!important;vertical-align:top!important}#video_reviews .comment td.info,#video_comments .comment td.info{width:132px!important}#video_reviews .comment td.scores,#video_comments .comment td.scores{width:92px!important}#video_reviews .comment td.t,#video_comments .comment td.t{width:auto!important;min-width:0!important;overflow:hidden!important}#video_reviews .comment td.t .text,#video_comments .comment td.t .text,#video_reviews .comment td.t textarea,#video_comments .comment td.t textarea{width:auto!important;max-width:100%!important;box-sizing:border-box!important;white-space:normal!important;word-break:break-word!important;overflow-wrap:anywhere!important}.jav-nong-slot .jav-nong-wrapper{width:560px;max-width:100%;margin-top:16px}`);
-      this._ensureDetailLayout();
-      this._insertMagnet(avid);
+      this._ensureDetailLayout(); this._insertMagnet(avid);
     },
     _insertTopNavigationDropdown() {
-      const source = document.querySelector('#leftmenu .menul1');
-      const advSearch = document.querySelector('#topmenu .advsearch');
+      const source = document.querySelector('#leftmenu .menul1'); const advSearch = document.querySelector('#topmenu .advsearch');
       if (!source || !advSearch || advSearch.querySelector('.javlib-top-nav-menu')) return;
       const lang = String(document.documentElement.lang || '').toLowerCase();
       const label = lang.startsWith('en') ? 'Site Nav' : lang.startsWith('ja') ? 'ナビ' : /tw|zh$/.test(lang) ? '站點導航' : '站点导航';
@@ -4913,11 +4503,9 @@
       menu.addEventListener('mousedown', e => {
         if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) { e.preventDefault(); }
       }, true);
-      const dropdown = menu.querySelector('.javlib-top-nav-dropdown');
-      const nodes = Array.from(source.children);
+      const dropdown = menu.querySelector('.javlib-top-nav-dropdown'); const nodes = Array.from(source.children);
       for (let i = 0; i < nodes.length; i += 1) {
-        const category = nodes[i];
-        const list = nodes[i + 1];
+        const category = nodes[i]; const list = nodes[i + 1];
         if (!category?.classList?.contains('category') || !list?.matches?.('ul')) continue;
         const section = document.createElement('div');
         section.className = 'javlib-top-nav-section';
@@ -4931,8 +4519,7 @@
           link.className = 'javlib-top-nav-link';
           links.appendChild(link);
         });
-        section.append(title, links);
-        dropdown.appendChild(section);
+        section.append(title, links); dropdown.appendChild(section);
       }
       if (!dropdown.children.length) return;
       advSearch.append(document.createTextNode(' '), menu);
@@ -4947,12 +4534,9 @@
       btn.textContent = '\u8001\u53f8\u673a\u8bbe\u7f6e';
       btn.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
       btn.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        QuickSettingsPanel.open(e.currentTarget);
+        e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget);
       });
-      const accountLink = menu.querySelector('a[href*="myaccount.php"]');
-      const sep = document.createTextNode(' | ');
+      const accountLink = menu.querySelector('a[href*="myaccount.php"]'); const sep = document.createTextNode(' | ');
       if (accountLink) {
         accountLink.after(sep, btn);
       } else { menu.append(sep, btn); }
@@ -4967,8 +4551,7 @@
       if (!table) return null;
       const row = table.querySelector('tr');
       if (!row) return null;
-      table.style.setProperty('width', '100%', 'important');
-      table.style.setProperty('display', 'block', 'important');
+      table.style.setProperty('width', '100%', 'important'); table.style.setProperty('display', 'block', 'important');
       if (MobilePolicy.isMobile()) {
         row.style.setProperty('display', 'block', 'important');
         ['gap', 'align-items', 'width'].forEach(name => row.style.removeProperty(name));
@@ -4978,41 +4561,32 @@
         });
         return row;
       }
-      row.style.setProperty('display', 'flex', 'important');
-      row.style.setProperty('gap', '20px', 'important');
-      row.style.setProperty('align-items', 'flex-start', 'important');
-      row.style.setProperty('width', '100%', 'important');
+      row.style.setProperty('display', 'flex', 'important'); row.style.setProperty('gap', '20px', 'important');
+      row.style.setProperty('align-items', 'flex-start', 'important'); row.style.setProperty('width', '100%', 'important');
       const detailDefaults = DetailFlex.defaultCss('javlib');
       row.style.setProperty('--javlib-cover-flex', row.style.getPropertyValue('--javlib-cover-flex') || detailDefaults.cover);
       row.style.setProperty('--javlib-info-flex', row.style.getPropertyValue('--javlib-info-flex') || detailDefaults.info);
       row.style.setProperty('--javlib-magnet-flex', row.style.getPropertyValue('--javlib-magnet-flex') || detailDefaults.magnet);
       const tds = row.querySelectorAll('td');
       if (tds[0]) {
-        tds[0].style.setProperty('flex', 'var(--javlib-cover-flex) 1 0', 'important');
-        tds[0].style.setProperty('min-width', '0', 'important');
+        tds[0].style.setProperty('flex', 'var(--javlib-cover-flex) 1 0', 'important'); tds[0].style.setProperty('min-width', '0', 'important');
         tds[0].style.setProperty('vertical-align', 'top', 'important');
       }
       if (tds[1]) {
-        tds[1].style.setProperty('flex', 'var(--javlib-info-flex) 1 0', 'important');
-        tds[1].style.setProperty('min-width', '0', 'important');
-        tds[1].style.setProperty('vertical-align', 'top', 'important');
-        tds[1].style.setProperty('overflow', 'hidden', 'important');
+        tds[1].style.setProperty('flex', 'var(--javlib-info-flex) 1 0', 'important'); tds[1].style.setProperty('min-width', '0', 'important');
+        tds[1].style.setProperty('vertical-align', 'top', 'important'); tds[1].style.setProperty('overflow', 'hidden', 'important');
         tds[1].style.setProperty('word-break', 'break-word', 'important');
       }
       const jacketImg = document.getElementById('video_jacket_img');
       if (jacketImg) {
-        jacketImg.removeAttribute('width');
-        jacketImg.removeAttribute('height');
-        jacketImg.style.setProperty('width', '100%', 'important');
-        jacketImg.style.setProperty('height', 'auto', 'important');
-        jacketImg.style.setProperty('max-width', '100%', 'important');
+        jacketImg.removeAttribute('width'); jacketImg.removeAttribute('height'); jacketImg.style.setProperty('width', '100%', 'important');
+        jacketImg.style.setProperty('height', 'auto', 'important'); jacketImg.style.setProperty('max-width', '100%', 'important');
       }
       return row;
     },
     _insertMagnet(avid) {
       if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') {
-        document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
-        NativeMagnetPanel.mount('javlib', avid);
+        document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.mount('javlib', avid);
         return;
       }
       NativeMagnetPanel.remove('javlib');
@@ -5026,22 +4600,17 @@
       const innerWrap = document.createElement('div');
       innerWrap.style.cssText = 'display:inline-block;';
       const widget = Magnet.createMagnetWidget(avid);
-      innerWrap.appendChild(widget);
-      magnetTd.appendChild(innerWrap);
-      row.appendChild(magnetTd);
+      innerWrap.appendChild(widget); magnetTd.appendChild(innerWrap); row.appendChild(magnetTd);
     },
   };
   const JavlibList = {
     _initListPage() {
       const list = document.querySelector('.videothumblist .videos');
       if (!list) return;
-      const needStyle = list.dataset.laosijiGrid !== '1';
-      const cards = [...list.querySelectorAll(':scope > .video:not([data-laosiji-grid-card="1"])')];
+      const needStyle = list.dataset.laosijiGrid !== '1'; const cards = [...list.querySelectorAll(':scope > .video:not([data-laosiji-grid-card="1"])')];
       if (!cards.length && !needStyle) return;
       list.dataset.laosijiGrid = '1';
-      list.classList.add('jav-card-grid', 'javlib-card-grid');
-      CardColumns.apply('javlib');
-      cards.forEach(card => this._decorateCard(card));
+      list.classList.add('jav-card-grid', 'javlib-card-grid'); CardColumns.apply('javlib'); cards.forEach(card => this._decorateCard(card));
       if (needStyle) {
         GM_addStyle(`.jav-card-link:visited .jav-card-title,.jav-card-link:visited .javlib-card-headline,.jav-card-link:visited .javlib-card-code{color:#64748b!important}.javlib-card-link:visited .jav-card-title{background:#f8fafc!important}.javlib-card-link:visited .javlib-card-code{background:#e2e8f0!important}.jav-card-image{transition:opacity .18s ease!important}.javlib-cover-swapping{opacity:.42!important}.jav-card-title{--javlib-title-line-height:22px;display:flex!important;flex-direction:column!important;gap:6px!important;height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+54px)!important;max-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+54px)!important;flex:0 0 auto!important;min-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+54px)!important;padding:9px 10px 10px!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:var(--javlib-title-line-height)!important}.jav-card-title:has(.javlib-card-footer>*){height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+82px)!important;max-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+82px)!important;min-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+82px)!important}.javlib-card-code-row{display:flex!important;align-items:center!important;flex:0 0 22px!important;height:22px!important;max-height:22px!important;min-height:22px!important;overflow:hidden!important}.javlib-card-headline{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--jav-card-title-lines,2)!important;line-clamp:var(--jav-card-title-lines,2)!important;height:calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;max-height:calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;min-height:calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:normal!important;word-break:break-word!important;color:inherit!important;flex:0 0 calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;line-height:var(--javlib-title-line-height)!important}.javlib-card-code{display:inline-flex!important;align-items:center!important;max-width:100%!important;padding:2px 7px!important;border-radius:999px!important;background:#eef2ff!important;color:inherit!important;font-size:14px!important;line-height:1.35!important;font-weight:800!important;letter-spacing:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.javlib-card-footer{display:none!important;align-items:center!important;gap:6px!important;min-height:0!important;margin-top:auto!important;overflow:hidden!important}.javlib-card-footer:not(:empty){display:flex!important;flex:0 0 22px!important;height:22px!important;max-height:22px!important;min-height:22px!important}.videothumblist{width:100%!important}.videothumblist .videos.javlib-card-grid{--jav-card-columns:5}.videothumblist .video.javlib-grid-card .id{display:none!important}.videothumblist .video.javlib-grid-card .toolbar{display:none!important}@media (max-width:1100px){.videothumblist .videos.javlib-card-grid{--jav-card-columns:4}}@media (max-width:820px){.videothumblist .videos.javlib-card-grid{--jav-card-columns:3}}@media (max-width:560px){.videothumblist .videos.javlib-card-grid{--jav-card-columns:2;gap:10px!important}}`);
       }
@@ -5056,12 +4625,10 @@
       const anchor = card.querySelector(':scope > a[href]:not(.emby-javlibrary-list-badge)');
       anchor?.classList.add('jav-card-link', 'javlib-card-link');
       if (anchor && !anchor.querySelector('.jav-pan115-badge')) { delete anchor.dataset.pan115Checked; delete anchor.dataset.pan115HasBadge; }
-      const idEl = card.querySelector('.id');
-      const titleEl = card.querySelector('.title');
+      const idEl = card.querySelector('.id'); const titleEl = card.querySelector('.title');
       titleEl?.classList.add('jav-card-title', 'javlib-card-title');
       if (idEl && titleEl && !titleEl.querySelector('.javlib-card-headline')) {
-        const code = idEl.textContent.trim();
-        const titleText = titleEl.textContent.trim();
+        const code = idEl.textContent.trim(); const titleText = titleEl.textContent.trim();
         titleEl.textContent = '';
         const codeRow = document.createElement('span');
         codeRow.className = 'javlib-card-code-row';
@@ -5074,15 +4641,12 @@
         headline.textContent = titleText;
         const footer = document.createElement('span');
         footer.className = 'javlib-card-footer';
-        titleEl.appendChild(codeRow);
-        titleEl.appendChild(headline);
-        titleEl.appendChild(footer);
+        titleEl.appendChild(codeRow); titleEl.appendChild(headline); titleEl.appendChild(footer);
         titleEl.dataset.laosijiCodeMerged = '1';
       }
       const img = card.querySelector('img[src]');
       if (!img) return;
-      const src = img.getAttribute('src') || '';
-      const fullSrc = src.replace(/ps\.jpg(?:([?#].*)?)$/i, 'pl.jpg$1');
+      const src = img.getAttribute('src') || ''; const fullSrc = src.replace(/ps\.jpg(?:([?#].*)?)$/i, 'pl.jpg$1');
       if (fullSrc !== src) img.dataset.laosijiLandscapeSrc = img.dataset.laosijiLandscapeSrc || fullSrc;
       if (!PortraitCards.effective('javlib') && fullSrc !== src && img.dataset.laosijiCoverPreloaded !== '1' && img.dataset.laosijiCoverLoading !== '1') {
         img.dataset.laosijiCoverLoading = '1';
@@ -5105,14 +4669,11 @@
         };
         preloader.src = fullSrc;
       }
-      img.removeAttribute('width');
-      img.removeAttribute('height');
-      img.classList.add('jav-card-image', 'javlib-card-image');
+      img.removeAttribute('width'); img.removeAttribute('height'); img.classList.add('jav-card-image', 'javlib-card-image');
       if (!img.closest('.javlib-cover-frame')) {
         const frame = document.createElement('div');
         frame.className = 'jav-card-cover javlib-cover-frame';
-        img.parentNode.insertBefore(frame, img);
-        frame.appendChild(img);
+        img.parentNode.insertBefore(frame, img); frame.appendChild(img);
       } else { img.closest('.javlib-cover-frame')?.classList.add('jav-card-cover'); }
     },
     _initHomePage() {
@@ -5129,8 +4690,7 @@
     match() { return /(?:^|\.)sukebei\.nyaa\.si$/i.test(location.hostname); },
     isDetailPage() { return /^\/view\/\d+\/?$/i.test(location.pathname) && !!document.querySelector('#torrent-description'); },
     getVid() {
-      const title = document.querySelector('.panel-title')?.textContent || document.title;
-      const code = Utils.extractCode(title);
+      const title = document.querySelector('.panel-title')?.textContent || document.title; const code = Utils.extractCode(title);
       return code ? normalizeAvid(code) : '';
     },
     initPage(avid) {
@@ -5150,9 +4710,7 @@
       magnetPane.appendChild(Magnet.createMagnetWidget(avid));
       const layout = document.createElement('div');
       layout.className = 'sukebei-description-layout';
-      layout.appendChild(original);
-      layout.appendChild(magnetPane);
-      description.classList.add('laosiji-sukebei-description');
+      layout.appendChild(original); layout.appendChild(magnetPane); description.classList.add('laosiji-sukebei-description');
       description.dataset.laosijiMagnetLayout = '1';
       description.insertBefore(layout, divider);
     },
@@ -5215,8 +4773,7 @@
         };
       }
       if (SiteJavLib.match()) {
-        const container = this.getInfiniteScrollContainer('javlib', doc);
-        const next = doc.querySelector('.page_selector a.page.next[href]');
+        const container = this.getInfiniteScrollContainer('javlib', doc); const next = doc.querySelector('.page_selector a.page.next[href]');
         if (!container || !next) return null;
         return {
           site: 'javlib',
@@ -5281,11 +4838,9 @@
         anchor.textContent,
         href,
       ].filter(Boolean).join(' ');
-      const code = Utils.extractCode(text);
-      const pan115Code = Pan115.extractCode(text, code);
+      const code = Utils.extractCode(text); const pan115Code = Pan115.extractCode(text, code);
       if (!code || !pan115Code) return null;
-      const visibleTitle = (anchor.textContent || anchor.getAttribute('title') || '').trim();
-      const hasTitleText = visibleTitle.length > 0;
+      const visibleTitle = (anchor.textContent || anchor.getAttribute('title') || '').trim(); const hasTitleText = visibleTitle.length > 0;
       const visibleTitleHasCode = !!Utils.extractCode(visibleTitle);
       if (!hasTitleText) return null;
       const card = this.getPan115ListCard(anchor);
@@ -5304,19 +4859,14 @@
     },
     collectPan115ListTargets() {
       if (this.isDetailPage()) return [];
-      const isSupjavList = /supjav\.com/.test(location.hostname);
-      const seen = new Set();
-      const seenCardCodes = new Map();
-      const targets = [];
+      const isSupjavList = /supjav\.com/.test(location.hostname); const seen = new Set(); const seenCardCodes = new Map(); const targets = [];
       const pushTarget = target => {
         if (!target?.anchor || !target.code) return;
-        const card = this.getPan115ListCard(target.anchor) || target.anchor;
-        const normalized = Pan115.normalizeKeepSeparator(target.code) || target.code;
+        const card = this.getPan115ListCard(target.anchor) || target.anchor; const normalized = Pan115.normalizeKeepSeparator(target.code) || target.code;
         let codes = seenCardCodes.get(card);
         if (!codes) { codes = new Set(); seenCardCodes.set(card, codes); }
         if (codes.has(normalized)) return;
-        codes.add(normalized);
-        targets.push(target);
+        codes.add(normalized); targets.push(target);
       };
       if (/(javlibrary|javlib|r86m|s87n)/i.test(location.hostname)) {
         document.querySelectorAll('.videothumblist .video > a[href]:not(.emby-javlibrary-list-badge)').forEach(anchor => {
@@ -5329,8 +4879,7 @@
             anchor.getAttribute('title'),
             anchor.href,
           ].filter(Boolean).join(' ');
-          const code = Utils.extractCode(text);
-          const pan115Code = Pan115.extractCode(text, code);
+          const code = Utils.extractCode(text); const pan115Code = Pan115.extractCode(text, code);
           if (!code || !pan115Code) return;
           seen.add(anchor);
           pushTarget({ anchor, code: pan115Code });
@@ -5369,8 +4918,7 @@
       if (hasSameBadge(card) || (!card && hasSameBadge(anchor.parentElement))) { anchor.dataset.pan115HasBadge = '1'; return; }
       const title = anchor.querySelector('.title, .video-title');
       if (title) {
-        const badge = createPan115Badge(hit, code, false);
-        const javlibHeadline = title.querySelector('.javlib-card-headline');
+        const badge = createPan115Badge(hit, code, false); const javlibHeadline = title.querySelector('.javlib-card-headline');
         if (javlibHeadline) {
           const footer = title.querySelector('.javlib-card-footer');
           if (footer) {
@@ -5417,12 +4965,10 @@
     },
     getMagnetSlot() { return document.querySelector('.jav-nong-slot'); },
     createDetailPreviewStandaloneSlot() {
-      const site = this.getDetailLayoutSite();
-      const slot = document.createElement(site === 'javlib' ? 'td' : 'div');
+      const site = this.getDetailLayoutSite(); const slot = document.createElement(site === 'javlib' ? 'td' : 'div');
       slot.className = `jav-detail-preview-standalone${site ? ` jav-detail-preview-standalone-${site}` : ''}`;
       if (site === 'javbus') {
-        const root = document.querySelector('.row.movie');
-        const info = root?.querySelector('.col-md-3.info');
+        const root = document.querySelector('.row.movie'); const info = root?.querySelector('.col-md-3.info');
         if (!root || !info) return null;
         info.insertAdjacentElement('afterend', slot);
         return slot;
@@ -5435,8 +4981,7 @@
         return slot;
       }
       if (site === 'javlib') {
-        const row = document.querySelector('#video_jacket_info tr');
-        const info = row?.querySelector('#video_info')?.closest('td');
+        const row = document.querySelector('#video_jacket_info tr'); const info = row?.querySelector('#video_info')?.closest('td');
         if (!row || !info) return null;
         info.insertAdjacentElement('afterend', slot);
         return slot;
@@ -5471,8 +5016,7 @@
       return titleElem?.closest('.itemPrimaryNameContainer, .nameContainer, .detailPageWrapperContainer .infoWrapper') || titleElem;
     },
     getEmbyRenderKey(titleElem) {
-      const hash = location.hash || '';
-      const itemId = hash.match(/item\?id=([^&]+)/i)?.[1] || new URLSearchParams(hash.split('?')[1] || '').get('id') || '';
+      const hash = location.hash || ''; const itemId = hash.match(/item\?id=([^&]+)/i)?.[1] || new URLSearchParams(hash.split('?')[1] || '').get('id') || '';
       const title = (titleElem?.textContent || '').trim();
       return `${itemId}::${title}`;
     },
@@ -5480,30 +5024,23 @@
     setupJavDbGuards() {
       if (this.javdbGuardsReady || !SiteJavDB.match()) return;
       this.javdbGuardsReady = true;
-      SiteJavDB._dismissOver18Modal();
-      SiteJavDB._hideDownloadCorrectionBlock();
+      SiteJavDB._dismissOver18Modal(); SiteJavDB._hideDownloadCorrectionBlock();
       const javdbOver18Observer = new MutationObserver(() => {
-        SiteJavDB._dismissOver18Modal();
-        SiteJavDB._hideDownloadCorrectionBlock();
+        SiteJavDB._dismissOver18Modal(); SiteJavDB._hideDownloadCorrectionBlock();
       });
       javdbOver18Observer.observe(document.documentElement, { childList: true, subtree: true });
       window.addEventListener('popstate', () => setTimeout(() => {
-        SiteJavDB._dismissOver18Modal();
-        SiteJavDB._hideDownloadCorrectionBlock();
+        SiteJavDB._dismissOver18Modal(); SiteJavDB._hideDownloadCorrectionBlock();
       }, 0));
       window.addEventListener('hashchange', () => setTimeout(() => {
-        SiteJavDB._dismissOver18Modal();
-        SiteJavDB._hideDownloadCorrectionBlock();
+        SiteJavDB._dismissOver18Modal(); SiteJavDB._hideDownloadCorrectionBlock();
       }, 0));
     },
     initCurrent() {
       const site = this.current();
       if (!site) return;
       const avid = site.getVid();
-      log('匹配站点:', site.constructor?.name || '未知', '| 番号:', avid);
-      site.initPage(avid);
-      PageZoom.applyCurrent();
-      DetailFlex.apply();
+      log('匹配站点:', site.constructor?.name || '未知', '| 番号:', avid); site.initPage(avid); PageZoom.applyCurrent(); DetailFlex.apply();
     },
   };
   const ListOpenNewTab = (() => {
@@ -5558,10 +5095,7 @@
       if (anchor.dataset.laosijiNewTabApplied === '1') return;
       remember(anchor);
       const rel = new Set((anchor.getAttribute('rel') || '').split(/\s+/).filter(Boolean));
-      rel.add('noopener');
-      rel.add('noreferrer');
-      anchor.setAttribute('target', '_blank');
-      anchor.setAttribute('rel', [...rel].join(' '));
+      rel.add('noopener'); rel.add('noreferrer'); anchor.setAttribute('target', '_blank'); anchor.setAttribute('rel', [...rel].join(' '));
       anchor.dataset.laosijiNewTabApplied = '1';
     }
     function restoreAnchor(anchor) {
@@ -5586,10 +5120,8 @@
     }
     function sync() {
       if (!enabled()) { clearExcept(); return; }
-      const anchors = collectAnchors();
-      const active = new Set(anchors);
-      anchors.forEach(applyAnchor);
-      clearExcept(active);
+      const anchors = collectAnchors(); const active = new Set(anchors);
+      anchors.forEach(applyAnchor); clearExcept(active);
     }
     return { sync, clear: () => clearExcept() };
   })();
@@ -5620,9 +5152,7 @@
       btn.textContent = text;
       btn.setAttribute('aria-label', dir < 0 ? '向左滚动剧照' : '向右滚动剧照');
       btn.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        scrollRail(rail, dir);
+        e.preventDefault(); e.stopPropagation(); scrollRail(rail, dir);
       });
       return btn;
     }
@@ -5641,8 +5171,7 @@
         if (!href || href.startsWith('#') || /^javascript:/i.test(href)) return null;
         const img = anchor.querySelector('img[src]');
         if (!img) return null;
-        const url = toAbsUrl(href);
-        const src = toAbsUrl(img.currentSrc || img.src || img.getAttribute('src') || '');
+        const url = toAbsUrl(href); const src = toAbsUrl(img.currentSrc || img.src || img.getAttribute('src') || '');
         if (!url || (!isImageHref(url) && !isImageHref(src))) return null;
         const title = anchor.getAttribute('data-caption') || img.getAttribute('title') || img.getAttribute('alt') || '';
         return { anchor, url, title: title.trim() };
@@ -5651,12 +5180,10 @@
     function openViewer(items, startIndex = 0) {
       if (!items.length) return;
       activeViewerClose?.();
-      const originalHtmlOverflow = document.documentElement.style.overflow;
-      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow; const originalBodyOverflow = document.body.style.overflow;
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
-      let index = startIndex;
-      const overlay = document.createElement('div');
+      let index = startIndex; const overlay = document.createElement('div');
       overlay.className = 'jav-stills-viewer';
       const top = document.createElement('div');
       top.className = 'jav-stills-viewer-top';
@@ -5666,8 +5193,7 @@
       close.type = 'button';
       close.className = 'jav-stills-viewer-close';
       close.textContent = '×';
-      close.setAttribute('aria-label', '关闭剧照预览');
-      top.append(count, close);
+      close.setAttribute('aria-label', '关闭剧照预览'); top.append(count, close);
       const body = document.createElement('div');
       body.className = 'jav-stills-viewer-body';
       const img = document.createElement('img');
@@ -5696,8 +5222,7 @@
       };
       const closeViewer = (event = null) => {
         if (event) {
-          event.preventDefault();
-          event.stopPropagation();
+          event.preventDefault(); event.stopPropagation();
           event.stopImmediatePropagation?.();
         }
         overlay.remove();
@@ -5709,37 +5234,31 @@
       const keyHandler = e => {
         if (e.key === 'Escape') { closeViewer(e); return; }
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault(); e.stopPropagation();
           e.stopImmediatePropagation?.();
           show(index + (e.key === 'ArrowRight' ? 1 : -1));
         }
       };
       close.addEventListener('click', closeViewer, true);
       prev.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         e.stopImmediatePropagation?.();
         show(index - 1);
       }, true);
       next.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         e.stopImmediatePropagation?.();
         show(index + 1);
       }, true);
       img.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         e.stopImmediatePropagation?.();
         img.classList.toggle('is-zoomed');
       }, true);
       overlay.addEventListener('click', e => {
         if (e.target === overlay || e.target === body) closeViewer(e);
       }, true);
-      document.addEventListener('keydown', keyHandler, true);
-      overlay.append(top, body, prev, next, caption);
-      document.body.appendChild(overlay);
+      document.addEventListener('keydown', keyHandler, true); overlay.append(top, body, prev, next, caption); document.body.appendChild(overlay);
       activeViewerClose = closeViewer;
       show(index);
     }
@@ -5749,11 +5268,9 @@
       rail.addEventListener('click', e => {
         const anchor = e.target?.closest?.('a[href]');
         if (!anchor || !rail.contains(anchor)) return;
-        const items = collectImages(rail);
-        const index = items.findIndex(item => item.anchor === anchor);
+        const items = collectImages(rail); const index = items.findIndex(item => item.anchor === anchor);
         if (index < 0) return;
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         e.stopImmediatePropagation?.();
         openViewer(items, index);
       }, true);
@@ -5797,9 +5314,7 @@
     function sync() {
       const config = findConfig();
       if (!config?.container) return;
-      ensureStillsGalleryStyles();
-      cleanSiteShell(config);
-      bindViewer(config.container);
+      ensureStillsGalleryStyles(); cleanSiteShell(config); bindViewer(config.container);
       const existingShell = config.container.closest('.jav-stills-shell');
       if (existingShell) { reorderJavbusStills(config, existingShell); return; }
       const shell = document.createElement('div');
@@ -5813,22 +5328,18 @@
       ref.parentNode?.insertBefore(shell, ref);
       if (config.heading) { config.heading.dataset.laosijiStillsHidden = '1'; config.heading.style.display = 'none'; }
       stage.append( button('‹', 'jav-stills-arrow-prev', config.container, -1), config.container, button('›', 'jav-stills-arrow-next', config.container, 1) );
-      shell.append(stage);
-      reorderJavbusStills(config, shell);
+      shell.append(stage); reorderJavbusStills(config, shell);
     }
     return { sync };
   })();
-  Core.expose('__LAOSIJI_SITE_MANAGER__', SiteManager);
-  Core.expose('__LAOSIJI_SITE_JAVBUS__', SiteJavBus);
-  Core.expose('__LAOSIJI_SITE_JAVDB__', SiteJavDB);
-  Core.expose('__LAOSIJI_SITE_JAVLIB__', SiteJavLib);
-  Core.expose('__LAOSIJI_STILLS_GALLERY__', StillsGallery);
+  Core.expose('__LAOSIJI_SITE_MANAGER__', SiteManager); Core.expose('__LAOSIJI_SITE_JAVBUS__', SiteJavBus); Core.expose('__LAOSIJI_SITE_JAVDB__', SiteJavDB);
+  Core.expose('__LAOSIJI_SITE_JAVLIB__', SiteJavLib); Core.expose('__LAOSIJI_STILLS_GALLERY__', StillsGallery);
   function mainRun() {
     SiteManager.initCurrent();
   }
   GM_addStyle(`.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2147483647;display:flex;overflow:auto;cursor:zoom-out;backdrop-filter:blur(5px)}.preview-img{border-radius:4px;margin:auto;cursor:zoom-in;max-width:95vw;max-height:95vh;object-fit:contain;display:block;box-shadow:0 0 20px rgba(0,0,0,0.5)}.preview-img.zoomed{max-width:none;max-height:none;cursor:zoom-out}a:focus:not(:focus-visible),button:focus:not(:focus-visible),[role="button"]:focus:not(:focus-visible),input[type="button"]:focus:not(:focus-visible),input[type="submit"]:focus:not(:focus-visible){outline:none!important}.jav-card-grid{--jav-card-title-size:15px;--jav-card-title-line-height:1.5;--jav-card-title-lines:2;display:grid!important;grid-template-columns:repeat(var(--jav-card-columns,5),minmax(0,1fr))!important;gap:14px!important;align-items:stretch!important;width:100%!important;box-sizing:border-box!important}.jav-card{float:none!important;display:block!important;width:auto!important;height:100%!important;max-height:none!important;min-width:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;text-align:left!important;background:#fff!important;border:1px solid #e5e7eb!important;border-radius:6px!important;overflow:hidden!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;transform:translateZ(0)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;will-change:transform!important}.jav-card:hover{border-color:rgba(37,99,235,.35)!important;box-shadow:0 10px 24px rgba(15,23,42,.16)!important;transform:translateY(-4px) scale(1.018)!important;z-index:2!important}.jav-card-link{display:flex!important;flex-direction:column!important;height:100%!important;max-height:none!important;overflow:hidden!important;color:#2563eb!important;text-decoration:none!important}.jav-card-link:visited{color:#64748b!important}.jav-card-cover{display:block!important;width:100%!important;height:auto!important;aspect-ratio:800 / 538!important;overflow:hidden!important;background:#f8fafc!important;border-bottom:1px solid #f1f5f9!important}.jav-card-image{display:block!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;object-position:center center!important;background:#f8fafc!important;border:0!important}.jav-card-title{width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;text-align:left!important;white-space:normal!important;word-break:break-word!important}.jav-jump-btn-group{margin-top:8px;margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.jav-jump-btn-group.fc2cmadb-jump-group{margin-top:10px;margin-bottom:8px}.emby-fix{width:100%!important;flex-basis:100%!important;clear:both!important;margin-top:8px!important;margin-bottom:4px!important}.mini-switch{width:40px;height:20px;appearance:none;background:#e0e0e0;border-radius:20px;position:relative;cursor:pointer;outline:none;transition:background 0.2s}.mini-switch:checked{background:#4CAF50}.mini-switch::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:2px;left:2px;transition:left 0.2s}.mini-switch:checked::before{left:calc(100% - 18px)}@keyframes btnSlideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.jav-jump-btn-group a{transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;animation:btnSlideIn 0.3s ease-out}.jav-jump-btn-group a:hover{background:var(--jav-btn-hover-bg,#f8fafc)!important;transform:translateY(-1px)!important;filter:none!important;box-shadow:0 5px 14px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)!important;text-decoration:none!important}@keyframes menuFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}.search-menu{position:relative;display:inline-block;border-radius:4px}.search-main-btn{padding-right:28px!important}.search-toggle-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:16px;height:16px;padding:0!important;margin:0!important;display:inline-flex!important;align-items:center;justify-content:center;flex-shrink:0;font-size:10px!important;line-height:1;opacity:1;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 18%,#ffffff)!important;color:inherit!important;border:1px solid color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important;border-radius:999px!important;box-shadow:0 1px 2px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.7)!important;cursor:pointer}.search-toggle-btn:hover{filter:none;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important}.search-toggle-btn .search-arrow{display:inline-block;transform:translateY(-1px);pointer-events:none}.search-submenu{position:absolute;top:calc(100%+4px);left:0;display:none;flex-direction:column;gap:4px;padding:4px;background:rgba(255,255,255,0.95);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:10000;min-width:120px;backdrop-filter:blur(5px)}.search-submenu.is-open{display:flex}.search-submenu a{transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.1)!important}.search-submenu a:hover{transform:translateX(5px) scale(1.02);filter:brightness(1.1)}.jav-pan115-badge{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:22px!important;padding:0 7px;margin-right:6px;position:static!important;top:auto!important;transform:none!important;border-radius:6px;background:#bbf7d0;border:1px solid #22c55e;color:#065f46;font-size:12px!important;font-weight:800;line-height:22px!important;text-decoration:none;box-sizing:border-box;vertical-align:middle;box-shadow:inset 0 1px 0 rgba(255,255,255,0.72)}.jav-pan115-badge:hover{background:#86efac;color:#064e3b;text-decoration:none;box-shadow:0 4px 12px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)}span.jav-pan115-badge{cursor:pointer}.jav-infinite-sentinel{width:100%;padding:14px 0;color:#64748b;font-size:13px;font-weight:700;text-align:center;clear:both}.jav-infinite-sentinel.is-loading{color:#2563eb}.jav-infinite-sentinel.is-done{color:#94a3b8}.jav-infinite-sentinel.is-error{color:#dc2626;cursor:pointer}.button.javdb-score-sort-btn,.button.javdb-votes-sort-btn{border-color:#be123c!important;background:#be123c!important;color:#fff!important}.button.javdb-score-sort-btn:hover,.button.javdb-votes-sort-btn:hover{border-color:#e11d48!important;background:#e11d48!important}.button.javdb-score-sort-btn.is-selected,.button.javdb-votes-sort-btn.is-selected{border-color:#9f1239!important;background:#9f1239!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.58)!important}.button.javdb-score-sort-btn:focus-visible,.button.javdb-votes-sort-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}.float-buttons .javdb-loaded-reorder-btn{display:block;align-items:center;justify-content:center;min-height:36px;max-width:calc(100vw - 32px);margin:0 0 8px auto;padding:7px 11px;border:1px solid #be123c;border-radius:6px;background:#be123c;color:#fff;font-size:13px;font-weight:700;line-height:1.25;letter-spacing:0;box-shadow:0 5px 16px rgba(15,23,42,.2);cursor:pointer}.float-buttons .javdb-loaded-reorder-btn:hover{background:#e11d48;border-color:#e11d48}.float-buttons .javdb-loaded-reorder-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}@media (max-width:768px){.float-buttons .javdb-loaded-reorder-btn{min-height:34px;padding:7px 10px;font-size:12px}}`);
   GM_addStyle(`.preview-toolbar{position:fixed;top:20px;right:20px;display:flex;gap:8px;z-index:2147483648;background:rgba(30,30,30,0.75);backdrop-filter:blur(10px);padding:6px 12px;border-radius:30px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 6px 18px rgba(0,0,0,0.25)}.preview-btn{border:none;color:#eee;font-size:13px;font-weight:450;cursor:pointer;padding:6px 14px;border-radius:24px;transition:all 0.2s ease;display:inline-flex;align-items:center;gap:6px;background:rgba(100,100,120,0.3);border:1px solid rgba(255,255,255,0.05);box-shadow:0 2px 4px rgba(0,0,0,0.1);letter-spacing:0.2px}.preview-btn:hover{background:rgba(140,140,160,0.4);transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.2)}.preview-btn.javfree.active{background:#2ecc71;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(46,204,113,0.6);font-weight:500}.preview-btn.javstore.active{background:#e74c3c;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(231,76,60,0.6);font-weight:500}.preview-btn.action{background:rgba(100,100,120,0.3)}.preview-btn.action:hover{background:rgba(140,140,160,0.5)}.preview-btn:active{transform:translateY(0);box-shadow:0 2px 4px rgba(0,0,0,0.15)}`);
-  GM_addStyle(`.trailer-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:34px;background:radial-gradient(circle at 50% 18%,rgba(56,189,248,0.16),transparent 32%),linear-gradient(180deg,rgba(5,7,12,0.88),rgba(0,0,0,0.96));backdrop-filter:blur(16px) saturate(0.85);cursor:default}.trailer-modal{width:min(1120px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;background:#05070c;border:1px solid rgba(255,255,255,0.12);border-radius:8px;box-shadow:0 30px 80px rgba(0,0,0,0.68),0 0 0 1px rgba(255,255,255,0.04) inset;cursor:default;animation:trailerFadeIn .18s ease-out}@keyframes trailerFadeIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}.trailer-header{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 34px;background:linear-gradient(180deg,rgba(0,0,0,0.66),rgba(0,0,0,0));border:0;pointer-events:none;opacity:1;transition:opacity .18s ease,transform .18s ease}.trailer-title{min-width:0;display:flex;align-items:center;gap:10px;font:700 15px/1.3 Arial,"Microsoft YaHei",sans-serif;pointer-events:auto}.trailer-code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.4px}.trailer-source{flex-shrink:0;padding:3px 9px;border-radius:999px;color:rgba(255,255,255,0.82);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:500;backdrop-filter:blur(12px)}.jav-player-close{width:34px;height:34px;border:0;border-radius:50%;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font-size:18px;line-height:34px;pointer-events:auto;box-shadow:0 8px 20px rgba(0,0,0,0.22);transition:transform .15s ease,background .15s ease,box-shadow .15s ease}.jav-player-close:hover{transform:scale(1.08);background:rgba(248,113,113,0.34);box-shadow:0 10px 24px rgba(0,0,0,0.28)}.trailer-screen{position:relative;aspect-ratio:16 / 9;width:100%;max-height:82vh;overflow:hidden;background:radial-gradient(circle at center,rgba(31,41,55,.75),#000 62%),#000}.trailer-screen:fullscreen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen:-webkit-full-screen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.52),rgba(0,0,0,0) 30%),linear-gradient(0deg,rgba(0,0,0,0.62),rgba(0,0,0,0) 36%)}.trailer-screen.is-iframe::before{display:none}.trailer-screen video,.trailer-screen iframe{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}.trailer-volume-indicator{position:absolute;top:62px;right:26px;z-index:5;color:#f8fafc;font:750 24px/1 Arial,"Microsoft YaHei",sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.82);opacity:0;pointer-events:none;transition:opacity .14s ease}.trailer-volume-indicator.is-visible{opacity:1}.trailer-fallback-status{position:absolute;left:18px;top:58px;z-index:5;max-width:min(520px,calc(100% - 36px));padding:7px 10px;border-radius:8px;color:rgba(255,255,255,0.9);background:rgba(10,14,22,0.68);border:1px solid rgba(255,255,255,0.16);box-shadow:0 12px 28px rgba(0,0,0,0.28);backdrop-filter:blur(14px);font:12px/1.45 Arial,"Microsoft YaHei",sans-serif;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}.trailer-fallback-status.is-visible{opacity:1;transform:translateY(0)}.trailer-quality-bar{display:flex;align-items:center;gap:8px;padding:0;background:transparent;border:none;border-radius:0;backdrop-filter:none}.trailer-quality-select{min-width:78px;max-width:140px;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.12);color:#f8fafc;outline:none;font-size:12px;line-height:28px;text-align:center;text-align-last:center;appearance:none;cursor:pointer}.trailer-quality-select option{background:#0b1020;color:#f8fafc}.trailer-footer{position:absolute;left:16px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;color:rgba(255,255,255,0.78);background:rgba(10,14,22,0.62);border:1px solid rgba(255,255,255,0.16);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,0.32);backdrop-filter:blur(16px) saturate(1.08);font:12px/1.4 Arial,"Microsoft YaHei",sans-serif;opacity:1;transform:translateY(0);transition:opacity .18s ease,transform .18s ease}.trailer-screen.is-controls-hidden{cursor:none}.trailer-screen.is-controls-hidden .trailer-header{opacity:0;transform:translateY(-8px);pointer-events:none}.trailer-screen.is-controls-hidden .trailer-footer{opacity:0;transform:translateY(10px);pointer-events:none}.trailer-control-left,.trailer-control-right{display:flex;align-items:center;gap:9px;min-width:0}.trailer-control-left{flex:1 1 auto}.trailer-control-right{flex:0 0 auto}.trailer-control-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;border:0;border-radius:999px;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font:700 13px/1 Arial,"Microsoft YaHei",sans-serif;transition:background .15s ease,transform .15s ease}.trailer-control-btn:hover{background:rgba(255,255,255,0.24);transform:translateY(-1px)}.trailer-volume-wrap{position:relative;width:30px;height:30px;display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;box-sizing:border-box}.trailer-volume-wrap::before{content:"";position:absolute;left:50%;bottom:100%;width:46px;height:18px;transform:translateX(-50%)}.trailer-volume-popover{position:absolute;left:15px;bottom:42px;width:36px;height:126px;display:flex;align-items:center;justify-content:center;padding:12px 0;border-radius:999px;background:rgba(10,14,22,0.76);border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;box-shadow:0 14px 32px rgba(0,0,0,0.34);backdrop-filter:blur(16px) saturate(1.08);opacity:0;pointer-events:none;transform:translate(-50%,6px);transition:opacity .15s ease,transform .15s ease}.trailer-volume-wrap:hover .trailer-volume-popover{opacity:1;pointer-events:auto;transform:translate(-50%,0)}.trailer-volume-rail{position:absolute;left:50%;top:16px;bottom:16px;width:4px;transform:translateX(-50%);border-radius:999px;background:rgba(255,255,255,0.32);pointer-events:none}.trailer-volume-fill{position:absolute;left:0;right:0;bottom:0;height:var(--volume-percent,35%);border-radius:999px;background:#38bdf8}.trailer-volume-thumb{position:absolute;left:50%;bottom:var(--volume-percent,35%);width:16px;height:16px;transform:translate(-50%,50%);border-radius:50%;background:#38bdf8;border:2px solid rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.38)}.trailer-volume-slider{position:absolute;top:10px;bottom:10px;left:50%;width:16px;height:calc(100% - 20px);margin:0;transform:translateX(-50%);appearance:none;-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;background:transparent;cursor:pointer}.trailer-volume-slider::-webkit-slider-runnable-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-moz-range-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-volume-slider::-moz-range-thumb{width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-time{flex:0 0 auto;min-width:36px;color:rgba(255,255,255,0.78);font:11px/1.3 Arial,"Microsoft YaHei",sans-serif;white-space:nowrap;text-align:center}.trailer-progress{flex:1 1 160px;min-width:120px;height:4px;margin:0;border-radius:999px;accent-color:#38bdf8;cursor:pointer}`);
+  GM_addStyle(`.trailer-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:34px;background:radial-gradient(circle at 50% 18%,rgba(56,189,248,0.16),transparent 32%),linear-gradient(180deg,rgba(5,7,12,0.88),rgba(0,0,0,0.96));backdrop-filter:none;cursor:default}.trailer-modal{width:min(1120px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;background:#05070c;border:1px solid rgba(255,255,255,0.12);border-radius:8px;box-shadow:0 30px 80px rgba(0,0,0,0.68),0 0 0 1px rgba(255,255,255,0.04) inset;cursor:default;animation:trailerFadeIn .18s ease-out}@keyframes trailerFadeIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}.trailer-header{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 34px;background:linear-gradient(180deg,rgba(0,0,0,0.66),rgba(0,0,0,0));border:0;pointer-events:none;opacity:1;transition:opacity .18s ease,transform .18s ease}.trailer-title{min-width:0;display:flex;align-items:center;gap:10px;font:700 15px/1.3 Arial,"Microsoft YaHei",sans-serif;pointer-events:auto}.trailer-code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.4px}.trailer-source{flex-shrink:0;padding:3px 9px;border-radius:999px;color:rgba(255,255,255,0.82);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:500;backdrop-filter:blur(12px)}.jav-player-close{width:34px;height:34px;border:0;border-radius:50%;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font-size:18px;line-height:34px;pointer-events:auto;box-shadow:0 8px 20px rgba(0,0,0,0.22);transition:transform .15s ease,background .15s ease,box-shadow .15s ease}.jav-player-close:hover{transform:scale(1.08);background:rgba(248,113,113,0.34);box-shadow:0 10px 24px rgba(0,0,0,0.28)}.trailer-screen{position:relative;aspect-ratio:16 / 9;width:100%;max-height:82vh;overflow:hidden;background:radial-gradient(circle at center,rgba(31,41,55,.75),#000 62%),#000}.trailer-screen:fullscreen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen:-webkit-full-screen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.52),rgba(0,0,0,0) 30%),linear-gradient(0deg,rgba(0,0,0,0.62),rgba(0,0,0,0) 36%)}.trailer-screen.is-iframe::before{display:none}.trailer-screen video,.trailer-screen iframe{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}.trailer-volume-indicator{position:absolute;top:62px;right:26px;z-index:5;color:#f8fafc;font:750 24px/1 Arial,"Microsoft YaHei",sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.82);opacity:0;pointer-events:none;transition:opacity .14s ease}.trailer-volume-indicator.is-visible{opacity:1}.trailer-fallback-status{position:absolute;left:18px;top:58px;z-index:5;max-width:min(520px,calc(100% - 36px));padding:7px 10px;border-radius:8px;color:rgba(255,255,255,0.9);background:rgba(10,14,22,0.68);border:1px solid rgba(255,255,255,0.16);box-shadow:0 12px 28px rgba(0,0,0,0.28);backdrop-filter:blur(14px);font:12px/1.45 Arial,"Microsoft YaHei",sans-serif;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}.trailer-fallback-status.is-visible{opacity:1;transform:translateY(0)}.trailer-quality-bar{display:flex;align-items:center;gap:8px;padding:0;background:transparent;border:none;border-radius:0;backdrop-filter:none}.trailer-quality-select{min-width:78px;max-width:140px;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.12);color:#f8fafc;outline:none;font-size:12px;line-height:28px;text-align:center;text-align-last:center;appearance:none;cursor:pointer}.trailer-quality-select option{background:#0b1020;color:#f8fafc}.trailer-footer{position:absolute;left:16px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;color:rgba(255,255,255,0.78);background:rgba(10,14,22,0.62);border:1px solid rgba(255,255,255,0.16);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,0.32);backdrop-filter:blur(16px) saturate(1.08);font:12px/1.4 Arial,"Microsoft YaHei",sans-serif;opacity:1;transform:translateY(0);transition:opacity .18s ease,transform .18s ease}.trailer-screen.is-controls-hidden{cursor:none}.trailer-screen.is-controls-hidden .trailer-header{opacity:0;transform:translateY(-8px);pointer-events:none}.trailer-screen.is-controls-hidden .trailer-footer{opacity:0;transform:translateY(10px);pointer-events:none}.trailer-control-left,.trailer-control-right{display:flex;align-items:center;gap:9px;min-width:0}.trailer-control-left{flex:1 1 auto}.trailer-control-right{flex:0 0 auto}.trailer-control-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;border:0;border-radius:999px;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font:700 13px/1 Arial,"Microsoft YaHei",sans-serif;transition:background .15s ease,transform .15s ease}.trailer-control-btn:hover{background:rgba(255,255,255,0.24);transform:translateY(-1px)}.trailer-volume-wrap{position:relative;width:30px;height:30px;display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;box-sizing:border-box}.trailer-volume-wrap::before{content:"";position:absolute;left:50%;bottom:100%;width:46px;height:18px;transform:translateX(-50%)}.trailer-volume-popover{position:absolute;left:15px;bottom:42px;width:36px;height:126px;display:flex;align-items:center;justify-content:center;padding:12px 0;border-radius:999px;background:rgba(10,14,22,0.76);border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;box-shadow:0 14px 32px rgba(0,0,0,0.34);backdrop-filter:blur(16px) saturate(1.08);opacity:0;pointer-events:none;transform:translate(-50%,6px);transition:opacity .15s ease,transform .15s ease}.trailer-volume-wrap:hover .trailer-volume-popover{opacity:1;pointer-events:auto;transform:translate(-50%,0)}.trailer-volume-rail{position:absolute;left:50%;top:16px;bottom:16px;width:4px;transform:translateX(-50%);border-radius:999px;background:rgba(255,255,255,0.32);pointer-events:none}.trailer-volume-fill{position:absolute;left:0;right:0;bottom:0;height:var(--volume-percent,35%);border-radius:999px;background:#38bdf8}.trailer-volume-thumb{position:absolute;left:50%;bottom:var(--volume-percent,35%);width:16px;height:16px;transform:translate(-50%,50%);border-radius:50%;background:#38bdf8;border:2px solid rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.38)}.trailer-volume-slider{position:absolute;top:10px;bottom:10px;left:50%;width:16px;height:calc(100% - 20px);margin:0;transform:translateX(-50%);appearance:none;-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;background:transparent;cursor:pointer}.trailer-volume-slider::-webkit-slider-runnable-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-moz-range-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-volume-slider::-moz-range-thumb{width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-time{flex:0 0 auto;min-width:36px;color:rgba(255,255,255,0.78);font:11px/1.3 Arial,"Microsoft YaHei",sans-serif;white-space:nowrap;text-align:center}.trailer-progress{flex:1 1 160px;min-width:120px;height:4px;margin:0;border-radius:999px;accent-color:#38bdf8;cursor:pointer}`);
   GM_addStyle(`.jav-jump-toast{position:fixed;left:50%;top:72px;z-index:2147483647;display:flex;align-items:flex-start;gap:12px;width:min(420px,calc(100vw - 32px));padding:14px 16px;color:#f8fafc;background:rgba(15,23,42,0.94);border:1px solid rgba(148,163,184,0.28);border-left:4px solid #38bdf8;border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,0.34),0 0 0 1px rgba(255,255,255,0.04) inset;backdrop-filter:blur(14px) saturate(1.1);font-family:Arial,"Microsoft YaHei",sans-serif;transform:translate(-50%,-12px);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease}.jav-jump-toast.show{opacity:1;transform:translate(-50%,0)}.jav-jump-toast.hide{opacity:0;transform:translate(-50%,-12px)}.jav-jump-toast-icon{flex:0 0 auto;width:24px;height:24px;border-radius:999px;color:#082f49;background:#7dd3fc;font-size:16px;font-weight:800;line-height:24px;text-align:center}.jav-jump-toast-title{margin:0 0 4px;font-size:14px;font-weight:700;line-height:1.35}.jav-jump-toast-message{margin:0;color:#cbd5e1;font-size:13px;line-height:1.45}`);
   GM_addStyle(`html[data-laosiji-mobile]{overflow-x:hidden!important}html[data-laosiji-mobile] body{max-width:100%!important;overflow-x:hidden!important}html[data-laosiji-mobile] body[data-laosiji-javlib]{min-width:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu,html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo,html[data-laosiji-mobile] body[data-laosiji-javlib] #content,html[data-laosiji-mobile] body[data-laosiji-javlib] #rightcolumn,html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist,html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist .videos{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu{display:block!important;position:relative!important;z-index:2!important;height:auto!important;min-height:0!important;margin:0!important;padding:8px 12px!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .menutext{float:none!important;width:100%!important;min-width:0!important;height:auto!important;box-sizing:border-box!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .menutext,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar form{position:static!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar form,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar table,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar tbody{display:block!important;width:100%!important;min-width:0!important;height:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar tr{display:flex!important;flex-wrap:wrap!important;align-items:flex-start!important;width:100%!important;min-width:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar td{display:block!important;padding:0!important;line-height:0!important;vertical-align:top!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar td:first-child{position:relative!important;flex:1 1 140px!important;height:36px!important;max-height:36px!important;min-width:0!important;overflow:hidden!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchbox{display:block!important;width:100%!important;min-width:0!important;height:36px!important;min-height:36px!important;max-height:36px!important;margin:0!important;padding:0 9px!important;border:1px solid #94a3b8!important;border-radius:0!important;outline:0!important;background:#fff!important;color:#111827!important;box-shadow:none!important;vertical-align:top!important;box-sizing:border-box!important;appearance:none!important;-webkit-appearance:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchbox:focus{border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchboxmask{position:absolute!important;top:50%!important;right:8px!important;left:8px!important;max-width:none!important;max-height:calc(100% - 8px)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;line-height:1.2!important;pointer-events:none!important;transform:translateY(-50%)!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchbutton{display:block!important;width:auto!important;height:36px!important;min-height:36px!important;margin:0 0 0 6px!important;vertical-align:top!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .advsearch{flex:1 1 100%!important;padding:7px 0 0!important;line-height:1.5!important;white-space:normal!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .menutext{margin-top:8px!important;padding-top:8px!important;border-top:1px solid rgba(148,163,184,.28)!important;line-height:1.8!important;white-space:normal!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo{clear:both!important;position:relative!important;z-index:1!important;height:auto!important;margin:0!important;padding:8px 12px!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo{float:none!important;width:100%!important;text-align:center!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo img{width:min(280px,100%)!important;height:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .topbanner1{display:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .languagemenu{position:static!important;float:none!important;width:100%!important;margin:7px 0 0!important;text-align:center!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #content{margin:0!important;padding:0 12px 16px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #rightcolumn{float:none!important;margin:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist .videos.javlib-card-grid{grid-template-columns:repeat(var(--jav-card-columns,1),minmax(0,1fr))!important;gap:12px!important}html[data-laosiji-mobile] .jav-card-grid{grid-template-columns:repeat(var(--jav-card-columns,1),minmax(0,1fr))!important;gap:10px!important}html[data-laosiji-mobile] #waterfall.javbus-card-grid{grid-template-columns:repeat(var(--jav-card-columns,1),minmax(0,1fr))!important;gap:12px!important}html[data-laosiji-mobile] body .container-fluid{padding-left:12px!important;padding-right:12px!important}html[data-laosiji-mobile] .jav-card,html[data-laosiji-mobile] .jav-card:hover{transform:none!important;transition:none!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;z-index:auto!important}html[data-laosiji-mobile] .jav-card-image,html[data-laosiji-mobile] .jav-card:hover .jav-card-image,html[data-laosiji-mobile] .jav-card-link:hover .jav-card-image{transform:none!important;transition:none!important}html[data-laosiji-mobile] .jav-card-cover,html[data-laosiji-mobile] .jav-card-image{height:auto!important;aspect-ratio:auto!important}html[data-laosiji-mobile] .jav-card-cover{overflow:visible!important}html[data-laosiji-mobile] .jav-card-image{object-fit:contain!important;object-position:center!important}html[data-laosiji-mobile] .jav-card-title,html[data-laosiji-mobile] .javlib-card-headline,html[data-laosiji-mobile] .javdb-card-headline{height:auto!important;min-height:0!important;max-height:none!important}html[data-laosiji-mobile] .jav-flex-container,html[data-laosiji-mobile] .row.movie,html[data-laosiji-mobile] #video_jacket_info tr{display:block!important;width:100%!important;max-width:100%!important;margin:0!important}html[data-laosiji-mobile] .jav-flex-container>.column,html[data-laosiji-mobile] .row.movie>.col-md-9.screencap,html[data-laosiji-mobile] .row.movie>.col-md-3.info,html[data-laosiji-mobile] #video_jacket_info tr>td,html[data-laosiji-mobile] .jav-nong-slot{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;flex:none!important;float:none!important;box-sizing:border-box!important}html[data-laosiji-mobile] .jav-flex-container>.column,html[data-laosiji-mobile] .row.movie>.col-md-9.screencap,html[data-laosiji-mobile] .row.movie>.col-md-3.info,html[data-laosiji-mobile] #video_jacket_info tr>td{margin:0 0 14px!important;padding-left:0!important;padding-right:0!important}html[data-laosiji-mobile] .jav-flex-container .movie-panel-info,html[data-laosiji-mobile] .row.movie .info,html[data-laosiji-mobile] #video_info{width:100%!important;max-width:100%!important;overflow:visible!important;word-break:break-word!important}html[data-laosiji-mobile] .jav-flex-container img,html[data-laosiji-mobile] .row.movie .screencap img,html[data-laosiji-mobile] #video_jacket_img{width:100%!important;height:auto!important;max-width:100%!important;aspect-ratio:auto!important;object-fit:contain!important}html[data-laosiji-mobile] .jav-jump-btn-group{gap:6px!important;align-items:stretch!important}html[data-laosiji-mobile] .jav-jump-btn-group a,html[data-laosiji-mobile] .jav-jump-btn-group button{min-height:40px!important}html[data-laosiji-mobile] .jav-card-quick-actions{gap:4px!important}html[data-laosiji-mobile] .jav-card-quick-btn{width:40px!important;height:40px!important;min-width:40px!important;flex:0 0 40px!important;opacity:1!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-card-quick-btn:hover,html[data-laosiji-mobile] .jav-card-quick-btn:active{transform:none!important;opacity:1!important}html[data-laosiji-mobile] .jav-card-quick-btn .tool-svg{width:21px!important;height:21px!important}html[data-laosiji-mobile] .search-submenu{width:min(176px,calc(100vw - 16px))!important;min-width:0!important;max-width:calc(100vw - 16px)!important;box-sizing:border-box!important;overscroll-behavior:contain!important}html[data-laosiji-mobile] .search-submenu a{min-height:40px!important;display:flex!important;align-items:center!important;padding:8px 10px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-card-magnet-overlay{align-items:flex-end!important;padding:8px!important}html[data-laosiji-mobile] .jav-card-magnet-panel{width:100%!important;max-width:none!important;max-height:calc(100dvh - 8px)!important;border-radius:12px 12px 0 0!important}html[data-laosiji-mobile] .jav-card-magnet-head{min-height:52px!important;padding:8px 12px!important}html[data-laosiji-mobile] .jav-card-magnet-title{flex:1 1 auto!important}html[data-laosiji-mobile] .jav-card-magnet-close{width:44px!important;height:44px!important;flex:0 0 44px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-card-magnet-body{max-height:calc(100dvh - 64px)!important;padding:10px!important;overscroll-behavior:contain!important}html[data-laosiji-mobile] .jav-card-magnet-body>.laosiji-native-magnet-panel[data-laosiji-list-popup="1"]{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}html[data-laosiji-mobile] .jav-card-magnet-body .jav-nong-wrapper{overflow-x:auto!important;overflow-y:hidden!important}html[data-laosiji-mobile] .jav-card-magnet-body #jav-nong-table{min-width:448px!important}html[data-laosiji-mobile] .jav-card-magnet-body #jav-nong-table .nong-head-row>th:first-child,html[data-laosiji-mobile] .jav-card-magnet-body #jav-nong-table tr>td:first-child{width:210px!important}html[data-laosiji-mobile] .preview-toolbar{top:auto!important;right:8px!important;bottom:max(8px,env(safe-area-inset-bottom))!important;left:8px!important;max-width:calc(100vw - 16px)!important;overflow-x:auto!important;justify-content:flex-start!important;gap:6px!important;padding:6px!important;border-radius:12px!important;box-sizing:border-box!important}html[data-laosiji-mobile] .preview-btn{min-height:40px!important;flex:0 0 auto!important;padding:0 10px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-subtitle-overlay,html[data-laosiji-mobile] .jav-subtitle-preview-overlay{align-items:flex-end!important;padding:8px!important}html[data-laosiji-mobile] .jav-subtitle-panel,html[data-laosiji-mobile] .jav-subtitle-preview-panel{width:100%!important;max-width:none!important;max-height:calc(100dvh - 8px)!important;border-radius:12px 12px 0 0!important}html[data-laosiji-mobile] .jav-subtitle-close{width:44px!important;height:44px!important;flex:0 0 44px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-subtitle-row{grid-template-columns:1fr!important;gap:8px!important;padding:12px!important}html[data-laosiji-mobile] .jav-subtitle-actions{justify-content:stretch!important;flex-wrap:wrap!important}html[data-laosiji-mobile] .jav-subtitle-actions button,html[data-laosiji-mobile] .jav-subtitle-preview-download{min-height:40px!important;flex:1 1 120px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-subtitle-pre{max-height:calc(100dvh - 160px)!important;min-height:180px!important}html[data-laosiji-mobile] .trailer-overlay{padding:12px!important}html[data-laosiji-mobile] .trailer-modal{width:100%!important;max-height:100dvh!important;border-radius:10px 10px 0 0!important}html[data-laosiji-mobile] .trailer-screen>video{pointer-events:none!important}html[data-laosiji-mobile] .trailer-screen{touch-action:manipulation!important}html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-header,html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-footer{z-index:4!important;opacity:1!important}html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-header{transform:translateY(0)!important;pointer-events:none!important}html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-footer{transform:translateY(0)!important;pointer-events:auto!important}html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-header,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-footer{opacity:0!important}html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-header,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-header *,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-footer,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-footer *{pointer-events:none!important}html[data-laosiji-mobile] .trailer-header{gap:8px!important;padding:8px 10px 18px!important}html[data-laosiji-mobile] .trailer-title{gap:6px!important;font-size:12px!important}html[data-laosiji-mobile] .trailer-source{max-width:42vw!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}html[data-laosiji-mobile] .jav-player-close{width:36px!important;height:36px!important;line-height:36px!important}html[data-laosiji-mobile] .trailer-screen::before{background:linear-gradient(180deg,rgba(0,0,0,.38),rgba(0,0,0,0) 24%),linear-gradient(0deg,rgba(0,0,0,.42),rgba(0,0,0,0) 28%)!important}html[data-laosiji-mobile] .trailer-footer{left:8px!important;right:8px!important;bottom:8px!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:6px!important;padding:4px 6px!important}html[data-laosiji-mobile] .trailer-control-left,html[data-laosiji-mobile] .trailer-control-right{width:auto!important;gap:6px!important}html[data-laosiji-mobile] .trailer-control-left{min-width:0!important;justify-content:flex-start!important}html[data-laosiji-mobile] .trailer-control-right{flex:0 0 auto!important;justify-content:flex-end!important}html[data-laosiji-mobile] .trailer-control-btn,html[data-laosiji-mobile] .trailer-volume-wrap{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important}html[data-laosiji-mobile] .trailer-quality-select{width:70px!important;min-width:70px!important;max-width:70px!important;height:34px!important;padding:0 6px!important;font-size:11px!important}html[data-laosiji-mobile] .trailer-time{display:none!important}html[data-laosiji-mobile] .trailer-progress{min-width:0!important;height:8px!important;flex:1 1 0!important}html[data-laosiji-mobile] .trailer-control-btn,html[data-laosiji-mobile] .trailer-quality-select,html[data-laosiji-mobile] .trailer-progress,html[data-laosiji-mobile] .trailer-volume-slider{touch-action:manipulation!important}html[data-laosiji-mobile] .trailer-volume-popover{left:50%!important;bottom:calc(100%+8px)!important;width:138px!important;height:38px!important;padding:0 12px!important;border-radius:20px!important}html[data-laosiji-mobile] .trailer-volume-rail{top:50%!important;right:12px!important;bottom:auto!important;left:12px!important;width:auto!important;height:4px!important;transform:translateY(-50%)!important}html[data-laosiji-mobile] .trailer-volume-fill{top:0!important;right:auto!important;bottom:0!important;width:var(--volume-percent,35%)!important;height:auto!important}html[data-laosiji-mobile] .trailer-volume-thumb{top:50%!important;bottom:auto!important;left:var(--volume-percent,35%)!important;transform:translate(-50%,-50%)!important}html[data-laosiji-mobile] .trailer-volume-slider{top:0!important;bottom:auto!important;left:0!important;width:100%!important;height:100%!important;transform:none!important;writing-mode:horizontal-tb!important;direction:ltr!important}html[data-laosiji-mobile] .trailer-volume-wrap:focus-within .trailer-volume-popover{opacity:1!important;pointer-events:auto!important;transform:translate(-50%,0)!important}html[data-laosiji-mobile] .jav-stills-viewer-close,html[data-laosiji-mobile] .jav-stills-viewer-nav{width:44px!important;min-width:44px!important;height:56px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-detail-preview-wrap,html[data-laosiji-mobile] .javlib-nong-slot.has-detail-preview-inline>.jav-detail-preview-wrap{width:100%!important;max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important}html[data-laosiji-mobile] .jav-detail-preview-inline,html[data-laosiji-mobile] .javlib-nong-slot.has-detail-preview-inline .jav-detail-preview-inline{width:100%!important;max-width:100%!important;height:auto!important;max-height:78vw!important}@media (orientation:landscape){html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist .videos.javlib-card-grid,html[data-laosiji-mobile] .jav-card-grid,html[data-laosiji-mobile] #waterfall.javbus-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}}@media (max-width:720px){.jav-jump-toast{top:18px;width:calc(100vw - 24px);padding:13px 14px}}`);
   const Utils = {
@@ -5939,17 +5450,12 @@
       return { r: parseInt(full.slice(0, 2), 16), g: parseInt(full.slice(2, 4), 16), b: parseInt(full.slice(4, 6), 16) };
     },
     mixColor(color, target = '#ffffff', weight = 0.12) {
-      const from = Utils.hexToRgb(color);
-      const to = Utils.hexToRgb(target);
-      const mix = key => Math.round(from[key] * weight + to[key] * (1 - weight));
+      const from = Utils.hexToRgb(color); const to = Utils.hexToRgb(target); const mix = key => Math.round(from[key] * weight + to[key] * (1 - weight));
       return `rgb(${mix('r')}, ${mix('g')}, ${mix('b')})`;
     },
     getModernBtnStyle(color) {
-      const accent = color || '#64748b';
-      const bg = Utils.mixColor(accent, '#ffffff', 0.10);
-      const border = Utils.mixColor(accent, '#dbe3ef', 0.28);
-      const text = Utils.mixColor(accent, '#111827', 0.72);
-      const hoverBg = Utils.mixColor(accent, '#ffffff', 0.16);
+      const accent = color || '#64748b'; const bg = Utils.mixColor(accent, '#ffffff', 0.10); const border = Utils.mixColor(accent, '#dbe3ef', 0.28);
+      const text = Utils.mixColor(accent, '#111827', 0.72); const hoverBg = Utils.mixColor(accent, '#ffffff', 0.16);
       return [
         'height:30px',
         'padding:0 11px',
@@ -5995,14 +5501,11 @@
       btn.style.cssText = Utils.getModernBtnStyle(color);
       if (useCapture) {
         btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handler();
+          e.preventDefault(); e.stopPropagation(); handler();
         }, true);
       } else {
         btn.onclick = (e) => {
-          e.preventDefault();
-          handler();
+          e.preventDefault(); handler();
         };
       }
       return btn;
@@ -6024,8 +5527,7 @@
       const icon = document.createElement('div');
       icon.className = 'jav-jump-toast-icon';
       icon.textContent = '!';
-      const body = document.createElement('div');
-      const titleEl = document.createElement('p');
+      const body = document.createElement('div'); const titleEl = document.createElement('p');
       titleEl.className = 'jav-jump-toast-title';
       titleEl.textContent = title;
       const messageEl = document.createElement('p');
@@ -6033,14 +5535,9 @@
       messageEl.textContent = message;
       body.appendChild(titleEl);
       if (message) body.appendChild(messageEl);
-      toast.appendChild(icon);
-      toast.appendChild(body);
-      document.body.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add('show'));
+      toast.appendChild(icon); toast.appendChild(body); document.body.appendChild(toast); requestAnimationFrame(() => toast.classList.add('show'));
       setTimeout(() => {
-        toast.classList.remove('show');
-        toast.classList.add('hide');
-        setTimeout(() => toast.remove(), 220);
+        toast.classList.remove('show'); toast.classList.add('hide'); setTimeout(() => toast.remove(), 220);
       }, duration);
     },
     showOverlay(imgUrl, code, source = null) { return ImagePreview.open(imgUrl, code, source); },
@@ -6061,8 +5558,7 @@
   };
   const ImagePreview = {
     open(imgUrl, code, source = null) {
-      const originalHtmlOverflow = document.documentElement.style.overflow;
-      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow; const originalBodyOverflow = document.body.style.overflow;
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
       const container = document.createElement('div');
@@ -6070,8 +5566,7 @@
       const img = document.createElement('img');
       img.className = `preview-img${MobilePolicy.isMobile() ? '' : ' zoomed'}`;
       img.onclick = (e) => {
-        e.stopPropagation();
-        img.classList.toggle('zoomed');
+        e.stopPropagation(); img.classList.toggle('zoomed');
       };
       let currentBlobUrl = null;
       const loadImg = (url, src) => {
@@ -6105,8 +5600,7 @@
         return btn;
       };
       const setActiveSource = (activeSource) => {
-        javfreeBtn.classList.toggle('active', activeSource === 'javfree');
-        projectjavBtn.classList.toggle('active', activeSource === 'projectjav');
+        javfreeBtn.classList.toggle('active', activeSource === 'javfree'); projectjavBtn.classList.toggle('active', activeSource === 'projectjav');
         javstoreBtn.classList.toggle('active', activeSource === 'javstore');
       };
       const javfreeBtn = createButton('javfree', '🟢', 'javfree', async (e) => {
@@ -6128,8 +5622,7 @@
         else alert('javstore 未找到预览图');
       });
       const newWindowBtn = createButton('新窗口', '🌐', 'action', (e) => {
-        e.stopPropagation();
-        window.open(img.src);
+        e.stopPropagation(); window.open(img.src);
       });
       const downloadBtn = createButton('下载', '⬇️', 'action', (e) => {
         e.stopPropagation();
@@ -6138,16 +5631,11 @@
       if (source === 'javfree') javfreeBtn.classList.add('active');
       else if (source === 'projectjav') projectjavBtn.classList.add('active');
       else if (source === 'javstore') javstoreBtn.classList.add('active');
-      toolbar.appendChild(javfreeBtn);
-      toolbar.appendChild(projectjavBtn);
-      toolbar.appendChild(javstoreBtn);
-      toolbar.appendChild(newWindowBtn);
-      toolbar.appendChild(downloadBtn);
-      container.appendChild(img);
+      toolbar.appendChild(javfreeBtn); toolbar.appendChild(projectjavBtn); toolbar.appendChild(javstoreBtn); toolbar.appendChild(newWindowBtn);
+      toolbar.appendChild(downloadBtn); container.appendChild(img);
       const closeOverlay = () => {
         if (container.parentNode) {
-          container.remove();
-          toolbar.remove();
+          container.remove(); toolbar.remove();
           document.documentElement.style.overflow = originalHtmlOverflow;
           document.body.style.overflow = originalBodyOverflow;
           if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
@@ -6157,9 +5645,7 @@
       const escHandler = (e) => {
         if (e.key === 'Escape') { closeOverlay(); document.removeEventListener('keydown', escHandler); }
       };
-      document.addEventListener('keydown', escHandler);
-      document.body.appendChild(container);
-      document.body.appendChild(toolbar);
+      document.addEventListener('keydown', escHandler); document.body.appendChild(container); document.body.appendChild(toolbar);
     },
   };
   function createTrailerHlsRuntime() {
@@ -6169,8 +5655,7 @@
       return HlsClass?.isSupported?.() ? HlsClass : null;
     };
     const binaryTextToArrayBuffer = (value) => {
-      const text = String(value || '');
-      const bytes = new Uint8Array(text.length);
+      const text = String(value || ''); const bytes = new Uint8Array(text.length);
       for (let index = 0; index < text.length; index += 1) { bytes[index] = text.charCodeAt(index) & 0xff; }
       return bytes.buffer;
     };
@@ -6265,10 +5750,8 @@
       load(context, config, callbacks) {
         this.context = context;
         this.callbacks = callbacks;
-        const requestUrl = context.url;
-        const wantsArrayBuffer = context.responseType === 'arraybuffer' || /\.(?:ts|m4s|mp4|key)(?:[?#]|$)/i.test(requestUrl);
-        const startedAt = performance.now();
-        const stats = this.stats = this.createStats();
+        const requestUrl = context.url; const wantsArrayBuffer = context.responseType === 'arraybuffer' || /\.(?:ts|m4s|mp4|key)(?:[?#]|$)/i.test(requestUrl);
+        const startedAt = performance.now(); const stats = this.stats = this.createStats();
         stats.trequest = startedAt;
         stats.tfirst = startedAt;
         stats.tload = startedAt;
@@ -6295,8 +5778,7 @@
             stats.loading.first = stats.loading.first || stats.tload;
             stats.loading.end = stats.tload;
             if (status < 200 || status >= 300) { callbacks.onError?.(response, context, null, stats); return; }
-            const responseText = r.responseText ?? r.response ?? '';
-            const data = wantsArrayBuffer ? binaryTextToArrayBuffer(responseText) : responseText;
+            const responseText = r.responseText ?? r.response ?? ''; const data = wantsArrayBuffer ? binaryTextToArrayBuffer(responseText) : responseText;
             stats.loaded = data?.byteLength || data?.length || stats.loaded || 0;
             stats.total = stats.total || stats.loaded;
             stats.bwEstimate = stats.loading.end > stats.loading.first ? Math.round((stats.total * 8000) / (stats.loading.end - stats.loading.first)) : 0;
@@ -6324,13 +5806,11 @@
     const title = document.createElement('div');
     title.className = 'trailer-title';
     title.innerHTML =`<span>🎞️</span><span class="trailer-code"> ${code} </span><span class="trailer-source"> ${source} </span>`;
-    const sourceBadge = title.querySelector('.trailer-source');
-    const closeBtn = document.createElement('button');
+    const sourceBadge = title.querySelector('.trailer-source'); const closeBtn = document.createElement('button');
     closeBtn.className = 'jav-player-close';
     closeBtn.type = 'button';
     closeBtn.textContent = '×';
-    header.appendChild(title);
-    header.appendChild(closeBtn);
+    header.appendChild(title); header.appendChild(closeBtn);
     const screen = document.createElement('div');
     screen.className = 'trailer-screen';
     if (isIframe) screen.classList.add('is-iframe');
@@ -6366,12 +5846,8 @@
     volumeSlider.step = '1';
     volumeSlider.value = '35';
     volumeSlider.title = '音量';
-    volumeRail.appendChild(volumeFill);
-    volumeRail.appendChild(volumeThumb);
-    volumePopover.appendChild(volumeRail);
-    volumePopover.appendChild(volumeSlider);
-    volumeWrap.appendChild(volumeBtn);
-    volumeWrap.appendChild(volumePopover);
+    volumeRail.appendChild(volumeFill); volumeRail.appendChild(volumeThumb); volumePopover.appendChild(volumeRail); volumePopover.appendChild(volumeSlider);
+    volumeWrap.appendChild(volumeBtn); volumeWrap.appendChild(volumePopover);
     const currentTimeText = document.createElement('span');
     currentTimeText.className = 'trailer-time';
     currentTimeText.textContent = '00:00';
@@ -6401,14 +5877,10 @@
     getVideo, isSeekingByProgress, getFooter, screen, playBtn, volumeBtn,
     volumeSlider, volumeRail, volumeIndicator, currentTimeText, durationText, progress,
   }) {
-    let volumeIndicatorTimer = null;
-    let controlsHideTimer = null;
+    let volumeIndicatorTimer = null; let controlsHideTimer = null;
     const formatTime = (seconds) => {
       if (!Number.isFinite(seconds) || seconds < 0) return '00:00';
-      const total = Math.floor(seconds);
-      const h = Math.floor(total / 3600);
-      const m = Math.floor((total % 3600) / 60);
-      const s = total % 60;
+      const total = Math.floor(seconds); const h = Math.floor(total / 3600); const m = Math.floor((total % 3600) / 60); const s = total % 60;
       return h
         ?`${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`                :`${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
@@ -6426,19 +5898,16 @@
       }
     };
     const keepTrailerControlsVisible = () => {
-      screen.classList.remove('is-controls-hidden');
-      clearTimeout(controlsHideTimer);
+      screen.classList.remove('is-controls-hidden'); clearTimeout(controlsHideTimer);
     };
     const hideTrailerControls = () => {
-      clearTimeout(controlsHideTimer);
-      screen.classList.add('is-controls-hidden');
+      clearTimeout(controlsHideTimer); screen.classList.add('is-controls-hidden');
     };
     const showVolumeIndicator = () => {
       const video = getVideo();
       if (!video) return;
       volumeIndicator.textContent =`${Math.round(video.volume * 100)}%`;
-      volumeIndicator.classList.add('is-visible');
-      clearTimeout(volumeIndicatorTimer);
+      volumeIndicator.classList.add('is-visible'); clearTimeout(volumeIndicatorTimer);
       volumeIndicatorTimer = setTimeout(() => {
         volumeIndicator.classList.remove('is-visible');
       }, 820);
@@ -6464,8 +5933,7 @@
       else screen.requestFullscreen?.();
     };
     const destroyTrailerControls = () => {
-      clearTimeout(volumeIndicatorTimer);
-      clearTimeout(controlsHideTimer);
+      clearTimeout(volumeIndicatorTimer); clearTimeout(controlsHideTimer);
     };
     return {
       formatTime, syncTrailerControls, keepTrailerControlsVisible, showVolumeIndicator,
@@ -6477,8 +5945,7 @@
     getFallbackUrls, setFallbackIndex, writePlaybackTime, destroyActiveHls,
     resetPlaybackReady, attachVideoSrc, sourceLink,
   }) => {
-    const qualityBar = document.createElement('div');
-    const qualityMap = qualities && typeof qualities === 'object' ? qualities : null;
+    const qualityBar = document.createElement('div'); const qualityMap = qualities && typeof qualities === 'object' ? qualities : null;
     if (!qualityMap || Object.keys(qualityMap).length <= 1) return qualityBar;
     const qualityOrder = ['4k', 'hhb', 'hmb', 'mhb', 'mmb', 'dm', 'sm'];
     const qualityLabels = { '4k': '4K', hhb: '1080P', hmb: '720P', mhb: '576P', mmb: '432P' };
@@ -6488,21 +5955,16 @@
     select.className = 'trailer-quality-select';
     sortedKeys.forEach(key => { select.add(new Option(qualityLabels[key] || key, key)); });
     select.addEventListener('change', async () => {
-      const key = select.value;
-      const video = getVideo();
+      const key = select.value; const video = getVideo();
       if (!video || !qualityMap[key] || getActiveQuality() === key) return;
-      const currentTime = video.currentTime || 0;
-      const shouldPlay = !video.paused;
-      writePlaybackTime(currentTime);
-      destroyActiveHls();
-      resetPlaybackReady();
+      const currentTime = video.currentTime || 0; const shouldPlay = !video.paused;
+      writePlaybackTime(currentTime); destroyActiveHls(); resetPlaybackReady();
       video.dataset.playbackRestored = '1';
       setFallbackIndex(Math.max(0, getFallbackUrls().indexOf(qualityMap[key])));
       video.currentTime = currentTime;
       setActiveQuality(key, qualityMap[key]);
       sourceLink.href = qualityMap[key];
-      attachVideoSrc(qualityMap[key]);
-      video.load();
+      attachVideoSrc(qualityMap[key]); video.load();
       video.currentTime = currentTime;
       if (shouldPlay) await video.play().catch(() => {});
     });
@@ -6515,8 +5977,7 @@
   const TrailerPlayer = {
     open({ code, url, type = 'video', source = '预告片', qualities = null, quality = null, urls = null, fallbackResolver = null, javxySource = null }) {
       document.querySelector('.trailer-overlay')?.remove();
-      const isIframe = type === 'iframe';
-      const originalHtmlOverflow = document.documentElement.style.overflow;
+      const isIframe = type === 'iframe'; const originalHtmlOverflow = document.documentElement.style.overflow;
       const originalBodyOverflow = document.body.style.overflow;
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
@@ -6525,22 +5986,10 @@
         fallbackStatus, volumeIndicator, playBtn, volumeBtn, volumeWrap,
         volumeRail, volumeSlider, currentTimeText, durationText, progress, fullscreenBtn,
       } = createTrailerPlayerView({ code, source, isIframe });
-      let video = null;
-      let activeUrl = url;
-      let activeType = type;
-      let activeSource = source;
-      let activeJavxySource = javxySource || source;
-      let activeQuality = quality;
-      let fallbackStatusTimer = null;
-      let playbackReadyTimer = null;
-      let sourceFallbackInProgress = false;
-      let overlayClosed = false;
-      let playbackStarted = false;
-      let qualityBar = null;
-      let qualityBarMount = null;
-      const failedSources = new Set();
-      let seekingByProgress = false;
-      let footer = null;
+      let video = null; let activeUrl = url; let activeType = type; let activeSource = source; let activeJavxySource = javxySource || source;
+      let activeQuality = quality; let fallbackStatusTimer = null; let playbackReadyTimer = null; let sourceFallbackInProgress = false;
+      let overlayClosed = false; let playbackStarted = false; let qualityBar = null; let qualityBarMount = null; const failedSources = new Set();
+      let seekingByProgress = false; let footer = null;
       let removeMobileTapToggle = () => {};
       const {
         formatTime, syncTrailerControls, keepTrailerControlsVisible, showVolumeIndicator,
@@ -6591,8 +6040,7 @@
       };
       const markPlaybackReady = () => {
         playbackStarted = true;
-        clearTimeout(playbackReadyTimer);
-        setFallbackStatus('', false);
+        clearTimeout(playbackReadyTimer); setFallbackStatus('', false);
       };
       const destroyActiveHls = () => {
         if (video?._hls) {
@@ -6664,9 +6112,7 @@
           fallbackIndex += 1;
           activeUrl = fallbackUrls[fallbackIndex];
           sourceLink.href = activeUrl;
-          destroyActiveHls();
-          setFallbackStatus('当前画质加载失败，正在切换备用画质...');
-          attachVideoSrc(activeUrl);
+          destroyActiveHls(); setFallbackStatus('当前画质加载失败，正在切换备用画质...'); attachVideoSrc(activeUrl);
           video.load?.();
           video.play().catch(() => {});
           schedulePlaybackGuard(reason);
@@ -6689,8 +6135,7 @@
           video.play().catch(() => {});
           schedulePlaybackGuard('fallback');
         } catch (error) {
-          errorLog('TrailerResolver 播放失败回落异常', error);
-          setFallbackStatus('备用来源切换失败', true);
+          errorLog('TrailerResolver 播放失败回落异常', error); setFallbackStatus('备用来源切换失败', true);
         } finally {
           sourceFallbackInProgress = false;
         }
@@ -6749,8 +6194,7 @@
           if (overlayClosed) return;
           handlePlaybackFailure('hls');
         });
-        hls.loadSource(src);
-        hls.attachMedia(video);
+        hls.loadSource(src); hls.attachMedia(video);
         video._hls = hls;
       };
       const attachVideoSrc = (src) => {
@@ -6781,60 +6225,47 @@
         video.autoplay = true;
         video.loop = true;
         video.playsInline = true;
-        const savedVolume = Number(GM_getValue('trailer_volume', 0.35));
-        const savedMuted = GM_getValue('trailer_muted', false);
+        const savedVolume = Number(GM_getValue('trailer_volume', 0.35)); const savedMuted = GM_getValue('trailer_muted', false);
         video.volume = Number.isFinite(savedVolume) ? Math.min(1, Math.max(0, savedVolume)) : 0.35;
         video.muted = Boolean(savedMuted);
         initTrailerVideo(fallbackUrls[fallbackIndex] || url);
         video.preload = 'auto';
         video.addEventListener('volumechange', () => {
-          GM_setValue('trailer_volume', video.volume);
-          GM_setValue('trailer_muted', video.muted);
-          syncTrailerControls();
+          GM_setValue('trailer_volume', video.volume); GM_setValue('trailer_muted', video.muted); syncTrailerControls();
         });
         video.addEventListener('play', () => {
-          syncTrailerControls();
-          scheduleHideTrailerControls();
+          syncTrailerControls(); scheduleHideTrailerControls();
         });
         video.addEventListener('playing', markPlaybackReady);
         video.addEventListener('pause', () => {
-          syncTrailerControls();
-          keepTrailerControlsVisible();
+          syncTrailerControls(); keepTrailerControlsVisible();
         });
         video.addEventListener('timeupdate', () => {
           if ((video.currentTime || 0) > 0.15) markPlaybackReady();
-          syncTrailerControls();
-          writePlaybackTime();
+          syncTrailerControls(); writePlaybackTime();
         });
         video.addEventListener('durationchange', () => {
-          syncTrailerControls();
-          restorePlaybackTime();
+          syncTrailerControls(); restorePlaybackTime();
         });
         video.addEventListener('loadedmetadata', () => {
-          syncTrailerControls();
-          restorePlaybackTime();
+          syncTrailerControls(); restorePlaybackTime();
         });
         video.addEventListener('ended', () => clearPlaybackTime());
         video.addEventListener('error', () => { handlePlaybackFailure('video'); });
-        screen.appendChild(video);
-        screen.appendChild(fallbackStatus);
-        screen.appendChild(volumeIndicator);
+        screen.appendChild(video); screen.appendChild(fallbackStatus); screen.appendChild(volumeIndicator);
         playBtn.addEventListener('click', e => {
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault(); e.stopPropagation();
           if (!video) return;
           if (video.paused) video.play().catch(() => {});
           else video.pause();
           syncTrailerControls();
         });
         volumeBtn.addEventListener('click', e => {
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault(); e.stopPropagation();
           if (!video) return;
           video.muted = !video.muted;
           if (!video.muted && video.volume <= 0) video.volume = 0.35;
-          showVolumeIndicator();
-          syncTrailerControls();
+          showVolumeIndicator(); syncTrailerControls();
         });
         volumeSlider.addEventListener('input', e => {
           e.stopPropagation();
@@ -6843,8 +6274,7 @@
           const nextVolume = Math.min(1, Math.max(0, Number(volumeSlider.value) / 100));
           video.volume = nextVolume;
           video.muted = nextVolume <= 0;
-          showVolumeIndicator();
-          syncTrailerControls();
+          showVolumeIndicator(); syncTrailerControls();
         });
         volumeSlider.addEventListener('change', scheduleHideTrailerControls);
         video.addEventListener('click', e => {
@@ -6869,15 +6299,11 @@
           syncTrailerControls();
         });
         fullscreenBtn.addEventListener('click', e => {
-          e.preventDefault();
-          e.stopPropagation();
-          fullscreenBtn.blur();
-          toggleTrailerFullscreen();
+          e.preventDefault(); e.stopPropagation(); fullscreenBtn.blur(); toggleTrailerFullscreen();
         });
         setTimeout(() => {
           video.play().catch(() => {});
-          syncTrailerControls();
-          scheduleHideTrailerControls();
+          syncTrailerControls(); scheduleHideTrailerControls();
         }, 120);
       }
       qualityBar = isIframe ? document.createElement('div') : createTrailerQualitySelector({
@@ -6902,21 +6328,14 @@
       const footerLeft = document.createElement('div');
       footerLeft.className = 'trailer-control-left';
       if (!isIframe) {
-        footerLeft.appendChild(playBtn);
-        footerLeft.appendChild(volumeWrap);
-        footerLeft.appendChild(currentTimeText);
-        footerLeft.appendChild(progress);
+        footerLeft.appendChild(playBtn); footerLeft.appendChild(volumeWrap); footerLeft.appendChild(currentTimeText); footerLeft.appendChild(progress);
         footerLeft.appendChild(durationText);
       }
       const footerRight = document.createElement('div');
       footerRight.className = 'trailer-control-right';
       qualityBarMount = footerRight;
-      footerRight.appendChild(qualityBar);
-      footer.appendChild(footerLeft);
-      footerRight.appendChild(fullscreenBtn);
-      footer.appendChild(footerRight);
-      modal.appendChild(screen);
-      screen.appendChild(header);
+      footerRight.appendChild(qualityBar); footer.appendChild(footerLeft); footerRight.appendChild(fullscreenBtn); footer.appendChild(footerRight);
+      modal.appendChild(screen); screen.appendChild(header);
       if (!isIframe) screen.appendChild(footer);
       overlay.appendChild(modal);
       if (!isIframe) {
@@ -6945,8 +6364,7 @@
       }
       const closeOverlay = (event = null) => {
         if (event) {
-          event.preventDefault();
-          event.stopPropagation();
+          event.preventDefault(); event.stopPropagation();
           event.stopImmediatePropagation?.();
         }
         overlayClosed = true;
@@ -6957,21 +6375,14 @@
             try { video._hls.destroy(); } catch {}
             video._hls = null;
           }
-          video.pause();
-          video.removeAttribute('src');
-          video.load();
+          video.pause(); video.removeAttribute('src'); video.load();
         }
         overlay.remove();
         document.documentElement.style.overflow = originalHtmlOverflow;
         document.body.style.overflow = originalBodyOverflow;
-        window.removeEventListener('pointerdown', overlayCloseGuard, true);
-        window.removeEventListener('mousedown', overlayCloseGuard, true);
-        window.removeEventListener('click', overlayCloseGuard, true);
-        document.removeEventListener('keydown', escHandler, true);
-        removeMobileTapToggle();
-        destroyTrailerControls();
-        clearTimeout(fallbackStatusTimer);
-        clearTimeout(playbackReadyTimer);
+        window.removeEventListener('pointerdown', overlayCloseGuard, true); window.removeEventListener('mousedown', overlayCloseGuard, true);
+        window.removeEventListener('click', overlayCloseGuard, true); document.removeEventListener('keydown', escHandler, true); removeMobileTapToggle();
+        destroyTrailerControls(); clearTimeout(fallbackStatusTimer); clearTimeout(playbackReadyTimer);
       };
       const overlayCloseGuard = (event) => {
         if (!overlay.contains(event.target)) return;
@@ -6984,24 +6395,20 @@
       const escHandler = (e) => {
         if (e.key === 'Escape') { closeOverlay(); return; }
         if (isIframe) return;
-        const key = e.key;
-        const shouldCapture = [' ', 'Spacebar', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key);
+        const key = e.key; const shouldCapture = [' ', 'Spacebar', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key);
         if (shouldCapture) {
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault(); e.stopPropagation();
           e.stopImmediatePropagation?.();
         }
         if (key === 'Enter') {
-          toggleTrailerFullscreen();
-          showTrailerControls();
+          toggleTrailerFullscreen(); showTrailerControls();
           return;
         }
         if (!video) return;
         if (key === ' ' || key === 'Spacebar') {
           if (video.paused) video.play().catch(() => {});
           else video.pause();
-          syncTrailerControls();
-          showTrailerControls();
+          syncTrailerControls(); showTrailerControls();
         } else if (key === 'ArrowLeft') {
           video.currentTime = Math.max(0, (video.currentTime || 0) - 2);
         } else if (key === 'ArrowRight') {
@@ -7018,11 +6425,8 @@
       overlay.addEventListener('click', e => {
         if (e.target === overlay) closeOverlay(e);
       }, true);
-      window.addEventListener('pointerdown', overlayCloseGuard, true);
-      window.addEventListener('mousedown', overlayCloseGuard, true);
-      window.addEventListener('click', overlayCloseGuard, true);
-      document.addEventListener('keydown', escHandler, true);
-      document.body.appendChild(overlay);
+      window.addEventListener('pointerdown', overlayCloseGuard, true); window.addEventListener('mousedown', overlayCloseGuard, true);
+      window.addEventListener('click', overlayCloseGuard, true); document.addEventListener('keydown', escHandler, true); document.body.appendChild(overlay);
     },
   };
   const Thumbnail = {
@@ -7036,9 +6440,7 @@
       return fc2 ? fc2[1] : text;
     },
     sourceOrder() {
-      const savedOrder = Settings.getSourceOrder();
-      const ordered = Array.isArray(savedOrder) ? savedOrder : [];
-      const seen = new Set();
+      const savedOrder = Settings.getSourceOrder(); const ordered = Array.isArray(savedOrder) ? savedOrder : []; const seen = new Set();
       return [...ordered, ...this.sources].filter(src => {
         if (seen.has(src) || typeof this[src] !== 'function') return false;
         seen.add(src);
@@ -7055,8 +6457,7 @@
     },
     normalizeForCompare(text) { return String(text || '').toLowerCase().replace(/[^a-z0-9]/g, ''); },
     isCodeMatched(text, code) {
-      const normalizedText = this.normalizeForCompare(text);
-      const normalizedCode = this.normalizeForCompare(code);
+      const normalizedText = this.normalizeForCompare(text); const normalizedCode = this.normalizeForCompare(code);
       return !!normalizedCode && normalizedText.includes(normalizedCode);
     },
     isDetailMatched(doc, url, code) {
@@ -7072,8 +6473,7 @@
       return absolute.replace(/^http:/, 'https:');
     },
     isJavfreePreviewImage(url, code) {
-      const cleanUrl = String(url || '').split('?')[0];
-      const lookupCode = this.lookupCode(code);
+      const cleanUrl = String(url || '').split('?')[0]; const lookupCode = this.lookupCode(code);
       const isFc2Numeric = /^\d{6,9}$/.test(lookupCode);
       const fc2ShotPattern = isFc2Numeric
         ? new RegExp(`${lookupCode}_\\d+\\.(?:jpe?g|png|webp)$`, 'i')
@@ -7090,8 +6490,7 @@
     },
     async javfree(code) {
       code = this.lookupCode(code);
-      const cacheKey = this.cacheKey(code);
-      const cacheEnabled = Settings.getPreviewCacheEnabled();
+      const cacheKey = this.cacheKey(code); const cacheEnabled = Settings.getPreviewCacheEnabled();
       if (cacheEnabled) {
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) return cached;
@@ -7101,8 +6500,7 @@
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const link = [...doc.querySelectorAll('.entry-title>a')] .find(a => this.isCodeMatched([a.href, a.textContent].join(' '), code))?.href;
         if (!link) return null;
-        const dHtml = await Utils.request(link);
-        const dDoc = new DOMParser().parseFromString(dHtml, 'text/html');
+        const dHtml = await Utils.request(link); const dDoc = new DOMParser().parseFromString(dHtml, 'text/html');
         if (!this.isDetailMatched(dDoc, link, code)) return null;
         const url = this.selectJavfreePreviewUrl(dDoc, link, code);
         if (url && cacheEnabled) { sessionStorage.setItem(cacheKey, url); return url; }
@@ -7116,10 +6514,8 @@
         const normalizedCode = code.replace(/^fc2-?/i, '').replace(/-/g, '').toLowerCase();
         debugLog(`javstore: searching for code=${code}, normalized=${normalizedCode}`);
         const searchUrl =`https://javstore.net/search?q=${encodeURIComponent(code)}`;
-        const searchHtml = await Utils.request(searchUrl);
-        const searchDoc = new DOMParser().parseFromString(searchHtml, 'text/html');
-        const candidateLinks = searchDoc.querySelectorAll('a[href*="/"]');
-        const detailUrls = [];
+        const searchHtml = await Utils.request(searchUrl); const searchDoc = new DOMParser().parseFromString(searchHtml, 'text/html');
+        const candidateLinks = searchDoc.querySelectorAll('a[href*="/"]'); const detailUrls = [];
         for (const link of candidateLinks) {
           const href = link.getAttribute('href');
           if (!href) continue;
@@ -7127,8 +6523,7 @@
           const urlObj = new URL(href, searchUrl);
           if (!/javstore\.net$/i.test(urlObj.hostname)) continue;
           if (/^\/search(?:[/?#]|$)/i.test(urlObj.pathname)) continue;
-          const fullUrl = urlObj.href;
-          const pathLastPart = decodeURIComponent(urlObj.pathname.split('/').pop() || '');
+          const fullUrl = urlObj.href; const pathLastPart = decodeURIComponent(urlObj.pathname.split('/').pop() || '');
           const normalizedPath = pathLastPart.toLowerCase().replace(/-/g, '');
           const looksLikeDetail = /\.html$/i.test(urlObj.pathname) || /^\/\d+[-/]/.test(urlObj.pathname);
           if (looksLikeDetail && normalizedPath.includes(normalizedCode) && !detailUrls.includes(fullUrl)) {
@@ -7155,8 +6550,7 @@
     },
     async _extractImgFromDetail(detailUrl, code) {
       try {
-        const detailHtml = await Utils.request(detailUrl);
-        const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
+        const detailHtml = await Utils.request(detailUrl); const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
         if (!this.isDetailMatched(detailDoc, detailUrl, code)) { debugLog('javstore: 详情页番号不匹配，跳过', detailUrl); return null; }
         for (const link of detailDoc.querySelectorAll('a')) {
           if (link.textContent.includes('CLICK HERE')) {
@@ -7200,9 +6594,7 @@
         });
         const searchUrl =`https://projectjav.com/?searchTerm=${encodeURIComponent(code)}`;
         debugLog('[projectjav] 搜索页:', searchUrl);
-        const searchRes = await request(searchUrl);
-        const searchHtml = searchRes.responseText || '';
-        const finalSearchUrl = searchRes.finalUrl || searchUrl;
+        const searchRes = await request(searchUrl); const searchHtml = searchRes.responseText || ''; const finalSearchUrl = searchRes.finalUrl || searchUrl;
         const searchDoc = new DOMParser().parseFromString(searchHtml, 'text/html');
         let detailUrl = /\/movie\//i.test(new URL(finalSearchUrl).pathname)
           ? finalSearchUrl : '';
@@ -7212,17 +6604,14 @@
           allMovieLinks.slice(0, 5).forEach(a => debugLog('  ', a.getAttribute('href')));
           const firstLink = allMovieLinks[0]?.getAttribute('href') || '';
           if (!firstLink) {
-            debugLog('[projectjav] 无结果，页面标题:', searchDoc.title);
-            debugLog('[projectjav] 页面前800字符:', searchHtml.slice(0, 800));
+            debugLog('[projectjav] 无结果，页面标题:', searchDoc.title); debugLog('[projectjav] 页面前800字符:', searchHtml.slice(0, 800));
             return null;
           }
           detailUrl = firstLink.startsWith('http') ? firstLink :`https://projectjav.com${firstLink}`;
         }
         debugLog('[projectjav] 详情页:', detailUrl);
-        const detailRes = finalSearchUrl === detailUrl ? searchRes : await request(detailUrl);
-        const detailHtml = detailRes.responseText || '';
-        const finalDetailUrl = detailRes.finalUrl || detailUrl;
-        const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
+        const detailRes = finalSearchUrl === detailUrl ? searchRes : await request(detailUrl); const detailHtml = detailRes.responseText || '';
+        const finalDetailUrl = detailRes.finalUrl || detailUrl; const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
         const screenshotLink = [...detailDoc.querySelectorAll('.col-md-12.thumbnail a[data-featherlight="image"], .thumbnail a[data-featherlight="image"]')]
           .find(a => this.isCodeMatched([
             a.outerHTML,
@@ -7231,8 +6620,7 @@
           ].join(' '), code));
         debugLog('[projectjav] screenshotLink matched:', !!screenshotLink, 'href:', screenshotLink?.getAttribute('href'));
         if (screenshotLink) {
-          const thumbImg = screenshotLink.querySelector('img');
-          const href = screenshotLink.getAttribute('href') || '';
+          const thumbImg = screenshotLink.querySelector('img'); const href = screenshotLink.getAttribute('href') || '';
           if (href) return this.normalizePreviewUrl(href, finalDetailUrl);
           if (thumbImg) {
             const src = (thumbImg.getAttribute('src') || '').replace(/\?.*$/, '');
@@ -7247,8 +6635,7 @@
       }
     },
     async get(code) {
-      const cacheEnabled = Settings.getPreviewCacheEnabled();
-      const cacheKey = this.cacheKey(code);
+      const cacheEnabled = Settings.getPreviewCacheEnabled(); const cacheKey = this.cacheKey(code);
       if (cacheEnabled) {
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) return { url: cached, source: null };
@@ -7297,8 +6684,7 @@
           : card.querySelector('.javdb-card-tags, .tags.has-addons, .tags');
       }
       if (site === 'javlib') {
-        const title = card.querySelector('.javlib-card-title, .title');
-        let footer = title?.querySelector('.javlib-card-footer');
+        const title = card.querySelector('.javlib-card-title, .title'); let footer = title?.querySelector('.javlib-card-footer');
         if (!footer && title) {
           footer = document.createElement('span');
           footer.className = 'javlib-card-footer';
@@ -7321,8 +6707,7 @@
     function visibleActions() { return ACTIONS; }
     function openMagnetPopup(code) {
       if (!code) return;
-      closeMagnetPopup();
-      ensureStyle();
+      closeMagnetPopup(); ensureStyle();
       const overlay = document.createElement('div');
       overlay.className = 'jav-card-magnet-overlay';
       overlay.innerHTML =`<div class="jav-card-magnet-panel" role="dialog" aria-modal="true"><div class="jav-card-magnet-head"><div class="jav-card-magnet-title">磁力 ${code}</div><button class="jav-card-magnet-close" type="button">×</button></div><div class="jav-card-magnet-body"></div></div>`;
@@ -7357,8 +6742,7 @@
     function createButton(meta, code, card) {
       const btn = document.createElement('span');
       btn.className =`tool-span jav-card-quick-btn jav-card-quick-${meta.key}`;
-      btn.setAttribute('name', meta.name);
-      btn.setAttribute('avid', code);
+      btn.setAttribute('name', meta.name); btn.setAttribute('avid', code);
       btn.dataset.action = meta.key;
       btn.dataset.code = code;
       btn.title =`${meta.title} ${code}`;
@@ -7366,8 +6750,7 @@
       btn.setAttribute('role', 'button');
       btn.tabIndex = 0;
       const handler = e => {
-        e.preventDefault();
-        e.stopPropagation();
+        e.preventDefault(); e.stopPropagation();
         e.stopImmediatePropagation?.();
         runAction(meta.key, btn.dataset.code || SiteManager.getCardCode(card), btn);
       };
@@ -7383,12 +6766,10 @@
       card.querySelectorAll('.jav-list-preview-btn').forEach(el => el.remove());
       const existing = card.querySelector('.jav-card-quick-actions');
       if (!enabled()) { existing?.remove(); return; }
-      const code = SiteManager.getCardCode(card);
-      const slot = targetSlot(card);
+      const code = SiteManager.getCardCode(card); const slot = targetSlot(card);
       if (!code || !slot) { existing?.remove(); return; }
       if (existing) {
-        const actions = visibleActions();
-        const actionKeys = new Set(actions.map(action => action.key));
+        const actions = visibleActions(); const actionKeys = new Set(actions.map(action => action.key));
         existing.dataset.code = code;
         existing.querySelectorAll('.jav-card-quick-btn').forEach(btn => {
           const meta = ACTIONS.find(item => item.key === btn.dataset.action);
@@ -7408,12 +6789,10 @@
       const actions = document.createElement('span');
       actions.className = 'toolbar-b jav-card-quick-actions';
       actions.dataset.code = code;
-      visibleActions().forEach(meta => actions.appendChild(createButton(meta, code, card)));
-      slot.appendChild(actions);
+      visibleActions().forEach(meta => actions.appendChild(createButton(meta, code, card))); slot.appendChild(actions);
     }
     function removeAll() {
-      document.querySelectorAll('.jav-card-quick-actions, .jav-list-preview-btn').forEach(el => el.remove());
-      closeMagnetPopup();
+      document.querySelectorAll('.jav-card-quick-actions, .jav-list-preview-btn').forEach(el => el.remove()); closeMagnetPopup();
     }
     function sync() {
       if (!isListPage()) { removeAll(); return; }
@@ -7425,15 +6804,8 @@
   })();
   Core.expose('__LAOSIJI_LIST_PREVIEW__', ListPreview);
   const CoverHoverPreview = (() => {
-    let active = false;
-    let timer = null;
-    let popup = null;
-    let lastEvent = null;
-    let lastAnchor = null;
-    const titleStore = new Map();
-    const pan115CoverCache = new Map();
-    const pan115CoverPending = new Map();
-    const PAN115_COVER_CACHE_PREFIX = 'pan115_cover_v2_';
+    let active = false; let timer = null; let popup = null; let lastEvent = null; let lastAnchor = null; const titleStore = new Map();
+    const pan115CoverCache = new Map(); const pan115CoverPending = new Map(); const PAN115_COVER_CACHE_PREFIX = 'pan115_cover_v2_';
     const DMM_GRAPHQL_URL = 'https://api.video.dmm.co.jp/graphql';
     function enabled() {
       const feature = is115Page() ? 'pan115CoverHoverPreview' : 'coverHoverPreview';
@@ -7449,8 +6821,7 @@
       timer = null;
     }
     function hide() {
-      clearTimer();
-      popup?.remove();
+      clearTimer(); popup?.remove();
       popup = null;
       lastEvent = null;
       lastAnchor = null;
@@ -7576,8 +6947,7 @@
         writePan115CoverCache(normalized, cover);
         return cover;
       }).catch(err => {
-        errorLog('115 JavDB/DMM 封面查询失败:', normalized, err);
-        writePan115CoverCache(normalized, '');
+        errorLog('115 JavDB/DMM 封面查询失败:', normalized, err); writePan115CoverCache(normalized, '');
         return '';
       }).finally(() => pan115CoverPending.delete(normalized));
       pan115CoverPending.set(normalized, task);
@@ -7596,8 +6966,7 @@
     function suppressTitles(cover) {
       titleTargets(cover).forEach(el => {
         if (!el.hasAttribute?.('title') || titleStore.has(el)) return;
-        titleStore.set(el, el.getAttribute('title') || '');
-        el.removeAttribute('title');
+        titleStore.set(el, el.getAttribute('title') || ''); el.removeAttribute('title');
       });
     }
     function restoreTitles() {
@@ -7606,10 +6975,7 @@
     }
     function position(box, event = lastEvent) {
       if (!box || !event) return;
-      const gap = 16;
-      const rect = box.getBoundingClientRect();
-      let left = event.clientX + gap;
-      let top = event.clientY + gap;
+      const gap = 16; const rect = box.getBoundingClientRect(); let left = event.clientX + gap; let top = event.clientY + gap;
       if (left + rect.width > window.innerWidth - 8) left = event.clientX - rect.width - gap;
       if (top + rect.height > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
       if (top < 8) top = 8;
@@ -7619,21 +6985,17 @@
     }
     function show(src, event) {
       if (!src || !active) return;
-      ensureStyle();
-      popup?.remove();
-      const box = document.createElement('div');
-      const img = document.createElement('img');
+      ensureStyle(); popup?.remove();
+      const box = document.createElement('div'); const img = document.createElement('img');
       box.className = 'jav-cover-hover-preview';
       img.decoding = 'async';
       img.loading = 'eager';
       img.src = src;
       img.addEventListener('load', () => {
-        position(box, event);
-        requestAnimationFrame(() => box.classList.add('is-visible'));
+        position(box, event); requestAnimationFrame(() => box.classList.add('is-visible'));
       }, { once: true });
       img.addEventListener('error', hide, { once: true });
-      box.appendChild(img);
-      document.body.appendChild(box);
+      box.appendChild(img); document.body.appendChild(box);
       popup = box;
       position(box, event);
     }
@@ -7676,16 +7038,11 @@
       }
       active = shouldEnable;
       if (active) {
-        document.addEventListener('mouseover', onOver, true);
-        document.addEventListener('mousemove', onMove, true);
-        document.addEventListener('mouseout', onOut, true);
-        document.addEventListener('pointerdown', onPointerDown, true);
+        document.addEventListener('mouseover', onOver, true); document.addEventListener('mousemove', onMove, true);
+        document.addEventListener('mouseout', onOut, true); document.addEventListener('pointerdown', onPointerDown, true);
       } else {
-        document.removeEventListener('mouseover', onOver, true);
-        document.removeEventListener('mousemove', onMove, true);
-        document.removeEventListener('mouseout', onOut, true);
-        document.removeEventListener('pointerdown', onPointerDown, true);
-        hide();
+        document.removeEventListener('mouseover', onOver, true); document.removeEventListener('mousemove', onMove, true);
+        document.removeEventListener('mouseout', onOut, true); document.removeEventListener('pointerdown', onPointerDown, true); hide();
       }
     }
     return { sync, hide };
@@ -7763,9 +7120,7 @@
       img.loading = 'lazy';
       img.title = '点击查看预览图';
       img.addEventListener('click', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        Utils.showOverlay(result.url, code, result.source);
+        e.preventDefault(); e.stopPropagation(); Utils.showOverlay(result.url, code, result.source);
       });
       wrap.appendChild(img);
     }
@@ -7794,8 +7149,7 @@
       const result = await this.get(code);
       if (result?.url) {
         this.debug('打开播放器', { code: this.normalize(code), source: result.source, type: result.type || 'video', url: result.url });
-        const normalizedCode = this.normalize(code);
-        const rawCode = String(code || '').trim();
+        const normalizedCode = this.normalize(code); const rawCode = String(code || '').trim();
         Utils.showTrailerOverlay({
           code: normalizedCode,
           url: result.url,
@@ -7819,9 +7173,7 @@
       }
     },
     async get(code) {
-      const rawCode = String(code || '').trim();
-      const id = this.normalize(code);
-      const cacheEnabled = Settings.getTrailerCacheEnabled();
+      const rawCode = String(code || '').trim(); const id = this.normalize(code); const cacheEnabled = Settings.getTrailerCacheEnabled();
       this.debug('开始查询', { rawCode, normalized: id, cacheEnabled });
       if (cacheEnabled) {
         const cached = sessionStorage.getItem(this.cacheKey(id));
@@ -7842,8 +7194,7 @@
             }
           } catch {
           }
-          this.debug('缓存无效，已移除');
-          sessionStorage.removeItem(this.cacheKey(id));
+          this.debug('缓存无效，已移除'); sessionStorage.removeItem(this.cacheKey(id));
         }
       }
       for (const resolver of this.resolverChain()) {
@@ -7927,12 +7278,10 @@
     installFallbackDebugHelper() {
       const targetWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : globalThis;
       targetWindow.__javxyFailDMMFor30m = globalThis.__javxyFailDMMFor30m = () => {
-        this.markJpSourceTemporarilyFailed('DMM');
-        this.debug('已手动标记 DMM 30 分钟内跳过');
+        this.markJpSourceTemporarilyFailed('DMM'); this.debug('已手动标记 DMM 30 分钟内跳过');
       };
       targetWindow.__javxyClearDMMFail = globalThis.__javxyClearDMMFail = () => {
-        sessionStorage.removeItem(this.jpSourceFailedKey('DMM'));
-        this.debug('已清除 DMM 跳过标记');
+        sessionStorage.removeItem(this.jpSourceFailedKey('DMM')); this.debug('已清除 DMM 跳过标记');
       };
     },
     result(url, source, type = 'video', extra = {}) {
@@ -8037,8 +7386,7 @@
         const sourceBase = this.javxySourceLabels[data?.source] ||`Javxy | ${data?.source || 'dmm'}`;
         const source = sourceBase;
         this.debug('Javxy 返回结果', { endpoint: endpoint.label, source: data?.source, quality, qualities: Object.keys(qualityMap) });
-        const resultType = String(data?.type || '').trim() || 'video';
-        const directUrl = qualityMap[quality] || trailerUrl;
+        const resultType = String(data?.type || '').trim() || 'video'; const directUrl = qualityMap[quality] || trailerUrl;
         return this.result(directUrl, source, resultType, {
           qualities: qualityMap,
           quality,
@@ -8119,8 +7467,7 @@
     normalizeCode(code) { return String(code || '').trim().toUpperCase().replace(/[_\s]+/g, '-'); },
     normalizeKeepSeparator(code) { return String(code || '').trim().toUpperCase().replace(/\s+/g, '-'); },
     playUrl(pickcode) {
-      const encoded = encodeURIComponent(pickcode);
-      const playerMode = GM_getValue('pan115_player_mode', 'official');
+      const encoded = encodeURIComponent(pickcode); const playerMode = GM_getValue('pan115_player_mode', 'official');
       if (playerMode === '115master') {
         return`https://115.com/web/lixian/master/video/?pick_code=${encoded}`;
       }
@@ -8163,14 +7510,12 @@
       const sourcePattern = this.sourcePattern();
       const tail = String(text || '').match(new RegExp(`\\b(\\d{6})([-_])(\\d{2,3})[-_\\s]*(${sourcePattern})\\b`, 'i'));
       if (tail) {
-        const source = tail[4].toUpperCase();
-        const sep = tail[2] === '_' ? '_' : '-';
+        const source = tail[4].toUpperCase(); const sep = tail[2] === '_' ? '_' : '-';
         return`${tail[1]}${sep}${tail[3]}-${source}`;
       }
       const head = String(text || '').match(new RegExp(`\\b(${sourcePattern})[-_\\s]*(\\d{6})([-_])(\\d{2,3})\\b`, 'i'));
       if (head) {
-        const source = head[1].toUpperCase();
-        const sep = head[3] === '_' ? '_' : '-';
+        const source = head[1].toUpperCase(); const sep = head[3] === '_' ? '_' : '-';
         return`${head[2]}${sep}${head[4]}-${source}`;
       }
       return fallbackCode || Utils.extractCode(text);
@@ -8181,9 +7526,7 @@
       return String(code || '').trim().toLowerCase().replace(/^fc2-(?:ppv-)?/, '');
     },
     searchVariants(code) {
-      const normalized = this.normalizeKeepSeparator(code);
-      const variants = [normalized];
-      const fc2 = this.fc2Number(normalized);
+      const normalized = this.normalizeKeepSeparator(code); const variants = [normalized]; const fc2 = this.fc2Number(normalized);
       if (fc2) {
         variants.push(`FC2-${fc2}`,`FC2-PPV-${fc2}`, fc2);
       }
@@ -8214,8 +7557,7 @@
       }
       const digitKey = this.uncensoredDigitKey(code);
       if (digitKey) {
-        const parts = this.uncensoredParts(code);
-        const sep = parts.sep === '_' ? '_' : '-';
+        const parts = this.uncensoredParts(code); const sep = parts.sep === '_' ? '_' : '-';
         return new RegExp(`(^|[^0-9])${parts.date}${sep}${parts.num}([^0-9]|$)`, 'i');
       }
       const patterns = [];
@@ -8265,12 +7607,10 @@
       });
     },
     async search(code) {
-      const matcher = this.codeRegex(code);
-      const seen = new Set();
+      const matcher = this.codeRegex(code); const seen = new Set();
       const keywords = [...new Set(this.searchVariants(code).map(item => this.searchKeyword(item)).filter(Boolean))];
       for (const keyword of keywords) {
-        const payload = await this.requestSearch(keyword);
-        const state = payload?.state ?? payload?.success;
+        const payload = await this.requestSearch(keyword); const state = payload?.state ?? payload?.success;
         if (state === false) { const msg = payload?.error || payload?.message || payload?.errno || '115查询失败'; throw new Error(String(msg)); }
         for (const item of this.flattenFiles(payload)) {
           const key = item.pickcode || item.name;
@@ -8369,11 +7709,9 @@
         const finish = (fn, value) => {
           if (settled) return;
           settled = true;
-          clearTimeout(watchdog);
-          fn(value);
+          clearTimeout(watchdog); fn(value);
         };
-        const fail = message => finish(reject, new Error(message));
-        const watchdog = setTimeout(() => fail('字幕下载超时'), 30000);
+        const fail = message => finish(reject, new Error(message)); const watchdog = setTimeout(() => fail('字幕下载超时'), 30000);
         try {
           GM_xmlhttpRequest({
             method: 'GET',
@@ -8400,19 +7738,16 @@
     itemExt(item) {
       const direct = String(item?.ext || '').replace(/^\./, '').trim().toLowerCase();
       if (direct) return direct;
-      const name = String(item?.name || item?.filename || '');
-      const url = this.itemUrl(item);
+      const name = String(item?.name || item?.filename || ''); const url = this.itemUrl(item);
       return (name.match(/\.([a-z0-9]{2,5})$/i)?.[1] || url.match(/\.([a-z0-9]{2,5})(?:[?#]|$)/i)?.[1] || '').toLowerCase();
     },
     itemDisplayName(item, code) {
-      const ext = this.itemExt(item);
-      const raw = String(item?.name || item?.filename || item?.title || '').trim();
+      const ext = this.itemExt(item); const raw = String(item?.name || item?.filename || item?.title || '').trim();
       if (raw) return raw;
       return`${this.normalizeCode(code)}${ext ? `.${ext}` : ''}`;
     },
     fileName(item, code) {
-      const ext = this.itemExt(item);
-      let name = this.itemDisplayName(item, code);
+      const ext = this.itemExt(item); let name = this.itemDisplayName(item, code);
       if (ext && !new RegExp(`\\.${ext}$`, 'i').test(name)) name +=`.${ext}`;
       name = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/\s+/g, ' ').trim();
       return name || `${this.normalizeCode(code)}.${ext || 'srt'}`;
@@ -8421,8 +7756,7 @@
       const normalized = this.normalizeCode(code);
       const query = new URLSearchParams({ gcid: '', cid: '', name: normalized });
       const payload = await this.requestJson(`${this.api}?${query.toString()}`);
-      const list = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.data?.list) ? payload.data.list : [];
-      const seen = new Set();
+      const list = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.data?.list) ? payload.data.list : []; const seen = new Set();
       return list.filter(item => {
         const url = this.itemUrl(item);
         const key = `${url}|${this.itemDisplayName(item, normalized)}`;
@@ -8442,8 +7776,7 @@
         overlay.remove();
         if (this.overlay === overlay) this.overlay = null;
         if (this.closeOverlay === close) this.closeOverlay = null;
-        this.unlockScroll();
-        document.removeEventListener('keydown', onKeydown, true);
+        this.unlockScroll(); document.removeEventListener('keydown', onKeydown, true);
       };
       const onKeydown = e => {
         if (e.key === 'Escape') close();
@@ -8452,9 +7785,7 @@
         if (e.target === overlay) close();
       });
       overlay.addEventListener('wheel', e => e.stopPropagation(), { passive: false });
-      overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close);
-      this.lockScroll();
-      document.addEventListener('keydown', onKeydown, true);
+      overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close); this.lockScroll(); document.addEventListener('keydown', onKeydown, true);
       document.body.appendChild(overlay);
       this.overlay = overlay;
       this.closeOverlay = close;
@@ -8494,13 +7825,8 @@
         const download = document.createElement('button');
         download.type = 'button';
         download.textContent = '下载';
-        download.addEventListener('click', () => this.download(item, code, download));
-        actions.appendChild(preview);
-        actions.appendChild(download);
-        row.appendChild(name);
-        row.appendChild(ext);
-        row.appendChild(actions);
-        table.appendChild(row);
+        download.addEventListener('click', () => this.download(item, code, download)); actions.appendChild(preview); actions.appendChild(download);
+        row.appendChild(name); row.appendChild(ext); row.appendChild(actions); table.appendChild(row);
       });
       body.appendChild(table);
     },
@@ -8513,8 +7839,7 @@
         if (!items.length) { this.setStatus(overlay, '未找到相关字幕'); return; }
         this.renderList(overlay, normalized, items);
       } catch (err) {
-        errorLog('字幕搜索失败:', err);
-        this.setStatus(overlay, err?.message || '字幕搜索失败');
+        errorLog('字幕搜索失败:', err); this.setStatus(overlay, err?.message || '字幕搜索失败');
       }
     },
     async withBusy(btn, text, fn) {
@@ -8527,8 +7852,7 @@
       }
     },
     async preview(item, code, btn) {
-      const url = this.itemUrl(item);
-      const ext = this.itemExt(item);
+      const url = this.itemUrl(item); const ext = this.itemExt(item);
       if (!url) { Utils.showToast('无法预览字幕', '字幕文件地址为空', 2400); return; }
       if (!this.previewExts.has(ext)) {
         Utils.showToast('暂不支持预览', `${ext || '该'} 类型可直接下载`, 2400);
@@ -8538,13 +7862,11 @@
         const text = await this.requestText(url);
         this.showPreview(code, this.fileName(item, code), text, item);
       }).catch(err => {
-        errorLog('字幕预览失败:', err);
-        Utils.showToast('字幕预览失败', err?.message || '请求失败', 2800);
+        errorLog('字幕预览失败:', err); Utils.showToast('字幕预览失败', err?.message || '请求失败', 2800);
       });
     },
     async download(item, code, btn) {
-      const url = this.itemUrl(item);
-      const ext = this.itemExt(item);
+      const url = this.itemUrl(item); const ext = this.itemExt(item);
       if (!url) { Utils.showToast('无法下载字幕', '字幕文件地址为空', 2400); return; }
       await this.withBusy(btn, '下载中', async () => {
         if (this.previewExts.has(ext)) {
@@ -8556,19 +7878,14 @@
         const blob = await this.requestBlob(url);
         this.saveBlob(blob, this.fileName(item, code));
       }).catch(err => {
-        errorLog('字幕下载失败:', err);
-        Utils.showToast('字幕下载失败', err?.message || '请求失败', 2800);
+        errorLog('字幕下载失败:', err); Utils.showToast('字幕下载失败', err?.message || '请求失败', 2800);
       });
     },
     saveBlob(blob, fileName) {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob); const a = document.createElement('a');
       a.href = url;
       a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1200);
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1200);
     },
     showPreview(code, fileName, text, item) {
       this.ensureStyle();
@@ -8576,9 +7893,7 @@
       overlay.className = 'jav-subtitle-preview-overlay';
       overlay.innerHTML = `<section class="jav-subtitle-panel jav-subtitle-preview-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><pre class="jav-subtitle-pre"></pre><div class="jav-subtitle-preview-footer"><button class="jav-subtitle-preview-download" type="button">下载</button></div></section>`;
       const close = () => {
-        overlay.remove();
-        this.unlockScroll();
-        document.removeEventListener('keydown', onKeydown, true);
+        overlay.remove(); this.unlockScroll(); document.removeEventListener('keydown', onKeydown, true);
       };
       const onKeydown = e => {
         if (e.key === 'Escape') close();
@@ -8588,8 +7903,7 @@
         return `${num}. ${line}`;
       }).join('\n');
       overlay.querySelector('.jav-subtitle-title').textContent = `${fileName} - ${code}`;
-      overlay.querySelector('.jav-subtitle-pre').textContent = numbered;
-      overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close);
+      overlay.querySelector('.jav-subtitle-pre').textContent = numbered; overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close);
       overlay.querySelector('.jav-subtitle-preview-download')?.addEventListener('click', e => {
         e.preventDefault();
         this.saveBlob(new Blob([text || ''], { type: 'text/plain;charset=utf-8' }), fileName);
@@ -8598,9 +7912,7 @@
         if (e.target === overlay) close();
       });
       overlay.addEventListener('wheel', e => e.stopPropagation(), { passive: false });
-      this.lockScroll();
-      document.addEventListener('keydown', onKeydown, true);
-      document.body.appendChild(overlay);
+      this.lockScroll(); document.addEventListener('keydown', onKeydown, true); document.body.appendChild(overlay);
     },
   };
   Core.expose('__LAOSIJI_SUBTITLE__', Subtitle);
@@ -8704,8 +8016,7 @@
       titleSelector: 'table.table tr:first-child td',
       getInfoTable() {
         return [...document.querySelectorAll('table.table')].find(table => {
-          const row = table.querySelector('tr:first-child');
-          const label = (row?.querySelector('th')?.textContent || '').replace(/\s+/g, '').trim();
+          const row = table.querySelector('tr:first-child'); const label = (row?.querySelector('th')?.textContent || '').replace(/\s+/g, '').trim();
           const value = row?.querySelector('td')?.textContent || '';
           return /^ID[:：]?$/i.test(label) && /\b\d{6,9}\b/.test(value);
         }) || null;
@@ -8738,64 +8049,46 @@
     });
   }
   function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
-    let closeTimer = null;
-    const isMobile = () => typeof MobilePolicy !== 'undefined' && MobilePolicy.isMobile();
+    let closeTimer = null; const isMobile = () => typeof MobilePolicy !== 'undefined' && MobilePolicy.isMobile();
     const clearCloseTimer = () => {
       if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
     };
     const closeMenu = () => {
-      clearCloseTimer();
-      subMenu.classList.remove('is-open');
-      clearMobileJumpMenuPosition(subMenu);
+      clearCloseTimer(); subMenu.classList.remove('is-open'); clearMobileJumpMenuPosition(subMenu);
     };
     const getFixedHeaderBottom = () => {
       const header = document.querySelector('#navbar, .navbar');
       if (!header) return 8;
-      const style = window.getComputedStyle(header);
-      const rect = header.getBoundingClientRect();
+      const style = window.getComputedStyle(header); const rect = header.getBoundingClientRect();
       if (!['fixed', 'sticky'].includes(style.position) || rect.bottom <= 0 || rect.top > 8) return 8;
       return Math.max(8, rect.bottom + 8);
     };
     const positionMobileMenu = () => {
       if (!isMobile()) return;
-      const gutter = 8;
-      const viewportWidth = document.documentElement.clientWidth || window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      const triggerRect = menuDiv.getBoundingClientRect();
-      const menuWidth = Math.max(0, Math.min(176, viewportWidth - gutter * 2));
-      subMenu.style.setProperty('position', 'fixed');
-      subMenu.style.setProperty('top', '0px');
-      subMenu.style.setProperty('left', '0px');
+      const gutter = 8; const viewportWidth = document.documentElement.clientWidth || window.innerWidth; const viewportHeight = window.innerHeight;
+      const triggerRect = menuDiv.getBoundingClientRect(); const menuWidth = Math.max(0, Math.min(176, viewportWidth - gutter * 2));
+      subMenu.style.setProperty('position', 'fixed'); subMenu.style.setProperty('top', '0px'); subMenu.style.setProperty('left', '0px');
       subMenu.style.setProperty('width', `${menuWidth}px`, 'important');
-      subMenu.style.setProperty('min-width', '0px', 'important');
-      subMenu.style.setProperty('visibility', 'hidden');
-      const menuHeight = subMenu.getBoundingClientRect().height;
-      const minimumTop = Math.min(viewportHeight - gutter, getFixedHeaderBottom());
-      const preferredTop = Math.max(minimumTop, triggerRect.bottom + 4);
-      const availableBelow = viewportHeight - gutter - preferredTop;
-      const availableAbove = triggerRect.top - gutter - minimumTop;
-      const shouldOpenAbove = menuHeight > availableBelow && availableAbove > availableBelow;
+      subMenu.style.setProperty('min-width', '0px', 'important'); subMenu.style.setProperty('visibility', 'hidden');
+      const menuHeight = subMenu.getBoundingClientRect().height; const minimumTop = Math.min(viewportHeight - gutter, getFixedHeaderBottom());
+      const preferredTop = Math.max(minimumTop, triggerRect.bottom + 4); const availableBelow = viewportHeight - gutter - preferredTop;
+      const availableAbove = triggerRect.top - gutter - minimumTop; const shouldOpenAbove = menuHeight > availableBelow && availableAbove > availableBelow;
       const top = shouldOpenAbove ? Math.max(minimumTop, triggerRect.top - 4 - menuHeight) : preferredTop;
-      const availableHeight = Math.max(0, viewportHeight - gutter - top);
-      const maxLeft = Math.max(gutter, viewportWidth - gutter - menuWidth);
+      const availableHeight = Math.max(0, viewportHeight - gutter - top); const maxLeft = Math.max(gutter, viewportWidth - gutter - menuWidth);
       const left = Math.min(Math.max(gutter, triggerRect.left), maxLeft);
       subMenu.style.setProperty('top', `${top}px`);
       subMenu.style.setProperty('left', `${left}px`);
       subMenu.style.setProperty('max-height', `${availableHeight}px`);
-      subMenu.style.setProperty('overflow-y', 'auto');
-      subMenu.style.removeProperty('visibility');
+      subMenu.style.setProperty('overflow-y', 'auto'); subMenu.style.removeProperty('visibility');
     };
     const scheduleClose = () => {
       clearCloseTimer();
       if (subMenu.classList.contains('is-open')) closeTimer = setTimeout(closeMenu, 1000);
     };
     toggleBtn.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       const willOpen = !subMenu.classList.contains('is-open');
-      closeAllJumpMenus(subMenu);
-      clearCloseTimer();
-      subMenu.classList.toggle('is-open', willOpen);
+      closeAllJumpMenus(subMenu); clearCloseTimer(); subMenu.classList.toggle('is-open', willOpen);
       if (willOpen && isMobile()) positionMobileMenu();
       if (willOpen && !isMobile() && !menuDiv.matches(':hover')) scheduleClose();
     });
@@ -8820,9 +8113,7 @@
   function createJumpMenu({ accent, mainBtn, subButtons, toggleTitle, className = '', stretchSubButtons = true }) {
     const menuDiv = document.createElement('div');
     menuDiv.className = `search-menu${className ? ` ${className}` : ''}`;
-    menuDiv.style.setProperty('--jav-btn-accent', accent);
-    mainBtn.classList.add('search-main-btn');
-    menuDiv.appendChild(mainBtn);
+    menuDiv.style.setProperty('--jav-btn-accent', accent); mainBtn.classList.add('search-main-btn'); menuDiv.appendChild(mainBtn);
     const toggleBtn = document.createElement('button');
     toggleBtn.type = 'button';
     toggleBtn.className = 'search-toggle-btn';
@@ -8836,8 +8127,7 @@
       if (stretchSubButtons) { btn.style.width = '100%'; btn.style.textAlign = 'left'; }
       subMenu.appendChild(btn);
     });
-    menuDiv.appendChild(subMenu);
-    bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn);
+    menuDiv.appendChild(subMenu); bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn);
     return menuDiv;
   }
   function addNyaaBtn(code, container, useCapture = false) {
@@ -8849,8 +8139,7 @@
   function addJavbusBtn(code, container, useCapture = false) {
     if (!GM_getValue('btn_show_javbus', true)) return;
     if (/javbus\.com/i.test(location.hostname)) return;
-    const url = Utils.getJavBusUrl(code);
-    const btn = Utils.createJumpLinkBtn('🎬 JavBus', '#007bff', url);
+    const url = Utils.getJavBusUrl(code); const btn = Utils.createJumpLinkBtn('🎬 JavBus', '#007bff', url);
     container.appendChild(btn);
   }
   function addJavdbBtn(code, container, useCapture = false) {
@@ -8862,8 +8151,7 @@
   function addMissAVBtn(code, container, useCapture = false) {
     const showMissav = GM_getValue('btn_show_missav', true);
     if (!showMissav) return;
-    const codeLower = String(code || '').trim().toLowerCase();
-    const codeUpper = String(code || '').trim().toUpperCase();
+    const codeLower = String(code || '').trim().toLowerCase(); const codeUpper = String(code || '').trim().toUpperCase();
     const codeCompactLower = codeLower.replace(/-/g, '');
     const fc2Number = codeUpper.match(/^FC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})$/i)?.[1] || '';
     const fc2Slug = fc2Number ? `fc2-ppv-${fc2Number}` : '';
@@ -8888,8 +8176,7 @@
     const videoButtons = Settings.getVideoEngines() .filter(item => enabledVideoKeys.has(item.key) && !item.host.test(location.hostname))
       .map(item => ({ ...item, url: videoUrlMap[item.key] })) .filter(item => item.url);
     if (!videoButtons.length) return;
-    const defaultKey = Settings.getDefaultVideoEngine();
-    const mainItem = videoButtons.find(item => item.key === defaultKey) || videoButtons[0];
+    const defaultKey = Settings.getDefaultVideoEngine(); const mainItem = videoButtons.find(item => item.key === defaultKey) || videoButtons[0];
     const subItems = videoButtons.filter(item => item !== mainItem);
     const createVideoBtn = item => Utils.createJumpLinkBtn(`🎬 ${item.label}`, item.color, item.url);
     if (!subItems.length) { container.appendChild(createVideoBtn(mainItem)); return; }
@@ -8923,8 +8210,7 @@
         btn.style.opacity = '';
       }
     }, useCapture);
-    btn.classList.add('jav-subtitle-btn');
-    container.appendChild(btn);
+    btn.classList.add('jav-subtitle-btn'); container.appendChild(btn);
   }
   function addTrailerBtn(code, container, useCapture = false) {
     if (!GM_getValue('btn_show_trailer', true)) return;
@@ -8941,16 +8227,14 @@
         btn.style.opacity = '';
       }
     }, useCapture);
-    btn.classList.add('jav-trailer-btn');
-    container.appendChild(btn);
+    btn.classList.add('jav-trailer-btn'); container.appendChild(btn);
   }
   function addPreviewBtn(code, container, useCapture = false) {
     if (!GM_getValue('btn_show_preview', true)) return;
     const btn = Utils.createBtn('🖼️ 预览图', '#28a745', async () => {
       await Thumbnail.show(code);
     }, useCapture);
-    btn.classList.add('jav-preview-btn');
-    container.appendChild(btn);
+    btn.classList.add('jav-preview-btn'); container.appendChild(btn);
   }
   function addSearchMenu(code, container, useCapture = false) {
     if (!GM_getValue('btn_show_search', true)) return;
@@ -9005,8 +8289,7 @@
     }).finally(() => { marker.remove(); });
   }
   function createPan115Badge(hit, code, asAnchor = true) {
-    const url = Pan115.playUrl(hit.pickcode);
-    const badge = document.createElement(asAnchor ? 'a' : 'span');
+    const url = Pan115.playUrl(hit.pickcode); const badge = document.createElement(asAnchor ? 'a' : 'span');
     badge.className = 'jav-pan115-badge';
     badge.textContent = '115匹配';
     badge.title = hit.name || `115播放：${Pan115.normalizeKeepSeparator(code)}`;
@@ -9022,9 +8305,7 @@
       badge.setAttribute('role', 'link');
       badge.tabIndex = 0;
       const open = e => {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        window.open(Pan115.playUrl(badge.dataset.pickcode), '_blank', 'noopener,noreferrer');
+        e.preventDefault(); e.stopImmediatePropagation(); window.open(Pan115.playUrl(badge.dataset.pickcode), '_blank', 'noopener,noreferrer');
       };
       badge.addEventListener('click', open, true);
       badge.addEventListener('keydown', e => {
@@ -9054,8 +8335,7 @@
     }
   }
   function removePan115Ui() {
-    clearTimeout(pan115ListTimer);
-    document.querySelectorAll('.jav-pan115-badge, .jav-pan115-play-btn').forEach(el => el.remove());
+    clearTimeout(pan115ListTimer); document.querySelectorAll('.jav-pan115-badge, .jav-pan115-play-btn').forEach(el => el.remove());
     document.querySelectorAll('[data-pan115-checked], [data-pan115-has-badge]').forEach(el => {
       delete el.dataset.pan115Checked;
       delete el.dataset.pan115HasBadge;
@@ -9086,8 +8366,7 @@
     }
     function escapeRegExp(value) { return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
     function titleWithoutCode(text) {
-      const raw = String(text || '').replace(/\s+/g, ' ').trim();
-      const code = Utils.extractCode(raw);
+      const raw = String(text || '').replace(/\s+/g, ' ').trim(); const code = Utils.extractCode(raw);
       if (!code) return raw;
       return raw.replace(new RegExp(`^\\s*${escapeRegExp(code)}\\s*`, 'i'), '').trim() || raw;
     }
@@ -9110,8 +8389,7 @@
       return { site: site.id, text: titleWithoutCode(title.textContent), anchor: title.closest('h3') || title };
     }
     function readJavbusLang() {
-      const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
-      const direct = pageWindow?.lang || window.lang || '';
+      const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window; const direct = pageWindow?.lang || window.lang || '';
       if (direct) return direct;
       for (const script of document.scripts || []) {
         const hit = (script.textContent || '').match(/\bvar\s+lang\s*=\s*['"]([^'"]+)/i);
@@ -9157,8 +8435,7 @@
       return `${CACHE_PREFIX}${target || 'zh-CN'}_${encodeURIComponent(String(text || '').slice(0, 180))}`;
     }
     async function translate(text, target) {
-      const key = cacheKey(text, target);
-      const cached = sessionStorage.getItem(key);
+      const key = cacheKey(text, target); const cached = sessionStorage.getItem(key);
       if (cached) return cached;
       const url = 'https://translate-pa.googleapis.com/v1/translate?' + new URLSearchParams({
         'params.client': 'gtx',
@@ -9264,8 +8541,7 @@
     if (site.id === 'emby' && !Utils.extractCode(titleElem.textContent || '')) return;
     const existingBtnGroup = document.querySelector('.jav-jump-btn-group[data-laosiji-jump="1"]');
     if (site.id === 'emby') {
-      const renderKey = SiteManager.getEmbyRenderKey(titleElem);
-      const existingKey = existingBtnGroup?.dataset.embyRenderKey || '';
+      const renderKey = SiteManager.getEmbyRenderKey(titleElem); const existingKey = existingBtnGroup?.dataset.embyRenderKey || '';
       if (existingBtnGroup) {
         if ((existingKey && existingKey !== renderKey) || !existingBtnGroup.isConnected) {
           existingBtnGroup.remove();
@@ -9289,16 +8565,14 @@
           if (code) existingBtnGroup.dataset.code = code;
           const pan115Code = Pan115.extractCode(site.id === 'fc2cmadb' ? code : existingTitleText, code);
           if (pan115Code) addPan115PlayBtn(pan115Code, existingBtnGroup);
-          addSettingsBtn(existingBtnGroup);
-          placeJumpButtonGroup(site, titleElem, existingBtnGroup);
+          addSettingsBtn(existingBtnGroup); placeJumpButtonGroup(site, titleElem, existingBtnGroup);
           return;
         }
       }
     }
     if (titleElem.dataset.enhanced === '1') return;
     titleElem.dataset.enhanced = '1';
-    const titleText = titleElem.textContent;
-    const code = typeof site.getCode === 'function' ? site.getCode(titleElem) : Utils.extractCode(titleText);
+    const titleText = titleElem.textContent; const code = typeof site.getCode === 'function' ? site.getCode(titleElem) : Utils.extractCode(titleText);
     if (!code) return;
     const trailerCode = typeof site.getCode === 'function' ? code : Utils.extractCode(titleText, { keepUncensoredSource: true }) || code;
     const btnGroup = document.createElement('div');
@@ -9306,10 +8580,7 @@
     btnGroup.dataset.laosijiJump = '1';
     btnGroup.dataset.code = code;
     if (site.id === 'fc2cmadb') { btnGroup.classList.add('fc2cmadb-jump-group'); insertAvidCopyBtn(titleElem, code, null, true); }
-    addNyaaBtn(code, btnGroup);
-    addJavbusBtn(code, btnGroup);
-    addJavdbBtn(code, btnGroup);
-    addMissAVBtn(code, btnGroup);
+    addNyaaBtn(code, btnGroup); addJavbusBtn(code, btnGroup); addJavdbBtn(code, btnGroup); addMissAVBtn(code, btnGroup);
     if (site.id === 'missav') {
       const defaultEngine = Settings.getDefaultSearchEngine();
       const mainSearchBtn = Utils.createLinkBtn(`🔍 ${defaultEngine.name}`, defaultEngine.color, defaultEngine.url(code));
@@ -9323,15 +8594,11 @@
         stretchSubButtons: false,
       }));
     } else {
-      addDmmBtn(code, btnGroup);
-      addSearchMenu(code, btnGroup);
+      addDmmBtn(code, btnGroup); addSearchMenu(code, btnGroup);
       if (site.id === 'javlibrary' || ['javbus', 'javdb', 'supjav', 'jable'].includes(site.id)) { addJumpLineBreak(btnGroup); }
     }
-    addPan115PlayBtn(Pan115.extractCode(site.id === 'fc2cmadb' ? code : titleText, code), btnGroup);
-    addSubtitleBtn(code, btnGroup);
-    addTrailerBtn(trailerCode, btnGroup);
-    addPreviewBtn(code, btnGroup);
-    addSettingsBtn(btnGroup);
+    addPan115PlayBtn(Pan115.extractCode(site.id === 'fc2cmadb' ? code : titleText, code), btnGroup); addSubtitleBtn(code, btnGroup);
+    addTrailerBtn(trailerCode, btnGroup); addPreviewBtn(code, btnGroup); addSettingsBtn(btnGroup);
     if (site.id === 'javlibrary') {
       btnGroup.querySelectorAll('a').forEach(btn => {
         let style = btn.getAttribute('style') || '';
@@ -9418,8 +8685,7 @@
       target.closest('.info-header')
     ];
     [...new Set(elements.filter(Boolean))].forEach(el => {
-      el.style.setProperty('overflow', 'visible', 'important');
-      el.style.setProperty('overflow-x', 'visible', 'important');
+      el.style.setProperty('overflow', 'visible', 'important'); el.style.setProperty('overflow-x', 'visible', 'important');
       el.style.setProperty('overflow-y', 'visible', 'important');
     });
   }
@@ -9453,10 +8719,7 @@
       try {
         this.restoreSnapshot(this.state);
       } catch (err) { errorLog('瀑布流快照恢复失败:', err); }
-      this.hidePagination();
-      this.createSentinel();
-      this.observe();
-      this.restoreScroll();
+      this.hidePagination(); this.createSentinel(); this.observe(); this.restoreScroll();
     },
     clearInitRetry(resetCount = true) {
       clearTimeout(this.initRetryTimer);
@@ -9465,8 +8728,7 @@
     },
     scheduleInitRetry() {
       if (this.initRetryTimer || this.initRetryCount >= 8) return;
-      const delays = [250, 600, 1000, 1600, 2400, 3500, 5000, 7000];
-      const delay = delays[Math.min(this.initRetryCount, delays.length - 1)];
+      const delays = [250, 600, 1000, 1600, 2400, 3500, 5000, 7000]; const delay = delays[Math.min(this.initRetryCount, delays.length - 1)];
       this.initRetryCount += 1;
       this.initRetryTimer = setTimeout(() => {
         this.initRetryTimer = null;
@@ -9475,9 +8737,7 @@
     },
     destroy() {
       const javdbList = this.state?.site === 'javdb' ? this.state.container : null;
-      this.rememberScroll();
-      this.saveSnapshot();
-      clearTimeout(this.snapshotTimer);
+      this.rememberScroll(); this.saveSnapshot(); clearTimeout(this.snapshotTimer);
       this.snapshotTimer = null;
       this.clearInitRetry();
       if (this.state?.observer) { this.state.observer.disconnect(); }
@@ -9520,19 +8780,16 @@
       const snapshot = this.readSnapshot(config);
       if (!snapshot?.items?.length) return false;
       const liveKeys = new Set([...config.container.querySelectorAll(config.itemSelector)] .map(item => this.itemKey(item)) .filter(Boolean));
-      const frag = document.createDocumentFragment();
-      let restored = 0;
+      const frag = document.createDocumentFragment(); let restored = 0;
       snapshot.items.forEach(html => {
         const tpl = document.createElement('template');
         tpl.innerHTML = html;
-        let item = tpl.content.firstElementChild;
-        const key = this.itemKey(item);
+        let item = tpl.content.firstElementChild; const key = this.itemKey(item);
         if (!item || !key || liveKeys.has(key)) return;
         liveKeys.add(key);
         item.dataset.laosijiInfiniteItem = '1';
         item = this.sanitizeSnapshotItem(item) || item;
-        SiteManager.decorateInfiniteScrollItem(config.site, item);
-        frag.appendChild(item);
+        SiteManager.decorateInfiniteScrollItem(config.site, item); frag.appendChild(item);
         restored += 1;
       });
       if (!restored) return false;
@@ -9540,8 +8797,7 @@
       snapshot.items.forEach(html => {
         const tpl = document.createElement('template');
         tpl.innerHTML = html;
-        const item = tpl.content.firstElementChild;
-        const key = this.itemKey(item);
+        const item = tpl.content.firstElementChild; const key = this.itemKey(item);
         if (key) config.seen.add(key);
       });
       if (snapshot.nextUrl) config.nextUrl = snapshot.nextUrl;
@@ -9586,8 +8842,7 @@
     restoreScroll() {
       const y = Number(this.state?.restoredScrollY) || 0;
       if (y <= 0) return;
-      setTimeout(() => window.scrollTo(window.scrollX || 0, y), 0);
-      setTimeout(() => window.scrollTo(window.scrollX || 0, y), 120);
+      setTimeout(() => window.scrollTo(window.scrollX || 0, y), 0); setTimeout(() => window.scrollTo(window.scrollX || 0, y), 120);
     },
     createSentinel() {
       const sentinel = document.createElement('div');
@@ -9641,12 +8896,10 @@
       return new DOMParser().parseFromString(r.responseText, 'text/html');
     },
     appendItems(doc) {
-      const items = [...doc.querySelectorAll(this.state.itemSelector)];
-      let container = this.state.container;
+      const items = [...doc.querySelectorAll(this.state.itemSelector)]; let container = this.state.container;
       const live = SiteManager.getInfiniteScrollContainer(this.state.site);
       if (live) container = this.state.container = live;
-      let added = 0;
-      const addedItems = [];
+      let added = 0; const addedItems = [];
       items.forEach(item => {
         try {
           const key = this.itemKey(item);
@@ -9659,8 +8912,7 @@
             const imgs = adopted.matches?.('img') ? [adopted] : adopted.querySelectorAll?.('img') || [];
             imgs.forEach(img => { if (!img.getAttribute('loading')) img.setAttribute('loading', 'lazy'); });
           } catch (e) {}
-          SiteManager.decorateInfiniteScrollItem(this.state.site, adopted);
-          addedItems.push(adopted);
+          SiteManager.decorateInfiniteScrollItem(this.state.site, adopted); addedItems.push(adopted);
           added += 1;
         } catch (err) { errorLog('追加单项失败:', err); }
       });
@@ -9672,32 +8924,24 @@
       this.state.loading = true;
       this.setStatus('正在加载下一页...', 'is-loading');
       try {
-        const currentUrl = this.state.nextUrl;
-        const doc = await this.fetchDoc(currentUrl);
+        const currentUrl = this.state.nextUrl; const doc = await this.fetchDoc(currentUrl);
         if (!this.state) return;
         if (!doc.querySelector(this.state.itemSelector)) throw new Error('next page has no list items');
-        const added = this.appendItems(doc);
-        const nextConfig = this.getConfig(doc, currentUrl);
+        const added = this.appendItems(doc); const nextConfig = this.getConfig(doc, currentUrl);
         if (!this.state) return;
         const resolvedNext = nextConfig?.nextUrl || '';
         this.state.nextUrl = (resolvedNext && resolvedNext !== currentUrl) ? resolvedNext : '';
-        this.hidePagination();
-        this.reflow();
-        Runtime.refreshListDecorations();
-        this.saveSnapshot();
+        this.hidePagination(); this.reflow(); Runtime.refreshListDecorations(); this.saveSnapshot();
         setTimeout(() => {
           Runtime.refreshListPage();
         }, 80);
         this.state.emptyStreak = added ? 0 : (this.state.emptyStreak + 1);
         if (!this.state.nextUrl || this.state.emptyStreak >= 3) {
           this.state.done = true;
-          this.state.observer?.disconnect();
-          this.setStatus('已经到底了', 'is-done');
-          this.saveSnapshot();
+          this.state.observer?.disconnect(); this.setStatus('已经到底了', 'is-done'); this.saveSnapshot();
         } else { this.setStatus('继续滚动加载下一页'); }
       } catch (err) {
-        errorLog('瀑布流加载失败:', err);
-        this.setStatus('加载失败，点击重试', 'is-error');
+        errorLog('瀑布流加载失败:', err); this.setStatus('加载失败，点击重试', 'is-error');
       } finally {
         if (this.state) this.state.loading = false;
       }
@@ -9716,8 +8960,7 @@
     clearTimeout(pan115ListTimer);
     pan115ListTimer = setTimeout(renderPan115ListBadges, 300);
   }
-  Core.expose('__LAOSIJI_SCHEDULE_PAN115__', schedulePan115ListBadges);
-  Core.expose('__LAOSIJI_RENDER_BUTTONS__', () => JumpButtons.render());
+  Core.expose('__LAOSIJI_SCHEDULE_PAN115__', schedulePan115ListBadges); Core.expose('__LAOSIJI_RENDER_BUTTONS__', () => JumpButtons.render());
   const Runtime = {
     refresh(options = {}) {
       const {
@@ -9752,11 +8995,7 @@
         document.querySelectorAll('.movie-list, .movies, .grid').forEach(list => SiteJavDB._neutralizeNativeListLayout(list));
         SiteJavDB._hideNativeLayoutSwitcher();
       }
-      ListPreview.sync();
-      ListOpenNewTab.sync();
-      PortraitCards.apply();
-      CoverHoverPreview.sync();
-      schedulePan115ListBadges();
+      ListPreview.sync(); ListOpenNewTab.sync(); PortraitCards.apply(); CoverHoverPreview.sync(); schedulePan115ListBadges();
     },
     syncPan115(enabled = Pan115.enabled()) {
       syncPan115AfterSettingsSave(enabled);
@@ -9782,8 +9021,7 @@
       ListOpenNewTab.sync();
     },
     syncPortraitCards(enabled = CFG.portraitCards) {
-      PortraitCards.set(enabled);
-      ListPreview.sync();
+      PortraitCards.set(enabled); ListPreview.sync();
     },
     syncCardFx(enabled = CFG.cardFx) {
       CardFx.apply(enabled);
@@ -9812,8 +9050,7 @@
   function reset123AvRouteState() {
     if (!is123AvHost()) return;
     document.querySelectorAll('.jav-jump-btn-group[data-laosiji-jump="1"]').forEach(el => el.remove());
-    document.querySelectorAll('.watch__title[data-enhanced="1"]').forEach(el => delete el.dataset.enhanced);
-    removePan115Ui();
+    document.querySelectorAll('.watch__title[data-enhanced="1"]').forEach(el => delete el.dataset.enhanced); removePan115Ui();
   }
   let mutationSyncTimer = null;
   const runIdle = window.requestIdleCallback ? (fn) => window.requestIdleCallback(fn, { timeout: 600 }) : (fn) => setTimeout(fn, 0);
@@ -9879,11 +9116,9 @@
     lastEmbyLoc = location.href;
     const isEmby = SiteManager.isEmbyPage();
     if (isEmby) {
-      resetEmbyButtonState();
-      embyRenderWithRetry();
+      resetEmbyButtonState(); embyRenderWithRetry();
     } else if (is123AvHost()) {
-      reset123AvRouteState();
-      routeRefreshWithRetry();
+      reset123AvRouteState(); routeRefreshWithRetry();
     } else { JumpButtons.render(); }
   }
   const App = {
@@ -9899,13 +9134,11 @@
       if (this.navigationReady) return;
       this.navigationReady = true;
       window.addEventListener('scroll', () => InfiniteScroll.scheduleSnapshotSave(), { passive: true });
-      window.addEventListener('pagehide', () => InfiniteScroll.saveSnapshot());
-      window.addEventListener('beforeunload', () => InfiniteScroll.saveSnapshot());
+      window.addEventListener('pagehide', () => InfiniteScroll.saveSnapshot()); window.addEventListener('beforeunload', () => InfiniteScroll.saveSnapshot());
       window.addEventListener('pageshow', e => {
         if (e.persisted) setTimeout(() => InfiniteScroll.init(), 0);
       });
-      window.addEventListener('hashchange', onEmbyNavigate);
-      window.addEventListener('popstate', onEmbyNavigate);
+      window.addEventListener('hashchange', onEmbyNavigate); window.addEventListener('popstate', onEmbyNavigate);
       (function hookHistory() {
         const wrap = (type) => {
           const orig = history[type];
@@ -9916,21 +9149,14 @@
             return ret;
           };
         };
-        wrap('pushState');
-        wrap('replaceState');
+        wrap('pushState'); wrap('replaceState');
       })();
     },
     init() {
       if (this.started) return;
       this.started = true;
-      MobilePolicy.start();
-      MobileSettingsEntry.install();
-      Pan115SettingsEntry.install();
-      CardFx.apply(MobilePolicy.featureEnabled('cardFx', CFG.cardFx));
-      Trailer.installFallbackDebugHelper();
-      this.initRuntimeObserver();
-      this.initNavigationHooks();
-      SiteManager.setupJavDbGuards();
+      MobilePolicy.start(); MobileSettingsEntry.install(); Pan115SettingsEntry.install(); CardFx.apply(MobilePolicy.featureEnabled('cardFx', CFG.cardFx));
+      Trailer.installFallbackDebugHelper(); this.initRuntimeObserver(); this.initNavigationHooks(); SiteManager.setupJavDbGuards();
       if (location.hostname.includes('javdb') && location.pathname.startsWith('/v/')) {
         setTimeout(mainRun, 600);
       } else { mainRun(); }
@@ -9943,6 +9169,5 @@
       }
     },
   };
-  Core.expose('__LAOSIJI_APP__', App);
-  App.init();
+  Core.expose('__LAOSIJI_APP__', App); App.init();
 })();
