@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.5
+// @version      3.5.6
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -769,6 +769,17 @@
             onerror: () => showToast('❌ 115 签名请求失败', false)
         });
     }
+
+    function hideSukebeiNativeLinks(anchor) {
+        const row = anchor.closest('.torrent-list > tbody > tr');
+        const cell = anchor.closest('td');
+
+        if (!row || !cell) return;
+        cell.querySelectorAll('a[href^="/download/"], a[href^="magnet:"]').forEach(link => {
+            link.dataset.magAssistantHiddenNative = '1';
+            link.style.display = 'none';
+        });
+    }
  
     function handleLaosijiTable() {
         const table = document.getElementById('jav-nong-table') || document.getElementById('nong-table-new');
@@ -1006,7 +1017,10 @@
                 if (a.nextElementSibling?.classList?.contains('mag-btn-group')) return;
                 if (hasOtherMagnetButtons(a)) return;
                 a.dataset.magRawLink = href;
-                a.after(createBtnGroup(href));
+                const btnGroup = createBtnGroup(href);
+                a.after(btnGroup);
+                hideSukebeiNativeLinks(a);
+                a.parentElement?.querySelectorAll('.jav-sukebei-offline-115').forEach(el => el.remove());
                 a.dataset.magProcessed = 'true';
                 processedHrefs.add(href);
             }

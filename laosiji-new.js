@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.5.1
+// @version      2.7.5.2
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.5.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+  const SCRIPT_VERSION = '2.7.5.2'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
   const PAGE_ZOOM_2K_WIDTH = 2560;
   const getPageZoomDefault = () => {
     const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -6666,7 +6666,7 @@
     ];
     function enabled() { return GM_getValue('list_preview_quick_enabled', true); }
     function ensureStyle() {
-      injectStyle('jav-list-preview-style',`.jav-card-quick-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;margin-left:auto!important}.jav-card-quick-btn{width:26px;height:26px;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 24px!important;border:0!important;border-radius:4px!important;background:transparent!important;color:#64748b!important;box-shadow:none!important;fill:currentColor!important;line-height:1!important;text-decoration:none!important;cursor:pointer!important;user-select:none!important;opacity:.74!important;transition:transform .14s ease,color .14s ease,opacity .14s ease!important}.jav-card-quick-btn:hover{transform:translateY(-1px)!important;background:transparent!important;color:#2563eb!important;opacity:1!important}.jav-card-quick-btn:active{transform:scale(.96)!important}.jav-card-quick-btn:focus-visible{outline:2px solid rgba(37,99,235,.35)!important;outline-offset:2px!important}.jav-card-quick-btn .tool-svg{width:20px!important;height:20px!important;display:block!important;fill:currentColor!important}.javbus-card-title .item-tag,.javdb-card-tags,.javlib-card-footer{align-items:center!important}.javbus-card-title .item-tag,.javdb-card-tags{display:flex!important}.javlib-card-footer .jav-card-quick-actions{margin-left:auto!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{display:inline-flex!important;align-items:center!important;gap:3px!important;margin:0 0 0 8px!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-btn{width:24px!important;height:24px!important;flex-basis:24px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .tool-svg{width:17px!important;height:17px!important}.torrent-list>tbody>tr>td:nth-child(2)>a[href^="/view/"]{display:inline-block!important;max-width:calc(100% - 112px)!important;overflow:hidden!important;text-overflow:ellipsis!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list .jav-card-quick-preview{order:1}.torrent-list .jav-card-quick-trailer{order:2}.torrent-list .jav-card-quick-magnet{order:3}html.jav-card-portrait-mode .javdb-card-meta{display:flex!important;align-items:center!important;gap:6px!important}.jav-card-magnet-overlay{position:fixed;inset:0;z-index:10000035;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px)}.jav-card-magnet-panel{width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:10px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-card-magnet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e5e7eb}.jav-card-magnet-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:15px;font-weight:850}.jav-card-magnet-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-card-magnet-body{padding:12px;overflow:auto}.jav-card-magnet-body .jav-nong-wrapper{width:100%!important;display:block!important;box-sizing:border-box!important}`);
+      injectStyle('jav-list-preview-style',`.jav-card-quick-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;margin-left:auto!important}.jav-card-quick-btn{width:26px;height:26px;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 24px!important;border:0!important;border-radius:4px!important;background:transparent!important;color:#64748b!important;box-shadow:none!important;fill:currentColor!important;line-height:1!important;text-decoration:none!important;cursor:pointer!important;user-select:none!important;opacity:.74!important;transition:transform .14s ease,color .14s ease,opacity .14s ease!important}.jav-card-quick-btn:hover{transform:translateY(-1px)!important;background:transparent!important;color:#2563eb!important;opacity:1!important}.jav-card-quick-btn:active{transform:scale(.96)!important}.jav-card-quick-btn:focus-visible{outline:2px solid rgba(37,99,235,.35)!important;outline-offset:2px!important}.jav-card-quick-btn .tool-svg{width:20px!important;height:20px!important;display:block!important;fill:currentColor!important}.javbus-card-title .item-tag,.javdb-card-tags,.javlib-card-footer{align-items:center!important}.javbus-card-title .item-tag,.javdb-card-tags{display:flex!important}.javlib-card-footer .jav-card-quick-actions{margin-left:auto!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{display:inline-flex!important;align-items:center!important;gap:3px!important;margin:0 0 0 8px!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-btn{width:24px!important;height:24px!important;flex-basis:24px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .tool-svg{width:17px!important;height:17px!important}.torrent-list>tbody>tr>td:nth-child(2)>a[href^="/view/"]{display:inline-block!important;max-width:calc(100% - 112px)!important;overflow:hidden!important;text-overflow:ellipsis!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list .jav-card-quick-preview{order:1}.torrent-list .jav-card-quick-trailer{order:2}.torrent-list .jav-card-quick-magnet{order:3}.torrent-list .jav-sukebei-offline-115{margin-left:4px!important}.torrent-list .jav-sukebei-offline-115[data-loading="1"]{pointer-events:none!important;opacity:.55!important}html.jav-card-portrait-mode .javdb-card-meta{display:flex!important;align-items:center!important;gap:6px!important}.jav-card-magnet-overlay{position:fixed;inset:0;z-index:10000035;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px)}.jav-card-magnet-panel{width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:10px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-card-magnet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e5e7eb}.jav-card-magnet-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:15px;font-weight:850}.jav-card-magnet-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-card-magnet-body{padding:12px;overflow:auto}.jav-card-magnet-body .jav-nong-wrapper{width:100%!important;display:block!important;box-sizing:border-box!important}`);
     }
     function isListPage() { return !SiteManager.isDetailPage(); }
     function cardSite(card) {
@@ -6705,6 +6705,39 @@
     }
     function usesAggregateMagnetPanel() { return MobilePolicy.isMobile() || CFG.magnetDisplayMode === 'native-replace'; }
     function visibleActions() { return ACTIONS; }
+    function syncSukebeiOfflineButton(card) {
+      if (cardSite(card) !== 'sukebei') return;
+      const cells = [...card.children].filter(child => child.matches?.('td')); const linkCell = cells.find(cell => cell.querySelector('a[href^="magnet:"]'));
+      const magnetLink = linkCell?.querySelector('a[href^="magnet:"]'); const existing = card.querySelector('.jav-sukebei-offline-115');
+      const assistantGroup = linkCell?.querySelector('.mag-btn-group[data-mag-assistant="1"]');
+      if (!linkCell || !magnetLink) { existing?.remove(); return; }
+      if (assistantGroup) { existing?.remove(); return; }
+      const magnet = magnetLink.getAttribute('href') || magnetLink.href;
+      if (existing) {
+        existing.dataset.magnet = magnet;
+        if (existing.parentNode !== linkCell) linkCell.appendChild(existing);
+        return;
+      }
+      const button = document.createElement('a');
+      button.href = '#';
+      button.className = 'jav-sukebei-offline-115';
+      button.title = '推送到115';
+      button.setAttribute('aria-label', '推送到115');
+      button.dataset.magnet = magnet;
+      button.innerHTML = '<i class="fa fa-cloud-upload"></i>';
+      button.addEventListener('click', async e => {
+        e.preventDefault(); e.stopPropagation();
+        e.stopImmediatePropagation?.();
+        if (button.dataset.loading === '1') return;
+        button.dataset.loading = '1';
+        try {
+          await MagnetActions.offline115(button.dataset.magnet || magnet);
+        } finally {
+          delete button.dataset.loading;
+        }
+      }, true);
+      magnetLink.insertAdjacentElement('afterend', button);
+    }
     function openMagnetPopup(code) {
       if (!code) return;
       closeMagnetPopup(); ensureStyle();
@@ -6765,7 +6798,11 @@
       if (!card) return;
       card.querySelectorAll('.jav-list-preview-btn').forEach(el => el.remove());
       const existing = card.querySelector('.jav-card-quick-actions');
-      if (!enabled()) { existing?.remove(); return; }
+      if (!enabled()) {
+        existing?.remove(); card.querySelector('.jav-sukebei-offline-115')?.remove();
+        return;
+      }
+      syncSukebeiOfflineButton(card);
       const code = SiteManager.getCardCode(card); const slot = targetSlot(card);
       if (!code || !slot) { existing?.remove(); return; }
       if (existing) {
@@ -6792,7 +6829,7 @@
       visibleActions().forEach(meta => actions.appendChild(createButton(meta, code, card))); slot.appendChild(actions);
     }
     function removeAll() {
-      document.querySelectorAll('.jav-card-quick-actions, .jav-list-preview-btn').forEach(el => el.remove()); closeMagnetPopup();
+      document.querySelectorAll('.jav-card-quick-actions, .jav-list-preview-btn, .jav-sukebei-offline-115').forEach(el => el.remove()); closeMagnetPopup();
     }
     function sync() {
       if (!isListPage()) { removeAll(); return; }
