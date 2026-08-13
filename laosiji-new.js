@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.5.2
+// @version      2.7.5.3
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.5.2'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+  const SCRIPT_VERSION = '2.7.5.3'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
   const PAGE_ZOOM_2K_WIDTH = 2560;
   const getPageZoomDefault = () => {
     const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -4481,7 +4481,9 @@
       return m ? m[1].toUpperCase() : '';
     },
     initPage(avid) {
-      document.body?.setAttribute('data-laosiji-javlib', ''); this._insertTopSettingsButton(); this._insertTopNavigationDropdown();
+      document.body?.setAttribute('data-laosiji-javlib', '');
+      this._initMobileForum?.();
+      this._insertTopSettingsButton(); this._insertTopNavigationDropdown();
       if (!this.isDetailPage()) {
         this._initListPage();
         if (this.isHomePage()) this._initHomePage();
@@ -4489,7 +4491,7 @@
       }
       if (!avid) return;
       document.querySelector('.socialmedia')?.remove(); this._insertCopyButton(avid);
-      GM_addStyle(`#leftmenu{display:none}#rightcolumn{margin:0!important;width:100%!important;float:none!important}#content{padding-top:0;width:100%;margin:0!important}#video_title h3.post-title.text,#video_title h3.post-title.text a{font-size:20px!important;line-height:1.45!important}#video_jacket img{max-width:100%;height:auto}#video_info{text-align:left;font:14px Arial;overflow:hidden;word-break:break-word;margin:0!important;width:100%!important;float:none!important}#video_info .item,#video_info table,#video_info tr,#video_info td,#video_info .header,#video_info .text{text-align:left!important}#video_info table{margin-left:0!important;margin-right:auto!important}#video_info .jav-jump-btn-group{justify-content:flex-start!important}#video_reviews,#video_comments,#video_review_edit,#video_comment_edit{width:100%!important;max-width:100%!important;box-sizing:border-box!important;overflow-x:hidden!important}#video_reviews .comment,#video_comments .comment{width:100%!important;max-width:100%!important;table-layout:fixed!important;box-sizing:border-box!important}#video_reviews .comment td,#video_comments .comment td{box-sizing:border-box!important;vertical-align:top!important}#video_reviews .comment td.info,#video_comments .comment td.info{width:132px!important}#video_reviews .comment td.scores,#video_comments .comment td.scores{width:92px!important}#video_reviews .comment td.t,#video_comments .comment td.t{width:auto!important;min-width:0!important;overflow:hidden!important}#video_reviews .comment td.t .text,#video_comments .comment td.t .text,#video_reviews .comment td.t textarea,#video_comments .comment td.t textarea{width:auto!important;max-width:100%!important;box-sizing:border-box!important;white-space:normal!important;word-break:break-word!important;overflow-wrap:anywhere!important}.jav-nong-slot .jav-nong-wrapper{width:560px;max-width:100%;margin-top:16px}`);
+      GM_addStyle(`#leftmenu{display:none}#rightcolumn{margin:0!important;width:100%!important;float:none!important}#content{padding-top:0;width:100%;margin:0!important}#video_title h3.post-title.text,#video_title h3.post-title.text a{font-size:20px!important;line-height:1.45!important}#video_jacket img{max-width:100%;height:auto}#video_info{text-align:left;font:14px Arial;overflow:hidden;word-break:break-word;margin:0!important;width:100%!important;float:none!important}#video_info .item,#video_info table,#video_info tr,#video_info td,#video_info .header,#video_info .text{text-align:left!important}#video_info table{margin-left:0!important;margin-right:auto!important}#video_info .jav-jump-btn-group{justify-content:flex-start!important}#video_reviews,#video_comments,#video_review_edit,#video_comment_edit{width:100%!important;max-width:100%!important;box-sizing:border-box!important;overflow-x:hidden!important}#video_reviews .review,#video_comments .comment{width:100%!important;max-width:100%!important;table-layout:fixed!important;box-sizing:border-box!important}#video_reviews .review td,#video_comments .comment td{box-sizing:border-box!important;vertical-align:top!important}#video_reviews .review td.info,#video_comments .comment td.info{width:132px!important}#video_reviews .review td.scores,#video_comments .comment td.scores{width:92px!important}#video_reviews .review td.t,#video_comments .comment td.t{width:auto!important;min-width:0!important;overflow:hidden!important}#video_reviews .review td.t .text,#video_comments .comment td.t .text,#video_reviews .review td.t textarea,#video_comments .comment td.t textarea{width:auto!important;max-width:100%!important;box-sizing:border-box!important;white-space:normal!important;word-break:break-word!important;overflow-wrap:anywhere!important}.jav-nong-slot .jav-nong-wrapper{width:560px;max-width:100%;margin-top:16px}`);
       this._ensureDetailLayout(); this._insertMagnet(avid);
     },
     _insertTopNavigationDropdown() {
@@ -4686,6 +4688,244 @@
     },
   };
   Object.assign(SiteJavLib, JavlibList);
+  const JavlibMobileForum = {
+    ready: false,
+    shell: null,
+    lastRightColumn: null,
+    commentsShell: null,
+    lastComments: null,
+    reviewsShell: null,
+    lastReviews: null,
+    movable: new Map(),
+    init() {
+      if (!this.ready) { this.ready = true; MobilePolicy.onChange(() => this.sync()); }
+      this.sync();
+    },
+    isMobile() { return MobilePolicy.isMobile() && !!document.body?.matches('[data-laosiji-javlib]'); },
+    getContext() {
+      const rightColumn = document.querySelector('#rightcolumn');
+      if (!rightColumn) return null;
+      const title = rightColumn.querySelector(':scope > .boxtitle'); const table = rightColumn.querySelector(':scope > table.pubgroup');
+      const posts = rightColumn.querySelector(':scope > #publicposts');
+      const pageType = posts ? 'topic' : table?.querySelector(':scope > tbody > tr#header .pgtopic') ? 'topics' : table ? 'groups' : '';
+      if (!title || !pageType) return null;
+      return { rightColumn, title, table, posts, pageType };
+    },
+    sync() {
+      const context = this.getContext();
+      if (!this.isMobile()) {
+        this.restore(context?.rightColumn || this.lastRightColumn); this.restoreComments(); this.restoreReviews();
+        return;
+      }
+      if (context) this.render(context);
+      else this.restore(this.lastRightColumn);
+      const comments = this.getCommentsContext();
+      if (comments) this.renderComments(comments);
+      else this.restoreComments();
+      const reviews = this.getReviewsContext();
+      if (reviews) this.renderReviews(reviews);
+      else this.restoreReviews();
+    },
+    render(context) {
+      const { rightColumn, title, table, posts, pageType } = context;
+      this.lastRightColumn = rightColumn;
+      this.restoreMovedNodes(rightColumn); this.shell?.remove();
+      this.shell = document.createElement('section');
+      this.shell.className = `javlib-forum-shell javlib-forum-${pageType}`;
+      this.shell.setAttribute('aria-label', title.textContent.trim()); this.shell.appendChild(this.createHeading(title));
+      const tools = this.findDirect(rightColumn, '.right');
+      if (tools) { this.moveNode(tools, this.shell); tools.classList.add('javlib-forum-tools'); }
+      if (pageType === 'topic') this.shell.appendChild(this.createPosts(posts));
+      else this.shell.appendChild(this.createTableCards(table));
+      const pagination = this.findDirect(rightColumn, '.page_selector');
+      if (pagination) { this.moveNode(pagination, this.shell); pagination.classList.add('javlib-forum-pagination'); }
+      const divider = this.findDirect(rightColumn, 'hr.grey');
+      if (divider) { this.moveNode(divider, this.shell); divider.classList.add('javlib-forum-divider'); }
+      title.classList.add('javlib-forum-source-hidden'); table?.classList.add('javlib-forum-source-hidden'); posts?.classList.add('javlib-forum-source-hidden');
+      rightColumn.appendChild(this.shell);
+    },
+    getCommentsContext() {
+      const container = document.querySelector('#video_comments');
+      if (!container) return null;
+      const title = container.querySelector(':scope > .header'); const allLang = container.querySelector(':scope > #video_comments_alllang');
+      const comments = [...container.querySelectorAll(':scope > table.comment')];
+      if (!title || !comments.length) return null;
+      return { container, title, allLang, comments };
+    },
+    renderComments(context) {
+      const { container, title, allLang, comments } = context;
+      this.lastComments = container;
+      this.restoreMovedNodes(container); this.commentsShell?.remove();
+      this.commentsShell = document.createElement('section');
+      this.commentsShell.className = 'javlib-forum-shell javlib-comments-shell';
+      this.commentsShell.setAttribute('aria-label', title.textContent.trim()); this.commentsShell.appendChild(this.createHeading(title));
+      if (allLang) { this.moveNode(allLang, this.commentsShell); allLang.classList.add('javlib-forum-tools', 'javlib-comments-tools'); }
+      this.commentsShell.appendChild(this.createCommentCards(comments)); title.classList.add('javlib-forum-source-hidden');
+      comments.forEach(comment => comment.classList.add('javlib-forum-source-hidden')); container.appendChild(this.commentsShell);
+    },
+    getReviewsContext() {
+      const container = document.querySelector('#video_reviews');
+      if (!container) return null;
+      const title = container.querySelector(':scope > .header'); const reviews = [...container.querySelectorAll(':scope > table.review')];
+      if (!title || !reviews.length) return null;
+      return { container, title, reviews };
+    },
+    renderReviews(context) {
+      const { container, title, reviews } = context;
+      this.lastReviews = container;
+      this.restoreMovedNodes(container); this.reviewsShell?.remove();
+      this.reviewsShell = document.createElement('section');
+      this.reviewsShell.className = 'javlib-forum-shell javlib-reviews-shell';
+      this.reviewsShell.setAttribute('aria-label', title.textContent.trim()); this.reviewsShell.appendChild(this.createHeading(title));
+      this.reviewsShell.appendChild(this.createCommentCards(reviews, 'review'));
+      const divider = this.findDirect(container, 'hr.grey');
+      if (divider) { this.moveNode(divider, this.reviewsShell); divider.classList.add('javlib-forum-divider'); }
+      title.classList.add('javlib-forum-source-hidden'); reviews.forEach(review => review.classList.add('javlib-forum-source-hidden'));
+      container.appendChild(this.reviewsShell);
+    },
+    restore(rightColumn) {
+      this.shell?.remove();
+      this.shell = null;
+      rightColumn?.querySelector(':scope > .boxtitle')?.classList.remove('javlib-forum-source-hidden');
+      rightColumn?.querySelector(':scope > table.pubgroup')?.classList.remove('javlib-forum-source-hidden');
+      rightColumn?.querySelector(':scope > #publicposts')?.classList.remove('javlib-forum-source-hidden'); this.restoreMovedNodes(rightColumn);
+    },
+    findDirect(parent, selector) { return [...(parent?.children || [])].find(child => child.matches(selector)) || null; },
+    moveNode(node, target) {
+      if (!node || !target) return;
+      let placeholder = this.movable.get(node);
+      if (!placeholder) {
+        placeholder = document.createComment('javlib forum source position');
+        node.parentNode?.insertBefore(placeholder, node); this.movable.set(node, placeholder);
+      }
+      target.appendChild(node);
+    },
+    restoreMovedNodes(rightColumn) {
+      [...this.movable.entries()].forEach(([node, placeholder]) => {
+        if (!placeholder.parentNode || (rightColumn && !rightColumn.contains(placeholder))) return;
+        placeholder.parentNode.insertBefore(node, placeholder.nextSibling);
+        node.classList.remove(
+          'javlib-forum-tools',
+          'javlib-forum-pagination',
+          'javlib-forum-divider',
+          'javlib-comments-tools',
+          'javlib-feedback-score',
+          'javlib-feedback-toolbar',
+          'javlib-comment-score',
+          'javlib-comment-toolbar',
+          'javlib-review-score',
+          'javlib-review-toolbar',
+        );
+      });
+    },
+    createHeading(source) {
+      const heading = document.createElement('div');
+      heading.className = 'javlib-forum-heading';
+      const before = document.createElement('span');
+      before.className = 'javlib-forum-heading-line';
+      before.setAttribute('aria-hidden', 'true'); heading.appendChild(before);
+      const content = document.createElement('span');
+      content.className = 'javlib-forum-heading-content';
+      this.copyChildren(source, content); heading.appendChild(content);
+      const after = document.createElement('span');
+      after.className = 'javlib-forum-heading-line';
+      after.setAttribute('aria-hidden', 'true'); heading.appendChild(after);
+      return heading;
+    },
+    restoreComments(container = this.lastComments) {
+      this.commentsShell?.remove();
+      this.commentsShell = null;
+      container?.querySelector(':scope > .header')?.classList.remove('javlib-forum-source-hidden');
+      container?.querySelectorAll(':scope > table.comment').forEach(comment => { comment.classList.remove('javlib-forum-source-hidden'); });
+      this.restoreMovedNodes(container);
+    },
+    restoreReviews(container = this.lastReviews) {
+      this.reviewsShell?.remove();
+      this.reviewsShell = null;
+      container?.querySelector(':scope > .header')?.classList.remove('javlib-forum-source-hidden');
+      container?.querySelectorAll(':scope > table.review').forEach(review => { review.classList.remove('javlib-forum-source-hidden'); });
+      this.restoreMovedNodes(container);
+    },
+    createTableCards(table) {
+      const list = document.createElement('div');
+      list.className = 'javlib-forum-card-list';
+      const rows = [...(table?.querySelectorAll(':scope > tbody > tr:not(#header)') || [])];
+      rows.forEach(row => {
+        const cells = [...row.cells];
+        if (!cells.length) return;
+        const card = document.createElement('article');
+        card.className = `javlib-forum-data-card${row.classList.contains('dimrow') ? ' is-dim' : ''}`;
+        const primary = document.createElement('div');
+        primary.className = 'javlib-forum-card-primary';
+        this.copyCell(cells[0], primary); card.appendChild(primary); list.appendChild(card);
+      });
+      return list;
+    },
+    createCommentCards(comments, kind = 'comment') {
+      const list = document.createElement('div');
+      list.className = `javlib-forum-post-list javlib-${kind}-list`;
+      comments.forEach(source => {
+        const card = document.createElement('article');
+        card.className = `javlib-forum-post-card javlib-${kind}-card`;
+        const meta = document.createElement('div');
+        meta.className = `javlib-forum-post-meta javlib-feedback-meta javlib-${kind}-meta`;
+        this.copyNode(source.querySelector('td.info'), meta); card.appendChild(meta);
+        const body = document.createElement('div');
+        body.className = `javlib-forum-post-body javlib-feedback-body javlib-${kind}-body`;
+        this.copyNode(source.querySelector('td.t'), body); card.appendChild(body);
+        const footer = document.createElement('div');
+        footer.className = `javlib-forum-post-footer javlib-feedback-footer javlib-${kind}-footer`;
+        this.copyNode(source.querySelector('td.date'), footer);
+        const score = source.querySelector('tr:first-child > td.scores');
+        if (score) {
+          this.moveNode(score, footer);
+          score.classList.add('javlib-feedback-score', `javlib-${kind}-score`);
+        }
+        const toolbar = source.querySelector('td.toolbar');
+        if (toolbar) {
+          this.moveNode(toolbar, footer);
+          toolbar.classList.add('javlib-feedback-toolbar', `javlib-${kind}-toolbar`);
+        }
+        card.appendChild(footer); list.appendChild(card);
+      });
+      return list;
+    },
+    createPosts(posts) {
+      const list = document.createElement('div');
+      list.className = 'javlib-forum-post-list';
+      [...(posts?.querySelectorAll(':scope > table.post') || [])].forEach(source => {
+        const card = document.createElement('article');
+        card.className = 'javlib-forum-post-card';
+        const meta = document.createElement('div');
+        meta.className = 'javlib-forum-post-meta';
+        this.copyNode(source.querySelector('.info'), meta); card.appendChild(meta);
+        const body = document.createElement('div');
+        body.className = 'javlib-forum-post-body';
+        this.copyNode(source.querySelector('.t'), body); card.appendChild(body);
+        const footer = document.createElement('div');
+        footer.className = 'javlib-forum-post-footer';
+        this.copyNode(source.querySelector('.date'), footer); this.moveNode(source.querySelector('.toolbar'), footer); card.appendChild(footer);
+        list.appendChild(card);
+      });
+      return list;
+    },
+    copyCell(source, target) {
+      if (source) target.innerHTML = source.innerHTML;
+    },
+    copyNode(source, target) {
+      if (!source) return;
+      const clone = document.createElement('div');
+      clone.className = source.className || '';
+      clone.innerHTML = source.innerHTML;
+      target.appendChild(clone);
+    },
+    copyChildren(source, target) {
+      [...source.childNodes].forEach(node => target.appendChild(node.cloneNode(true)));
+    },
+  };
+  SiteJavLib._initMobileForum = () => JavlibMobileForum.init();
+  Core.expose('__LAOSIJI_JAVLIB_MOBILE_FORUM__', JavlibMobileForum);
+  GM_addStyle(`html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo{display:block!important;clear:both!important;float:none!important;position:relative!important;z-index:1!important;height:auto!important;min-height:0!important;margin:0!important;padding:8px 12px!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo{display:block!important;float:none!important;position:static!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;text-align:center!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo a{display:inline-block!important;max-width:100%!important;height:auto!important;line-height:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo img{display:block!important;width:min(280px,100%)!important;height:auto!important;max-width:100%!important;margin:0 auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #content{display:block!important;clear:both!important;position:relative!important;top:auto!important;margin:0!important;padding:0 12px 16px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #rightcolumn{display:block!important;clear:both!important;float:none!important;position:relative!important;z-index:0!important;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-source-hidden{display:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-shell{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;margin:0!important;color:#1f2937!important;font:14px/1.5 Arial,"Microsoft YaHei",sans-serif!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-heading{display:flex!important;align-items:flex-start!important;width:100%!important;min-width:0!important;gap:10px!important;margin:0 0 12px!important;padding:7px 0!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-heading-line{flex:1 1 0!important;min-width:14px!important;height:1px!important;margin-top:11px!important;background:#cbd5e1!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-heading-content{flex:0 1 auto!important;min-width:0!important;max-width:calc(100% - 48px)!important;color:#111827!important;font-size:16px!important;font-weight:700!important;line-height:1.45!important;text-align:center!important;overflow-wrap:anywhere!important;word-break:break-word!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-heading-content a{color:inherit!important;overflow-wrap:anywhere!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-tools{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:7px!important;width:100%!important;min-width:0!important;margin:0 0 10px!important;padding:0!important;float:none!important;clear:both!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-tools>*{max-width:100%!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-card-list,html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-list{display:grid!important;gap:9px!important;width:100%!important;min-width:0!important;margin:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-data-card,html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-card{display:block!important;width:100%!important;min-width:0!important;margin:0!important;padding:0!important;border:1px solid #d7dee8!important;border-radius:4px!important;background:#fff!important;box-shadow:0 1px 3px rgba(15,23,42,.06)!important;box-sizing:border-box!important;overflow:hidden!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-data-card.is-dim{background:#f8fafc!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-card-primary{display:block!important;min-width:0!important;padding:10px 11px 9px!important;border-bottom:1px solid #e5e7eb!important;color:#111827!important;line-height:1.45!important;overflow-wrap:anywhere!important;word-break:break-word!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-card-primary a{color:inherit!important;font-weight:700!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-card-primary .desc{display:block!important;margin-top:3px!important;color:#64748b!important;font-size:12px!important;font-weight:400!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:5px 8px!important;min-width:0!important;padding:8px 10px!important;border-bottom:1px dashed #d7dee8!important;background:#f8fafc!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta .postid{color:#94a3b8!important;font-size:11px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta .userid{font-weight:700!important;overflow-wrap:anywhere!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta .nickname{display:flex!important;align-items:center!important;margin-left:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta .imageflag{width:22px!important;height:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-body{min-width:0!important;padding:11px 10px 13px!important;color:#1f2937!important;line-height:1.6!important;overflow-wrap:anywhere!important;word-break:break-word!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-body .posttext{display:block!important;margin:0!important;padding:0!important;white-space:normal!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-body>.t>br{display:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-comments-shell{margin-top:12px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-comments-tools{justify-content:flex-end!important;margin:-4px 0 8px!important;font-size:12px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-body .text{display:block!important;width:auto!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-body .text img{display:block!important;max-width:100%!important;height:auto!important;margin:6px 0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-body .quote{max-width:100%!important;box-sizing:border-box!important;overflow-wrap:anywhere!important;word-break:break-word!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-footer{justify-content:flex-start!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-score{display:flex!important;flex:0 0 auto!important;align-items:center!important;width:auto!important;min-width:0!important;padding:0!important;border:0!important;background:transparent!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-score>table{width:auto!important;margin:0!important;border-collapse:collapse!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-score td{width:auto!important;padding:0 3px!important;white-space:nowrap!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-toolbar{display:flex!important;flex:0 0 auto!important;align-items:center!important;flex-wrap:wrap!important;gap:6px!important;width:auto!important;min-width:0!important;margin-left:auto!important;padding:0!important;border:0!important;background:transparent!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-review-meta .rating9,html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-review-meta .rating10{flex:0 0 auto!important;margin-right:2px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;flex-wrap:wrap!important;gap:7px!important;min-width:0!important;padding:8px 10px!important;border-top:1px solid #eef2f7!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-footer .date{color:#64748b!important;font-size:11px!important;overflow-wrap:anywhere!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-footer .toolbar{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-left:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-footer .smallbutton{min-height:30px!important;margin:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-pagination{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:6px!important;width:100%!important;margin:12px 0 0!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-pagination a{min-height:32px!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-divider{width:100%!important;margin:12px 0 0!important}@media (max-width:390px){}`);
   const SiteSukebei = {
     match() { return /(?:^|\.)sukebei\.nyaa\.si$/i.test(location.hostname); },
     isDetailPage() { return /^\/view\/\d+\/?$/i.test(location.pathname) && !!document.querySelector('#torrent-description'); },
