@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.5.3
+// @version      2.7.5.4
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
   'use strict';
-  const SCRIPT_VERSION = '2.7.5.3'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+  const SCRIPT_VERSION = '2.7.5.4'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
   const PAGE_ZOOM_2K_WIDTH = 2560;
   const getPageZoomDefault = () => {
     const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -5367,8 +5367,90 @@
   })();
   Core.expose('__LAOSIJI_LIST_OPEN_NEW_TAB__', ListOpenNewTab);
   function ensureStillsGalleryStyles() {
-    injectStyle('jav-stills-gallery-style',`.jav-stills-shell{position:relative!important;width:100%!important;inline-size:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:16px 0 18px!important;padding:6px 4px!important;border:1px solid #d9e2ec!important;border-radius:8px!important;background:#ffffff!important;box-shadow:0 8px 18px rgba(15,23,42,.06)!important;overflow:hidden!important}.jav-stills-stage{position:relative!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important}.jav-stills-rail{display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;gap:10px!important;width:100%!important;inline-size:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;padding:0 0 6px!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-behavior:smooth!important;overscroll-behavior-inline:contain!important;scrollbar-width:thin!important;scrollbar-color:rgba(100,116,139,.44) transparent!important}.jav-stills-rail::-webkit-scrollbar{height:8px!important}.jav-stills-rail::-webkit-scrollbar-thumb{border-radius:999px!important;background:rgba(100,116,139,.36)!important}.jav-stills-rail::-webkit-scrollbar-track{background:transparent!important}.jav-stills-arrow{position:absolute!important;top:calc(50% - 7px)!important;z-index:3!important;display:grid!important;place-items:center!important;width:44px!important;height:72px!important;border:1px solid rgba(226,232,240,.55)!important;border-radius:22px!important;background:rgba(15,23,42,.12)!important;-webkit-backdrop-filter:blur(12px) saturate(135%)!important;backdrop-filter:blur(12px) saturate(135%)!important;color:#f8fafc!important;font-size:30px!important;line-height:1!important;font-weight:800!important;cursor:pointer!important;transform:translateY(-50%)!important;box-shadow:0 8px 22px rgba(0,0,0,.34)!important;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease!important;touch-action:manipulation!important}.jav-stills-arrow:hover{background:rgba(15,23,42,.26)!important;border-color:rgba(125,211,252,.86)!important;box-shadow:0 10px 24px rgba(0,0,0,.42)!important;transform:translateY(-50%) scale(1.04)!important}.jav-stills-arrow:focus-visible{outline:2px solid rgba(37,99,235,.78)!important;outline-offset:2px!important}.jav-stills-arrow-prev{left:8px!important}.jav-stills-arrow-next{right:8px!important}.jav-stills-rail>a,.jav-stills-rail>.tile-item,.jav-stills-rail>.preview-video-container{flex:0 0 auto!important;display:block!important;position:relative!important;width:172px!important;height:104px!important;margin:0!important;padding:0!important;border:1px solid rgba(148,163,184,.28)!important;border-radius:8px!important;background:#e2e8f0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.45)!important;overflow:hidden!important;box-sizing:border-box!important;text-decoration:none!important}.jav-stills-rail img{display:block!important;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover!important;object-position:center!important;border:0!important}.jav-stills-rail .photo-frame{width:100%!important;height:100%!important;margin:0!important;padding:0!important;box-sizing:border-box!important;overflow:hidden!important}.jav-stills-rail>video,.jav-stills-rail video[style*="display:none"],.jav-stills-rail video[style*="display:none"]{display:none!important;flex:0 0 auto!important}.jav-stills-javdb .preview-video-container span{position:absolute!important;left:8px!important;bottom:7px!important;z-index:2!important;padding:3px 7px!important;border-radius:6px!important;background:rgba(15,23,42,.68)!important;color:#ffffff!important;font-size:11px!important;line-height:1!important;font-weight:800!important}.jav-stills-javlib .jav-stills-rail>a{width:150px!important;height:100px!important}.javdb-stills-column-clean,.javdb-stills-panel-clean,.javdb-stills-panel-clean>.message-body,.javdb-stills-body-clean{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}.javdb-stills-column-clean{flex:1 1 0!important;overflow:hidden!important;padding-left:.75rem!important;padding-right:.75rem!important}.javdb-stills-panel-clean{margin:16px 0 18px!important}.jav-stills-javdb{width:auto!important;max-width:min(100%,calc(100vw - 34px))!important;max-inline-size:min(100%,calc(100vw - 34px))!important}.javdb-stills-panel-clean .jav-stills-shell{margin:0!important}.jav-stills-viewer{position:fixed!important;inset:0!important;z-index:2147483647!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;background:rgba(8,13,25,.9)!important;backdrop-filter:blur(5px)!important;color:#ffffff!important;cursor:zoom-out!important}.jav-stills-viewer-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;min-height:54px!important;padding:12px 16px!important;box-sizing:border-box!important;pointer-events:none!important}.jav-stills-viewer-count{min-width:64px!important;padding:6px 10px!important;border-radius:8px!important;background:rgba(15,23,42,.72)!important;color:#e5edf8!important;font-size:13px!important;font-weight:800!important;text-align:center!important;pointer-events:auto!important}.jav-stills-viewer-close,.jav-stills-viewer-nav{display:grid!important;place-items:center!important;border:1px solid rgba(226,232,240,.22)!important;background:rgba(15,23,42,.72)!important;color:#ffffff!important;cursor:pointer!important;box-shadow:0 12px 26px rgba(0,0,0,.24)!important;touch-action:manipulation!important}.jav-stills-viewer-close{width:38px!important;height:38px!important;border-radius:10px!important;font-size:24px!important;line-height:1!important;pointer-events:auto!important}.jav-stills-viewer-close:hover,.jav-stills-viewer-nav:hover{background:rgba(30,41,59,.88)!important;border-color:rgba(255,255,255,.36)!important}.jav-stills-viewer-body{position:relative!important;display:grid!important;place-items:center!important;min-width:0!important;min-height:0!important;padding:0 68px!important;box-sizing:border-box!important;overflow:auto!important}.jav-stills-viewer-img{display:block!important;max-width:100%!important;max-height:calc(100vh - 118px)!important;width:auto!important;height:auto!important;object-fit:contain!important;border-radius:6px!important;background:#111827!important;box-shadow:0 18px 46px rgba(0,0,0,.45)!important;cursor:zoom-in!important}.jav-stills-viewer-img.is-zoomed{max-width:none!important;max-height:none!important;cursor:zoom-out!important}.jav-stills-viewer-nav{position:fixed!important;top:50%!important;z-index:2147483647!important;width:44px!important;height:58px!important;border-radius:12px!important;font-size:30px!important;line-height:1!important;transform:translateY(-50%)!important}.jav-stills-viewer-prev{left:18px!important}.jav-stills-viewer-next{right:18px!important}.jav-stills-viewer-caption{min-height:42px!important;padding:9px 18px 16px!important;box-sizing:border-box!important;color:rgba(226,232,240,.86)!important;font-size:13px!important;line-height:1.45!important;text-align:center!important;pointer-events:none!important}@media (max-width:720px){.jav-stills-shell{padding:6px 4px!important}.jav-stills-arrow{width:34px!important;height:54px!important;border-radius:18px!important;font-size:26px!important}.jav-stills-rail>a,.jav-stills-rail>.tile-item,.jav-stills-rail>.preview-video-container{width:150px!important;height:92px!important}.jav-stills-javlib .jav-stills-rail>a{width:138px!important;height:92px!important}.jav-stills-viewer-body{padding:0 52px!important}.jav-stills-viewer-nav{width:38px!important;height:52px!important}.jav-stills-viewer-prev{left:8px!important}.jav-stills-viewer-next{right:8px!important}}`);
+    injectStyle('jav-stills-gallery-style',`.jav-stills-shell{position:relative!important;width:100%!important;inline-size:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:16px 0 18px!important;padding:6px 4px!important;border:1px solid #d9e2ec!important;border-radius:8px!important;background:#ffffff!important;box-shadow:0 8px 18px rgba(15,23,42,.06)!important;overflow:hidden!important}.jav-stills-stage{position:relative!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important}.jav-stills-rail{display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;gap:10px!important;width:100%!important;inline-size:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;padding:0 0 6px!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-behavior:smooth!important;overscroll-behavior-inline:contain!important;scrollbar-width:thin!important;scrollbar-color:rgba(100,116,139,.44) transparent!important}.jav-stills-rail::-webkit-scrollbar{height:8px!important}.jav-stills-rail::-webkit-scrollbar-thumb{border-radius:999px!important;background:rgba(100,116,139,.36)!important}.jav-stills-rail::-webkit-scrollbar-track{background:transparent!important}.jav-stills-arrow{position:absolute!important;top:calc(50% - 7px)!important;z-index:3!important;display:grid!important;place-items:center!important;width:44px!important;height:72px!important;border:1px solid rgba(226,232,240,.55)!important;border-radius:22px!important;background:rgba(15,23,42,.12)!important;-webkit-backdrop-filter:blur(12px) saturate(135%)!important;backdrop-filter:blur(12px) saturate(135%)!important;color:#f8fafc!important;font-size:30px!important;line-height:1!important;font-weight:800!important;cursor:pointer!important;transform:translateY(-50%)!important;box-shadow:0 8px 22px rgba(0,0,0,.34)!important;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease!important;touch-action:manipulation!important}.jav-stills-arrow:hover{background:rgba(15,23,42,.26)!important;border-color:rgba(125,211,252,.86)!important;box-shadow:0 10px 24px rgba(0,0,0,.42)!important;transform:translateY(-50%) scale(1.04)!important}.jav-stills-arrow:focus-visible{outline:2px solid rgba(37,99,235,.78)!important;outline-offset:2px!important}.jav-stills-arrow-prev{left:8px!important}.jav-stills-arrow-next{right:8px!important}.jav-stills-rail>a,.jav-stills-rail>.tile-item,.jav-stills-rail>.preview-video-container{flex:0 0 auto!important;display:block!important;position:relative!important;width:172px!important;height:104px!important;margin:0!important;padding:0!important;border:1px solid rgba(148,163,184,.28)!important;border-radius:8px!important;background:#e2e8f0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.45)!important;overflow:hidden!important;box-sizing:border-box!important;text-decoration:none!important}.jav-stills-rail img{display:block!important;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover!important;object-position:center!important;border:0!important}.jav-stills-rail .photo-frame{width:100%!important;height:100%!important;margin:0!important;padding:0!important;box-sizing:border-box!important;overflow:hidden!important}.jav-stills-rail>video,.jav-stills-rail video[style*="display:none"],.jav-stills-rail video[style*="display:none"]{display:none!important;flex:0 0 auto!important}.jav-stills-javdb .preview-video-container span{position:absolute!important;left:8px!important;bottom:7px!important;z-index:2!important;padding:3px 7px!important;border-radius:6px!important;background:rgba(15,23,42,.68)!important;color:#ffffff!important;font-size:11px!important;line-height:1!important;font-weight:800!important}.jav-stills-javlib .jav-stills-rail>a{width:150px!important;height:100px!important}.javdb-stills-column-clean,.javdb-stills-panel-clean,.javdb-stills-panel-clean>.message-body,.javdb-stills-body-clean{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}.javdb-stills-column-clean{flex:1 1 0!important;overflow:hidden!important;padding-left:.75rem!important;padding-right:.75rem!important}.javdb-stills-panel-clean{margin:16px 0 18px!important}.jav-stills-javdb{width:auto!important;max-width:min(100%,calc(100vw - 34px))!important;max-inline-size:min(100%,calc(100vw - 34px))!important}.javdb-stills-panel-clean .jav-stills-shell{margin:0!important}.jav-stills-viewer{position:fixed!important;inset:0!important;z-index:2147483647!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;background:rgba(8,13,25,.9)!important;backdrop-filter:blur(5px)!important;color:#ffffff!important;cursor:zoom-out!important}.jav-stills-viewer-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;min-height:54px!important;padding:12px 16px!important;box-sizing:border-box!important;pointer-events:none!important}.jav-stills-viewer-count{min-width:64px!important;padding:6px 10px!important;border-radius:8px!important;background:rgba(15,23,42,.72)!important;color:#e5edf8!important;font-size:13px!important;font-weight:800!important;text-align:center!important;pointer-events:auto!important}.jav-stills-viewer-close,.jav-stills-viewer-nav{display:grid!important;place-items:center!important;border:1px solid rgba(226,232,240,.22)!important;background:rgba(15,23,42,.72)!important;color:#ffffff!important;cursor:pointer!important;box-shadow:0 12px 26px rgba(0,0,0,.24)!important;touch-action:manipulation!important}.jav-stills-viewer-close{width:38px!important;height:38px!important;border-radius:10px!important;font-size:24px!important;line-height:1!important;pointer-events:auto!important}.jav-stills-viewer-close:hover,.jav-stills-viewer-nav:hover{background:rgba(30,41,59,.88)!important;border-color:rgba(255,255,255,.36)!important}.jav-stills-viewer-body{position:relative!important;display:grid!important;place-items:center!important;min-width:0!important;min-height:0!important;padding:0 68px!important;box-sizing:border-box!important;overflow:auto!important}.jav-stills-viewer-img{display:block!important;max-width:100%!important;max-height:calc(100vh - 118px)!important;width:auto!important;height:auto!important;object-fit:contain!important;border-radius:6px!important;background:#111827!important;box-shadow:0 18px 46px rgba(0,0,0,.45)!important;cursor:zoom-in!important}.jav-stills-viewer-img.is-zoomed{max-width:none!important;max-height:none!important;cursor:zoom-out!important}.jav-stills-viewer.is-zoomed .jav-stills-viewer-body,.jav-stills-viewer.is-zoomed .jav-stills-viewer-img{touch-action:pan-x pan-y pinch-zoom!important}.jav-stills-viewer-nav{position:fixed!important;top:50%!important;z-index:2147483647!important;width:44px!important;height:58px!important;border-radius:12px!important;font-size:30px!important;line-height:1!important;transform:translateY(-50%)!important}.jav-stills-viewer-prev{left:18px!important}.jav-stills-viewer-next{right:18px!important}.jav-stills-viewer-caption{min-height:42px!important;padding:9px 18px 16px!important;box-sizing:border-box!important;color:rgba(226,232,240,.86)!important;font-size:13px!important;line-height:1.45!important;text-align:center!important;pointer-events:none!important}@media (max-width:720px){.jav-stills-shell{padding:6px 4px!important}.jav-stills-arrow{width:34px!important;height:54px!important;border-radius:18px!important;font-size:26px!important}.jav-stills-rail>a,.jav-stills-rail>.tile-item,.jav-stills-rail>.preview-video-container{width:150px!important;height:92px!important}.jav-stills-javlib .jav-stills-rail>a{width:138px!important;height:92px!important}.jav-stills-viewer-body{padding:0 52px!important;touch-action:pan-y pinch-zoom!important}.jav-stills-viewer-img{touch-action:pan-y pinch-zoom!important}.jav-stills-viewer-nav{width:38px!important;height:52px!important}.jav-stills-viewer-prev{left:8px!important}.jav-stills-viewer-next{right:8px!important}}`);
   }
+  const ViewerNavigation = (() => {
+    const noNavigation = consume => ({ consume, navigate: null });
+    function create({ length, index = 0 } = {}) {
+      const size = Math.max(0, Number(length) || 0); let currentIndex = size ? ((Number(index) || 0) % size + size) % size : 0; let zoomed = false;
+      let wheelDelta = 0; let wheelLockedUntil = 0; let touchStart = null; let ignoreClickUntil = 0; let destroyed = false;
+      const navigate = nextIndex => {
+        if (destroyed || !size) return noNavigation(false);
+        currentIndex = ((nextIndex % size) + size) % size;
+        zoomed = false;
+        return { consume: true, navigate: currentIndex };
+      };
+      const step = direction => navigate(currentIndex + direction);
+      const key = value => {
+        if (destroyed) return noNavigation(false);
+        if (value === 'Escape') return { consume: true, close: true, navigate: null };
+        if (value === 'ArrowLeft' || value === 'ArrowRight') return step(value === 'ArrowRight' ? 1 : -1);
+        return noNavigation(false);
+      };
+      const toggleZoom = () => {
+        if (destroyed) return zoomed;
+        zoomed = !zoomed;
+        return zoomed;
+      };
+      const wheel = ({ deltaX = 0, deltaY = 0, deltaMode = 0, ctrlKey = false, viewportHeight = 800, now = Date.now() } = {}) => {
+        if (destroyed || ctrlKey || size < 2 || zoomed) return noNavigation(false);
+        const rawDelta = Math.abs(deltaY) >= Math.abs(deltaX) ? deltaY : deltaX;
+        if (!rawDelta || now < wheelLockedUntil) return noNavigation(true);
+        const deltaUnit = deltaMode === 1 ? 16 : (deltaMode === 2 ? Math.max(viewportHeight, 800) : 1);
+        wheelDelta += rawDelta * deltaUnit;
+        if (Math.abs(wheelDelta) < 36) return noNavigation(true);
+        const result = step(wheelDelta > 0 ? 1 : -1);
+        wheelDelta = 0;
+        wheelLockedUntil = now + 220;
+        return result;
+      };
+      const startTouch = ({ x, y, points = 1 } = {}) => {
+        touchStart = !destroyed && size >= 2 && !zoomed && points === 1 ? { x, y } : null;
+        return !!touchStart;
+      };
+      const moveTouch = ({ x, y, points = 1 } = {}) => {
+        if (destroyed || !touchStart) return { consume: false };
+        if (points !== 1) {
+          touchStart = null;
+          return { consume: false };
+        }
+        const deltaX = x - touchStart.x; const deltaY = y - touchStart.y;
+        return { consume: Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY) };
+      };
+      const endTouch = ({ x, y, width = 0, now = Date.now(), remainingPoints = 0, changedPoints = 1 } = {}) => {
+        const start = touchStart;
+        touchStart = null;
+        if (destroyed || !start || remainingPoints !== 0 || changedPoints !== 1) return noNavigation(false);
+        const deltaX = x - start.x; const deltaY = y - start.y; const threshold = Math.min(96, Math.max(48, width * .12));
+        if (Math.abs(deltaX) < threshold || Math.abs(deltaX) <= Math.abs(deltaY)) return noNavigation(false);
+        ignoreClickUntil = now + 400;
+        return step(deltaX < 0 ? 1 : -1);
+      };
+      const suppressClick = ({ target, now = Date.now() } = {}) => !destroyed && now < ignoreClickUntil && (target === 'image' || target === 'body');
+      const destroy = () => {
+        destroyed = true;
+        touchStart = null;
+        wheelDelta = 0;
+      };
+      return {
+        get index() { return currentIndex; },
+        get zoomed() { return zoomed; },
+        get destroyed() { return destroyed; },
+        navigate,
+        step,
+        key,
+        toggleZoom,
+        wheel,
+        touchStart: startTouch,
+        touchMove: moveTouch,
+        touchEnd: endTouch,
+        touchCancel: () => { touchStart = null; },
+        suppressClick,
+        destroy,
+      };
+    }
+    return { create };
+  })();
   const StillsGallery = (() => {
     let activeViewerClose = null;
     function scrollRail(rail, dir) {
@@ -5423,7 +5505,8 @@
       const originalHtmlOverflow = document.documentElement.style.overflow; const originalBodyOverflow = document.body.style.overflow;
       document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
-      let index = startIndex; const overlay = document.createElement('div');
+      const navigation = ViewerNavigation.create({ length: items.length, index: startIndex });
+      const overlay = document.createElement('div');
       overlay.className = 'jav-stills-viewer';
       const top = document.createElement('div');
       top.className = 'jav-stills-viewer-top';
@@ -5451,10 +5534,9 @@
       next.setAttribute('aria-label', '下一张剧照');
       const caption = document.createElement('div');
       caption.className = 'jav-stills-viewer-caption';
-      const show = nextIndex => {
-        index = (nextIndex + items.length) % items.length;
-        const item = items[index];
-        img.classList.remove('is-zoomed');
+      const show = () => {
+        const index = navigation.index; const item = items[index];
+        img.classList.remove('is-zoomed'); overlay.classList.remove('is-zoomed');
         img.src = item.url;
         img.alt = item.title || `剧照 ${index + 1}`;
         count.textContent = `${index + 1} / ${items.length}`;
@@ -5465,42 +5547,79 @@
           event.preventDefault(); event.stopPropagation();
           event.stopImmediatePropagation?.();
         }
-        overlay.remove();
+        navigation.destroy(); overlay.remove();
         document.documentElement.style.overflow = originalHtmlOverflow;
         document.body.style.overflow = originalBodyOverflow;
         document.removeEventListener('keydown', keyHandler, true);
         if (activeViewerClose === closeViewer) activeViewerClose = null;
       };
       const keyHandler = e => {
-        if (e.key === 'Escape') { closeViewer(e); return; }
-        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-          e.preventDefault(); e.stopPropagation();
-          e.stopImmediatePropagation?.();
-          show(index + (e.key === 'ArrowRight' ? 1 : -1));
-        }
+        const result = navigation.key(e.key);
+        if (result.close) { closeViewer(e); return; }
+        if (!result.consume) return;
+        stopViewerEvent(e);
+        if (result.navigate !== null) show();
+      };
+      const stopViewerEvent = e => {
+        e.preventDefault(); e.stopPropagation();
+        e.stopImmediatePropagation?.();
+      };
+      const wheelHandler = e => {
+        const result = navigation.wheel({ deltaX: e.deltaX, deltaY: e.deltaY, deltaMode: e.deltaMode, ctrlKey: e.ctrlKey, viewportHeight: overlay.clientHeight });
+        if (result.consume) stopViewerEvent(e);
+        if (result.navigate !== null) show();
+      };
+      const touchStartHandler = e => {
+        const touch = e.touches[0];
+        navigation.touchStart({ x: touch?.clientX, y: touch?.clientY, points: e.touches.length });
+      };
+      const touchMoveHandler = e => {
+        const touch = e.touches[0];
+        const result = navigation.touchMove({ x: touch?.clientX, y: touch?.clientY, points: e.touches.length });
+        if (result.consume) stopViewerEvent(e);
+      };
+      const touchEndHandler = e => {
+        const touch = e.changedTouches[0];
+        if (!touch) { navigation.touchCancel(); return; }
+        const result = navigation.touchEnd({
+          x: touch.clientX,
+          y: touch.clientY,
+          width: overlay.clientWidth,
+          remainingPoints: e.touches.length,
+          changedPoints: e.changedTouches.length,
+        });
+        if (result.consume) stopViewerEvent(e);
+        if (result.navigate !== null) show();
       };
       close.addEventListener('click', closeViewer, true);
       prev.addEventListener('click', e => {
         e.preventDefault(); e.stopPropagation();
         e.stopImmediatePropagation?.();
-        show(index - 1);
+        navigation.step(-1); show();
       }, true);
       next.addEventListener('click', e => {
         e.preventDefault(); e.stopPropagation();
         e.stopImmediatePropagation?.();
-        show(index + 1);
+        navigation.step(1); show();
       }, true);
       img.addEventListener('click', e => {
         e.preventDefault(); e.stopPropagation();
         e.stopImmediatePropagation?.();
-        img.classList.toggle('is-zoomed');
+        img.classList.toggle('is-zoomed', navigation.toggleZoom()); overlay.classList.toggle('is-zoomed', navigation.zoomed);
       }, true);
       overlay.addEventListener('click', e => {
+        const target = e.target === img ? 'image' : (e.target === body ? 'body' : 'other');
+        if (navigation.suppressClick({ target })) { stopViewerEvent(e); return; }
         if (e.target === overlay || e.target === body) closeViewer(e);
       }, true);
+      overlay.addEventListener('wheel', wheelHandler, { passive: false, capture: true });
+      body.addEventListener('touchstart', touchStartHandler, { passive: true });
+      body.addEventListener('touchmove', touchMoveHandler, { passive: false });
+      body.addEventListener('touchend', touchEndHandler, { passive: false });
+      body.addEventListener('touchcancel', () => navigation.touchCancel(), { passive: true });
       document.addEventListener('keydown', keyHandler, true); overlay.append(top, body, prev, next, caption); document.body.appendChild(overlay);
       activeViewerClose = closeViewer;
-      show(index);
+      show();
     }
     function bindViewer(rail) {
       if (rail.dataset.laosijiStillsViewerBound === '1') return;
