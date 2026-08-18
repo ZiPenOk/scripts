@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.2.1
+// @version      2.2.2
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -819,6 +819,14 @@
             LMT_Status.style.display = 'flex'
             movePreviewPanel(e)
 
+            const requestStaleRefresh = () => {
+                const now = Date.now()
+                const retryAt = Number(a.dataset.lmtRetryAt || 0)
+                if(now < retryAt) return
+                a.dataset.lmtRetryAt = String(now + 30000)
+                if(LMT_resolveLink) LMT_resolveLink(a, true)
+            }
+
             const probe = new Image()
             let probeDone = false
             probe.onload = () => {
@@ -837,7 +845,7 @@
                 a.dataset.lmtStale = '1'
                 LMT_Status.innerText = 'Refreshing...'
                 LMT_Status.style.display = 'flex'
-                if(LMT_resolveLink) LMT_resolveLink(a, true)
+                requestStaleRefresh()
             }
             const refreshTimer = setTimeout(() => {
                 if(probeDone) return
@@ -845,13 +853,9 @@
                 a.dataset.lmtStale = '1'
                 LMT_Status.innerText = 'Refreshing...'
                 LMT_Status.style.display = 'flex'
-                if(LMT_resolveLink) LMT_resolveLink(a, true)
-            }, 1500)
+                requestStaleRefresh()
+            }, 5000)
             probe.src = url
-
-            if(a.dataset.lmtStale && LMT_resolveLink) {
-                LMT_resolveLink(a, true)
-            }
         }
         unsafeWindow.addEventListener('mouseover', function (e) {
             showPreview(e.target, e)
@@ -1008,11 +1012,11 @@
                 setLocalThumb(id, url)
                 preloadImage(url, 2500).then(ok => {
                     if(!ok) {
+                        // 缓存命中但图片探测失败可能只是图床临时限流；不要立刻抓 Sukebei 详情页。
                         link.dataset.lmtStale = '1'
-                        delLocalThumb(id)
-                        resolveLink(link, true)
                     } else {
                         delete link.dataset.lmtStale
+                        delete link.dataset.lmtRetryAt
                     }
                 })
             }
@@ -1030,12 +1034,8 @@
             })
             if(cloudLinks.length) {
                 const ids = cloudLinks.map(idOf).join(',')
-                // 云端查询最长 3 秒；过早回退会和云端已完成的自主探测产生重复详情请求。
-                const cloudFallbackTimer = setTimeout(() => {
-                    cloudLinks.forEach(link => resolveLink(link))
-                }, 3500)
+                // 等云端查询自身超时后再回退，避免固定计时器抢跑造成重复详情请求。
                 getThumbs(ids).then(thumbs => {
-                    clearTimeout(cloudFallbackTimer)
                     thumbs = thumbs || []
                     cloudLinks.forEach((link, i) => {
                         const url = thumbs[i]
