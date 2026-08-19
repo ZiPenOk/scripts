@@ -909,14 +909,7 @@
                     <div class="qs-name">页面宽度</div>
                     <input class="qs-range" id="qs-zoom" type="range" min="60" max="100" step="1">
                     <span class="qs-value" id="qs-zoom-value">100%</span>
-                </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力</div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${site === 'javdb' ? `
-                    <div class="qs-switch-row">
-                        <div class="qs-name">JavDB原生页面</div>
-                        <label class="qs-toggle">
-                            <input id="qs-javdb-native-pages" type="checkbox">
-                            <span class="qs-toggle-track"></span>
-                        </label>
-                    </div>` : ''} ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"><button class="qs-more" type="button">更多设置</button></div>`;
+                </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力</div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"><button class="qs-more" type="button">更多设置</button></div>`;
    document.body.appendChild(panel);
    const close = () => panel.remove(); const columnsInput = panel.querySelector('#qs-columns'); const columnsValue = panel.querySelector('#qs-columns-value');
    const mobileColumnButtons = [...panel.querySelectorAll('[data-mobile-columns]')]; const zoomInput = panel.querySelector('#qs-zoom');
@@ -988,11 +981,6 @@
     });
     const input = panel.querySelector(`#qs-${id}`);
     if (input && mobileDisabled && MobilePolicy.isMobile()) { input.checked = false; input.disabled = true; }
-   });
-   const javdbNativePagesToggle = panel.querySelector('#qs-javdb-native-pages');
-   Ui.bindCheckbox(javdbNativePagesToggle, CFG.javdbUseNativePages, checked => {
-    CFG.javdbUseNativePages = checked;
-    location.reload();
    });
    Ui.click(panel.querySelector('.qs-close'), close);
    Ui.click(panel.querySelector('.qs-more'), () => {
