@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.6.2
+// @version      2.7.6.3
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.7.6.2'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.7.6.3'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -7048,11 +7048,12 @@
   const DMM_GRAPHQL_URL = 'https://api.video.dmm.co.jp/graphql';
   function enabled() {
    const feature = is115Page() ? 'pan115CoverHoverPreview' : 'coverHoverPreview';
-   const configured = is115Page() ? CFG.pan115CoverHoverPreview : CFG.coverHoverPreview;
+   const configured = is115Page() ? CFG.pan115CoverHoverPreview : CFG.coverHoverPreview; const embyPage = isEmbyPage();
+   if (embyPage) return true;
    return MobilePolicy.featureEnabled(feature, !!configured) && !SiteManager.isDetailPage();
   }
   function ensureStyle() {
-   injectStyle('jav-cover-hover-preview-style',`.jav-cover-hover-preview{position:fixed;z-index:2147483000;pointer-events:none;padding:4px;border-radius:6px;background:rgba(15,23,42,.84);box-shadow:0 18px 42px rgba(15,23,42,.34);opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}.jav-cover-hover-preview.is-visible{opacity:1;transform:translateY(0)}.jav-cover-hover-preview img{display:block;width:auto;border-radius:4px;object-fit:contain;background:#0f172a}`);
+   injectStyle('jav-cover-hover-preview-style',`.jav-cover-hover-preview{position:fixed;z-index:2147483000;pointer-events:none;padding:4px;border-radius:6px;background:rgba(15,23,42,.84);box-shadow:0 18px 42px rgba(15,23,42,.34);opacity:0;transform:translateY(4px);transition:opacity .12s ease,transform .12s ease}.jav-cover-hover-preview.is-visible{opacity:1;transform:translateY(0)}.jav-cover-hover-preview img{display:block;width:auto;max-width:min(90vw,1000px);max-height:82vh;border-radius:4px;object-fit:contain;background:#0f172a}`);
   }
   function clearTimer() {
    if (!timer) return;
@@ -7065,6 +7066,84 @@
    restoreTitles();
   }
   function is115Page() { return /^(?:www\.)?115\.com$/i.test(location.hostname); }
+  function isEmbyPage() { return typeof SiteManager !== 'undefined' && typeof SiteManager.isEmbyPage === 'function' && SiteManager.isEmbyPage(); }
+  function resolveEmbyImage(value) {
+   const source = String(value || '').trim();
+   if (!source || /^data:/i.test(source) || /^none$/i.test(source)) return '';
+   try {
+    return new URL(source, location.href).href;
+   } catch { return source; }
+  }
+  function resizeEmbyImage(value, maxWidth, maxHeight) {
+   const source = resolveEmbyImage(value);
+   if (!source) return '';
+   try {
+    const url = new URL(source, location.href);
+    if (!/\/Items\/[^/]+\/Images\//i.test(url.pathname)) return source;
+    url.searchParams.delete('fillWidth'); url.searchParams.delete('fillHeight'); url.searchParams.set('maxWidth', String(maxWidth));
+    url.searchParams.set('maxHeight', String(maxHeight));
+    return url.href;
+   } catch { return source; }
+  }
+  function embyLargeImageSrc(value) {
+   const source = resizeEmbyImage(value, 1920, 1080);
+   if (!source) return '';
+   try {
+    const url = new URL(source, location.href);
+    if (/\/Images\/Primary$/i.test(url.pathname)) {
+     url.pathname = url.pathname.replace(/\/Images\/Primary$/i, '/Images/Thumb');
+     url.searchParams.delete('tag');
+    }
+    return url.href;
+   } catch { return source; }
+  }
+  function embyPrimaryFallbackSrc(value) { return resizeEmbyImage(value, 1080, 1620); }
+  function cssImageUrl(value) {
+   const matches = String(value || '').matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/gi);
+   const urls = [...matches].map(match => resolveEmbyImage(match[2])).filter(Boolean);
+   return urls.find(url => /\/Items\/[^/]+\/Images\//i.test(url)) || urls.at(-1) || '';
+  }
+  function embyImageSrc(node) {
+   if (!node) return '';
+   const img = node.matches?.('img') ? node : node.querySelector?.('img[src], img[data-src], img[data-lazy-src], img[data-image]');
+   const imageValues = [
+    img?.currentSrc,
+    img?.getAttribute?.('src'),
+    img?.getAttribute?.('data-src'),
+    img?.getAttribute?.('data-lazy-src'),
+    img?.getAttribute?.('data-image'),
+   ];
+   for (const value of imageValues) {
+    const source = resolveEmbyImage(value);
+    if (source) return source;
+   }
+   const inline = cssImageUrl(node.style?.backgroundImage);
+   if (inline) return inline;
+   if (typeof window.getComputedStyle === 'function') { return cssImageUrl(window.getComputedStyle(node).backgroundImage); }
+   return '';
+  }
+  function embyItemFromEvent(target) {
+   const imageSelector = [
+    '.cardImageContainer',
+    '.cardImage',
+    '.listItemImage',
+    '.listItemImageContainer',
+    '.itemImage',
+    '.itemImageContainer',
+    '.backdropCardImage',
+   ].join(',');
+   const directImage = target?.closest?.(imageSelector);
+   const card = directImage?.closest?.('.card, .listItem, .item, .emby-scroller-slide') || target?.closest?.('.card, .listItem, .item, .emby-scroller-slide');
+   const image = directImage || card?.querySelector?.(imageSelector);
+   if (!image || !card || target?.closest?.('.cardText')) return null;
+   const src = embyImageSrc(image) || embyImageSrc(card);
+   return src ? {
+    anchor: image,
+    src: embyLargeImageSrc(src),
+    fallback: embyPrimaryFallbackSrc(src),
+    code: '',
+   } : null;
+  }
   function pan115ItemFromEvent(target) {
    const legacyItem = target?.closest?.('li[rel="item"]');
    if (legacyItem) {
@@ -7088,6 +7167,7 @@
   }
   function targetFromEvent(target) {
    if (is115Page()) return pan115ItemFromEvent(target);
+   if (isEmbyPage()) return embyItemFromEvent(target);
    const cover = target?.closest?.('.jav-card-cover');
    if (!cover || !cover.closest?.('.jav-card')) return null;
    return { anchor: cover, src: imageSrc(cover), code: '' };
@@ -7220,7 +7300,7 @@
    box.style.left =`${Math.round(left)}px`;
    box.style.top =`${Math.round(top)}px`;
   }
-  function show(src, event) {
+  function show(src, event, fallback = '') {
    if (!src || !active) return;
    ensureStyle(); popup?.remove();
    const box = document.createElement('div'); const img = document.createElement('img');
@@ -7228,8 +7308,15 @@
    img.addEventListener('load', () => {
     position(box, event); requestAnimationFrame(() => box.classList.add('is-visible'));
    }, { once: true });
-   img.addEventListener('error', hide, { once: true });
-   box.appendChild(img); document.body.appendChild(box);
+   let fallbackAttempted = false;
+   const onImageError = () => {
+    if (fallback && !fallbackAttempted) {
+     fallbackAttempted = true; img.src = fallback;
+     return;
+    }
+    hide();
+   };
+   img.addEventListener('error', onImageError); box.appendChild(img); document.body.appendChild(box);
    popup = box;
    position(box, event);
   }
@@ -7244,7 +7331,7 @@
     const current = targetFromEvent(lastEvent?.target);
     if (!current || current.anchor !== target.anchor || !active) return;
     const src = target.src || await loadPan115Cover(target.code);
-    if (src && active && lastAnchor === target.anchor) show(src, lastEvent);
+    if (src && active && lastAnchor === target.anchor) show(src, lastEvent, target.fallback);
    }, 500);
   }
   function onMove(event) {
