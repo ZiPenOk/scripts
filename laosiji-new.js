@@ -1824,7 +1824,7 @@
   function stripPromotionalSuffix(text) { return String(text || '').replace(/【[^】]*(?:APP|夸克|UC搜|(?:[a-z0-9-]+\.)+(?:com|net|org|cc|sbs|top))[^】]*】/gi, ' '); }
   function classifyQuality(title) {
    const text = stripPromotionalSuffix(title); const hasCJK = /[\u4e00-\u9fff]/.test(text); const hasJP = /[\u3040-\u309f\u30a0-\u30ff]/.test(text);
-   const isChinese = /(?:[^A-Za-z]|^)FHDC(?:[^A-Za-z]|$)/i.test(text) || /[-_]CH?(?:[^A-Za-z]|$)/.test(text)
+   const isChinese = /(?:[^A-Za-z]|^)FHDC(?:[^A-Za-z]|$)/i.test(text) || /[-_](?:UC|CH?)(?:[^A-Za-z]|$)/.test(text)
     || /(?:\u4e2d\u5b57|\u4e2d\u6587|\u5b57\u5e55|\u4e2d\u6587\u5b57\u5e55|\u7e41\u9ad4\u4e2d\u5b57|\u7e41\u4f53\u4e2d\u5b57|\u7e41\u9ad4\u4e2d\u6587|\u7e41\u4f53\u4e2d\u6587|\u7e41\u9ad4\u5b57\u5e55|\u7e41\u4f53\u5b57\u5e55|\u7e41\u4e2d|\u7e41\u5b57|\u81ea\u63d0|\u5f81\u7528|\u5fb5\u7528|\u6f22\u5316|\u6c49\u5316|\u5167\u5d4c|\u5185\u5d4c|\u5167\u5c01|\u5185\u5c01|\u96d9\u8a9e|\u53cc\u8bed)/.test(text)
     || (hasCJK && !hasJP);
    const is4K = /(?:[^A-Za-z0-9]|^)(?:4K(?:UHD)?|2160P)(?:[^A-Za-z0-9]|$)/i.test(text);
