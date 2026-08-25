@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.7.1
+// @version      2.7.7.2
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://img.sh1nyan.fun/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.7.7.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.7.7.2'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -693,7 +693,7 @@
    { key: 'u9a9Url',         label: 'U9A9',         placeholder: 'u9a9.com' },
    { key: 'sokittyUrl',      label: 'SoKitty',      placeholder: 'w1.sokitty.me' },
   ];
-  const JUMP_SEARCH_ENGINES = ['BTDigg', 'Taocili', 'Google', 'Bing', 'DuckGo'];
+  const JUMP_SEARCH_ENGINES = ['BTDigg', 'Taocili', 'Google', 'Bing', 'DuckGo', 'AVBase'];
   const BUTTON_TOGGLE_META = [
    { key: 'nyaa', cfgKey: 'btnShowNyaa', label: 'Sukebei' },
    { key: 'javbus', cfgKey: 'btnShowJavbus', label: 'JavBus' },
@@ -760,7 +760,7 @@
    });
    JUMP_SEARCH_ENGINES.forEach((name, index) => { jumpEngineSelect.add(new Option(name, String(index))); });
    VIDEO_ENGINES.forEach(item => { videoEngineSelect.add(new Option(item.label, item.key)); });
-   jumpEngineSelect.value = String(GM_getValue('default_search_engine', 2));
+   jumpEngineSelect.value = String(GM_getValue('default_search_engine', JUMP_SEARCH_ENGINES.length - 1));
    Ui.setSelectValue(videoEngineSelect, CFG.defaultVideoEngine, 'missav');
    if (pan115PlayerSelect) {
     pan115PlayerSelect.value = ['official', '115master', 'potplayer'].includes(CFG.pan115Player) ? CFG.pan115Player : 'official';
@@ -7782,8 +7782,8 @@
   getPreviewCacheEnabled() { return true; },
   getTrailerCacheEnabled() { return true; },
   getDefaultSearchEngine() {
-   const index = GM_getValue('default_search_engine', 2);
-   return SearchEngines[index] || SearchEngines[0];
+   const index = GM_getValue('default_search_engine', SearchEngines.length - 1);
+   return SearchEngines[index] || SearchEngines[SearchEngines.length - 1] || SearchEngines[0];
   },
   getDefaultVideoEngine() { return GM_getValue('default_video_engine', 'missav'); },
   getVideoEngines() { return VIDEO_ENGINES; },
@@ -7794,7 +7794,8 @@
   { name: 'Taocili', color: '#DE5833', url: (code) =>`https://taocili.com/search?q=${code}` },
   { name: 'Google', color: '#4285F4', url: (code) =>`https://www.google.com/search?q=${code}` },
   { name: 'Bing', color: '#008373', url: (code) =>`https://www.bing.com/search?q=${code}` },
-  { name: 'DuckGo', color: '#DE5833', url: (code) =>`https://duckduckgo.com/?q=${code}` }
+  { name: 'DuckGo', color: '#DE5833', url: (code) =>`https://duckduckgo.com/?q=${code}` },
+  { name: 'AVBase', color: '#1d4ed8', url: (code) =>`https://www.avbase.net/works?q=${encodeURIComponent(code)}` }
  ];
  const Pan115 = {
   api: 'https://webapi.115.com/files/search',
@@ -8508,13 +8509,17 @@
   {
    id: 'missav',
    name: 'MissAV',
-   match: (url) => {
-    if (!/missav\.(ws|com)/.test(url)) return false;
-    const pathname = new URL(url).pathname;
-    if (/^\/$|\/search|\/tags|\/actresses|\/genres/.test(pathname)) return false;
-    return /\/[a-z]{2,10}-\d+/i.test(pathname);
+   match(url) {
+    let parsed;
+    try {
+     parsed = new URL(url);
+    } catch { return false; }
+    if (!/(?:^|\.)missav\.(?:ws|ai|com)$/i.test(parsed.hostname)) return false;
+    if (/^\/(?:$|search(?:\/|$)|tags(?:\/|$)|actresses(?:\/|$)|genres(?:\/|$))/i.test(parsed.pathname)) return false;
+    const titleElem = document.querySelector(this.titleSelector);
+    return !!Utils.extractCode(titleElem?.textContent || '');
    },
-   titleSelector: 'h1[class*="text-nord6"], h1'
+   titleSelector: 'h1[class*="text-nord6"]'
   },
   {
    id: 'jable',
@@ -8668,12 +8673,15 @@
   const btn = Utils.createJumpLinkBtn('📀 JavDB', '#6f42c1', `https://javdb.com/search?q=${encodeURIComponent(code)}`);
   container.appendChild(btn);
  }
+ function getFc2Number(code) { return String(code || '').trim().match(/^FC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})$/i)?.[1] || ''; }
+ function getFc2CmaArticleUrl(code) {
+  const fc2Number = getFc2Number(code);
+  return fc2Number ? `https://fc2cmadb.com/articles/${fc2Number}` : '';
+ }
  function addMissAVBtn(code, container, useCapture = false) {
   const showMissav = GM_getValue('btn_show_missav', true);
   if (!showMissav) return;
-  const codeLower = String(code || '').trim().toLowerCase(); const codeUpper = String(code || '').trim().toUpperCase();
-  const codeCompactLower = codeLower.replace(/-/g, '');
-  const fc2Number = codeUpper.match(/^FC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})$/i)?.[1] || '';
+  const codeLower = String(code || '').trim().toLowerCase(); const codeCompactLower = codeLower.replace(/-/g, ''); const fc2Number = getFc2Number(code);
   const fc2Slug = fc2Number ? `fc2-ppv-${fc2Number}` : '';
   const fc2JavdaySlug = fc2Number ? `FC2PPV${fc2Number}` : '';
   const get123AvLocalePrefix = () => {
@@ -8710,6 +8718,15 @@
  }
  function addDmmBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_fanza', true)) return;
+  const fc2CmaUrl = getFc2CmaArticleUrl(code);
+  if (fc2CmaUrl) {
+   if (/(?:^|\.)fc2cmadb\.com$/i.test(location.hostname)) return;
+   const btn = Utils.createBtn('▶ FC2CMA', '#2563eb', () => {
+    window.open(fc2CmaUrl);
+   }, useCapture);
+   container.appendChild(btn);
+   return;
+  }
   const btn = Utils.createBtn('▶ FANZA', '#c0392b', () => {
    window.open(`https://www.dmm.co.jp/mono/-/search/=/searchstr=${encodeURIComponent(code)}/`);
   }, useCapture);
