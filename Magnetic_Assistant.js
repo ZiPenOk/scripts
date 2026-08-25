@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.6
+// @version      3.5.7
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -18,10 +18,10 @@
 // @downloadURL  https://raw.githubusercontent.com/ZiPenOk/scripts/main/Magnetic_Assistant.js
 // @run-at       document-start
 // ==/UserScript==
- 
+
 (function () {
     'use strict';
- 
+
     const config = {
         enableCopy: GM_getValue('enableCopy', true),
         enableQb: GM_getValue('enableQb', true),
@@ -38,9 +38,9 @@
         u115Cid: GM_getValue('u115Cid', GM_getValue('u115Uid', '')),
         u115Uid: GM_getValue('u115Uid', '')
     };
- 
+
     GM_registerMenuCommand("⚙️ 脚本综合设置", showSettingsModal);
- 
+
     const ICONS = {
         copy: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#666"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>`,
         qb: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#0078d4"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>`,
@@ -49,7 +49,7 @@
         car: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#ff9800"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm1-13h-2v6l5.25 3.15L17 12.23l-4-2.37V7z"/></svg>`,
         checkActive: `<svg viewBox="0 0 24 24" width="14" height="14" fill="#28a745"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`
     };
- 
+
     const style = document.createElement('style');
     style.innerHTML = `
         .mag-btn-group {
@@ -235,51 +235,36 @@
             color: #218838;
             text-decoration: underline;
         }
-        .whatslink-overlay { position: fixed; inset: 0; z-index: 10000040; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(15,23,42,.66); backdrop-filter: blur(8px); }
-        .whatslink-modal { width: min(1100px,96vw); max-height: 90vh; display: grid; grid-template-columns: 1.55fr .75fr; background: #f5f7fb; border: 1px solid rgba(203,213,225,.9); border-radius: 12px; overflow: hidden; box-shadow: 0 30px 80px rgba(2,8,23,.38); font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
-        .whatslink-modal.no-shots { grid-template-columns: 1.1fr .9fr; }
-        .whatslink-viewer { min-width: 0; display: grid; grid-template-rows: minmax(430px,1fr) auto; gap: 10px; padding: 14px; background: radial-gradient(circle at 20% 0%,#fff1f8 0,transparent 34%),#eef3f8; }
-        .whatslink-stage { position: relative; min-height: 470px; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #dde7f2; border-radius: 12px; background: #111827; box-shadow: 0 18px 36px rgba(15,23,42,.16); }
-        .whatslink-stage img { width: 100%; height: 100%; max-height: 68vh; object-fit: contain; border-radius: 10px; }
-        .whatslink-modal.no-shots .whatslink-viewer { grid-template-rows: minmax(430px,1fr); background: linear-gradient(135deg,#f8fafc,#eef2ff); }
-        .whatslink-modal.no-shots .whatslink-stage { background: linear-gradient(145deg,#fff,#f1f5f9); border-style: dashed; box-shadow: inset 0 0 0 1px rgba(255,255,255,.8),0 18px 36px rgba(15,23,42,.08); }
-        .whatslink-modal.no-shots .whatslink-stage img, .whatslink-modal.no-shots .whatslink-nav, .whatslink-modal.no-shots .whatslink-counter, .whatslink-modal.no-shots .whatslink-thumbs { display: none; }
-        .whatslink-empty { display: none; width: min(420px,72%); text-align: center; color: #475569; }
-        .whatslink-modal.no-shots .whatslink-empty { display: block; }
-        .whatslink-empty-icon { width: 62px; height: 62px; margin: 0 auto 15px; display: grid; place-items: center; border-radius: 18px; background: linear-gradient(135deg,#fce7f3,#e0e7ff); color: #be185d; font-size: 27px; box-shadow: 0 12px 26px rgba(190,24,93,.16); }
-        .whatslink-empty-title { font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 7px; }
-        .whatslink-empty-text { margin: 0; font-size: 13px; line-height: 1.6; }
-        .whatslink-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 52px; border: 0; border-radius: 8px; background: rgba(255,255,255,.14); color: #fff; font-size: 28px; cursor: pointer; }
-        .whatslink-nav:hover { background: rgba(255,255,255,.24); }
-        .whatslink-prev { left: 12px; } .whatslink-next { right: 12px; }
-        .whatslink-counter { position: absolute; right: 14px; bottom: 12px; color: #e2e8f0; font-size: 12px; text-shadow: 0 1px 6px rgba(0,0,0,.6); }
-        .whatslink-thumbs { display: grid; grid-template-columns: repeat(5,1fr); gap: 7px; padding: 0; background: transparent; }
-        .whatslink-thumb { border: 2px solid #e2e8f0; border-radius: 9px; padding: 0; overflow: hidden; background: #fff; cursor: pointer; aspect-ratio: 16 / 9; box-shadow: 0 6px 14px rgba(15,23,42,.08); }
-        .whatslink-thumb.active { border-color: #db2777; box-shadow: 0 8px 18px rgba(219,39,119,.22); }
-        .whatslink-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .whatslink-info { min-width: 0; padding: 14px; background: #f8fafc; overflow: auto; color: #172033; }
-        .whatslink-head { position: sticky; top: 0; z-index: 2; margin: -14px -14px 12px; padding: 13px 14px; background: rgba(248,250,252,.94); border-bottom: 1px solid #e2e8f0; backdrop-filter: blur(10px); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-        .whatslink-kicker { color: #db2777; font-size: 12px; font-weight: 800; margin-bottom: 5px; }
-        .whatslink-title { margin: 0; font-size: 21px; line-height: 1.18; color: #111827; word-break: break-word; }
-        .whatslink-close { width: 32px; height: 32px; border: 0; border-radius: 8px; color: #64748b; background: transparent; cursor: pointer; font-size: 25px; line-height: 1; }
-        .whatslink-tag { display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; margin-top: 8px; border-radius: 999px; background: #ecfdf5; color: #047857; font-size: 12px; font-weight: 700; }
-        .whatslink-meta { display: grid; grid-template-columns: 1fr; gap: 7px; margin: 10px 0 12px; }
-        .whatslink-metric { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 11px; background: #fff; box-shadow: 0 8px 20px rgba(15,23,42,.06); }
-        .whatslink-metric b { color: #172033; font-size: 13px; order: 2; }
-        .whatslink-metric span { color: #64748b; font-size: 12px; order: 1; }
-        .whatslink-section, .whatslink-summary-card { border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; padding: 10px; box-shadow: 0 8px 20px rgba(15,23,42,.06); }
-        .whatslink-section h3 { margin: 0 0 8px; color: #be185d; font-size: 12px; }
-        .whatslink-magnet { word-break: break-all; max-height: 86px; overflow: auto; padding: 9px; border-radius: 8px; background: #f6f8fb; color: #334155; font-family: ui-monospace,SFMono-Regular,Consolas,monospace; font-size: 12px; }
-        .whatslink-summary { display: grid; gap: 8px; margin-top: 10px; }
-        .whatslink-summary-card strong { display: block; margin-bottom: 4px; color: #111827; font-size: 12px; }
-        .whatslink-summary-card p { margin: 0; color: #64748b; font-size: 11px; line-height: 1.45; }
-        .whatslink-loading { padding: 28px; text-align: center; color: #475569; font-size: 14px; }
+        .whatslink-overlay { position: fixed; inset: 0; z-index: 10000040; display: flex; align-items: center; justify-content: center; padding: 18px; background: transparent; backdrop-filter: none; }
+        .whatslink-modal, .whatslink-modal.no-shots { position: relative; inset: auto; width: min(1140px,calc(100vw - 36px)); max-width: 1140px; height: auto; max-height: calc(100vh - 36px); display: block; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+        .whatslink-gallery-scene { position: relative; inset: auto; display: grid; grid-template-rows: minmax(0,1fr) auto auto; row-gap: 3px; width: 100%; height: auto; align-items: center; justify-items: center; overflow: hidden; background: transparent; }
+        .whatslink-gallery-visual { position: relative; z-index: 1; grid-row: 1; width: 100%; height: auto; min-height: 0; margin: 0 !important; display: grid; place-items: center; overflow: hidden; }
+        .whatslink-gallery-hero { position: relative; z-index: 1; width: 100%; height: 100%; min-height: 0; object-fit: contain; display: block; }
+        .whatslink-gallery-close { position: absolute; top: 12px; right: 14px; z-index: 4; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; color: #fff; background: rgba(42,45,49,.76); cursor: pointer; padding: 0 0 2px; font-family: Arial,sans-serif; font-size: 23px; line-height: 1; }
+        .whatslink-gallery-close:hover, .whatslink-gallery-arrow:hover { background: rgba(22,25,28,.92); }
+        .whatslink-gallery-arrow { position: absolute; top: 50%; z-index: 3; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; transform: translateY(-50%); border: 0; border-radius: 50%; color: #fff; background: rgba(38,42,45,.76); cursor: pointer; padding: 0 0 3px; font-family: Arial,sans-serif; font-size: 27px; line-height: 1; }
+        .whatslink-gallery-prev { left: 16px; } .whatslink-gallery-next { right: 16px; }
+        .whatslink-gallery-info { grid-row: 2; position: relative; z-index: 3; margin: 0 !important; min-height: 23px; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 4px; color: #fff; background: rgba(38,40,42,.68); font: 11px ui-monospace,SFMono-Regular,Consolas,monospace; white-space: nowrap; }
+        .whatslink-gallery-info span + span::before { content: " · "; margin-right: 8px; color: rgba(255,255,255,.42); }
+        .whatslink-gallery-thumbs { grid-row: 3; position: relative; z-index: 3; margin: 0 !important; display: flex; justify-content: center; gap: 3px; width: auto; max-width: 100%; padding: 3px; border-radius: 4px; background: rgba(29,31,34,.68); box-shadow: none; }
+        .whatslink-gallery-thumb { width: 88px; height: 50px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 3px; background: transparent; cursor: pointer; }
+        .whatslink-gallery-thumb.active { border-color: #e3a05b; }
+        .whatslink-gallery-thumb img { width: 100%; height: 100%; display: block; object-fit: cover; }
+        .whatslink-gallery-empty { position: absolute; z-index: 2; display: none; width: min(420px,72%); text-align: center; color: rgba(55,65,81,.78); }
+        .whatslink-modal.no-shots .whatslink-gallery-empty { display: block; }
+        .whatslink-modal.no-shots .whatslink-gallery-visual { width: 100%; height: min(460px,calc(100vh - 100px)); }
+        .whatslink-modal.no-shots .whatslink-gallery-hero, .whatslink-modal.no-shots .whatslink-gallery-arrow, .whatslink-modal.no-shots .whatslink-gallery-thumbs { display: none; }
+        .whatslink-gallery-empty-icon { width: 56px; height: 56px; margin: 0 auto 14px; display: grid; place-items: center; border: 1px solid rgba(55,65,81,.24); border-radius: 50%; color: #b45309; font-size: 24px; }
+        .whatslink-gallery-empty-title { margin-bottom: 7px; color: #374151; font-size: 17px; font-weight: 800; }
+        .whatslink-gallery-empty-text { margin: 0; font-size: 13px; line-height: 1.6; }
+        .whatslink-loading { color: #374151; font-size: 14px; }
         @media (max-width: 768px) {
             .whatslink-overlay { padding: 10px; }
-            .whatslink-modal { width: 96vw; max-height: 92vh; grid-template-columns: 1fr; }
-            .whatslink-viewer { grid-template-rows: minmax(260px,42vh) auto; padding: 10px; }
-            .whatslink-stage { min-height: 260px; }
-            .whatslink-info { max-height: 40vh; }
+            .whatslink-modal, .whatslink-modal.no-shots { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); }
+            .whatslink-gallery-thumb { width: 60px; height: 38px; }
+            .whatslink-gallery-close { top: 10px; right: 10px; width: 40px; height: 40px; }
+            .whatslink-gallery-arrow { width: 32px; height: 32px; }
+            .whatslink-gallery-thumbs { max-width: calc(100% - 16px); overflow: hidden; }
         }
         /* 深色模式 */
         @media (prefers-color-scheme: dark) {
@@ -306,7 +291,7 @@
         }
     `;
     (document.head || document.documentElement).appendChild(style);
- 
+
     function showToast(msg, success = true) {
         const toast = document.createElement('div');
         toast.style.cssText = `position:fixed;bottom:50px;right:30px;background:${success?'#28a745':'#dc3545'};color:white;padding:10px 20px;border-radius:8px;z-index:100000;font-size:14px;box-shadow:0 4px 12px rgba(0,0,0,0.15);`;
@@ -314,7 +299,7 @@
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2000);
     }
- 
+
     function setBtnActive(clickedBtn, group) {
         group.querySelectorAll('.mag-btn').forEach(btn => {
             btn.innerHTML = btn.dataset.origIcon;
@@ -323,7 +308,7 @@
         clickedBtn.innerHTML = ICONS.checkActive;
         clickedBtn.classList.add('active');
     }
- 
+
     function highlightBtn(btn) {
         const originalBg = btn.style.backgroundColor;
         btn.style.backgroundColor = '#ffb74d';
@@ -332,7 +317,7 @@
             btn.style.backgroundColor = originalBg;
         }, 200);
     }
- 
+
     function hasOtherMagnetButtons(target) {
         const parent = target.parentElement;
         if (!parent) return false;
@@ -344,10 +329,10 @@
         ];
         return otherSelectors.some(sel => parent.querySelector(sel));
     }
- 
+
     function extractCodeFromText(text) {
         if (!text) return null;
- 
+
         const patterns = [
             /([A-Z]{2,15})-(\d{2,10})(?:-(\d+))?/i,
             /([A-Z]{2,15})-([A-Z]{0,2}\d{2,10})/i,
@@ -355,7 +340,7 @@
             /(\d{6})[-_ ]?(\d{2,3})/,
             /([A-Z]{1,2})(\d{3,4})/i
         ];
- 
+
         for (let i = 0; i < patterns.length; i++) {
             const match = text.match(patterns[i]);
             if (match) {
@@ -374,7 +359,7 @@
         }
         return null;
     }
- 
+
     function GM_Request({ method = "GET", url, data = null, headers = {} }) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
@@ -398,7 +383,7 @@
             });
         });
     }
- 
+
     async function getMagnetInfo(magnet) {
         const url = `https://whatslink.info/api/v1/link?url=${encodeURIComponent(magnet)}`;
         try {
@@ -408,7 +393,7 @@
             return null;
         }
     }
- 
+
     function formatBytes(bytes) {
         const num = Number(bytes) || 0;
         if (!num) return '-';
@@ -421,91 +406,135 @@
         }
         return `${value.toFixed(index >= 3 ? 2 : 1)} ${units[index]}`;
     }
- 
+
     function formatWhatslinkType(payload) {
         const raw = String(payload?.file_type || payload?.type || '').toUpperCase();
         if (raw.includes('FOLDER')) return '文件夹';
         if (raw.includes('FILE')) return '文件';
         return '-';
     }
- 
+
     function showWhatslinkModal(payload, magnet) {
         document.querySelector('.whatslink-overlay')?.remove();
         const shots = Array.isArray(payload?.screenshots) ? payload.screenshots.map(item => item?.screenshot).filter(Boolean) : [];
         let index = 0;
-        const resourceType = formatWhatslinkType(payload);
+        const resourceName = payload?.name || '未知资源';
+        const resourceCount = payload?.count ?? '-';
         const overlay = document.createElement('div');
         overlay.className = 'whatslink-overlay';
         const modal = document.createElement('section');
         modal.className = `whatslink-modal${shots.length ? '' : ' no-shots'}`;
         modal.innerHTML = `
-            <div class="whatslink-viewer">
-                <div class="whatslink-stage">
-                    <button class="whatslink-nav whatslink-prev" type="button">‹</button>
-                    <img class="whatslink-hero" alt="截图预览">
-                    <button class="whatslink-nav whatslink-next" type="button">›</button>
-                    <div class="whatslink-counter"></div>
-                    <div class="whatslink-empty">
-                        <div class="whatslink-empty-icon">?</div>
-                        <div class="whatslink-empty-title">暂无截图</div>
-                        <p class="whatslink-empty-text">WhatsLink 已返回资源基础信息，但没有可展示的截图。可以通过名称、大小和文件数量先做基础判断。</p>
+            <div class="whatslink-gallery-scene">
+                <div class="whatslink-gallery-visual">
+                    <button class="whatslink-gallery-close" type="button" aria-label="关闭">×</button>
+                    <button class="whatslink-gallery-arrow whatslink-gallery-prev" type="button" aria-label="上一张">‹</button>
+                    <img class="whatslink-gallery-hero" alt="截图预览">
+                    <button class="whatslink-gallery-arrow whatslink-gallery-next" type="button" aria-label="下一张">›</button>
+                    <div class="whatslink-gallery-empty">
+                        <div class="whatslink-gallery-empty-icon">?</div>
+                        <div class="whatslink-gallery-empty-title">暂无截图</div>
+                        <p class="whatslink-gallery-empty-text">当前资源没有可展示的截图，可以结合资源名称和文件数量判断。</p>
                     </div>
                 </div>
-                <div class="whatslink-thumbs"></div>
-            </div>
-            <aside class="whatslink-info">
-                <div class="whatslink-head">
-                    <div>
-                        <div class="whatslink-kicker">磁力验车</div>
-                        <h2 class="whatslink-title"></h2>
-                        <span class="whatslink-tag"></span>
-                    </div>
-                    <button class="whatslink-close" type="button">×</button>
+                <div class="whatslink-gallery-info">
+                    <span class="whatslink-gallery-name"></span>
+                    <span class="whatslink-gallery-count"></span>
+                    <span class="whatslink-gallery-index"></span>
                 </div>
-                <div class="whatslink-meta">
-                    <div class="whatslink-metric"><b>${formatBytes(payload?.size)}</b><span>资源大小</span></div>
-                    <div class="whatslink-metric"><b>${payload?.count ?? '-'}</b><span>文件数量</span></div>
-                    <div class="whatslink-metric"><b>${resourceType}</b><span>资源结构</span></div>
-                    <div class="whatslink-metric"><b>${shots.length}</b><span>截图数量</span></div>
-                    <div class="whatslink-metric"><b>${payload?.error ? '异常' : '无错误'}</b><span>接口状态</span></div>
-                </div>
-                <div class="whatslink-section">
-                    <h3>磁力链接</h3>
-                    <div class="whatslink-magnet"></div>
-                </div>
-                <div class="whatslink-summary">
-                    <div class="whatslink-summary-card"><strong>验车结论</strong><p>${shots.length ? 'WhatsLink 已返回截图，优先用左侧大图确认内容是否匹配番号。' : '当前没有截图，建议结合资源名称、大小和文件数量判断。'}</p></div>
-                </div>
-            </aside>`;
+                <div class="whatslink-gallery-thumbs"></div>
+            </div>`;
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
-        modal.querySelector('.whatslink-title').textContent = payload?.name || '未知资源';
-        modal.querySelector('.whatslink-tag').textContent = resourceType;
-        modal.querySelector('.whatslink-magnet').textContent = magnet;
-        const hero = modal.querySelector('.whatslink-hero');
-        const thumbs = modal.querySelector('.whatslink-thumbs');
-        const counter = modal.querySelector('.whatslink-counter');
+        modal.querySelector('.whatslink-gallery-name').textContent = resourceName;
+        modal.querySelector('.whatslink-gallery-count').textContent = `${resourceCount} 个文件`;
+        const visual = modal.querySelector('.whatslink-gallery-visual');
+        const hero = modal.querySelector('.whatslink-gallery-hero');
+        const thumbs = modal.querySelector('.whatslink-gallery-thumbs');
+        const currentIndex = modal.querySelector('.whatslink-gallery-index');
+        const closeButton = modal.querySelector('.whatslink-gallery-close');
+        const prevButton = modal.querySelector('.whatslink-gallery-prev');
+        const nextButton = modal.querySelector('.whatslink-gallery-next');
+        const sizeGallery = () => {
+            if (!shots.length || !hero.naturalWidth || !hero.naturalHeight) return;
+            const infoHeight = modal.querySelector('.whatslink-gallery-info').offsetHeight || 23;
+            const thumbsHeight = thumbs.offsetHeight || 58;
+            const maxHeight = Math.max(180, window.innerHeight - 36 - infoHeight - thumbsHeight - 6);
+            const maxWidth = modal.clientWidth;
+            const ratio = hero.naturalWidth / hero.naturalHeight;
+            const height = Math.min(maxHeight, maxWidth / ratio);
+            const width = height * ratio;
+
+            visual.style.width = `${width}px`;
+            visual.style.height = `${height}px`;
+        };
+        const positionControls = () => {
+            if (!shots.length || !hero.naturalWidth || !hero.naturalHeight) return;
+            const width = visual.clientWidth;
+            const height = visual.clientHeight;
+            const scale = Math.min(width / hero.naturalWidth, height / hero.naturalHeight);
+            const imageWidth = hero.naturalWidth * scale;
+            const imageHeight = hero.naturalHeight * scale;
+            const imageLeft = (width - imageWidth) / 2;
+            const imageTop = (height - imageHeight) / 2;
+            const closeSize = closeButton.offsetWidth || 32;
+            const arrowSize = prevButton.offsetWidth || 34;
+            const sideGap = 12;
+
+            closeButton.style.left = `${imageLeft + imageWidth - closeSize - sideGap}px`;
+            closeButton.style.right = 'auto';
+            closeButton.style.top = `${imageTop + sideGap}px`;
+            prevButton.style.left = `${imageLeft + sideGap}px`;
+            prevButton.style.right = 'auto';
+            prevButton.style.top = `${imageTop + (imageHeight - arrowSize) / 2}px`;
+            nextButton.style.left = 'auto';
+            nextButton.style.right = `${width - imageLeft - imageWidth + sideGap}px`;
+            nextButton.style.top = `${imageTop + (imageHeight - arrowSize) / 2}px`;
+        };
         const render = () => {
-            if (!shots.length) return;
+            modal.classList.toggle('has-shots', Boolean(shots.length));
+            if (!shots.length) {
+                currentIndex.textContent = 'NO PREVIEW';
+                return;
+            }
             hero.src = shots[index];
-            counter.textContent = `${index + 1} / ${shots.length}`;
+            currentIndex.textContent = `${index + 1} / ${shots.length}`;
             [...thumbs.children].forEach((btn, i) => btn.classList.toggle('active', i === index));
+            if (hero.complete) {
+                sizeGallery();
+                positionControls();
+            }
         };
         shots.forEach((url, i) => {
             const btn = document.createElement('button');
-            btn.className = 'whatslink-thumb';
-            btn.innerHTML = `<img src="${url}" alt="">`;
+            btn.type = 'button';
+            btn.className = 'whatslink-gallery-thumb';
+            btn.innerHTML = `<img src="${url}" alt="截图${i + 1}">`;
             btn.addEventListener('click', () => { index = i; render(); });
             thumbs.appendChild(btn);
         });
-        modal.querySelector('.whatslink-prev').addEventListener('click', () => { if (!shots.length) return; index = (index + shots.length - 1) % shots.length; render(); });
-        modal.querySelector('.whatslink-next').addEventListener('click', () => { if (!shots.length) return; index = (index + 1) % shots.length; render(); });
-        const close = () => overlay.remove();
-        modal.querySelector('.whatslink-close').addEventListener('click', close);
+        prevButton.addEventListener('click', () => { if (!shots.length) return; index = (index + shots.length - 1) % shots.length; render(); });
+        nextButton.addEventListener('click', () => { if (!shots.length) return; index = (index + 1) % shots.length; render(); });
+        const onKeydown = event => {
+            if (!document.body.contains(overlay)) return;
+            if (event.key === 'ArrowLeft' && shots.length) { index = (index + shots.length - 1) % shots.length; render(); }
+            if (event.key === 'ArrowRight' && shots.length) { index = (index + 1) % shots.length; render(); }
+            if (event.key === 'Escape') close();
+        };
+        const onResize = () => { sizeGallery(); positionControls(); };
+        const close = () => {
+            overlay.remove();
+            document.removeEventListener('keydown', onKeydown);
+            window.removeEventListener('resize', onResize);
+        };
+        closeButton.addEventListener('click', close);
         overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+        hero.addEventListener('load', () => { sizeGallery(); positionControls(); });
+        window.addEventListener('resize', onResize);
+        document.addEventListener('keydown', onKeydown);
         render();
     }
- 
+
     async function handleCheckCar(link, btn) {
         highlightBtn(btn);
         document.querySelector('.whatslink-overlay')?.remove();
@@ -513,7 +542,7 @@
         overlay.className = 'whatslink-overlay';
         overlay.innerHTML = '<div class="whatslink-modal no-shots"><div class="whatslink-loading">正在验车...</div></div>';
         document.body.appendChild(overlay);
- 
+
         const info = await getMagnetInfo(link);
         overlay.remove();
         if (!info) {
@@ -522,7 +551,7 @@
         }
         showWhatslinkModal(info, link);
     }
- 
+
     function simplifyMagnetLink(link) {
         if (!link.startsWith('magnet:?')) return link;
         try {
@@ -540,7 +569,7 @@
                 }
             }
             if (!xt) return link;
- 
+
             let newLink = `magnet:?xt=${xt}`;
             if (dn) {
                 let decodedDn = null;
@@ -562,14 +591,14 @@
             return link;
         }
     }
- 
+
     function createBtnGroup(link) {
         link = normalizeSupportedLink(link);
         const group = document.createElement('span');
         group.className = 'mag-btn-group';
         group.dataset.magAssistant = '1';
         group.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
- 
+
         const addBtn = (type, icon, title, action) => {
             const btn = document.createElement('div');
             btn.className = 'mag-btn';
@@ -587,7 +616,7 @@
             };
             group.appendChild(btn);
         };
- 
+
         if (config.enableCopy) {
             addBtn('copy', ICONS.copy, '复制链接', () => {
                 const processedLink = simplifyMagnetLink(link);
@@ -611,10 +640,10 @@
         if (config.enableCheck) {
             addBtn('check', ICONS.car, '验车', (btn) => handleCheckCar(link, btn));
         }
- 
+
         return group;
     }
- 
+
     function pushToQb(link) {
         GM_xmlhttpRequest({
             method: "POST",
@@ -648,11 +677,11 @@
             onerror: () => showToast('❌ 无法连接到 qB，请检查地址', false)
         });
     }
- 
+
     function get115Cid() {
         return (config.u115Cid || config.u115Uid || '').trim();
     }
- 
+
     function base64EncodeUtf8(text) {
         if (typeof TextEncoder !== 'undefined') {
             const bytes = new TextEncoder().encode(text);
@@ -662,7 +691,7 @@
         }
         return btoa(unescape(encodeURIComponent(text)));
     }
- 
+
     function getBitCometAuthHeaders(contentType) {
         const headers = {};
         if (contentType) headers['Content-Type'] = contentType;
@@ -673,21 +702,21 @@
         }
         return headers;
     }
- 
+
     function normalizeHost(host) {
         return String(host || '').trim().replace(/\/+$/, '');
     }
- 
+
     function pushToBitComet(link) {
         const host = normalizeHost(config.bcHost);
         if (!host) {
             showToast('❌ BitComet 地址不能为空', false);
             return;
         }
- 
+
         const savePath = (config.bcSavePath || '').trim();
         const data = `url=${encodeURIComponent(link)}${savePath ? `&save_path=${encodeURIComponent(savePath)}` : ''}`;
- 
+
         GM_xmlhttpRequest({
             method: "POST",
             url: `${host}/panel/task_add_magnet_result`,
@@ -697,7 +726,7 @@
                 const text = (res.responseText || '').trim();
                 const failed = /Add task failed|failed|error|失败|错误/i.test(text);
                 const success = /Add task succeed|succeeded|success|成功/i.test(text);
- 
+
                 if (res.status === 200 && success && !failed) {
                     showToast('✅ 已推送到 BitComet');
                 } else {
@@ -709,7 +738,7 @@
             onerror: () => showToast('❌ 无法连接到 BitComet，请检查地址', false)
         });
     }
- 
+
     function pushTo115(link) {
         GM_xmlhttpRequest({
             method: 'GET',
@@ -725,22 +754,22 @@
                 try {
                     signInfo = JSON.parse(signResponse.responseText);
                 } catch (_) {}
- 
+
                 if (!signInfo || !signInfo.state || !signInfo.sign || !signInfo.time) {
                     showToast('❌ 115登录失效或签名获取失败', false);
                     return;
                 }
- 
+
                 const data = new URLSearchParams();
                 data.set('url', link);
                 data.set('sign', signInfo.sign);
                 data.set('time', signInfo.time);
- 
+
                 const cid = get115Cid();
                 if (cid) {
                     data.set('wp_path_id', cid);
                 }
- 
+
                 GM_xmlhttpRequest({
                     method: 'POST',
                     url: 'https://115.com/web/lixian/?ct=lixian&ac=add_task_url',
@@ -780,33 +809,33 @@
             link.style.display = 'none';
         });
     }
- 
+
     function handleLaosijiTable() {
         const table = document.getElementById('jav-nong-table') || document.getElementById('nong-table-new');
         if (!table) return;
- 
+
         table.querySelectorAll('.nong-115-head, .nong-115-cell').forEach(el => {
             el.style.display = 'none';
         });
- 
+
         const rows = table.querySelectorAll('tr[data-maglink], tr.jav-nong-row:not(.nong-head-row)');
         rows.forEach(row => {
             const cells = row.cells;
             if (cells.length < 3) return;
             const operationCell = row.querySelector('.nong-op-cell') || cells[2];
             if (!operationCell) return;
- 
+
             const magnetLink = row.getAttribute('data-maglink')
                 || row.querySelector('td:first-child a[href^="magnet:"]')?.href;
             if (!magnetLink) return;
- 
+
             operationCell.querySelectorAll('.nong-copy, .nong-check').forEach(el => el.remove());
- 
+
             if (operationCell.querySelector('.mag-btn-group')) {
                 operationCell.classList.add('mag-laosiji-ready-cell');
                 return;
             }
- 
+
             const btnGroup = createBtnGroup(magnetLink);
             operationCell.appendChild(btnGroup);
             operationCell.classList.add('mag-laosiji-ready-cell');
@@ -832,13 +861,13 @@
             link.after(createBtnGroup(link.href));
         });
     }
- 
+
     const linkRegexes = {
         magnet: /magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*/g,
         ed2k: /ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|\/?/gi,
         ftp: /ftp:\/\/[^\s]+/g
     };
- 
+
     function decodeLinkValue(value) {
         if (!value) return '';
         try {
@@ -847,13 +876,13 @@
             return value;
         }
     }
- 
+
     function extractEd2kLink(value) {
         const decoded = decodeLinkValue(value || '');
         const match = decoded.match(/ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|\/?/i);
         return match ? match[0] : null;
     }
- 
+
     function normalizeSupportedLink(link) {
         if (!link) return link;
         if (/^ed2k:/i.test(link)) {
@@ -862,12 +891,12 @@
         }
         return link;
     }
- 
+
     function collectFollowingTextNodes(startNode, maxChars = 4096) {
         const chunks = [];
         let text = '';
         let node = startNode.nextSibling;
- 
+
         while (node && text.length < maxChars) {
             if (node.nodeType !== Node.TEXT_NODE) break;
             const value = node.nodeValue || '';
@@ -876,10 +905,10 @@
             if (extractEd2kLink(text)) break;
             node = node.nextSibling;
         }
- 
+
         return { text, chunks };
     }
- 
+
     function consumeTextChunks(chunks, count) {
         let remaining = count;
         for (const chunk of chunks) {
@@ -893,14 +922,14 @@
             }
         }
     }
- 
+
     function repairSplitEd2kAnchor(anchor) {
         const prefixCandidates = [
             anchor.textContent,
             anchor.getAttribute('href'),
             anchor.href
         ].map(value => decodeLinkValue(value || '').trim()).filter(value => /^ed2k:\/\//i.test(value));
- 
+
         for (const prefix of prefixCandidates) {
             const directLink = extractEd2kLink(prefix);
             if (directLink) {
@@ -909,7 +938,7 @@
                 anchor.dataset.magRawLink = directLink;
                 return directLink;
             }
- 
+
             const { text, chunks } = collectFollowingTextNodes(anchor);
             const fullLink = extractEd2kLink(prefix + text);
             if (fullLink && fullLink.startsWith(prefix)) {
@@ -920,10 +949,10 @@
                 return fullLink;
             }
         }
- 
+
         return null;
     }
- 
+
     function createStyledLink(url, type) {
         const a = document.createElement('a');
         const normalizedUrl = normalizeSupportedLink(url);
@@ -935,20 +964,20 @@
         a.dataset.magRawLink = normalizedUrl;
         return a;
     }
- 
+
     function processTextNode(node) {
         const parent = node.parentElement;
         if (!parent) return null;
         const content = node.nodeValue;
- 
+
         const combinedRegex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|\/?|ftp:\/\/[^\s]+)/gi;
         if (!combinedRegex.test(content)) return null;
         combinedRegex.lastIndex = 0;
- 
+
         const fragment = document.createDocumentFragment();
         let lastIndex = 0;
         let match;
- 
+
         while ((match = combinedRegex.exec(content)) !== null) {
             if (match.index > lastIndex) {
                 fragment.appendChild(document.createTextNode(content.slice(lastIndex, match.index)));
@@ -961,29 +990,29 @@
             const link = createStyledLink(url, type);
             link.dataset.magProcessed = 'true';
             fragment.appendChild(link);
- 
+
             const btnGroup = createBtnGroup(url);
             fragment.appendChild(btnGroup);
- 
+
             lastIndex = combinedRegex.lastIndex;
         }
- 
+
         if (lastIndex < content.length) {
             fragment.appendChild(document.createTextNode(content.slice(lastIndex)));
         }
- 
+
         return fragment;
     }
- 
+
     function processPage() {
         handleLaosijiTable();
         handleNativeMagnetRows();
- 
+
         const processedHrefs = new Set();
         document.querySelectorAll('a[data-mag-processed="true"]').forEach(a => {
             if (a.href) processedHrefs.add(a.href);
         });
- 
+
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
         let node;
         const textNodes = [];
@@ -993,14 +1022,14 @@
                 ['SCRIPT', 'STYLE', 'A', 'TEXTAREA', 'INPUT'].includes(parent.tagName)) continue;
             textNodes.push(node);
         }
- 
+
         textNodes.forEach(node => {
             const fragment = processTextNode(node);
             if (fragment) {
                 node.parentNode.replaceChild(fragment, node);
             }
         });
- 
+
         document.querySelectorAll('a').forEach(a => {
             if (a.closest('#jav-nong-table')) return;
             if (a.closest('#nong-table-new')) return;
@@ -1025,16 +1054,16 @@
                 processedHrefs.add(href);
             }
         });
- 
+
     }
- 
+
     function showSettingsModal() {
         const mask = document.createElement('div');
         mask.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100001;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
- 
+
         const modal = document.createElement('div');
         modal.style.cssText = 'background:white;padding:25px;border-radius:12px;width:450px;box-shadow:0 10px 25px rgba(0,0,0,0.2);';
- 
+
         modal.innerHTML = `
             <div class="tab-header" style="display:flex;border-bottom:1px solid #ddd;margin-bottom:20px;">
                 <div class="tab" data-tab="general" style="padding:8px 16px;cursor:pointer;border-bottom:2px solid #0078d4;">常规</div>
@@ -1049,13 +1078,13 @@
                 <button id="btn_save" style="padding:8px 15px;border:none;background:#0078d4;color:white;border-radius:4px;cursor:pointer;">保存设置</button>
             </div>
         `;
- 
+
         mask.appendChild(modal);
         document.body.appendChild(mask);
- 
+
         const header = modal.querySelector('.tab-header');
         const contentDiv = modal.querySelector('#tab-content');
- 
+
         const panels = {
             general: `
                 <div style="margin-bottom:15px;">
@@ -1108,19 +1137,19 @@
                 </div>
             `
         };
- 
+
         contentDiv.innerHTML = panels.general;
- 
+
         header.addEventListener('click', (e) => {
             const tab = e.target.closest('.tab');
             if (!tab) return;
- 
+
             header.querySelectorAll('.tab').forEach(t => t.style.borderBottom = '2px solid transparent');
             tab.style.borderBottom = '2px solid #0078d4';
- 
+
             const tabName = tab.dataset.tab;
             contentDiv.innerHTML = panels[tabName];
- 
+
             if (tabName === 'qb') {
                 modal.querySelector('#test_qb')?.addEventListener('click', testQbConnection);
             } else if (tabName === 'bc') {
@@ -1133,7 +1162,7 @@
                 modal.querySelector('#import_file')?.addEventListener('change', importConfig);
             }
         });
- 
+
         function testQbConnection() {
             const host = modal.querySelector('#in_host').value.trim();
             const user = modal.querySelector('#in_user').value.trim();
@@ -1157,24 +1186,24 @@
                 }
             });
         }
- 
+
         function testBitCometConnection() {
             const host = normalizeHost(modal.querySelector('#in_bc_host').value);
             const user = modal.querySelector('#in_bc_user').value.trim();
             const pass = modal.querySelector('#in_bc_pass').value;
             const resultSpan = modal.querySelector('#bc_test_result');
             resultSpan.textContent = '测试中...';
- 
+
             if (!host) {
                 resultSpan.innerHTML = '❌ 地址不能为空';
                 return;
             }
- 
+
             const headers = {};
             if (user || pass) {
                 headers.Authorization = `Basic ${base64EncodeUtf8(`${user}:${pass}`)}`;
             }
- 
+
             GM_xmlhttpRequest({
                 method: 'GET',
                 url: host + '/panel/task_list_xml',
@@ -1193,7 +1222,7 @@
                 }
             });
         }
- 
+
         function test115Connection() {
             const resultSpan = modal.querySelector('#u115_test_result');
             resultSpan.textContent = '检查登录状态...';
@@ -1236,7 +1265,7 @@
                 }
             });
         }
- 
+
         function exportConfig() {
             const currentConfig = {
                 enableCopy: modal.querySelector('#sw_copy')?.checked ?? config.enableCopy,
@@ -1262,7 +1291,7 @@
             a.click();
             URL.revokeObjectURL(url);
         }
- 
+
         function importConfig(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1291,7 +1320,7 @@
             };
             reader.readAsText(file);
         }
- 
+
         modal.querySelector('#btn_save').onclick = () => {
             GM_setValue('enableCopy', modal.querySelector('#sw_copy')?.checked ?? config.enableCopy);
             GM_setValue('enableQb', modal.querySelector('#sw_qb')?.checked ?? config.enableQb);
@@ -1311,10 +1340,10 @@
             showToast('✅ 设置已保存，刷新页面生效');
             setTimeout(() => location.reload(), 1000);
         };
- 
+
         modal.querySelector('#btn_cancel').onclick = () => mask.remove();
     }
- 
+
     let timer = null;
     let observer = null;
     function lazyRun(delay = 120) {
@@ -1331,5 +1360,5 @@
         observer.observe(document.body, { childList: true, subtree: true });
     }
     startObserver();
- 
+
 })();
