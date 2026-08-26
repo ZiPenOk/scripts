@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.8.1
+// @version      2.7.9
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.7.8.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.7.9'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -5442,15 +5442,16 @@
    });
    return targets; },
   insertPan115ListBadge(anchor, hit, code) {
-   if (!Pan115.enabled() || !hit?.pickcode || !anchor || anchor.dataset.pan115HasBadge === '1') return;
+   const matches = (Array.isArray(hit) ? hit : hit?.pickcode ? [hit] : []).filter(item => item?.pickcode);
+   if (!Pan115.enabled() || !matches.length || !anchor || anchor.dataset.pan115HasBadge === '1') return;
    if (anchor.matches?.('.emby-javlibrary-list-badge') || anchor.closest?.('.emby-btn, .emby-badge, .emby-button-group, .emby-javlibrary-list-badge')) return;
    const card = this.getPan115ListCard(anchor);
    const hasSameBadge = root => !!root && [...root.querySelectorAll('.jav-pan115-badge[data-pickcode]')]
-    .some(badge => badge.dataset.pickcode === hit.pickcode);
+    .some(badge => matches.some(item => badge.dataset.pickcode === item.pickcode));
    if (hasSameBadge(card) || (!card && hasSameBadge(anchor.parentElement))) { anchor.dataset.pan115HasBadge = '1'; return; }
    const title = anchor.querySelector('.title, .video-title');
    if (title) {
-    const badge = createPan115Badge(hit, code, false); const javlibHeadline = title.querySelector('.javlib-card-headline');
+    const badge = createPan115Badge(matches, code, false); const javlibHeadline = title.querySelector('.javlib-card-headline');
     if (javlibHeadline) {
      const footer = title.querySelector('.javlib-card-footer');
      if (footer) {
@@ -5465,10 +5466,10 @@
     return; }
    const textNode = this.findPan115TitleTextNode(anchor);
    if (textNode?.parentNode && anchor.contains(textNode.parentNode)) {
-    const badge = createPan115Badge(hit, code, false);
+    const badge = createPan115Badge(matches, code, false);
     textNode.parentNode.insertBefore(badge, textNode);
    } else {
-    const badge = createPan115Badge(hit, code, true);
+    const badge = createPan115Badge(matches, code, true);
     anchor.parentNode?.insertBefore(badge, anchor); }
    anchor.dataset.pan115HasBadge = '1'; },
   getDetailFeatureSite() { return JumpSites.find(site => site.match(window.location.href)) || null; },
@@ -5904,7 +5905,7 @@
  Core.expose('__LAOSIJI_SITE_JAVLIB__', SiteJavLib); Core.expose('__LAOSIJI_STILLS_GALLERY__', StillsGallery);
  function mainRun() {
   SiteManager.initCurrent(); }
- GM_addStyle(`.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2147483647;display:flex;overflow:auto;cursor:zoom-out;backdrop-filter:blur(5px)}.preview-img{border-radius:4px;margin:auto;cursor:zoom-in;max-width:95vw;max-height:95vh;object-fit:contain;display:block;box-shadow:0 0 20px rgba(0,0,0,0.5)}.preview-img.zoomed{max-width:none;max-height:none;cursor:zoom-out}a:focus:not(:focus-visible),button:focus:not(:focus-visible),[role="button"]:focus:not(:focus-visible),input[type="button"]:focus:not(:focus-visible),input[type="submit"]:focus:not(:focus-visible){outline:none!important}.jav-card-grid{--jav-card-title-size:15px;--jav-card-title-line-height:1.5;--jav-card-title-lines:2;display:grid!important;grid-template-columns:repeat(var(--jav-card-columns,5),minmax(0,1fr))!important;gap:14px!important;align-items:stretch!important;width:100%!important;box-sizing:border-box!important}.jav-card{float:none!important;display:block!important;width:auto!important;height:100%!important;max-height:none!important;min-width:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;text-align:left!important;background:#fff!important;border:1px solid #e5e7eb!important;border-radius:6px!important;overflow:hidden!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;transform:translateZ(0)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;will-change:transform!important}.jav-card:hover{border-color:rgba(37,99,235,.35)!important;box-shadow:0 10px 24px rgba(15,23,42,.16)!important;transform:translateY(-4px) scale(1.018)!important;z-index:2!important}.jav-card-link{display:flex!important;flex-direction:column!important;height:100%!important;max-height:none!important;overflow:hidden!important;color:#2563eb!important;text-decoration:none!important}.jav-card-link:visited{color:#64748b!important}.jav-card-cover{display:block!important;width:100%!important;height:auto!important;aspect-ratio:800 / 538!important;overflow:hidden!important;background:#f8fafc!important;border-bottom:1px solid #f1f5f9!important}.jav-card-image{display:block!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;object-position:center center!important;background:#f8fafc!important;border:0!important}.jav-card-title{width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;text-align:left!important;white-space:normal!important;word-break:break-word!important}.jav-jump-btn-group{margin-top:8px;margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.jav-jump-btn-group.fc2cmadb-jump-group{margin-top:10px;margin-bottom:8px}.emby-fix{width:100%!important;flex-basis:100%!important;clear:both!important;margin-top:8px!important;margin-bottom:4px!important}.mini-switch{width:40px;height:20px;appearance:none;background:#e0e0e0;border-radius:20px;position:relative;cursor:pointer;outline:none;transition:background 0.2s}.mini-switch:checked{background:#4CAF50}.mini-switch::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:2px;left:2px;transition:left 0.2s}.mini-switch:checked::before{left:calc(100% - 18px)}@keyframes btnSlideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.jav-jump-btn-group a{transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;animation:btnSlideIn 0.3s ease-out}.jav-jump-btn-group a:hover{background:var(--jav-btn-hover-bg,#f8fafc)!important;transform:translateY(-1px)!important;filter:none!important;box-shadow:0 5px 14px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)!important;text-decoration:none!important}@keyframes menuFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}.search-menu{position:relative;display:inline-block;border-radius:4px}.search-main-btn{padding-right:28px!important}.search-toggle-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:16px;height:16px;padding:0!important;margin:0!important;display:inline-flex!important;align-items:center;justify-content:center;flex-shrink:0;font-size:10px!important;line-height:1;opacity:1;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 18%,#ffffff)!important;color:inherit!important;border:1px solid color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important;border-radius:999px!important;box-shadow:0 1px 2px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.7)!important;cursor:pointer}.search-toggle-btn:hover{filter:none;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important}.search-toggle-btn .search-arrow{display:inline-block;transform:translateY(-1px);pointer-events:none}.search-submenu{position:absolute;top:calc(100%+4px);left:0;display:none;flex-direction:column;gap:4px;padding:4px;background:rgba(255,255,255,0.95);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:10000;min-width:120px;backdrop-filter:blur(5px)}.search-submenu.is-open{display:flex}.search-submenu a{transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.1)!important}.search-submenu a:hover{transform:translateX(5px) scale(1.02);filter:brightness(1.1)}.jav-pan115-badge{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:22px!important;padding:0 7px;margin-right:6px;position:static!important;top:auto!important;transform:none!important;border-radius:6px;background:#bbf7d0;border:1px solid #22c55e;color:#065f46;font-size:12px!important;font-weight:800;line-height:22px!important;text-decoration:none;box-sizing:border-box;vertical-align:middle;box-shadow:inset 0 1px 0 rgba(255,255,255,0.72)}.jav-pan115-badge:hover{background:#86efac;color:#064e3b;text-decoration:none;box-shadow:0 4px 12px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)}span.jav-pan115-badge{cursor:pointer}.jav-infinite-sentinel{width:100%;padding:14px 0;color:#64748b;font-size:13px;font-weight:700;text-align:center;clear:both}.jav-infinite-sentinel.is-loading{color:#2563eb}.jav-infinite-sentinel.is-done{color:#94a3b8}.jav-infinite-sentinel.is-error{color:#dc2626;cursor:pointer}.button.javdb-score-sort-btn,.button.javdb-votes-sort-btn{border-color:#be123c!important;background:#be123c!important;color:#fff!important}.button.javdb-score-sort-btn:hover,.button.javdb-votes-sort-btn:hover{border-color:#e11d48!important;background:#e11d48!important}.button.javdb-score-sort-btn.is-selected,.button.javdb-votes-sort-btn.is-selected{border-color:#9f1239!important;background:#9f1239!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.58)!important}.button.javdb-score-sort-btn:focus-visible,.button.javdb-votes-sort-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}.float-buttons .javdb-loaded-reorder-btn{display:block;align-items:center;justify-content:center;min-height:36px;max-width:calc(100vw - 32px);margin:0 0 8px auto;padding:7px 11px;border:1px solid #be123c;border-radius:6px;background:#be123c;color:#fff;font-size:13px;font-weight:700;line-height:1.25;letter-spacing:0;box-shadow:0 5px 16px rgba(15,23,42,.2);cursor:pointer}.float-buttons .javdb-loaded-reorder-btn:hover{background:#e11d48;border-color:#e11d48}.float-buttons .javdb-loaded-reorder-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}@media (max-width:768px){.float-buttons .javdb-loaded-reorder-btn{min-height:34px;padding:7px 10px;font-size:12px}}`);
+ GM_addStyle(`.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2147483647;display:flex;overflow:auto;cursor:zoom-out;backdrop-filter:blur(5px)}.preview-img{border-radius:4px;margin:auto;cursor:zoom-in;max-width:95vw;max-height:95vh;object-fit:contain;display:block;box-shadow:0 0 20px rgba(0,0,0,0.5)}.preview-img.zoomed{max-width:none;max-height:none;cursor:zoom-out}a:focus:not(:focus-visible),button:focus:not(:focus-visible),[role="button"]:focus:not(:focus-visible),input[type="button"]:focus:not(:focus-visible),input[type="submit"]:focus:not(:focus-visible){outline:none!important}.jav-card-grid{--jav-card-title-size:15px;--jav-card-title-line-height:1.5;--jav-card-title-lines:2;display:grid!important;grid-template-columns:repeat(var(--jav-card-columns,5),minmax(0,1fr))!important;gap:14px!important;align-items:stretch!important;width:100%!important;box-sizing:border-box!important}.jav-card{float:none!important;display:block!important;width:auto!important;height:100%!important;max-height:none!important;min-width:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;text-align:left!important;background:#fff!important;border:1px solid #e5e7eb!important;border-radius:6px!important;overflow:hidden!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;transform:translateZ(0)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;will-change:transform!important}.jav-card:hover{border-color:rgba(37,99,235,.35)!important;box-shadow:0 10px 24px rgba(15,23,42,.16)!important;transform:translateY(-4px) scale(1.018)!important;z-index:2!important}.jav-card-link{display:flex!important;flex-direction:column!important;height:100%!important;max-height:none!important;overflow:hidden!important;color:#2563eb!important;text-decoration:none!important}.jav-card-link:visited{color:#64748b!important}.jav-card-cover{display:block!important;width:100%!important;height:auto!important;aspect-ratio:800 / 538!important;overflow:hidden!important;background:#f8fafc!important;border-bottom:1px solid #f1f5f9!important}.jav-card-image{display:block!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;object-position:center center!important;background:#f8fafc!important;border:0!important}.jav-card-title{width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;text-align:left!important;white-space:normal!important;word-break:break-word!important}.jav-jump-btn-group{margin-top:8px;margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.jav-jump-btn-group.fc2cmadb-jump-group{margin-top:10px;margin-bottom:8px}.emby-fix{width:100%!important;flex-basis:100%!important;clear:both!important;margin-top:8px!important;margin-bottom:4px!important}.mini-switch{width:40px;height:20px;appearance:none;background:#e0e0e0;border-radius:20px;position:relative;cursor:pointer;outline:none;transition:background 0.2s}.mini-switch:checked{background:#4CAF50}.mini-switch::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:2px;left:2px;transition:left 0.2s}.mini-switch:checked::before{left:calc(100% - 18px)}@keyframes btnSlideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.jav-jump-btn-group a{transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;animation:btnSlideIn 0.3s ease-out}.jav-jump-btn-group a:hover{background:var(--jav-btn-hover-bg,#f8fafc)!important;transform:translateY(-1px)!important;filter:none!important;box-shadow:0 5px 14px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)!important;text-decoration:none!important}@keyframes menuFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}.search-menu{position:relative;display:inline-block;border-radius:4px}.search-main-btn{padding-right:28px!important}.search-toggle-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:16px;height:16px;padding:0!important;margin:0!important;display:inline-flex!important;align-items:center;justify-content:center;flex-shrink:0;font-size:10px!important;line-height:1;opacity:1;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 18%,#ffffff)!important;color:inherit!important;border:1px solid color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important;border-radius:999px!important;box-shadow:0 1px 2px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.7)!important;cursor:pointer}.search-toggle-btn:hover{filter:none;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important}.search-toggle-btn .search-arrow{display:inline-block;transform:translateY(-1px);pointer-events:none}.search-submenu{position:absolute;top:calc(100%+4px);left:0;display:none;flex-direction:column;gap:4px;padding:4px;background:rgba(255,255,255,0.95);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:10000;min-width:120px;backdrop-filter:blur(5px)}.search-submenu.is-open{display:flex}.search-submenu a{transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.1)!important}.search-submenu a:hover{transform:translateX(5px) scale(1.02);filter:brightness(1.1)}.jav-pan115-badge{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:22px!important;padding:0 7px;margin-right:6px;position:static!important;top:auto!important;transform:none!important;border-radius:6px;background:#bbf7d0;border:1px solid #22c55e;color:#065f46;font-size:12px!important;font-weight:800;line-height:22px!important;text-decoration:none;box-sizing:border-box;vertical-align:middle;box-shadow:inset 0 1px 0 rgba(255,255,255,0.72)}.jav-pan115-badge:hover{background:#86efac;color:#064e3b;text-decoration:none;box-shadow:0 4px 12px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)}span.jav-pan115-badge{cursor:pointer}.jav-pan115-chooser-overlay{position:fixed;inset:0;z-index:10000030;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.38);backdrop-filter:blur(6px)}.jav-pan115-chooser{width:min(720px,calc(100vw - 24px));max-height:min(76vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;box-shadow:0 24px 70px rgba(15,23,42,0.22);color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-chooser-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px 16px 12px;border-bottom:1px solid #e2e8f0;background:#fff;color:#111827}.jav-pan115-chooser-title{font-size:16px;font-weight:800;line-height:1.35}.jav-pan115-chooser-desc{margin-top:4px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-chooser-close{width:30px;height:30px;flex:0 0 auto;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#475569;font-size:20px;line-height:1;cursor:pointer}.jav-pan115-candidate-list{overflow:auto;padding:10px;display:grid;gap:8px;overscroll-behavior:contain}.jav-pan115-candidate{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 4px 12px rgba(15,23,42,0.06)}.jav-pan115-candidate.is-low-priority{border-color:#e2e8f0;background:#f8fafc}.jav-pan115-candidate-name{max-width:100%;overflow:hidden;color:#0f172a;font-size:13px;font-weight:750;line-height:1.45;text-overflow:ellipsis;white-space:nowrap}.jav-pan115-candidate-meta{margin-top:3px;color:#64748b;font-size:12px;line-height:1.35}.jav-pan115-candidate-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.jav-pan115-candidate-actions button{min-width:48px;height:30px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer}.jav-pan115-candidate-play{border:1px solid #0f766e;background:#0f766e;color:#fff}.jav-pan115-candidate-rename{border:1px solid #cbd5e1;background:#f8fafc;color:#334155}.jav-pan115-candidate-delete{border:1px solid #e2e8f0;background:#fff;color:#dc2626}.jav-pan115-candidate-delete:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-candidate-actions button:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-confirm-overlay{position:fixed;inset:0;z-index:10000040;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.32);backdrop-filter:blur(5px)}.jav-pan115-confirm{width:min(420px,calc(100vw - 28px));padding:16px;border:1px solid #d8dee8;border-radius:14px;background:#fff;color:#111827;box-shadow:0 20px 54px rgba(15,23,42,0.26);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-confirm-title{font-size:16px;font-weight:900;line-height:1.35}.jav-pan115-confirm-message{margin-top:8px;color:#475569;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}.jav-pan115-confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.jav-pan115-confirm-actions button{min-width:70px;height:34px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:850;cursor:pointer}.jav-pan115-confirm-cancel{border:1px solid #e2e8f0;background:#f8fafc;color:#475569}.jav-pan115-confirm-ok{border:1px solid #dc2626;background:#dc2626;color:#fff}.jav-pan115-rename-input{width:100%;height:38px;margin-top:12px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#111827;font-size:13px;font-weight:650;outline:none}.jav-pan115-rename-input:focus{border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,0.12)}.jav-pan115-rename-hint{margin-top:7px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-rename-ok{border-color:#0f766e!important;background:#0f766e!important;color:#fff!important}html[data-laosiji-mobile] .jav-pan115-chooser-overlay{align-items:flex-end;padding:8px}html[data-laosiji-mobile] .jav-pan115-chooser{width:100%;max-height:82dvh;border-radius:14px 14px 10px 10px}html[data-laosiji-mobile] .jav-pan115-candidate{grid-template-columns:minmax(0,1fr);align-items:stretch}html[data-laosiji-mobile] .jav-pan115-candidate-actions button{flex:1 1 0;min-height:34px}html[data-laosiji-mobile] .jav-pan115-confirm-overlay{align-items:flex-end;padding:10px}html[data-laosiji-mobile] .jav-pan115-confirm{width:100%}html[data-laosiji-mobile] .jav-pan115-confirm-actions button{flex:1 1 0;min-height:38px}.jav-infinite-sentinel{width:100%;padding:14px 0;color:#64748b;font-size:13px;font-weight:700;text-align:center;clear:both}.jav-infinite-sentinel.is-loading{color:#2563eb}.jav-infinite-sentinel.is-done{color:#94a3b8}.jav-infinite-sentinel.is-error{color:#dc2626;cursor:pointer}.button.javdb-score-sort-btn,.button.javdb-votes-sort-btn{border-color:#be123c!important;background:#be123c!important;color:#fff!important}.button.javdb-score-sort-btn:hover,.button.javdb-votes-sort-btn:hover{border-color:#e11d48!important;background:#e11d48!important}.button.javdb-score-sort-btn.is-selected,.button.javdb-votes-sort-btn.is-selected{border-color:#9f1239!important;background:#9f1239!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.58)!important}.button.javdb-score-sort-btn:focus-visible,.button.javdb-votes-sort-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}.float-buttons .javdb-loaded-reorder-btn{display:block;align-items:center;justify-content:center;min-height:36px;max-width:calc(100vw - 32px);margin:0 0 8px auto;padding:7px 11px;border:1px solid #be123c;border-radius:6px;background:#be123c;color:#fff;font-size:13px;font-weight:700;line-height:1.25;letter-spacing:0;box-shadow:0 5px 16px rgba(15,23,42,.2);cursor:pointer}.float-buttons .javdb-loaded-reorder-btn:hover{background:#e11d48;border-color:#e11d48}.float-buttons .javdb-loaded-reorder-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}@media (max-width:768px){.float-buttons .javdb-loaded-reorder-btn{min-height:34px;padding:7px 10px;font-size:12px}}`);
  GM_addStyle(`.preview-toolbar{position:fixed;top:20px;right:20px;display:flex;gap:8px;z-index:2147483648;background:rgba(30,30,30,0.75);backdrop-filter:blur(10px);padding:6px 12px;border-radius:30px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 6px 18px rgba(0,0,0,0.25)}.preview-btn{border:none;color:#eee;font-size:13px;font-weight:450;cursor:pointer;padding:6px 14px;border-radius:24px;transition:all 0.2s ease;display:inline-flex;align-items:center;gap:6px;background:rgba(100,100,120,0.3);border:1px solid rgba(255,255,255,0.05);box-shadow:0 2px 4px rgba(0,0,0,0.1);letter-spacing:0.2px}.preview-btn:hover{background:rgba(140,140,160,0.4);transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.2)}.preview-btn.javfree.active{background:#2ecc71;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(46,204,113,0.6);font-weight:500}.preview-btn.javstore.active{background:#e74c3c;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(231,76,60,0.6);font-weight:500}.preview-btn.action{background:rgba(100,100,120,0.3)}.preview-btn.action:hover{background:rgba(140,140,160,0.5)}.preview-btn:active{transform:translateY(0);box-shadow:0 2px 4px rgba(0,0,0,0.15)}`);
  GM_addStyle(`.trailer-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:34px;background:radial-gradient(circle at 50% 18%,rgba(56,189,248,0.16),transparent 32%),linear-gradient(180deg,rgba(5,7,12,0.88),rgba(0,0,0,0.96));backdrop-filter:none;cursor:default}.trailer-modal{width:min(1120px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;background:#05070c;border:1px solid rgba(255,255,255,0.12);border-radius:8px;box-shadow:0 30px 80px rgba(0,0,0,0.68),0 0 0 1px rgba(255,255,255,0.04) inset;cursor:default;animation:trailerFadeIn .18s ease-out}@keyframes trailerFadeIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}.trailer-header{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 34px;background:linear-gradient(180deg,rgba(0,0,0,0.66),rgba(0,0,0,0));border:0;pointer-events:none;opacity:1;transition:opacity .18s ease,transform .18s ease}.trailer-title{min-width:0;display:flex;align-items:center;gap:10px;font:700 15px/1.3 Arial,"Microsoft YaHei",sans-serif;pointer-events:auto}.trailer-code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.4px}.trailer-source{flex-shrink:0;padding:3px 9px;border-radius:999px;color:rgba(255,255,255,0.82);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:500;backdrop-filter:blur(12px)}.jav-player-close{width:34px;height:34px;border:0;border-radius:50%;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font-size:18px;line-height:34px;pointer-events:auto;box-shadow:0 8px 20px rgba(0,0,0,0.22);transition:transform .15s ease,background .15s ease,box-shadow .15s ease}.jav-player-close:hover{transform:scale(1.08);background:rgba(248,113,113,0.34);box-shadow:0 10px 24px rgba(0,0,0,0.28)}.trailer-screen{position:relative;aspect-ratio:16 / 9;width:100%;max-height:82vh;overflow:hidden;background:radial-gradient(circle at center,rgba(31,41,55,.75),#000 62%),#000}.trailer-screen:fullscreen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen:-webkit-full-screen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.52),rgba(0,0,0,0) 30%),linear-gradient(0deg,rgba(0,0,0,0.62),rgba(0,0,0,0) 36%)}.trailer-screen.is-iframe::before{display:none}.trailer-screen video,.trailer-screen iframe{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}.trailer-volume-indicator{position:absolute;top:62px;right:26px;z-index:5;color:#f8fafc;font:750 24px/1 Arial,"Microsoft YaHei",sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.82);opacity:0;pointer-events:none;transition:opacity .14s ease}.trailer-volume-indicator.is-visible{opacity:1}.trailer-fallback-status{position:absolute;left:18px;top:58px;z-index:5;max-width:min(520px,calc(100% - 36px));padding:7px 10px;border-radius:8px;color:rgba(255,255,255,0.9);background:rgba(10,14,22,0.68);border:1px solid rgba(255,255,255,0.16);box-shadow:0 12px 28px rgba(0,0,0,0.28);backdrop-filter:blur(14px);font:12px/1.45 Arial,"Microsoft YaHei",sans-serif;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}.trailer-fallback-status.is-visible{opacity:1;transform:translateY(0)}.trailer-quality-bar{display:flex;align-items:center;gap:8px;padding:0;background:transparent;border:none;border-radius:0;backdrop-filter:none}.trailer-quality-select{min-width:78px;max-width:140px;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.12);color:#f8fafc;outline:none;font-size:12px;line-height:28px;text-align:center;text-align-last:center;appearance:none;cursor:pointer}.trailer-quality-select option{background:#0b1020;color:#f8fafc}.trailer-footer{position:absolute;left:16px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;color:rgba(255,255,255,0.78);background:rgba(10,14,22,0.62);border:1px solid rgba(255,255,255,0.16);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,0.32);backdrop-filter:blur(16px) saturate(1.08);font:12px/1.4 Arial,"Microsoft YaHei",sans-serif;opacity:1;transform:translateY(0);transition:opacity .18s ease,transform .18s ease}.trailer-screen.is-controls-hidden{cursor:none}.trailer-screen.is-controls-hidden .trailer-header{opacity:0;transform:translateY(-8px);pointer-events:none}.trailer-screen.is-controls-hidden .trailer-footer{opacity:0;transform:translateY(10px);pointer-events:none}.trailer-control-left,.trailer-control-right{display:flex;align-items:center;gap:9px;min-width:0}.trailer-control-left{flex:1 1 auto}.trailer-control-right{flex:0 0 auto}.trailer-control-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;border:0;border-radius:999px;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font:700 13px/1 Arial,"Microsoft YaHei",sans-serif;transition:background .15s ease,transform .15s ease}.trailer-control-btn:hover{background:rgba(255,255,255,0.24);transform:translateY(-1px)}.trailer-volume-wrap{position:relative;width:30px;height:30px;display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;box-sizing:border-box}.trailer-volume-wrap::before{content:"";position:absolute;left:50%;bottom:100%;width:46px;height:18px;transform:translateX(-50%)}.trailer-volume-popover{position:absolute;left:15px;bottom:42px;width:36px;height:126px;display:flex;align-items:center;justify-content:center;padding:12px 0;border-radius:999px;background:rgba(10,14,22,0.76);border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;box-shadow:0 14px 32px rgba(0,0,0,0.34);backdrop-filter:blur(16px) saturate(1.08);opacity:0;pointer-events:none;transform:translate(-50%,6px);transition:opacity .15s ease,transform .15s ease}.trailer-volume-wrap:hover .trailer-volume-popover{opacity:1;pointer-events:auto;transform:translate(-50%,0)}.trailer-volume-rail{position:absolute;left:50%;top:16px;bottom:16px;width:4px;transform:translateX(-50%);border-radius:999px;background:rgba(255,255,255,0.32);pointer-events:none}.trailer-volume-fill{position:absolute;left:0;right:0;bottom:0;height:var(--volume-percent,35%);border-radius:999px;background:#38bdf8}.trailer-volume-thumb{position:absolute;left:50%;bottom:var(--volume-percent,35%);width:16px;height:16px;transform:translate(-50%,50%);border-radius:50%;background:#38bdf8;border:2px solid rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.38)}.trailer-volume-slider{position:absolute;top:10px;bottom:10px;left:50%;width:16px;height:calc(100% - 20px);margin:0;transform:translateX(-50%);appearance:none;-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;background:transparent;cursor:pointer}.trailer-volume-slider::-webkit-slider-runnable-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-moz-range-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-volume-slider::-moz-range-thumb{width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-time{flex:0 0 auto;min-width:36px;color:rgba(255,255,255,0.78);font:11px/1.3 Arial,"Microsoft YaHei",sans-serif;white-space:nowrap;text-align:center}.trailer-progress{flex:1 1 160px;min-width:120px;height:32px;margin:0;border-radius:999px;accent-color:#38bdf8;cursor:pointer}`);
  GM_addStyle(`.jav-jump-toast{position:fixed;left:50%;top:72px;z-index:2147483647;display:flex;align-items:flex-start;gap:12px;width:min(420px,calc(100vw - 32px));padding:14px 16px;color:#f8fafc;background:rgba(15,23,42,0.94);border:1px solid rgba(148,163,184,0.28);border-left:4px solid #38bdf8;border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,0.34),0 0 0 1px rgba(255,255,255,0.04) inset;backdrop-filter:blur(14px) saturate(1.1);font-family:Arial,"Microsoft YaHei",sans-serif;transform:translate(-50%,-12px);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease}.jav-jump-toast.show{opacity:1;transform:translate(-50%,0)}.jav-jump-toast.hide{opacity:0;transform:translate(-50%,-12px)}.jav-jump-toast-icon{flex:0 0 auto;width:24px;height:24px;border-radius:999px;color:#082f49;background:#7dd3fc;font-size:16px;font-weight:800;line-height:24px;text-align:center}.jav-jump-toast-title{margin:0 0 4px;font-size:14px;font-weight:700;line-height:1.35}.jav-jump-toast-message{margin:0;color:#cbd5e1;font-size:13px;line-height:1.45}`);
@@ -7775,9 +7776,13 @@
  const Pan115 = {
   api: 'https://webapi.115.com/files/search',
   directApi: 'https://proapi.115.com/app/chrome/downurl',
+  editApi: 'https://webapi.115.com/files/edit',
+  deleteApi: 'https://webapi.115.com/rb/delete',
   videoExts: new Set(['mp4', 'mkv', 'avi', 'wmv', 'mov', 'm4v', 'ts', 'flv', 'rmvb', 'webm']),
   pending: new Map(),
-  cachePrefix: 'pan115_cache_v6_',
+  pendingAll: new Map(),
+  cachePrefix: 'pan115_cache_v7_',
+  listCachePrefix: 'pan115_list_cache_v1_',
   mgstagePrefixMap: {
    LUXU: '259LUXU',
    MIUM: '300MIUM',
@@ -7835,6 +7840,9 @@
   cacheKey(code) {
    return`${this.cachePrefix}${this.normalizeKeepSeparator(code)}`;
   },
+  listCacheKey(code) {
+   return`${this.listCachePrefix}${this.normalizeKeepSeparator(code)}`;
+  },
   getCached(code) {
    try {
     const raw = sessionStorage.getItem(this.cacheKey(code));
@@ -7844,6 +7852,22 @@
   setCached(code, value) {
    try {
     sessionStorage.setItem(this.cacheKey(code), JSON.stringify(value || null));
+   } catch {} },
+  getListCached(code) {
+   try {
+    const raw = sessionStorage.getItem(this.listCacheKey(code));
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+   } catch { return undefined; } },
+  setListCached(code, value) {
+   try {
+    sessionStorage.setItem(this.listCacheKey(code), JSON.stringify(Array.isArray(value) ? value : []));
+   } catch {} },
+  clearCached(code) {
+   try {
+    const normalized = this.normalizeKeepSeparator(code);
+    sessionStorage.removeItem(this.cacheKey(normalized)); sessionStorage.removeItem(this.listCacheKey(normalized));
    } catch {} },
   sourcePattern() { return Object.keys(this.sourceAliases).sort((a, b) => b.length - a.length).join('|'); },
   sourceGroup(source) { return this.sourceAliases[String(source || '').toUpperCase()] || [String(source || '').toUpperCase()].filter(Boolean); },
@@ -7922,18 +7946,47 @@
   isVideoName(name) {
    const ext = String(name || '').split('.').pop().toLowerCase();
    return this.videoExts.has(ext); },
+  parseSize(value) {
+   if (value == null || value === '') return 0;
+   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+   const text = String(value).trim().replace(/,/g, ''); const unitMatch = text.match(/^([\d.]+)\s*(b|kb|mb|gb|tb)$/i);
+   if (unitMatch) {
+    const amount = Number(unitMatch[1]); const unit = unitMatch[2].toLowerCase();
+    const power = { b: 0, kb: 1, mb: 2, gb: 3, tb: 4 }[unit] || 0;
+    return Number.isFinite(amount) ? Math.round(amount * 1024 ** power) : 0; }
+   const numeric = Number(text);
+   return Number.isFinite(numeric) ? numeric : 0; },
+  formatSize(bytes) {
+   const size = this.parseSize(bytes);
+   if (!size) return '';
+   const units = ['B', 'KB', 'MB', 'GB', 'TB']; let value = size; let index = 0;
+   while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
+   const digits = index >= 3 ? 2 : index >= 2 ? 1 : 0;
+   return`${value.toFixed(digits).replace(/\.0+$/, '')} ${units[index]}`;
+  },
+  lowPriorityReason(item) {
+   const name = String(item?.name || ''); const size = this.parseSize(item?.size);
+   const previewName = /(?:^|[.\-_\s])(?:tp|trailer|sample|preview|pv|cm|予告|预告|試看|试看)(?:[.\-_\s]|$)/i.test(name);
+   if (previewName) return '疑似预告/样片';
+   if (size > 0 && size < 180 * 1024 * 1024) return '小体积文件';
+   return ''; },
+  candidateRank(item) {
+   const reason = this.lowPriorityReason(item); const size = this.parseSize(item?.size);
+   return (reason ? 1000 : 0) - Math.min(size / (1024 ** 3), 100); },
   flattenFiles(payload) {
    const candidates = [ payload?.data, payload?.data?.list, payload?.data?.files, payload?.data?.items, payload?.files, payload?.list ];
    const arr = candidates.find(Array.isArray) || [];
    return arr.map(item => ({
     name: item.n || item.name || item.file_name || item.filename || item.title || '',
     pickcode: item.pc || item.pickcode || item.pick_code || item.pickCode || item.pick || '',
+    fileId: item.fid || item.file_id || item.fileId || item.id || '',
+    size: this.parseSize(item.s || item.size || item.file_size || item.fileSize || item.fs || item.bytes),
     raw: item,
    })).filter(item => item.name); },
   async requestSearch(keyword) {
    const query = new URLSearchParams({
     search_value: keyword,
-    limit: '30',
+    limit: '50',
     offset: '0',
    });
    return new Promise((resolve, reject) => {
@@ -7952,7 +8005,10 @@
     });
    }); },
   async search(code) {
-   const matcher = this.codeRegex(code); const seen = new Set();
+   const matches = await this.searchAll(code);
+   return matches[0] || null; },
+  async searchAll(code) {
+   const matcher = this.codeRegex(code); const seen = new Set(); const matches = [];
    const keywords = [...new Set(this.searchVariants(code).map(item => this.searchKeyword(item)).filter(Boolean))];
    for (const keyword of keywords) {
     const payload = await this.requestSearch(keyword); const state = payload?.state ?? payload?.success;
@@ -7961,9 +8017,10 @@
      const key = item.pickcode || item.name;
      if (seen.has(key)) continue;
      seen.add(key);
-     if (matcher.test(item.name) && this.isVideoName(item.name)) return item;
-    } }
-   return null; },
+     if (matcher.test(item.name) && this.isVideoName(item.name) && item.pickcode) {
+      item.lowPriorityReason = this.lowPriorityReason(item); item.sizeText = this.formatSize(item.size);
+      matches.push(item); } } }
+   return matches.sort((a, b) => this.candidateRank(a) - this.candidateRank(b)); },
   async searchCached(code) {
    const normalized = this.normalizeKeepSeparator(code);
    if (!normalized) return null;
@@ -7975,7 +8032,57 @@
      return hit || null;
     }) .finally(() => this.pending.delete(normalized));
    this.pending.set(normalized, task);
-   return task; }, };
+   return task; },
+  async searchAllCached(code) {
+   const normalized = this.normalizeKeepSeparator(code);
+   if (!normalized) return [];
+   const cached = this.getListCached(normalized);
+   if (cached !== undefined) return cached;
+   if (this.pendingAll.has(normalized)) return this.pendingAll.get(normalized);
+   const task = this.searchAll(normalized) .then(matches => {
+     this.setListCached(normalized, matches); this.setCached(normalized, matches[0] || null);
+     return matches;
+    }) .finally(() => this.pendingAll.delete(normalized));
+   this.pendingAll.set(normalized, task);
+   return task; },
+  async deleteFile(fileId) {
+   const fid = String(fileId || '').trim();
+   if (!fid) throw new Error('缺少115文件ID，无法删除');
+   const body = new URLSearchParams();
+   body.set('fid[0]', fid); body.set('ignore_warn', '1');
+   return this.postForm(this.deleteApi, body, '115删除'); },
+  async renameFile(fileId, newName) {
+   const fid = String(fileId || '').trim(); const fileName = String(newName || '').trim().replace(/[\\/:*?"<>|]/g, ' ');
+   if (!fid) throw new Error('缺少115文件ID，无法改名');
+   if (!fileName) throw new Error('新文件名为空');
+   return this.postForm(this.editApi, new URLSearchParams({ fid, file_name: fileName }), '115改名'); },
+  postForm(url, body, label) {
+   return new Promise((resolve, reject) => {
+    GM_xmlhttpRequest({
+     method: 'POST',
+     url,
+     data: body.toString(),
+     timeout: 15000,
+     anonymous: false,
+     headers: {
+      Accept: 'application/json, text/plain, */*',
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', },
+     onload: r => {
+      try {
+       const payload = JSON.parse(r.responseText || '{}');
+       const ok = payload?.state === true || payload?.success === true || payload?.errno === 0;
+       if (ok) {
+        resolve(payload);
+       } else {
+        reject(new Error(String(payload?.error || payload?.message || payload?.errno || `${label}失败`)));
+       }
+      } catch (err) {
+       reject(new Error(`${label}返回不是JSON`));
+      } },
+     onerror: () => reject(new Error(`${label}请求失败`)),
+     ontimeout: () => reject(new Error(`${label}请求超时`)),
+    });
+   }); }, };
  const M115_RSA_N = BigInt('0x8686980c0f5a24c4b9d43020cd2c22703ff3f450756529058b1cf88f09b8602136477198a6e2683149659bd122c33592fdb5ad47944ad1ea4d36c6b172aad6338c3bb6ac6227502d010993ac967d1aef00f0c8e038de2e4d3bc2ec368af2e9f10a6f1eda4f7262f136420c07c331b871bf139f74f3010e3c4fe57df3afb71683');
  const M115_RSA_E = 0x10001n;
  const M115_G_KTS = [240,229,105,174,191,220,191,138,26,69,232,190,125,166,115,184,222,143,231,196,69,218,134,196,155,100,139,20,106,180,241,170,56,1,53,158,38,105,44,134,0,107,79,165,54,52,98,166,42,150,104,24,242,74,253,189,107,151,143,77,143,137,19,183,108,142,147,237,14,13,72,62,215,47,136,216,254,254,126,134,80,149,79,209,235,131,38,52,219,102,123,156,126,157,122,129,50,234,182,51,222,58,169,89,52,102,59,170,186,129,96,72,185,213,129,156,248,108,132,119,255,84,120,38,95,190,232,30,54,159,52,128,92,69,44,155,118,213,27,143,204,195,184,245];
@@ -7994,7 +8101,7 @@
   return bytes; }
  function m115BigIntToBytes(value) {
   let hex = value.toString(16);
-  if (hex.length % 2) hex =`0${hex}`;
+  if (hex.length % 2) hex = `0${hex}`;
   return m115HexToBytes(hex); }
  function m115RsaEncrypt(text) {
   const padded = new Array(128).fill(0); let sourceIndex = text.length - 1; let targetIndex = padded.length;
@@ -8057,8 +8164,8 @@
    const { data, key } = m115Encode(JSON.stringify({ pickcode }), timestamp);
    GM_xmlhttpRequest({
     method: 'POST',
-    url:`${Pan115.directApi}?t=${timestamp}`,
-    data:`data=${encodeURIComponent(data)}`,
+    url: `${Pan115.directApi}?t=${timestamp}`,
+    data: `data=${encodeURIComponent(data)}`,
     timeout: 20000,
     anonymous: false,
     headers: {
@@ -8069,7 +8176,7 @@
      try {
       const payload = JSON.parse(response.responseText || '{}');
       if (!payload.state) {
-       reject(new Error(payload.msg || payload.error ||`errno:${payload.errno || response.status || 0}`));
+       reject(new Error(payload.msg || payload.error || `errno:${payload.errno || response.status || 0}`));
        return; }
       const decoded = JSON.parse(m115Decode(payload.data, key)); const fileId = Object.keys(decoded)[0]; const directUrl = decoded[fileId]?.url?.url;
       if (!directUrl) { reject(new Error('115未返回可播放直链')); return; }
@@ -8173,13 +8280,13 @@
   itemDisplayName(item, code) {
    const ext = this.itemExt(item); const raw = String(item?.name || item?.filename || item?.title || '').trim();
    if (raw) return raw;
-   return`${this.normalizeCode(code)}${ext ? `.${ext}` : ''}`;
+   return `${this.normalizeCode(code)}${ext ? `.${ext}` : ''}`;
   },
   fileName(item, code) {
    const ext = this.itemExt(item); let name = this.itemDisplayName(item, code);
-   if (ext && !new RegExp(`\\.${ext}$`, 'i').test(name)) name +=`.${ext}`;
+   if (ext && !new RegExp(`\\.${ext}$`, 'i').test(name)) name += `.${ext}`;
    name = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/\s+/g, ' ').trim();
-   return name || `${this.normalizeCode(code)}.${ext || 'srt'}`;
+   return name ||`${this.normalizeCode(code)}.${ext || 'srt'}`;
   },
   async search(code) {
    const normalized = this.normalizeCode(code);
@@ -8188,17 +8295,17 @@
    const list = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.data?.list) ? payload.data.list : []; const seen = new Set();
    return list.filter(item => {
     const url = this.itemUrl(item);
-    const key = `${url}|${this.itemDisplayName(item, normalized)}`;
+    const key =`${url}|${this.itemDisplayName(item, normalized)}`;
     if (!url || seen.has(key)) return false;
     seen.add(key);
     return true;
    }); },
-  createShell(code, title = `字幕 ${code}`) {
+  createShell(code, title =`字幕 ${code}`) {
    this.ensureStyle();
    if (this.closeOverlay) this.closeOverlay();
    const overlay = document.createElement('div');
    overlay.className = 'jav-subtitle-overlay';
-   overlay.innerHTML = `<section class="jav-subtitle-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><div class="jav-subtitle-body"><div class="jav-subtitle-status">正在搜索字幕...</div></div></section>`;
+   overlay.innerHTML =`<section class="jav-subtitle-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><div class="jav-subtitle-body"><div class="jav-subtitle-status">正在搜索字幕...</div></div></section>`;
    overlay.querySelector('.jav-subtitle-title').textContent = title;
    const close = () => {
     overlay.remove();
@@ -8269,7 +8376,7 @@
    const url = this.itemUrl(item); const ext = this.itemExt(item);
    if (!url) { Utils.showToast('无法预览字幕', '字幕文件地址为空', 2400); return; }
    if (!this.previewExts.has(ext)) {
-    Utils.showToast('暂不支持预览', `${ext || '该'} 类型可直接下载`, 2400);
+    Utils.showToast('暂不支持预览',`${ext || '该'} 类型可直接下载`, 2400);
     return; }
    await this.withBusy(btn, '读取中', async () => {
     const text = await this.requestText(url);
@@ -8299,7 +8406,7 @@
    this.ensureStyle();
    const overlay = document.createElement('div');
    overlay.className = 'jav-subtitle-preview-overlay';
-   overlay.innerHTML = `<section class="jav-subtitle-panel jav-subtitle-preview-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><pre class="jav-subtitle-pre"></pre><div class="jav-subtitle-preview-footer"><button class="jav-subtitle-preview-download" type="button">下载</button></div></section>`;
+   overlay.innerHTML =`<section class="jav-subtitle-panel jav-subtitle-preview-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><pre class="jav-subtitle-pre"></pre><div class="jav-subtitle-preview-footer"><button class="jav-subtitle-preview-download" type="button">下载</button></div></section>`;
    const close = () => {
     overlay.remove(); this.unlockScroll(); document.removeEventListener('keydown', onKeydown, true); };
    const onKeydown = e => {
@@ -8307,9 +8414,9 @@
    };
    const numbered = String(text || '').split(/\r?\n/).map((line, index, lines) => {
     const num = String(index + 1).padStart(String(lines.length).length, ' ');
-    return `${num}. ${line}`;
+    return`${num}. ${line}`;
    }).join('\n');
-   overlay.querySelector('.jav-subtitle-title').textContent = `${fileName} - ${code}`;
+   overlay.querySelector('.jav-subtitle-title').textContent =`${fileName} - ${code}`;
    overlay.querySelector('.jav-subtitle-pre').textContent = numbered; overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close);
    overlay.querySelector('.jav-subtitle-preview-download')?.addEventListener('click', e => {
     e.preventDefault();
@@ -8437,7 +8544,7 @@
    getTitleElement() { return this.getInfoTable()?.querySelector('tr:first-child td') || null; },
    getCode(titleElem) {
     const raw = String(titleElem?.textContent || '').match(/\b(\d{6,9})\b/)?.[1] || '';
-    return raw ? `FC2-PPV-${raw}` : '';
+    return raw ?`FC2-PPV-${raw}` : '';
    } } ];
  Core.expose('__LAOSIJI_JUMP_SITES__', JumpSites);
  function clearMobileJumpMenuPosition(subMenu) {
@@ -8475,7 +8582,7 @@
    const gutter = 8; const viewportWidth = document.documentElement.clientWidth || window.innerWidth; const viewportHeight = window.innerHeight;
    const triggerRect = menuDiv.getBoundingClientRect(); const menuWidth = Math.max(0, Math.min(176, viewportWidth - gutter * 2));
    subMenu.style.setProperty('position', 'fixed'); subMenu.style.setProperty('top', '0px'); subMenu.style.setProperty('left', '0px');
-   subMenu.style.setProperty('width', `${menuWidth}px`, 'important');
+   subMenu.style.setProperty('width',`${menuWidth}px`, 'important');
    subMenu.style.setProperty('min-width', '0px', 'important'); subMenu.style.setProperty('visibility', 'hidden');
    const menuHeight = subMenu.getBoundingClientRect().height; const minimumTop = Math.min(viewportHeight - gutter, getFixedHeaderBottom());
    const preferredTop = Math.max(minimumTop, triggerRect.bottom + 4); const availableBelow = viewportHeight - gutter - preferredTop;
@@ -8483,9 +8590,9 @@
    const top = shouldOpenAbove ? Math.max(minimumTop, triggerRect.top - 4 - menuHeight) : preferredTop;
    const availableHeight = Math.max(0, viewportHeight - gutter - top); const maxLeft = Math.max(gutter, viewportWidth - gutter - menuWidth);
    const left = Math.min(Math.max(gutter, triggerRect.left), maxLeft);
-   subMenu.style.setProperty('top', `${top}px`);
-   subMenu.style.setProperty('left', `${left}px`);
-   subMenu.style.setProperty('max-height', `${availableHeight}px`);
+   subMenu.style.setProperty('top',`${top}px`);
+   subMenu.style.setProperty('left',`${left}px`);
+   subMenu.style.setProperty('max-height',`${availableHeight}px`);
    subMenu.style.setProperty('overflow-y', 'auto'); subMenu.style.removeProperty('visibility'); };
   const scheduleClose = () => {
    clearCloseTimer();
@@ -8517,7 +8624,7 @@
   window.addEventListener('resize', closeMenu, { passive: true }); }
  function createJumpMenu({ accent, mainBtn, subButtons, toggleTitle, className = '', stretchSubButtons = true }) {
   const menuDiv = document.createElement('div');
-  menuDiv.className = `search-menu${className ? ` ${className}` : ''}`;
+  menuDiv.className =`search-menu${className ? ` ${className}` : ''}`;
   menuDiv.style.setProperty('--jav-btn-accent', accent); mainBtn.classList.add('search-main-btn'); menuDiv.appendChild(mainBtn);
   const toggleBtn = document.createElement('button');
   toggleBtn.type = 'button'; toggleBtn.className = 'search-toggle-btn'; toggleBtn.title = toggleTitle;
@@ -8535,7 +8642,7 @@
  function addNyaaBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_nyaa', true)) return;
   if (/sukebei\.nyaa/i.test(location.hostname)) return;
-  const btn = Utils.createJumpLinkBtn('🔍 Sukebei', '#17a2b8', `https://sukebei.nyaa.si/?f=0&c=0_0&q=${encodeURIComponent(code)}`);
+  const btn = Utils.createJumpLinkBtn('🔍 Sukebei', '#17a2b8',`https://sukebei.nyaa.si/?f=0&c=0_0&q=${encodeURIComponent(code)}`);
   container.appendChild(btn); }
  function addJavbusBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_javbus', true)) return;
@@ -8545,32 +8652,32 @@
  function addJavdbBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_javdb', true)) return;
   if (/javdb\.com/i.test(location.hostname)) return;
-  const btn = Utils.createJumpLinkBtn('📀 JavDB', '#6f42c1', `https://javdb.com/search?q=${encodeURIComponent(code)}`);
+  const btn = Utils.createJumpLinkBtn('📀 JavDB', '#6f42c1',`https://javdb.com/search?q=${encodeURIComponent(code)}`);
   container.appendChild(btn); }
  function getFc2Number(code) { return String(code || '').trim().match(/^FC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})$/i)?.[1] || ''; }
  function getFc2CmaArticleUrl(code) {
   const fc2Number = getFc2Number(code);
-  return fc2Number ? `https://fc2cmadb.com/articles/${fc2Number}` : '';
+  return fc2Number ?`https://fc2cmadb.com/articles/${fc2Number}` : '';
  }
  function addMissAVBtn(code, container, useCapture = false) {
   const showMissav = GM_getValue('btn_show_missav', true);
   if (!showMissav) return;
   const codeLower = String(code || '').trim().toLowerCase(); const codeCompactLower = codeLower.replace(/-/g, ''); const fc2Number = getFc2Number(code);
-  const fc2Slug = fc2Number ? `fc2-ppv-${fc2Number}` : '';
-  const fc2JavdaySlug = fc2Number ? `FC2PPV${fc2Number}` : '';
+  const fc2Slug = fc2Number ?`fc2-ppv-${fc2Number}` : '';
+  const fc2JavdaySlug = fc2Number ?`FC2PPV${fc2Number}` : '';
   const get123AvLocalePrefix = () => {
    if (/(?:^|\.)123av\.com$/i.test(location.hostname)) {
     const locale = location.pathname.match(/^\/([a-z]{2}(?:-[a-z]{2})?)\//i)?.[1];
-    if (locale) return `/${locale.toLowerCase()}`;
+    if (locale) return`/${locale.toLowerCase()}`;
    }
    return '/cn'; };
   const videoUrlMap = {
-   missav: `https://missav.ws/${fc2Slug || codeLower}`,
-   jable: `https://jable.tv/videos/${codeLower}/`,
-   '123av': `https://123av.com${get123AvLocalePrefix()}/v/${fc2Slug || codeLower}`,
-   javday: fc2JavdaySlug ? `https://javday.app/index.php/videos/${fc2JavdaySlug}/` : `https://javday.app/videos/${codeCompactLower}/`,
-   supjav: `https://supjav.com/zh/?s=${encodeURIComponent(fc2Number || code)}`,
-   javrate: `https://www.javrate.com/search/${encodeURIComponent(codeLower)}`,
+   missav:`https://missav.ws/${fc2Slug || codeLower}`,
+   jable:`https://jable.tv/videos/${codeLower}/`,
+   '123av':`https://123av.com${get123AvLocalePrefix()}/v/${fc2Slug || codeLower}`,
+   javday: fc2JavdaySlug ?`https://javday.app/index.php/videos/${fc2JavdaySlug}/` :`https://javday.app/videos/${codeCompactLower}/`,
+   supjav:`https://supjav.com/zh/?s=${encodeURIComponent(fc2Number || code)}`,
+   javrate:`https://www.javrate.com/search/${encodeURIComponent(codeLower)}`,
   };
   const enabledVideoKeys = new Set([ ...(showMissav ? ['missav', 'jable', '123av', 'javday', 'supjav', 'javrate'] : []),
   ]);
@@ -8658,6 +8765,240 @@
   const lineBreak = document.createElement('span');
   lineBreak.className = 'jav-jump-line-break'; lineBreak.style.cssText = 'flex-basis:100%;height:0;padding:0;margin:0;';
   container.appendChild(lineBreak); }
+ let pan115ChooserOverlay = null;
+ function normalizePan115Matches(value) {
+  return (Array.isArray(value) ? value : value?.pickcode ? [value] : []) .filter(item => item?.pickcode); }
+ function pan115DisplayLabel(base, matches) {
+  return matches.length > 1 ?`${base}×${matches.length}` : base;
+ }
+ function pan115MatchTitle(matches, code) {
+  return normalizePan115Matches(matches) .map(item => [item.name, item.sizeText || Pan115.formatSize(item.size)].filter(Boolean).join(' · '))
+   .join('\n') ||`115播放：${Pan115.normalizeKeepSeparator(code)}`;
+ }
+ function refreshPan115Control(control, code, matches) {
+  const list = normalizePan115Matches(matches);
+  if (!control?.isConnected) return;
+  if (!list.length) { control.remove(); return; }
+  const best = list[0]; const isBadge = control.classList.contains('jav-pan115-badge'); const base = isBadge ? '115匹配' : '115播放';
+  control.textContent = pan115DisplayLabel(base, list); control.title = pan115MatchTitle(list, code); control.dataset.pickcode = best.pickcode;
+  control.dataset.pan115Code = Pan115.normalizeKeepSeparator(code) || code || '';
+  if (control.tagName === 'A' && !Pan115.isPotPlayerMode() && list.length === 1) { control.href = Pan115.playUrl(best.pickcode); }
+ }
+ function refreshPan115ControlsForCode(code, matches, trigger = null) {
+  const normalized = Pan115.normalizeKeepSeparator(code) || code || ''; const controls = new Set();
+  if (trigger) controls.add(trigger);
+  document.querySelectorAll('.jav-pan115-badge, .jav-pan115-play-btn').forEach(control => {
+   if ((control.dataset.pan115Code || '') === normalized) controls.add(control);
+  });
+  controls.forEach(control => refreshPan115Control(control, normalized, matches)); }
+ function playPan115Candidate(match, trigger = null) {
+  if (!match?.pickcode) return;
+  if (Pan115.isPotPlayerMode()) { playPan115Pot(match.pickcode, match.name, trigger); return; }
+  window.open(Pan115.playUrl(match.pickcode), '_blank', 'noopener,noreferrer'); }
+ function closePan115Chooser() {
+  pan115ChooserOverlay?.remove();
+  pan115ChooserOverlay = null;
+  document.removeEventListener('keydown', onPan115ChooserKeydown, true); }
+ function onPan115ChooserKeydown(event) {
+  if (document.querySelector('.jav-pan115-confirm-overlay')) return;
+  if (event.key === 'Escape') closePan115Chooser();
+ }
+ function pan115Node(tag, className = '', text = null, parent = null) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== null) node.textContent = text;
+  parent?.appendChild(node);
+  return node; }
+ function pan115Button(text, className, parent, onClick = null) {
+  const button = pan115Node('button', className, text, parent);
+  button.type = 'button';
+  if (onClick) button.addEventListener('click', onClick, true);
+  return button; }
+ function confirmPan115Action(options = {}) {
+  return new Promise(resolve => {
+   const overlay = pan115Node('div', 'jav-pan115-confirm-overlay'); const dialog = pan115Node('div', 'jav-pan115-confirm', null, overlay);
+   pan115Node('div', 'jav-pan115-confirm-title', options.title || '确认操作', dialog);
+   pan115Node('div', 'jav-pan115-confirm-message', options.message || '', dialog);
+   const actions = pan115Node('div', 'jav-pan115-confirm-actions', null, dialog);
+   const cancel = pan115Button(options.cancelText || '取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(false));
+   const confirm = pan115Button(options.confirmText || '确认', 'jav-pan115-confirm-ok', actions, () => cleanup(true));
+   const cleanup = value => {
+    overlay.remove(); document.removeEventListener('keydown', onKeydown, true); resolve(value); };
+   const onKeydown = event => {
+    if (event.key !== 'Escape' && event.key !== 'Enter') return;
+    event.preventDefault(); event.stopImmediatePropagation(); cleanup(event.key === 'Enter'); };
+   overlay.addEventListener('click', event => {
+    if (event.target === overlay) cleanup(false);
+   }, true);
+   document.addEventListener('keydown', onKeydown, true); document.body.appendChild(overlay);
+   confirm.focus({ preventScroll: true });
+  }); }
+ function promptPan115Rename(options = {}) {
+  return new Promise(resolve => {
+   const overlay = pan115Node('div', 'jav-pan115-confirm-overlay jav-pan115-rename-overlay');
+   const dialog = pan115Node('div', 'jav-pan115-confirm jav-pan115-rename-dialog', null, overlay);
+   pan115Node('div', 'jav-pan115-confirm-title', options.title || '手动改名', dialog);
+   const input = pan115Node('input', 'jav-pan115-rename-input', null, dialog);
+   input.className = 'jav-pan115-rename-input'; input.type = 'text'; input.value = options.value || ''; input.placeholder = '输入新的 115 文件名';
+   pan115Node('div', 'jav-pan115-rename-hint', options.hint || '确认后会直接改名，请保留正确扩展名。', dialog);
+   const actions = pan115Node('div', 'jav-pan115-confirm-actions', null, dialog);
+   pan115Button('取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(null));
+   pan115Button('确认改名', 'jav-pan115-confirm-ok jav-pan115-rename-ok', actions, () => submit());
+   const cleanup = value => {
+    overlay.remove(); document.removeEventListener('keydown', onKeydown, true); resolve(value); };
+   const submit = () => cleanup(input.value.trim() || null);
+   const onKeydown = event => {
+    if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); cleanup(null); }
+    if (event.key === 'Enter') { event.preventDefault(); event.stopImmediatePropagation(); submit(); }
+   };
+   overlay.addEventListener('click', event => {
+    if (event.target === overlay) cleanup(null);
+   }, true);
+   document.addEventListener('keydown', onKeydown, true); document.body.appendChild(overlay);
+   input.focus({ preventScroll: true });
+   input.select();
+  }); }
+ async function renamePan115Candidate(context, newName, button) {
+  const { match, matches, normalized, code, nameNode, trigger } = context;
+  const nextName = String(newName || '').trim();
+  if (!match.fileId) { notify('115 改名失败', '115 搜索结果未返回文件ID，无法改名'); return false; }
+  if (!nextName) return false;
+  if (nextName === match.name) { notify('115 改名', '新旧文件名一致，已跳过'); return false; }
+  const oldText = button.textContent;
+  button.disabled = true; button.textContent = '改名中';
+  try {
+   await Pan115.renameFile(match.fileId, nextName);
+   match.name = nextName;
+   if (nameNode) { nameNode.textContent = nextName; nameNode.title = nextName; }
+   Pan115.clearCached(normalized || code); refreshPan115ControlsForCode(normalized || code, matches, trigger); notify('115 改名成功', nextName);
+   return true;
+  } catch (error) {
+   errorLog('115改名失败:', error); notify('115 改名失败', error?.message || '改名请求失败');
+   return false;
+  } finally {
+   button.disabled = false; button.textContent = oldText; } }
+ function createPan115CandidateAction(action, context) {
+  const button = document.createElement('button'); const disabled = typeof action.disabled === 'function' && action.disabled(context);
+  button.type = 'button';
+  button.className =`jav-pan115-candidate-action ${action.className || ''}`.trim();
+  button.dataset.pan115Action = action.key || ''; button.textContent = typeof action.label === 'function' ? action.label(context) : action.label;
+  button.disabled = !!disabled; button.title = typeof action.title === 'function' ? action.title(context) : action.title || '';
+  button.addEventListener('click', event => {
+   event.preventDefault(); event.stopImmediatePropagation();
+   if (button.disabled) return;
+   action.run(context, button);
+  }, true);
+  return button; }
+ function getPan115CandidateActions() {
+  return [
+   {
+    key: 'play',
+    className: 'jav-pan115-candidate-play',
+    label: () => Pan115.isPotPlayerMode() ? 'PotPlayer' : '播放',
+    title: () => Pan115.isPotPlayerMode() ? '使用 PotPlayer 播放' : '打开 115 播放',
+    run: ({ match }, button) => playPan115Candidate(match, button), },
+   {
+    key: 'rename',
+    className: 'jav-pan115-candidate-rename',
+    label: '改名',
+    disabled: ({ match }) => !match.fileId,
+    title: ({ match }) => match.fileId ? '手动修改 115 文件名' : '115 搜索结果未返回文件ID，无法改名',
+    async run(context, button) {
+     const nextName = await promptPan115Rename({ value: context.match.name || '' });
+     await renamePan115Candidate(context, nextName, button); }, },
+   {
+    key: 'delete',
+    className: 'jav-pan115-candidate-delete',
+    label: '删除',
+    disabled: ({ match }) => !match.fileId,
+    title: ({ match }) => match.fileId ? '删除此 115 文件' : '115 搜索结果未返回文件ID，无法删除',
+    async run({ match, matches, normalized, code, row, refreshDesc, trigger }, button) {
+     if (!match.fileId) return;
+     const confirmed = await confirmPan115Action({
+      title: '删除 115 文件',
+      message:`确定删除这个文件吗？\n\n${match.name || match.fileId}`,
+      confirmText: '删除',
+     });
+     if (!confirmed) return;
+     button.disabled = true; button.textContent = '删除中';
+     try {
+      await Pan115.deleteFile(match.fileId);
+      const pos = matches.indexOf(match);
+      if (pos >= 0) matches.splice(pos, 1);
+      Pan115.clearCached(normalized || code); row.remove(); refreshDesc(); refreshPan115ControlsForCode(normalized || code, matches, trigger);
+      notify('115 删除成功', match.name || '文件已删除');
+      if (!matches.length) closePan115Chooser();
+     } catch (error) {
+      errorLog('115删除失败:', error); notify('115 删除失败', error?.message || '删除请求失败');
+      button.disabled = false; button.textContent = '删除'; } }, }, ]; }
+ function openPan115Chooser(code, value, trigger = null) {
+  const matches = normalizePan115Matches(value);
+  if (!matches.length) return;
+  if (matches.length === 1) { playPan115Candidate(matches[0], trigger); return; }
+  closePan115Chooser();
+  const normalized = Pan115.normalizeKeepSeparator(code); const overlay = document.createElement('div');
+  overlay.className = 'jav-pan115-chooser-overlay';
+  overlay.addEventListener('click', event => {
+   if (event.target === overlay) closePan115Chooser();
+  }, true);
+  const dialog = document.createElement('div');
+  dialog.className = 'jav-pan115-chooser';
+  overlay.appendChild(dialog);
+  const header = document.createElement('div');
+  header.className = 'jav-pan115-chooser-header';
+  dialog.appendChild(header);
+  const titleWrap = document.createElement('div');
+  header.appendChild(titleWrap);
+  const title = document.createElement('div');
+  title.className = 'jav-pan115-chooser-title';
+  title.textContent =`${normalized || code} 的 115 匹配`;
+  titleWrap.appendChild(title);
+  const desc = document.createElement('div');
+  desc.className = 'jav-pan115-chooser-desc';
+  titleWrap.appendChild(desc);
+  const close = document.createElement('button');
+  close.type = 'button'; close.className = 'jav-pan115-chooser-close'; close.textContent = '×'; close.title = '关闭';
+  close.addEventListener('click', closePan115Chooser, true); header.appendChild(close);
+  const list = document.createElement('div');
+  list.className = 'jav-pan115-candidate-list';
+  dialog.appendChild(list);
+  const refreshDesc = () => {
+   desc.textContent =`共 ${matches.length} 个候选，可选择播放或管理文件。`;
+  };
+  refreshDesc();
+  matches.forEach((match, index) => {
+   const row = document.createElement('div');
+   row.className =`jav-pan115-candidate${match.lowPriorityReason ? ' is-low-priority' : ''}`;
+   list.appendChild(row);
+   const main = document.createElement('div');
+   main.className = 'jav-pan115-candidate-main';
+   row.appendChild(main);
+   const name = document.createElement('div');
+   name.className = 'jav-pan115-candidate-name';
+   name.textContent = match.name ||`候选 ${index + 1}`;
+   name.title = match.name || '';
+   main.appendChild(name);
+   const meta = document.createElement('div');
+   meta.className = 'jav-pan115-candidate-meta';
+   meta.textContent = [match.sizeText || Pan115.formatSize(match.size), match.lowPriorityReason].filter(Boolean).join(' · ') || '未返回文件大小';
+   main.appendChild(meta);
+   const actions = document.createElement('div');
+   actions.className = 'jav-pan115-candidate-actions';
+   row.appendChild(actions);
+   getPan115CandidateActions().forEach(action => {
+    actions.appendChild(createPan115CandidateAction(action, { match, matches, normalized, code, row, nameNode: name, metaNode: meta, refreshDesc, trigger }));
+   });
+  });
+  document.body.appendChild(overlay);
+  pan115ChooserOverlay = overlay;
+  document.addEventListener('keydown', onPan115ChooserKeydown, true); }
+ function createPan115MatchButton(matches, code, text, useCapture = false) {
+  const list = normalizePan115Matches(matches); const best = list[0];
+  const button = Utils.createBtn(pan115DisplayLabel(text, list), '#00a85a', () => openPan115Chooser(code, list, button), useCapture);
+  button.classList.add('jav-pan115-play-btn');
+  button.dataset.pickcode = best.pickcode; button.dataset.pan115Code = Pan115.normalizeKeepSeparator(code) || code || '';
+  button.title = pan115MatchTitle(list, code);
+  return button; }
  function addPan115PlayBtn(code, container, useCapture = false) {
   if (!Pan115.enabled() || !code || !container) return;
   const normalized = Pan115.normalizeKeepSeparator(code);
@@ -8666,14 +9007,10 @@
   const marker = document.createComment('pan115-play');
   const anchor = container.querySelector('.jav-subtitle-btn, .jav-trailer-btn, .jav-preview-btn, .jav-settings-btn');
   container.insertBefore(marker, anchor || null);
-  Pan115.searchCached(normalized).then(hit => {
-   const pickcode = hit?.pickcode;
-   if (!Pan115.enabled() || !pickcode || !marker.parentNode) return;
-   const btn = Pan115.isPotPlayerMode() ? createPan115PotButton('115播放', pickcode, hit.name, useCapture)
-    : Utils.createJumpLinkBtn('115播放', '#00a85a', Pan115.playUrl(pickcode));
-   btn.classList.add('jav-pan115-play-btn');
-   btn.dataset.pickcode = pickcode;
-   btn.title = hit.name || `115播放：${normalized}`;
+  Pan115.searchAllCached(normalized).then(matches => {
+   const list = normalizePan115Matches(matches);
+   if (!Pan115.enabled() || !list.length || !marker.parentNode) return;
+   const btn = createPan115MatchButton(list, normalized, '115播放', useCapture);
    marker.parentNode.insertBefore(btn, marker);
   }).catch(err => {
    errorLog('115自动查询失败:', err);
@@ -8694,16 +9031,26 @@
    if (button) { delete button.dataset.pan115Loading; button.removeAttribute('aria-busy'); }
   } }
  function createPan115Badge(hit, code, asAnchor = true) {
-  const url = Pan115.playUrl(hit.pickcode); const badge = document.createElement(asAnchor ? 'a' : 'span');
-  badge.className = 'jav-pan115-badge'; badge.textContent = '115匹配';
-  badge.title = hit.name || `115播放：${Pan115.normalizeKeepSeparator(code)}`;
-  badge.dataset.pickcode = hit.pickcode;
-  if (Pan115.isPotPlayerMode()) {
+  const matches = normalizePan115Matches(hit); const best = matches[0]; const isMulti = matches.length > 1;
+  const url = best ? Pan115.playUrl(best.pickcode) : '#';
+  const badge = document.createElement(asAnchor && !isMulti && !Pan115.isPotPlayerMode() ? 'a' : 'span');
+  badge.className = 'jav-pan115-badge'; badge.textContent = pan115DisplayLabel('115匹配', matches); badge.title = pan115MatchTitle(matches, code);
+  badge.dataset.pickcode = best?.pickcode || ''; badge.dataset.pan115Code = Pan115.normalizeKeepSeparator(code) || code || '';
+  if (isMulti) {
+   badge.setAttribute('role', 'link');
+   badge.tabIndex = 0;
+   const openList = event => {
+    event.preventDefault(); event.stopImmediatePropagation(); openPan115Chooser(code, matches, badge); };
+   badge.addEventListener('click', openList, true);
+   badge.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') openList(event);
+   }, true);
+  } else if (Pan115.isPotPlayerMode()) {
    if (asAnchor) badge.href = '#';
    badge.setAttribute('role', 'link');
    badge.tabIndex = 0;
    const openPot = event => {
-    event.preventDefault(); event.stopImmediatePropagation(); playPan115Pot(hit.pickcode, hit.name, badge); };
+    event.preventDefault(); event.stopImmediatePropagation(); playPan115Pot(best.pickcode, best.name, badge); };
    badge.addEventListener('click', openPot, true);
    badge.addEventListener('keydown', event => {
     if (event.key === 'Enter' || event.key === ' ') openPot(event);
@@ -8732,8 +9079,8 @@
    targets.forEach(({ anchor }) => { anchor.dataset.pan115Checked = '1'; });
    await Promise.all(targets.map(async ({ anchor, code }) => {
     try {
-     const hit = await Pan115.searchCached(code);
-     SiteManager.insertPan115ListBadge(anchor, hit, code);
+     const matches = await Pan115.searchAllCached(code);
+     SiteManager.insertPan115ListBadge(anchor, matches, code);
     } catch (err) { errorLog('115列表单项查询失败:', err); }
    }));
   } catch (err) {
@@ -8743,7 +9090,7 @@
    if (Pan115.enabled() && SiteManager.collectPan115ListTargets().length) schedulePan115ListBadges();
   } }
  function removePan115Ui() {
-  clearTimeout(pan115ListTimer); document.querySelectorAll('.jav-pan115-badge, .jav-pan115-play-btn').forEach(el => el.remove());
+  clearTimeout(pan115ListTimer); closePan115Chooser(); document.querySelectorAll('.jav-pan115-badge, .jav-pan115-play-btn').forEach(el => el.remove());
   document.querySelectorAll('[data-pan115-checked], [data-pan115-has-badge]').forEach(el => {
    delete el.dataset.pan115Checked; delete el.dataset.pan115HasBadge;
   });
@@ -8858,7 +9205,7 @@
    ensureStyle();
    let row = Array.from(info.anchor.parentNode?.children || []).find(el => el.classList?.contains('jav-title-translation'));
    if (!row) { row = document.createElement('div'); row.className = 'jav-title-translation is-loading'; info.anchor.insertAdjacentElement('afterend', row); }
-   const id =`${info.site}:${target}:${info.text}`;
+   const id = `${info.site}:${target}:${info.text}`;
    if (row.dataset.translateId === id && ['loading', 'loaded'].includes(row.dataset.state)) return;
    row.dataset.translateId = id; row.dataset.state = 'loading'; row.className = 'jav-title-translation is-loading'; row.textContent = translateMessage(target);
    try {
@@ -8974,7 +9321,7 @@
     btn.setAttribute('style', style);
    });
   } else if (site.id === 'missav') {
-   btnGroup.style.cssText =`margin:10px 0 6px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative;z-index:9999;`;
+   btnGroup.style.cssText = `margin:10px 0 6px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative;z-index:9999;`;
   }
   if (site.id === 'emby') {
    btnGroup.classList.add('emby-fix');
@@ -9122,7 +9469,7 @@
    if (!config?.site) return '';
    const url = new URL(location.href);
    url.hash = '';
-   return`${this.cachePrefix}${config.site}_${url.href}`;
+   return `${this.cachePrefix}${config.site}_${url.href}`;
   },
   readSnapshot(config = this.state) {
    const key = this.cacheKey(config);
@@ -9221,7 +9568,7 @@
   setStatus(text, className = '') {
    const sentinel = this.state?.sentinel;
    if (!sentinel) return;
-   sentinel.className =`jav-infinite-sentinel ${className}`.trim();
+   sentinel.className = `jav-infinite-sentinel ${className}`.trim();
    sentinel.textContent = text; },
   async fetchDoc(url, requestContext = null) {
    const target = new URL(url, location.href);
