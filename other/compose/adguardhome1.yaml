@@ -9,5 +9,8 @@ services:
     volumes:
       - /home/adguardhome1/work:/opt/adguardhome/work
       - /home/adguardhome1/conf:/opt/adguardhome/conf
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
     environment:
       - TZ=Asia/Shanghai
