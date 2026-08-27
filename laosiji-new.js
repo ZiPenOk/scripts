@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.9
+// @version      2.7.9.1
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.7.9'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.7.9.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -5251,10 +5251,37 @@
    return code ? normalizeAvid(code) : ''; },
   initPage(avid) {
    if (!this.isDetailPage() || !avid) return;
-   this._insertDescriptionMagnet(avid); },
-  _insertDescriptionMagnet(avid) {
+   this._insertDescriptionMagnetWhenReady(avid); },
+  _isDescriptionRendered(description) {
+   if (!description) return false;
+   if (description.dataset.laosijiMagnetLayout === '1') return true;
+   if (description.querySelector('p,br,hr,a,img,ul,ol,blockquote')) return true;
+   return !description.hasAttribute('markdown-text'); },
+  _insertDescriptionMagnetWhenReady(avid) {
    const description = document.querySelector('#torrent-description');
    if (!description || description.dataset.laosijiMagnetLayout === '1') return;
+   if (this._isDescriptionRendered(description)) { this._insertDescriptionMagnet(avid); return; }
+   if (description.dataset.laosijiMagnetPending === '1') return;
+   description.dataset.laosijiMagnetPending = '1';
+   let tries = 0; let timer = 0; let observer = null;
+   const finish = () => {
+    if (timer) clearInterval(timer);
+    observer?.disconnect?.(); delete description.dataset.laosijiMagnetPending; };
+   const tryInsert = () => {
+    const current = document.querySelector('#torrent-description');
+    if (!current || current.dataset.laosijiMagnetLayout === '1') { finish(); return; }
+    if (this._isDescriptionRendered(current)) { finish(); this._insertDescriptionMagnet(avid); return; }
+    tries += 1;
+    if (tries >= 80) finish();
+   };
+   if (typeof MutationObserver !== 'undefined') {
+    observer = new MutationObserver(tryInsert);
+    observer.observe(description, { childList: true, subtree: true, characterData: true }); }
+   timer = setInterval(tryInsert, 125);
+   tryInsert(); },
+  _insertDescriptionMagnet(avid) {
+   const description = document.querySelector('#torrent-description');
+   if (!description || description.dataset.laosijiMagnetLayout === '1' || !this._isDescriptionRendered(description)) return;
    injectStyle('sukebei-magnet-description-style',`#torrent-description .sukebei-description-layout{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(520px,560px);grid-template-areas:"original magnet";gap:18px;align-items:start}#torrent-description .sukebei-description-original{grid-area:original;min-width:0;overflow-wrap:anywhere;word-break:break-word}#torrent-description .sukebei-description-original>:first-child{margin-top:0}#torrent-description .sukebei-description-original img{max-width:100%;height:auto}#torrent-description .sukebei-magnet-pane{grid-area:magnet;width:100%;min-width:520px;align-self:start}#torrent-description .sukebei-magnet-pane .jav-nong-wrapper{display:block!important;width:100%!important;max-width:560px!important;margin:0!important}@media (max-width:991px){#torrent-description .sukebei-description-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"original" "magnet"}#torrent-description .sukebei-magnet-pane{min-width:0}#torrent-description .sukebei-magnet-pane .jav-nong-wrapper{max-width:100%!important;margin-left:0!important}}`);
    const original = document.createElement('div');
    original.className = 'sukebei-description-original';
@@ -7052,6 +7079,12 @@
     const flexRow = title?.parentElement?.matches('span[style*="display: flex"]') ? title.parentElement : null;
     return flexRow || card.querySelector(':scope > td:nth-child(2)'); }
    return null; }
+  function insertActions(slot, actions, site, card) {
+   if (site === 'sukebei') {
+    const title = card.querySelector(':scope > td:nth-child(2) a[href^="/view/"]');
+    if (title?.parentNode === slot) { slot.insertBefore(actions, title); return; }
+   }
+   slot.appendChild(actions); }
   function closeMagnetPopup() {
    magnetOverlay?.remove();
    magnetOverlay = null; }
@@ -7152,11 +7185,11 @@
      if (!existing.querySelector(`[data-action="${meta.key}"]`)) {
       existing.appendChild(createButton(meta, code, card)); }
     });
-    if (existing.parentNode !== slot) slot.appendChild(existing);
+    insertActions(slot, existing, site, card);
     return; }
    const actions = document.createElement('span');
    actions.className = 'toolbar-b jav-card-quick-actions'; actions.dataset.code = code;
-   visibleActions().forEach(meta => actions.appendChild(createButton(meta, code, card))); slot.appendChild(actions); }
+   visibleActions().forEach(meta => actions.appendChild(createButton(meta, code, card))); insertActions(slot, actions, site, card); }
   function removeAll() {
    document.querySelectorAll('.jav-card-quick-actions, .jav-list-preview-btn, .jav-sukebei-offline-115').forEach(el => el.remove()); closeMagnetPopup(); }
   function sync() {
