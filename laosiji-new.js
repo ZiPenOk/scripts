@@ -25,7 +25,7 @@
 // @match        *://fc2cmadb.com/*
 // @match        *://www.fc2cmadb.com/*
 // @include      *://javdb*.com/*
-// @include      /^[^:]*?:\/\/missav\.[^/]*?\/.*?$/
+// @include      /^[^:]*?:\/\/(?:missav|njavtv)\.[^/]*?\/.*?$/
 // @include      /^[^:]*?:\/\/emby\.[^/]*?\/web\/index\.html.*?$/
 // @include      /^[^:]*?:\/\/10\.[^/]*?:[^/]*?\/web\/index\.html.*?$/
 // @run-at       document-start
@@ -450,7 +450,7 @@
    return value; }, };
  Core.expose('__LAOSIJI_CORE__', Core);
  const VIDEO_ENGINES = [
-  { key: 'missav', label: 'MissAV', host: /missav\.(com|ai|ws)/i, color: '#ec4899' },
+  { key: 'missav', label: 'MissAV', host: /(?:missav\.(com|ai|ws)|njavtv\.com)/i, color: '#ec4899' },
   { key: 'jable',  label: 'Jable',  host: /jable\.tv/i, color: '#f97316' },
   { key: '123av',  label: '123AV',  host: /123av\.com/i, color: '#10b981' },
   { key: 'javday', label: 'JavDay', host: /javday\.app/i, color: '#0ea5e9' },
@@ -8546,7 +8546,7 @@
     try {
      parsed = new URL(url);
     } catch { return false; }
-    if (!/(?:^|\.)missav\.(?:ws|ai|com)$/i.test(parsed.hostname)) return false;
+    if (!/(?:^|\.)(?:missav\.(?:ws|ai|com)|njavtv\.com)$/i.test(parsed.hostname)) return false;
     if (/^\/(?:$|search(?:\/|$)|tags(?:\/|$)|actresses(?:\/|$)|genres(?:\/|$))/i.test(parsed.pathname)) return false;
     const titleElem = document.querySelector(this.titleSelector);
     return !!Utils.extractCode(titleElem?.textContent || ''); },
