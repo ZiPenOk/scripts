@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         115网盘-cookie-扫码登录
 // @namespace    115-qrcode-cookie-login
-// @version      3.0
+// @version      3.1
 // @author       提取自 JAV-JHS (并做插入稳定性增强)
-// @namespace    https://github.com/ZiPenOk/scripts
+// @namespace    https://github.com/ZiPenOk
 // @description  在115.com登录页面注入"JHS-扫码"面板，支持微信/支付宝小程序扫码登录，以及直接输入Cookie登录；登录后可在右下角悬浮面板复制Cookie
 // @license      MIT
 // @icon         https://115.com/favicon.ico
@@ -17,12 +17,9 @@
 // @require      https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js
 // @require      https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.js
 // @require      https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js
-
-// @homepageURL  https://github.com/ZiPenOk/scripts
-// @supportURL   https://github.com/ZiPenOk/scripts/issues
+// @run-at       document-start
 // @updateURL    https://github.com/ZiPenOk/scripts/raw/refs/heads/main/115_cookie.js
 // @downloadURL  https://github.com/ZiPenOk/scripts/raw/refs/heads/main/115_cookie.js
-// @run-at       document-start
 // ==/UserScript==
 
 (function () {
@@ -284,6 +281,16 @@
                 align-items: center;
                 font-weight: 600;
             }
+            #jhs-cookie-close {
+                border: 0;
+                padding: 0 4px;
+                background: transparent;
+                color: white;
+                font-size: 18px;
+                line-height: 1;
+                cursor: pointer;
+            }
+            #jhs-cookie-close:hover { opacity: 0.8; }
             #jhs-cookie-panel:not(.expanded) #jhs-cookie-header {
                 border-radius: 6px;
                 padding: 8px 15px;
@@ -542,6 +549,8 @@
                                 console.log('[115-Login] 解析出 cookie:', cookieStr);
                                 localStorage.setItem(JHS_115_COOKIE, cookieStr);
                                 localStorage.setItem(JHS_115_MAX_AGE, $('#cookie-expiry-select').val());
+                                sessionStorage.removeItem('jhs_cookie_panel_closed');
+                                sessionStorage.setItem('jhs_cookie_panel_expand', '1');
                                 window.location.href = 'https://115.com/?cid=0&offset=0&mode=wangpan';
                             }
                         } catch (e) {
@@ -623,7 +632,7 @@
     // ─────────────────────────────────────────────
     function createCookiePanel() {
         const cookieValue = localStorage.getItem(JHS_115_COOKIE);
-        if (!cookieValue) return;
+        if (!cookieValue || sessionStorage.getItem('jhs_cookie_panel_closed') === '1') return;
 
         const oldPanel = document.getElementById('jhs-cookie-panel');
         if (oldPanel) oldPanel.remove();
@@ -640,13 +649,31 @@
                 <button id="jhs-copy-btn">复制 Cookie</button>
             </div>
         `;
+        const closeBtn = document.createElement('button');
+        closeBtn.id = 'jhs-cookie-close';
+        closeBtn.type = 'button';
+        closeBtn.title = '关闭';
+        closeBtn.textContent = '×';
+        closeBtn.title = 'Close';
+        closeBtn.textContent = 'X';
+        panel.querySelector('#jhs-cookie-header')?.appendChild(closeBtn);
+        if (sessionStorage.getItem('jhs_cookie_panel_expand') === '1') {
+            panel.classList.add('expanded');
+            sessionStorage.removeItem('jhs_cookie_panel_expand');
+        }
         appendToBody(panel);
 
         runWhenNodeReady(() => document.body && document.getElementById('jhs-cookie-panel'), () => {
             const toggleIcon = document.getElementById('jhs-toggle-icon');
             const header = document.getElementById('jhs-cookie-header');
             const copyBtn = document.getElementById('jhs-copy-btn');
-            if (!toggleIcon || !header || !copyBtn) return;
+            if (!toggleIcon || !header || !closeBtn || !copyBtn) return;
+
+            closeBtn.addEventListener('click', e => {
+                e.stopPropagation();
+                sessionStorage.setItem('jhs_cookie_panel_closed', '1');
+                panel.remove();
+            });
 
             header.addEventListener('click', () => {
                 const expanded = panel.classList.toggle('expanded');
