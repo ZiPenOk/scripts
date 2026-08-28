@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.9.2
+// @version      2.7.9.3
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.7.9.2'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.7.9.3'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -3706,7 +3706,7 @@
    const cover = detail.cover
     ? `<a data-fancybox="gallery" href="${escapeHtml(detail.cover)}"><img src="${escapeHtml(detail.cover)}" class="video-cover" alt="${escapeHtml(detail.title)}"></a>`
     : '<span class="javdb-123av-fc2-detail-empty">未找到封面</span>';
-   return `<div class="video-detail javdb-api-detail javdb-123av-fc2-unified-detail" data-javdb-api-detail="1" data-laosiji-123av-fc2-detail-site="${escapeHtml(site)}"><h2 class="title is-4 javdb-api-detail-title"><strong>${escapeHtml(detail.code)}</strong><strong class="current-title">${escapeHtml(detail.title)}</strong></h2><div class="javdb-123av-fc2-overview"><div class="columns is-desktop jav-flex-container" data-laosiji-123av-fc2-layout-site="${escapeHtml(site)}"><div class="column column-video-cover">${cover}</div><div class="column column-video-info"><nav class="panel movie-panel-info"><div class="panel-block first-block"><strong>番号:</strong>&nbsp;<span class="value">${escapeHtml(detail.code)}</span>&nbsp;<a class="button is-white copy-to-clipboard" title="复制番号" data-clipboard-text="${escapeHtml(detail.code)}"><span class="icon is-small"><i class="icon-copy"></i></span></a></div> ${rowsHtml}${tags} </nav></div></div></div> ${samplesHtml} <section class="javdb-fc2-detail-magnet"><h2 class="javdb-fc2-detail-magnet-title">磁力聚合</h2><div class="javdb-fc2-detail-magnet-body"></div></section></div>`;
+   return `<div class="video-detail javdb-api-detail javdb-123av-fc2-unified-detail" data-javdb-api-detail="1" data-laosiji-code="${escapeHtml(detail.code)}" data-laosiji-123av-fc2-detail-site="${escapeHtml(site)}"><h2 class="title is-4 javdb-api-detail-title" data-laosiji-code="${escapeHtml(detail.code)}"><strong>${escapeHtml(detail.code)}</strong><span class="javdb-api-detail-title-separator" aria-hidden="true"> - </span><strong class="current-title">${escapeHtml(detail.title)}</strong></h2><div class="javdb-123av-fc2-overview"><div class="columns is-desktop jav-flex-container" data-laosiji-123av-fc2-layout-site="${escapeHtml(site)}"><div class="column column-video-cover">${cover}</div><div class="column column-video-info"><nav class="panel movie-panel-info"><div class="panel-block first-block"><strong>番号:</strong>&nbsp;<span class="value">${escapeHtml(detail.code)}</span>&nbsp;<a class="button is-white copy-to-clipboard" title="复制番号" data-clipboard-text="${escapeHtml(detail.code)}"><span class="icon is-small"><i class="icon-copy"></i></span></a></div> ${rowsHtml}${tags} </nav></div></div></div> ${samplesHtml} <section class="javdb-fc2-detail-magnet"><h2 class="javdb-fc2-detail-magnet-title">磁力聚合</h2><div class="javdb-fc2-detail-magnet-body"></div></section></div>`;
   }
   return { installStyles, render, escapeHtml };
  })();
@@ -8517,7 +8517,10 @@
    id: 'javdb',
    name: 'JavDB',
    match: (url) => /javdb\d*\.com/.test(url) && (/\/v\/\w+/.test(url) || /[?&](?:laosiji_detail=fc2\b|laosiji_123av_fc2_detail=)/.test(url)),
-   titleSelector: 'h2.title, .javdb-api-detail-title' },
+   titleSelector: 'h2.title, .javdb-api-detail-title',
+   getCode(titleElem) {
+    const explicitCode = titleElem?.dataset?.laosijiCode || titleElem?.closest?.('[data-laosiji-code]')?.dataset?.laosijiCode || '';
+    return explicitCode ? Utils.normalizeCode(explicitCode) : Utils.extractCode(titleElem?.textContent || ''); } },
   {
    id: 'javlibrary',
    name: 'JAVLibrary',
