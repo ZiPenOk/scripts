@@ -3,7 +3,7 @@
 // @namespace    115-qrcode-cookie-login
 // @version      3.1
 // @author       提取自 JAV-JHS (并做插入稳定性增强)
-// @namespace    https://github.com/ZiPenOk
+// @namespace    https://github.com/ZiPenOk/scripts
 // @description  在115.com登录页面注入"JHS-扫码"面板，支持微信/支付宝小程序扫码登录，以及直接输入Cookie登录；登录后可在右下角悬浮面板复制Cookie
 // @license      MIT
 // @icon         https://115.com/favicon.ico
@@ -18,6 +18,8 @@
 // @require      https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.js
 // @require      https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js
 // @run-at       document-start
+// @homepageURL  https://github.com/ZiPenOk/scripts
+// @supportURL   https://github.com/ZiPenOk/scripts/issues
 // @updateURL    https://github.com/ZiPenOk/scripts/raw/refs/heads/main/115_cookie.js
 // @downloadURL  https://github.com/ZiPenOk/scripts/raw/refs/heads/main/115_cookie.js
 // ==/UserScript==
