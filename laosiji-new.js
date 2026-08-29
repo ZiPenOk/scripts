@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.9.3
+// @version      2.7.9.4
 // @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.7.9.3'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.7.9.4'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -3903,11 +3903,30 @@
    sorted.forEach(card => fragment.appendChild(card)); list.appendChild(fragment); }
   function findNativeSortButtons(list) {
    const roots = [list.closest('main, section, body'), document].filter(Boolean);
+   const isListSortGroup = item => item.querySelector('a[href*="vst=1"], a[href*="lst="]');
    for (const root of roots) {
-    const buttons = [...root.querySelectorAll('.toolbar .button-group .buttons.has-addons')] .find(item => item.querySelector('a[href*="vst=1"]'));
+    const buttons = [...root.querySelectorAll('.toolbar .button-group .buttons.has-addons')] .find(isListSortGroup);
     if (buttons) return buttons;
    }
    return null; }
+  function findToolbar(list) {
+   const roots = [list.closest('main, section, body'), document].filter(Boolean);
+   for (const root of roots) {
+    const toolbar = root.querySelector('.toolbar');
+    if (toolbar) return toolbar;
+   }
+   return null; }
+  function ensureSortButtons(list) {
+   const nativeButtons = findNativeSortButtons(list);
+   if (nativeButtons) return nativeButtons;
+   const toolbar = findToolbar(list);
+   if (!toolbar) return null;
+   let group = toolbar.querySelector('[data-laosiji-score-sort-group="1"]');
+   if (!group) {
+    group = document.createElement('div'); group.className = 'button-group'; group.dataset.laosijiScoreSortGroup = '1';
+    group.innerHTML = '<div class="buttons has-addons"></div>';
+    toolbar.appendChild(group); }
+   return group.querySelector('.buttons.has-addons'); }
   function updateButton(button, active, mode) {
    button.classList.toggle('is-selected', active); button.setAttribute('aria-pressed', String(active));
    button.title = active
@@ -3935,7 +3954,7 @@
    button.title =`按${control?.text || '当前'}排序重排所有已加载内容，并返回列表顶部`;
   }
   function installControl(list, state) {
-   const buttons = findNativeSortButtons(list);
+   const buttons = ensureSortButtons(list);
    if (!buttons) return;
    const controls = [ { key: 'score', text: '评分排序', compare: compareScores }, { key: 'votes', text: '评价排序', compare: compareVotes } ];
    const controlButtons = controls.map(control => {
@@ -7792,9 +7811,14 @@
  const Settings = {
   getPreviewCacheEnabled() { return true; },
   getTrailerCacheEnabled() { return true; },
-  getDefaultSearchEngine() {
-   const index = GM_getValue('default_search_engine', SearchEngines.length - 1);
-   return SearchEngines[index] || SearchEngines[SearchEngines.length - 1] || SearchEngines[0]; },
+  getDefaultSearchEngine(code = '') {
+   const fc2Engine = SearchEngines.find(engine => engine.fc2Only && engine.isAvailable?.(code));
+   if (fc2Engine) return fc2Engine;
+   const defaultIndex = SearchEngines.findIndex(engine => engine.name === 'AVBase');
+   const index = GM_getValue('default_search_engine', defaultIndex >= 0 ? defaultIndex : SearchEngines.length - 1); const configured = SearchEngines[index];
+   const fallback = SearchEngines.find(engine => engine.name === 'AVBase' && !engine.isAvailable) || SearchEngines.find(engine => !engine.isAvailable)
+    || SearchEngines[0];
+   return configured?.isAvailable && !configured.isAvailable(code) ? fallback : configured || fallback; },
   getDefaultVideoEngine() { return GM_getValue('default_video_engine', 'missav'); },
   getVideoEngines() { return VIDEO_ENGINES; },
   getSourceOrder() { return GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']); } };
@@ -7804,8 +7828,17 @@
   { name: 'Google', color: '#4285F4', url: (code) =>`https://www.google.com/search?q=${code}` },
   { name: 'Bing', color: '#008373', url: (code) =>`https://www.bing.com/search?q=${code}` },
   { name: 'DuckGo', color: '#DE5833', url: (code) =>`https://duckduckgo.com/?q=${code}` },
-  { name: 'AVBase', color: '#1d4ed8', url: (code) =>`https://www.avbase.net/works?q=${encodeURIComponent(code)}` }
- ];
+  { name: 'AVBase', color: '#1d4ed8', url: (code) =>`https://www.avbase.net/works?q=${encodeURIComponent(code)}` },
+  {
+   name: 'FD2PPV',
+   color: '#0f766e',
+   fc2Only: true,
+   isAvailable: code => /^FC2[-_\s]?(?:PPV[-_\s]?)?\d{6,9}$/i.test(String(code || '').trim()),
+   url: code => {
+    const number = String(code || '').trim().match(/^FC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})$/i)?.[1] || '';
+    return number ?`https://fd2ppv.cc/articles/${number}` : '';
+   }, }, ];
+ function getAvailableSearchEngines(code) { return SearchEngines.filter(engine => !engine.isAvailable || engine.isAvailable(code)); }
  const Pan115 = {
   api: 'https://webapi.115.com/files/search',
   directApi: 'https://proapi.115.com/app/chrome/downurl',
@@ -8775,11 +8808,11 @@
   btn.classList.add('jav-preview-btn'); container.appendChild(btn); }
  function addSearchMenu(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_search', true)) return;
-  const defaultEngine = Settings.getDefaultSearchEngine();
+  const availableEngines = getAvailableSearchEngines(code); const defaultEngine = Settings.getDefaultSearchEngine(code);
   const mainBtn = Utils.createBtn(`🔍 ${defaultEngine.name}`, defaultEngine.color, () => {
    window.open(defaultEngine.url(code));
   }, useCapture);
-  const subButtons = SearchEngines .filter(engine => engine.name !== defaultEngine.name)
+  const subButtons = availableEngines .filter(engine => engine.name !== defaultEngine.name)
    .map(engine => Utils.createBtn(`🔍 ${engine.name}`, engine.color, () => {
     window.open(engine.url(code));
    }, useCapture));
@@ -9333,9 +9366,9 @@
   if (site.id === 'fc2cmadb') { btnGroup.classList.add('fc2cmadb-jump-group'); insertAvidCopyBtn(titleElem, code, null, true); }
   addNyaaBtn(code, btnGroup); addJavbusBtn(code, btnGroup); addJavdbBtn(code, btnGroup); addMissAVBtn(code, btnGroup);
   if (site.id === 'missav') {
-   const defaultEngine = Settings.getDefaultSearchEngine();
+   const availableEngines = getAvailableSearchEngines(code); const defaultEngine = Settings.getDefaultSearchEngine(code);
    const mainSearchBtn = Utils.createLinkBtn(`🔍 ${defaultEngine.name}`, defaultEngine.color, defaultEngine.url(code));
-   const subButtons = SearchEngines .filter(engine => engine.name !== defaultEngine.name)
+   const subButtons = availableEngines .filter(engine => engine.name !== defaultEngine.name)
     .map(engine => Utils.createLinkBtn(`🔍 ${engine.name}`, engine.color, engine.url(code)));
    btnGroup.appendChild(createJumpMenu({
     accent: defaultEngine.color,
