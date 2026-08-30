@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.7
+// @version      3.5.8
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -244,7 +244,7 @@
         .whatslink-gallery-close:hover, .whatslink-gallery-arrow:hover { background: rgba(22,25,28,.92); }
         .whatslink-gallery-arrow { position: absolute; top: 50%; z-index: 3; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; transform: translateY(-50%); border: 0; border-radius: 50%; color: #fff; background: rgba(38,42,45,.76); cursor: pointer; padding: 0 0 3px; font-family: Arial,sans-serif; font-size: 27px; line-height: 1; }
         .whatslink-gallery-prev { left: 16px; } .whatslink-gallery-next { right: 16px; }
-        .whatslink-gallery-info { grid-row: 2; position: relative; z-index: 3; margin: 0 !important; min-height: 23px; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 4px; color: #fff; background: rgba(38,40,42,.68); font: 11px ui-monospace,SFMono-Regular,Consolas,monospace; white-space: nowrap; }
+        .whatslink-gallery-info { grid-row: 2; position: relative; z-index: 3; margin: 0 !important; min-height: 27px; display: flex; align-items: center; gap: 9px; padding: 5px 12px; border-radius: 4px; color: #fff; background: rgba(38,40,42,.68); font: 14px ui-monospace,SFMono-Regular,Consolas,monospace; font-weight: 600; white-space: nowrap; }
         .whatslink-gallery-info span + span::before { content: " · "; margin-right: 8px; color: rgba(255,255,255,.42); }
         .whatslink-gallery-thumbs { grid-row: 3; position: relative; z-index: 3; margin: 0 !important; display: flex; justify-content: center; gap: 3px; width: auto; max-width: 100%; padding: 3px; border-radius: 4px; background: rgba(29,31,34,.68); box-shadow: none; }
         .whatslink-gallery-thumb { width: 88px; height: 50px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 3px; background: transparent; cursor: pointer; }
@@ -420,6 +420,7 @@
         let index = 0;
         const resourceName = payload?.name || '未知资源';
         const resourceCount = payload?.count ?? '-';
+        const resourceSize = formatBytes(payload?.size ?? payload?.file_size ?? payload?.fileSize ?? 0);
         const overlay = document.createElement('div');
         overlay.className = 'whatslink-overlay';
         const modal = document.createElement('section');
@@ -440,6 +441,7 @@
                 <div class="whatslink-gallery-info">
                     <span class="whatslink-gallery-name"></span>
                     <span class="whatslink-gallery-count"></span>
+                    <span class="whatslink-gallery-size"></span>
                     <span class="whatslink-gallery-index"></span>
                 </div>
                 <div class="whatslink-gallery-thumbs"></div>
@@ -448,6 +450,7 @@
         document.body.appendChild(overlay);
         modal.querySelector('.whatslink-gallery-name').textContent = resourceName;
         modal.querySelector('.whatslink-gallery-count').textContent = `${resourceCount} 个文件`;
+        modal.querySelector('.whatslink-gallery-size').textContent = `大小 ${resourceSize}`;
         const visual = modal.querySelector('.whatslink-gallery-visual');
         const hero = modal.querySelector('.whatslink-gallery-hero');
         const thumbs = modal.querySelector('.whatslink-gallery-thumbs');
@@ -529,6 +532,16 @@
         };
         closeButton.addEventListener('click', close);
         overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+        overlay.addEventListener('wheel', e => {
+            e.preventDefault();
+        }, { passive: false });
+        visual.addEventListener('wheel', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!shots.length || !e.deltaY) return;
+            index = (index + (e.deltaY > 0 ? 1 : -1) + shots.length) % shots.length;
+            render();
+        }, { passive: false });
         hero.addEventListener('load', () => { sizeGallery(); positionControls(); });
         window.addEventListener('resize', onResize);
         document.addEventListener('keydown', onKeydown);
@@ -538,15 +551,16 @@
     async function handleCheckCar(link, btn) {
         highlightBtn(btn);
         document.querySelector('.whatslink-overlay')?.remove();
-        const overlay = document.createElement('div');
-        overlay.className = 'whatslink-overlay';
-        overlay.innerHTML = '<div class="whatslink-modal no-shots"><div class="whatslink-loading">正在验车...</div></div>';
-        document.body.appendChild(overlay);
+        showToast('正在验车...');
 
         const info = await getMagnetInfo(link);
-        overlay.remove();
         if (!info) {
-            showWhatslinkModal({ error: '查询失败', name: '查询失败', type: '-', file_type: '-', size: 0, count: '-', screenshots: [] }, link);
+            showToast('验车失败，请稍后重试', false);
+            return;
+        }
+        const shots = Array.isArray(info?.screenshots) ? info.screenshots.filter(item => item?.screenshot) : [];
+        if (!shots.length) {
+            showToast(info?.name ? `${info.name} 未找到可显示的截图` : '未找到可显示的截图', false);
             return;
         }
         showWhatslinkModal(info, link);
