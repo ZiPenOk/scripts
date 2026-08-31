@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.7.9.6
-// @description  增强 JavBus、JavDB、JavLibrary 等 JAV 站点的浏览与检索体验：提供磁力搜索表、BT 引擎聚合、115 匹配与播放入口、番号复制、跨站搜索/跳转、预告片解析播放、多源预览图、标题翻译、卡片布局、横竖图切换、列数与页面缩放、移动端竖横屏适配、详情页比例调整、剧照浏览、瀑布流加载、JavDB 列表评分/评价排序与已加载内容重排、JavDB 榜单/TOP250页面增强、FC2 页面渲染和统一设置面板；并在 Sukebei、SupJav、MissAV、Jable、Emby、Javrate、Sehuatang、HJD2048 等页面提供番号识别与快捷跳转入口。
+// @version      2.8.0
+// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
 // @match        *://*.javlibrary.com/*
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.7.9.6'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.8.0'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -763,7 +763,7 @@
     flashCacheButton(clearTrailerCacheBtn, '预告片已清理', count);
    });
    clearCacheBtn.addEventListener('click', () => {
-    const count = Ui.clearSessionByPrefixes(['thumb_cache_', 'trailer_cache_', 'pan115_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_']);
+    const count = Ui.clearSessionByPrefixes(['thumb_cache_', 'trailer_cache_', 'pan115_cache_', 'pan115_list_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_']);
     cacheFeedback.textContent = count ?`已清空 ${count} 项` : '无缓存';
     setTimeout(() => { cacheFeedback.textContent = ''; }, 1800);
    });
@@ -807,7 +807,7 @@
  })();
  Core.expose('__LAOSIJI_OPEN_SETTINGS__', () => SettingsPanel.open()); GM_registerMenuCommand('⚙️ 老司机设置', () => SettingsPanel.open());
  function ensureQuickSettingsPanelStyles() {
-  injectStyle('jav-quick-settings-style',`#jav-quick-settings-popover{position:fixed;z-index:10000030;width:286px;padding:10px;border:1px solid rgba(203,213,225,.85);border-radius:10px;background:rgba(255,255,255,.985);color:#0f172a;box-shadow:0 12px 28px rgba(15,23,42,.16);backdrop-filter:blur(6px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-sizing:border-box}#jav-quick-settings-popover *{box-sizing:border-box}#jav-quick-settings-popover .qs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}#jav-quick-settings-popover .qs-title{font-size:13px;font-weight:800;color:#1e293b}#jav-quick-settings-popover .qs-site{margin-top:1px;font-size:11px;font-weight:650;color:#64748b}#jav-quick-settings-popover .qs-close{width:24px;height:24px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#64748b;cursor:pointer;line-height:1;font-size:14px}#jav-quick-settings-popover .qs-close:hover{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}#jav-quick-settings-popover .qs-row{display:grid;grid-template-columns:72px 1fr 42px;align-items:center;gap:9px;padding:4px 0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-row+.qs-row{margin-top:4px}#jav-quick-settings-popover .qs-mobile-columns-row{grid-template-columns:72px minmax(0,1fr)}#jav-quick-settings-popover .qs-segmented{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;border:1px solid #bfdbfe;border-radius:6px}#jav-quick-settings-popover .qs-segment{min-height:28px;padding:0 8px;border:0;border-right:1px solid #bfdbfe;background:#fff;color:#475569;font-size:12px;font-weight:750;cursor:pointer}#jav-quick-settings-popover .qs-segment:last-child{border-right:0}#jav-quick-settings-popover .qs-segment.is-active{background:#2563eb;color:#fff}#jav-quick-settings-popover .qs-segment:focus-visible{position:relative;outline:2px solid #1d4ed8;outline-offset:-2px}#jav-quick-settings-popover .qs-detail-flex{display:none;margin-top:8px;padding-top:7px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-detail-flex.is-visible{display:block}#jav-quick-settings-popover .qs-section-title{margin-bottom:3px;font-size:12px;font-weight:850;color:#1e293b}#jav-quick-settings-popover .qs-row.is-disabled{opacity:.48}#jav-quick-settings-popover .qs-row.is-disabled .qs-range{cursor:not-allowed;background:#e2e8f0}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-webkit-slider-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-moz-range-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-switch-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px}#jav-quick-settings-popover .qs-switch-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-name{font-size:12px;font-weight:750;color:#334155;white-space:nowrap}#jav-quick-settings-popover .qs-value{display:grid;place-items:center;min-width:34px;height:22px;border-radius:999px;background:#fff;color:#1d4ed8;font-size:12px;font-weight:800;border:1px solid #dbeafe}#jav-quick-settings-popover .qs-range{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:999px;background:linear-gradient(90deg,#93c5fd 0%,#dbeafe 100%);outline:none}#jav-quick-settings-popover .qs-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;border:2px solid #fff;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-range::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-toggle{position:relative;display:inline-block;width:36px;height:20px;flex:0 0 auto}#jav-quick-settings-popover .qs-toggle input{opacity:0;width:0;height:0}#jav-quick-settings-popover .qs-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-quick-settings-popover .qs-toggle-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.22);transition:transform .18s}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track{background:#2563eb}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track::before{transform:translateX(14px)}#jav-quick-settings-popover .qs-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-more{height:28px;padding:0 12px;border:1px solid #c7d2fe;border-radius:7px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:800;cursor:pointer}#jav-quick-settings-popover .qs-more:hover{background:#e0e7ff;border-color:#a5b4fc}#jav-quick-settings-popover.is-mobile{left:10px!important;right:10px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;top:auto!important;width:auto!important;max-height:calc(100dvh - 20px);overflow:auto}#jav-quick-settings-popover.is-mobile .qs-page-zoom-row,#jav-quick-settings-popover.is-mobile .qs-columns-row,#jav-quick-settings-popover.is-mobile .qs-detail-flex{display:none!important}#jav-quick-settings-popover.is-mobile .qs-switch-row[data-mobile-disabled="1"]{opacity:.5}#jav-quick-settings-popover.is-mobile .qs-toggle-track,#jav-quick-settings-popover.is-mobile .qs-toggle input:disabled{cursor:not-allowed}`);
+  injectStyle('jav-quick-settings-style',`#jav-quick-settings-popover{position:fixed;z-index:10000030;width:286px;padding:10px;border:1px solid rgba(203,213,225,.85);border-radius:10px;background:rgba(255,255,255,.985);color:#0f172a;box-shadow:0 12px 28px rgba(15,23,42,.16);backdrop-filter:blur(6px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-sizing:border-box}#jav-quick-settings-popover *{box-sizing:border-box}#jav-quick-settings-popover .qs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}#jav-quick-settings-popover .qs-title{font-size:13px;font-weight:800;color:#1e293b}#jav-quick-settings-popover .qs-site{margin-top:1px;font-size:11px;font-weight:650;color:#64748b}#jav-quick-settings-popover .qs-close{width:24px;height:24px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#64748b;cursor:pointer;line-height:1;font-size:14px}#jav-quick-settings-popover .qs-close:hover{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}#jav-quick-settings-popover .qs-row{display:grid;grid-template-columns:72px 1fr 42px;align-items:center;gap:9px;padding:4px 0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-row+.qs-row{margin-top:4px}#jav-quick-settings-popover .qs-mobile-columns-row{grid-template-columns:72px minmax(0,1fr)}#jav-quick-settings-popover .qs-segmented{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;border:1px solid #bfdbfe;border-radius:6px}#jav-quick-settings-popover .qs-segment{min-height:28px;padding:0 8px;border:0;border-right:1px solid #bfdbfe;background:#fff;color:#475569;font-size:12px;font-weight:750;cursor:pointer}#jav-quick-settings-popover .qs-segment:last-child{border-right:0}#jav-quick-settings-popover .qs-segment.is-active{background:#2563eb;color:#fff}#jav-quick-settings-popover .qs-segment:focus-visible{position:relative;outline:2px solid #1d4ed8;outline-offset:-2px}#jav-quick-settings-popover .qs-detail-flex{display:none;margin-top:8px;padding-top:7px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-detail-flex.is-visible{display:block}#jav-quick-settings-popover .qs-section-title{margin-bottom:3px;font-size:12px;font-weight:850;color:#1e293b}#jav-quick-settings-popover .qs-row.is-disabled{opacity:.48}#jav-quick-settings-popover .qs-row.is-disabled .qs-range{cursor:not-allowed;background:#e2e8f0}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-webkit-slider-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-moz-range-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-switch-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px}#jav-quick-settings-popover .qs-switch-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-name{font-size:12px;font-weight:750;color:#334155;white-space:nowrap}#jav-quick-settings-popover .qs-value{display:grid;place-items:center;min-width:34px;height:22px;border-radius:999px;background:#fff;color:#1d4ed8;font-size:12px;font-weight:800;border:1px solid #dbeafe}#jav-quick-settings-popover .qs-range{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:999px;background:linear-gradient(90deg,#93c5fd 0%,#dbeafe 100%);outline:none}#jav-quick-settings-popover .qs-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;border:2px solid #fff;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-range::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-toggle{position:relative;display:inline-block;width:36px;height:20px;flex:0 0 auto}#jav-quick-settings-popover .qs-toggle input{opacity:0;width:0;height:0}#jav-quick-settings-popover .qs-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-quick-settings-popover .qs-toggle-track::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.22);transition:transform .18s}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track{background:#2563eb}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track::before{transform:translateX(14px)}#jav-quick-settings-popover .qs-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-more{height:28px;padding:0 12px;border:1px solid #c7d2fe;border-radius:7px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:800;cursor:pointer}#jav-quick-settings-popover .qs-resource{height:28px;padding:0 12px;border:1px solid #bbf7d0;border-radius:7px;background:#f0fdf4;color:#166534;font-size:11px;font-weight:800;cursor:pointer}#jav-quick-settings-popover .qs-resource:hover{background:#dcfce7;border-color:#86efac}#jav-quick-settings-popover .qs-more:hover{background:#e0e7ff;border-color:#a5b4fc}#jav-quick-settings-popover.is-mobile{left:10px!important;right:10px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;top:auto!important;width:auto!important;max-height:calc(100dvh - 20px);overflow:auto}#jav-quick-settings-popover.is-mobile .qs-page-zoom-row,#jav-quick-settings-popover.is-mobile .qs-columns-row,#jav-quick-settings-popover.is-mobile .qs-detail-flex{display:none!important}#jav-quick-settings-popover.is-mobile .qs-switch-row[data-mobile-disabled="1"]{opacity:.5}#jav-quick-settings-popover.is-mobile .qs-toggle-track,#jav-quick-settings-popover.is-mobile .qs-toggle input:disabled{cursor:not-allowed}`);
  }
  const QuickSettingsPanel = (() => {
   const siteLabelMap = { javbus: 'JavBus', javdb: 'JavDB', javlib: 'JavLibrary', pan115: '115网盘' };
@@ -863,7 +863,7 @@
                     <div class="qs-name">页面宽度</div>
                     <input class="qs-range" id="qs-zoom" type="range" min="60" max="100" step="1">
                     <span class="qs-value" id="qs-zoom-value">100%</span>
-                </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力</div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"><button class="qs-more" type="button">更多设置</button></div>`;
+                </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力</div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"> ${site === 'javdb' && window.__LAOSIJI_RESOURCE_LIBRARY__?.isSupported?.() ? '<button class="qs-resource" type="button">资源管理</button>' : ''} <button class="qs-more" type="button">更多设置</button></div>`;
    document.body.appendChild(panel);
    const close = () => panel.remove(); const columnsInput = panel.querySelector('#qs-columns'); const columnsValue = panel.querySelector('#qs-columns-value');
    const mobileColumnButtons = [...panel.querySelectorAll('[data-mobile-columns]')]; const zoomInput = panel.querySelector('#qs-zoom');
@@ -934,6 +934,10 @@
    Ui.click(panel.querySelector('.qs-close'), close);
    Ui.click(panel.querySelector('.qs-more'), () => {
     close(); SettingsPanel.open();
+   });
+   Ui.click(panel.querySelector('.qs-resource'), () => {
+    close();
+    window.__LAOSIJI_RESOURCE_LIBRARY__?.open?.();
    });
    panel.addEventListener('click', e => e.stopPropagation());
    setTimeout(() => {
@@ -3651,6 +3655,7 @@
    this._ensureApiRankingShellStyle();
    const title = modeInfo.mode === 'top' ? 'Top250' : modeInfo.mode === 'playback' ? '热播' : 'FC2 排行榜';
    container.innerHTML = `<div class="javdb-api-shell"><div class="javdb-api-shell-head"><div class="javdb-api-shell-title"> ${title} </div></div><div class="javdb-api-shell-toolbar"> ${this._renderApiRankingToolbar(modeInfo)} </div><div class="javdb-api-shell-status">正在加载 API 数据...</div><div class="movie-list h cols-4 vcols-8"></div><div class="javdb-api-shell-pagination-wrap"></div></div>`;
+   this._insertResourceNav?.();
    const status = container.querySelector('.javdb-api-shell-status'); const list = container.querySelector('.movie-list');
    const pagination = container.querySelector('.javdb-api-shell-pagination-wrap');
    try {
@@ -4548,6 +4553,7 @@
       ? '<div id="waterfall" class="javbus-123av-fc2-list"></div>' : isJavLib
        ? '<div class="videothumblist"><div class="videos javlib-123av-fc2-list"></div></div>'
        : '<div class="movie-list h cols-4 vcols-8"></div>'} <div class="javdb-123av-fc2-pagination-wrap"></div></div>`;
+   SiteJavDB._insertResourceNav?.();
    if (isJavLib) {
     const mask = document.getElementById('123av-fc2-early-mask');
     if (mask) mask.textContent = '#leftmenu{display:none!important;visibility:hidden!important}';
@@ -4657,6 +4663,8 @@
  })();
  Core.expose('__LAOSIJI_JAVDB_123AV_FC2__', Javdb123AvFc2);
  const SiteJavDB = {
+  _actorBlacklistObserver: null,
+  _actorBlacklistRetryTimers: [],
   match() { return location.hostname.includes('javdb'); },
   getVid() {
    const el = document.querySelector('a.button.is-white.copy-to-clipboard');
@@ -4664,7 +4672,8 @@
   },
   initPage(avid) {
    document.querySelector('.app-desktop-banner')?.remove(); this._dismissOver18Modal(); this._insertTopSettingsButton(); this._ensureDarkThemeStyle();
-   this._hideNativeLayoutSwitcher(); this._stripNativeLayoutParam(); this._initFavoriteActorHighlight(); Javdb123AvFc2.installLink();
+   this._hideNativeLayoutSwitcher(); this._stripNativeLayoutParam(); this._insertResourceNav(); this._initFavoriteActorHighlight();
+   this._insertActorBlacklistButton(); Javdb123AvFc2.installLink();
    if (Javdb123AvFc2.init()) return;
    if (CFG.javdbUseNativePages) {
     if (this._redirectCurrentNativeEntry()) return;
@@ -4675,7 +4684,7 @@
    this._initPaginationJump();
    if (!CFG.javdbUseNativePages && this._getApiRankingShellMode()) { this._initApiRankingShellPage().catch(err => errorLog('JavDB API 榜单渲染失败:', err)); return; }
    if (!CFG.javdbUseNativePages && this._getApiDetailShellMode()) { this._initApiDetailShellPage().catch(err => errorLog('JavDB API 详情渲染失败:', err)); return; }
-   if (!location.pathname.startsWith('/v/')) { this._initListPage(); return; }
+   if (!location.pathname.startsWith('/v/')) { this._initListPage(); this._insertResourceNav(); return; }
    this._hideDownloadCorrectionBlock();
    GM_addStyle(`.container{max-width:100%!important}.movie-panel-info{overflow:hidden;word-break:break-word}.movie-panel-info .panel-block{flex-wrap:wrap}.movie-panel-info .value{overflow:hidden;word-break:break-word}.review-buttons>.panel-block:has(a[href="#magnet-links"]),.review-buttons>.panel-block:has(a[href*="/corrections/new"]){display:none!important}`);
    this._ensureDetailLayout(); this._insertMagnet(avid); this._initApiMovieTabs(); },
@@ -4683,6 +4692,68 @@
    document.querySelectorAll('.review-buttons > .panel-block').forEach(block => {
     if (block.querySelector('a[href="#magnet-links"], a[href*="/corrections/new"]')) { block.remove(); }
    }); },
+  _insertActorBlacklistButton() {
+   const site = this; const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__;
+   if (!resourceApi?.toggleActorBlacklist) return;
+   injectStyle('javdb-actor-blacklist-style',`.javdb-actor-blacklist-control{display:flex!important;align-items:center;flex-wrap:nowrap!important;gap:.5rem;white-space:nowrap}.javdb-actor-blacklist-control>.button{flex:0 0 auto;margin:0!important}.javdb-actor-blacklist-btn{border-color:#334155!important;background:#475569!important;color:#fff!important}.javdb-actor-blacklist-btn:hover,.javdb-actor-blacklist-btn:focus{border-color:#1e293b!important;background:#334155!important;color:#fff!important}.javdb-actor-blacklist-btn.is-danger{border-color:#991b1b!important;background:#b91c1c!important;color:#fff!important}.javdb-actor-blacklist-btn.is-danger:hover,.javdb-actor-blacklist-btn.is-danger:focus{border-color:#7f1d1d!important;background:#991b1b!important;color:#fff!important}`);
+   const clearWaiters = () => {
+    site._actorBlacklistObserver?.disconnect();
+    site._actorBlacklistObserver = null;
+    site._actorBlacklistRetryTimers.forEach(timer => clearTimeout(timer));
+    site._actorBlacklistRetryTimers = []; };
+   const isVisible = element => {
+    if (!element) return false;
+    const style = window.getComputedStyle?.(element);
+    return style ? style.display !== 'none' && style.visibility !== 'hidden' : element.style.display !== 'none'; };
+   const insert = () => {
+    const uncollect = document.querySelector('#button-uncollect-actor'); const collect = document.querySelector('#button-collect-actor');
+    const source = [collect, uncollect].find(isVisible) || collect || uncollect;
+    if (!source) return false;
+    const actorMatch = String(source.getAttribute('href') || '').match(/\/actors\/([^/?#]+)\/(?:collect|uncollect)/i); const actorId = actorMatch?.[1] || '';
+    if (!actorId) return false;
+    const control = source.closest('.control') || source.parentElement;
+    if (!control) return false;
+    control.classList.add('javdb-actor-blacklist-control');
+    if (control.querySelector('.javdb-actor-blacklist-btn')) return true;
+    const button = document.createElement('a');
+    button.href = 'javascript:void(0)'; button.className = 'button is-warning button-blacklist-actor javdb-actor-blacklist-btn'; button.title = '屏蔽该演员的所有作品';
+    const syncButtonState = () => {
+     const blocked = resourceApi.isActorBlacklisted?.(actorId);
+     button.textContent = blocked ? '移出黑名单' : '加入黑名单';
+     button.classList.toggle('is-danger', !!blocked); button.classList.toggle('is-warning', !blocked); };
+    syncButtonState();
+    button.addEventListener('click', async event => {
+     event.preventDefault(); event.stopPropagation();
+     if (button.dataset.loading === '1') return;
+     button.dataset.loading = '1';
+     button.setAttribute('aria-busy', 'true'); button.classList.add('is-loading');
+     button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名单...' : '正在读取作品...';
+     try {
+      const actorName = document.querySelector('.actor-section-name, .movie-panel-info a[href*="/actors/"], .avatar-box .photo-info .pb10')?.textContent?.replace(/\s+/g, ' ').trim() || actorId;
+      const blocked = await resourceApi.toggleActorBlacklist(actorId, { actorId, name: actorName, aliases: actorName ? [actorName] : [] });
+      button.textContent = blocked ? '移出黑名单' : '加入黑名单';
+      button.classList.toggle('is-danger', blocked); button.classList.toggle('is-warning', !blocked);
+      Utils.showToast(blocked ? '已加入演员黑名单' : '已移出演员黑名单', actorId); document.dispatchEvent(new CustomEvent('laosiji-resource-blacklist-changed'));
+     } catch (error) {
+      Utils.showToast('黑名单操作失败', error?.message || '资源库写入失败', 3500);
+     } finally {
+      syncButtonState(); button.removeAttribute('aria-busy'); button.classList.remove('is-loading');
+      delete button.dataset.loading; }
+    });
+    source.parentNode.insertBefore(button, source.nextSibling);
+    return true; };
+   if (insert()) { clearWaiters(); return; }
+   if (!site._actorBlacklistObserver && document.body) {
+    site._actorBlacklistObserver = new MutationObserver(() => {
+     if (insert()) clearWaiters();
+    });
+    site._actorBlacklistObserver.observe(document.body, { childList: true, subtree: true }); }
+   if (!site._actorBlacklistRetryTimers.length) {
+    [100, 300, 700, 1300, 2200, 3500, 5000].forEach(delay => {
+     site._actorBlacklistRetryTimers.push(setTimeout(() => {
+      if (insert()) clearWaiters();
+     }, delay));
+    }); } },
   _hideNativeLayoutSwitcher() {
    document.querySelectorAll('.toolbar > .button-group').forEach(group => {
     const hrefs = [...group.querySelectorAll('a[href]')].map(a => a.getAttribute('href') || '');
@@ -4693,6 +4764,69 @@
    });
    injectStyle('javdb-native-layout-style',`.toolbar>.button-group[data-laosiji-hidden-native-layout="1"]{display:none!important}`);
   },
+  _insertResourceNav() {
+   const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__;
+   const hasListContent = document.querySelector('.movie-list, .masonry, .items, .item.jav-card, .jav-card');
+   const mainTabs = document.querySelector('.tabs.main-tabs');
+   const navList = mainTabs?.querySelector('ul') || [...document.querySelectorAll('ul')].find(list => list.querySelector('a[href="/censored"]') && list.querySelector('a[href="/uncensored"]') && list.querySelector('a[href="/western"]'));
+   const customShell = document.querySelector('.javdb-api-shell, .javdb-123av-fc2-shell'); const isFc2AdvancedSearch = this._isScriptFc2AdvancedSearch?.();
+   if (!resourceApi?.open || (!navList && !customShell && !isFc2AdvancedSearch) || (!hasListContent && !customShell && !isFc2AdvancedSearch)) return;
+   injectStyle('javdb-resource-nav-style',`.javdb-resource-nav-item{display:flex!important;align-items:center!important;gap:6px;margin-left:auto!important;padding-left:14px;white-space:nowrap}.javdb-resource-nav-item>a{display:flex!important;align-items:center!important;min-height:36px;color:#fff!important;background:#334155!important;font-size:.9rem;font-weight:700;line-height:1;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2);border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.18)}.javdb-resource-nav-item>a:hover,.javdb-resource-nav-item>a:focus{color:#fff!important;background:#0f172a!important;box-shadow:0 2px 5px rgba(15,23,42,.26)}.javdb-resource-nav-item>a.javdb-resource-nav-main{background:#0f766e!important}.javdb-resource-nav-item>a.javdb-resource-nav-main:hover,.javdb-resource-nav-item>a.javdb-resource-nav-main:focus{background:#115e59!important}.javdb-resource-nav-item>a[data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-nav-item>a[data-resource-entry="history"]:hover,.javdb-resource-nav-item>a[data-resource-entry="history"]:focus{background:#1d4ed8!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:focus{background:#92400e!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:focus{background:#9f1239!important}.javdb-resource-work-shortcuts{display:flex;align-items:center;flex:0 0 auto;float:right}.toolbar>.javdb-resource-work-shortcuts .buttons{margin-bottom:0}.javdb-resource-custom-links,.javdb-resource-custom-shortcuts{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:8px 0 12px!important}.javdb-resource-custom-links>button,.javdb-resource-custom-shortcuts>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:32px!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font-size:.9rem!important;font-weight:700!important;line-height:1!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important}.javdb-resource-custom-links>button:hover,.javdb-resource-custom-links>button:focus,.javdb-resource-custom-shortcuts>button:hover,.javdb-resource-custom-shortcuts>button:focus{color:#fff!important;filter:brightness(.92)}.javdb-resource-custom-links [data-resource-entry="manager"]{background:#0f766e!important}.javdb-resource-custom-links [data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-custom-links [data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-custom-links [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-downloaded"]{background:#10b981!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:900px){.javdb-resource-nav-item{width:100%;margin-left:0!important;padding:8px 0 0}.javdb-resource-nav-item>a{flex:0 0 auto}}`);
+   if (navList && !navList.querySelector('.javdb-resource-nav-item')) {
+    const item = document.createElement('li');
+    item.className = 'javdb-resource-nav-item';
+    item.innerHTML = `<a href="javascript:void(0)" class="javdb-resource-nav-main" data-resource-entry="manager" title="打开资源管理"><span>资源管理</span></a><a href="javascript:void(0)" data-resource-entry="history" title="打开鉴定记录"><span>鉴定记录</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-works" title="打开作品黑名单"><span>屏蔽列表</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-actors" title="打开演员黑名单"><span>演员黑名单</span></a>`;
+    item.querySelector('[data-resource-entry="manager"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('actors'); });
+    item.querySelector('[data-resource-entry="history"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('history'); });
+    item.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('blacklist', 'works'); });
+    item.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('blacklist', 'actors'); });
+    navList.appendChild(item); }
+   const resourceTabs = navList?.closest('.tabs.main-tabs');
+   const toolbar = resourceTabs?.nextElementSibling?.matches('.toolbar') ? resourceTabs.nextElementSibling : null;
+   if (toolbar && !toolbar.querySelector('.javdb-resource-work-shortcuts')) {
+    const shortcuts = document.createElement('div');
+    shortcuts.className = 'button-group javdb-resource-work-shortcuts';
+    shortcuts.innerHTML = `<div class="buttons has-addons"><a class="button is-small is-warning" href="javascript:void(0)" data-resource-entry="works-favorite" title="查看作品库中已收藏的作品">已收藏</a><a class="button is-small is-success" href="javascript:void(0)" data-resource-entry="works-downloaded" title="查看作品库中已下载的作品">已下载</a><a class="button is-small is-info" href="javascript:void(0)" data-resource-entry="works-watched" title="查看作品库中已观看的作品">已观看</a></div>`;
+    shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'favorite'); });
+    shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'downloaded'); });
+    shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'watched'); });
+    toolbar.appendChild(shortcuts); }
+   if (customShell) {
+    const customHead = customShell.querySelector('.javdb-123av-fc2-head, .javdb-api-shell-head');
+    const hasNativeResourceNav = !!navList?.querySelector('.javdb-resource-nav-item');
+    if (customHead && !hasNativeResourceNav && !customShell.querySelector('.javdb-resource-custom-links')) {
+     customHead.insertAdjacentHTML('afterend', `<div class="javdb-resource-custom-links"><button type="button" data-resource-entry="manager">资源管理</button><button type="button" data-resource-entry="history">鉴定记录</button><button type="button" data-resource-entry="blacklist-works">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors">演员黑名单</button></div>`);
+     const links = customHead.nextElementSibling;
+     links.querySelector('[data-resource-entry="manager"]').addEventListener('click', () => resourceApi.open('actors'));
+     links.querySelector('[data-resource-entry="history"]').addEventListener('click', () => resourceApi.open('history'));
+     links.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', () => resourceApi.open('blacklist', 'works'));
+     links.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', () => resourceApi.open('blacklist', 'actors')); }
+    if (!customShell.querySelector('.javdb-resource-custom-shortcuts')) {
+     const links = customShell.querySelector('.javdb-resource-custom-links');
+     if (!links) return;
+     links.insertAdjacentHTML('afterend', `<div class="javdb-resource-custom-shortcuts"><button type="button" data-resource-entry="works-favorite">已收藏</button><button type="button" data-resource-entry="works-downloaded">已下载</button><button type="button" data-resource-entry="works-watched">已观看</button></div>`);
+     const shortcuts = links.nextElementSibling;
+     shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'favorite'));
+     shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'downloaded'));
+     shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'watched')); } }
+   if (!customShell && this._isScriptFc2AdvancedSearch?.()) {
+    const list = document.querySelector('.movie-list'); const host = list?.parentElement || document.querySelector('body > section .container');
+    if (host && !host.querySelector('.javdb-resource-advanced-search-links')) {
+     const links = document.createElement('div');
+     links.className = 'javdb-resource-advanced-search-links javdb-resource-custom-links';
+     links.innerHTML = '<button type="button" data-resource-entry="manager">资源管理</button><button type="button" data-resource-entry="history">鉴定记录</button><button type="button" data-resource-entry="blacklist-works">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors">演员黑名单</button>';
+     links.querySelector('[data-resource-entry="manager"]').addEventListener('click', () => resourceApi.open('actors'));
+     links.querySelector('[data-resource-entry="history"]').addEventListener('click', () => resourceApi.open('history'));
+     links.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', () => resourceApi.open('blacklist', 'works'));
+     links.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', () => resourceApi.open('blacklist', 'actors'));
+     host.insertBefore(links, list || null);
+     const shortcuts = document.createElement('div');
+     shortcuts.className = 'javdb-resource-advanced-search-shortcuts javdb-resource-custom-shortcuts';
+     shortcuts.innerHTML = '<button type="button" data-resource-entry="works-favorite">已收藏</button><button type="button" data-resource-entry="works-downloaded">已下载</button><button type="button" data-resource-entry="works-watched">已观看</button>';
+     shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'favorite'));
+     shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'downloaded'));
+     shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'watched'));
+     host.insertBefore(shortcuts, list || null); } } },
   _stripNativeLayoutParam(root = document) {
    try {
     const current = new URL(location.href);
@@ -5321,7 +5455,7 @@
   getCardCover(card) { return card?.querySelector('.jav-card-cover') || null; },
   getCardCode(card) {
    if (!card) return '';
-   const explicitNode = card.querySelector('.javbus-card-code, .javlib-card-code, .id, [data-code]:not(.jav-card-quick-actions):not(.jav-card-quick-btn):not(.jav-card-quick-menu):not(.jav-card-quick-menu-popover)');
+   const explicitNode = card.querySelector('.javbus-card-code, .javlib-card-code, .javdb-card-headline strong, .javdb-card-title strong, .video-title strong, .id, [data-code]:not(.jav-card-quick-actions):not(.jav-card-quick-btn):not(.jav-card-quick-menu):not(.jav-card-quick-menu-popover)');
    const explicitCode = explicitNode?.getAttribute?.('data-code')?.trim() || explicitNode?.textContent?.trim();
    if (explicitCode) {
     const normalized = Utils.extractCode(explicitCode) || Utils.normalizeCode(explicitCode);
@@ -5411,7 +5545,7 @@
     '.post',
    ].join(',')) || null; },
   findPan115TitleAnchor(anchor) {
-   if (!anchor || anchor.closest('.jav-jump-btn-group, .jav-pan115-badge')) return null;
+   if (!anchor || anchor.closest('#jav-resource-overlay, .jav-jump-btn-group, .jav-pan115-badge')) return null;
    if (anchor.closest('.emby-btn, .emby-badge, .emby-button-group, .emby-javlibrary-list-badge')) return null;
    const href = anchor.getAttribute('href') || '';
    if (/^(?:magnet:|javascript:|#)/i.test(href)) return null;
@@ -5440,7 +5574,7 @@
    if (hasTitleText && !visibleTitleHasCode && !looksLikeVideoLink) return null;
    return { anchor, code: pan115Code }; },
   collectPan115ListTargets() {
-   if (this.isDetailPage()) return [];
+   if (this.isDetailPage() || document.querySelector('#jav-resource-overlay')) return [];
    const isSupjavList = /supjav\.com/.test(location.hostname); const seen = new Set(); const seenCardCodes = new Map(); const targets = [];
    const pushTarget = target => {
     if (!target?.anchor || !target.code) return;
@@ -7088,7 +7222,7 @@
   ];
   function enabled() { return GM_getValue('list_preview_quick_enabled', true); }
   function ensureStyle() {
-   injectStyle('jav-list-preview-style',`.jav-card-quick-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;margin-left:auto!important}.jav-card-quick-btn{width:26px;height:26px;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 24px!important;border:0!important;border-radius:4px!important;background:transparent!important;color:#64748b!important;box-shadow:none!important;fill:currentColor!important;line-height:1!important;text-decoration:none!important;cursor:pointer!important;user-select:none!important;opacity:.74!important;transition:transform .14s ease,color .14s ease,opacity .14s ease!important}.jav-card-quick-btn:hover{transform:translateY(-1px)!important;background:transparent!important;color:#2563eb!important;opacity:1!important}.jav-card-quick-btn:active{transform:scale(.96)!important}.jav-card-quick-btn:focus-visible{outline:2px solid rgba(37,99,235,.35)!important;outline-offset:2px!important}.jav-card-quick-btn .tool-svg{width:20px!important;height:20px!important;display:block!important;fill:currentColor!important}.jav-card-quick-menu{position:relative;display:inline-flex;z-index:30}.jav-card-quick-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-quick-menu-trigger .tool-svg{width:24px!important;height:24px!important}.jav-card-quick-menu-popover{display:none;position:fixed;z-index:10000120;min-width:164px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-card-quick-menu.is-open .jav-card-quick-menu-popover,.jav-card-quick-menu-popover.is-open{display:grid;gap:3px}.jav-card-quick-menu-item{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-quick-menu-item:hover{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.quick-menu-item-icon{width:18px;height:18px;flex:none;fill:currentColor}html[data-theme="dark"] .jav-card-quick-menu-popover,html[data-theme="dark"] .jav-card-quick-menu-item{border-color:#52525b;background:#18181b;color:#e4e4e7}.javbus-card-title .item-tag,.javdb-card-tags,.javlib-card-footer{align-items:center!important}.javbus-card-title .item-tag,.javdb-card-tags{display:flex!important}.javlib-card-footer .jav-card-quick-actions{margin-left:auto!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{display:inline-flex!important;align-items:center!important;gap:3px!important;margin:0 0 0 8px!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list>tbody>tr>td:nth-child(2){display:table-cell!important;min-width:0!important;overflow:visible!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{margin:0 8px 0 0!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{float:right!important;margin:0!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-btn{width:24px!important;height:24px!important;flex-basis:24px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .tool-svg{width:17px!important;height:17px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-menu-trigger .tool-svg{width:20px!important;height:20px!important}.torrent-list>tbody>tr>td:nth-child(2)>a[href^="/view/"]{display:inline-block!important;max-width:calc(100% - 150px)!important;overflow:hidden!important;text-overflow:ellipsis!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list .jav-card-quick-magnet{order:1}.torrent-list .jav-card-quick-trailer{order:2}.torrent-list .jav-card-quick-preview{order:3}.torrent-list .jav-card-quick-menu{order:4}.torrent-list .jav-sukebei-offline-115{margin-left:4px!important}.torrent-list .jav-sukebei-offline-115[data-loading="1"]{pointer-events:none!important;opacity:.55!important}html.jav-card-portrait-mode .javdb-card-meta{display:flex!important;align-items:center!important;gap:6px!important}.jav-card-magnet-overlay{position:fixed;inset:0;z-index:10000035;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px)}.jav-card-magnet-panel{width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:10px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-card-magnet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e5e7eb}.jav-card-magnet-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:15px;font-weight:850}.jav-card-magnet-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-card-magnet-body{padding:12px;overflow:auto}.jav-card-magnet-body .jav-nong-wrapper{width:100%!important;display:block!important;box-sizing:border-box!important}`);
+   injectStyle('jav-list-preview-style',`.jav-card-quick-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;margin-left:auto!important}.jav-card-quick-btn{width:26px;height:26px;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 24px!important;border:0!important;border-radius:4px!important;background:transparent!important;color:#64748b!important;box-shadow:none!important;fill:currentColor!important;line-height:1!important;text-decoration:none!important;cursor:pointer!important;user-select:none!important;opacity:.74!important;transition:transform .14s ease,color .14s ease,opacity .14s ease!important}.jav-card-quick-btn:hover{transform:translateY(-1px)!important;background:transparent!important;color:#2563eb!important;opacity:1!important}.jav-card-quick-btn:active{transform:scale(.96)!important}.jav-card-quick-btn:focus-visible{outline:2px solid rgba(37,99,235,.35)!important;outline-offset:2px!important}.jav-card-quick-btn .tool-svg{width:20px!important;height:20px!important;display:block!important;fill:currentColor!important}.jav-card-quick-menu{position:relative;display:inline-flex;z-index:30}.jav-card-quick-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-quick-menu-trigger .tool-svg{width:24px!important;height:24px!important}.jav-card-quick-menu-popover{display:none;position:fixed;z-index:10000120;min-width:164px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-card-quick-menu.is-open .jav-card-quick-menu-popover,.jav-card-quick-menu-popover.is-open{display:grid;gap:3px}.jav-card-quick-menu-item{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-quick-menu-item:hover{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.quick-menu-item-icon{width:18px;height:18px;flex:none;fill:currentColor}html[data-theme="dark"] .jav-card-quick-menu-popover,html[data-theme="dark"] .jav-card-quick-menu-item{border-color:#52525b;background:#18181b;color:#e4e4e7}.jav-card-resource-menu{position:relative;display:inline-flex;z-index:30}.jav-card-resource-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-resource-menu-trigger:hover,.jav-card-resource-menu-trigger:active{transform:none!important}.jav-card-resource-menu-trigger .resource-menu-icon{width:24px!important;height:24px!important;display:block!important;fill:currentColor!important}.jav-card-resource-menu-popover{display:none;position:fixed;z-index:10000120;min-width:128px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-card-resource-menu-popover.is-open{display:grid;gap:3px}.jav-card-resource-menu-item{display:block;width:100%;min-height:32px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-resource-menu-item:hover,.jav-card-resource-menu-item.is-active{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.jav-card-resource-markers{position:absolute;top:6px;left:6px;z-index:3;display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 12px);pointer-events:none}.jav-card-resource-marker{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid rgba(255,255,255,.72);border-radius:4px;box-shadow:0 1px 3px rgba(15,23,42,.25);color:#fff;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap}.jav-card-resource-marker-favorite{background:#d97706}.jav-card-resource-marker-watched{background:#2563eb}.jav-card-resource-marker-downloaded{background:#059669}.jav-card-resource-marker-blocked{background:#dc2626}.javdb-grid-card[data-javdb-blacklist-hidden="1"]{display:none!important}.javbus-card-title .item-tag,.javdb-card-tags,.javlib-card-footer{align-items:center!important}.javbus-card-title .item-tag,.javdb-card-tags{display:flex!important}.javlib-card-footer .jav-card-quick-actions{margin-left:auto!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{display:inline-flex!important;align-items:center!important;gap:3px!important;margin:0 0 0 8px!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list>tbody>tr>td:nth-child(2){display:table-cell!important;min-width:0!important;overflow:visible!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{margin:0 8px 0 0!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{float:right!important;margin:0!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-btn{width:24px!important;height:24px!important;flex-basis:24px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .tool-svg{width:17px!important;height:17px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-menu-trigger .tool-svg{width:20px!important;height:20px!important}.torrent-list>tbody>tr>td:nth-child(2)>a[href^="/view/"]{display:inline-block!important;max-width:calc(100% - 150px)!important;overflow:hidden!important;text-overflow:ellipsis!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list .jav-card-quick-magnet{order:1}.torrent-list .jav-card-quick-trailer{order:2}.torrent-list .jav-card-quick-preview{order:3}.torrent-list .jav-card-quick-menu{order:4}.torrent-list .jav-sukebei-offline-115{margin-left:4px!important}.torrent-list .jav-sukebei-offline-115[data-loading="1"]{pointer-events:none!important;opacity:.55!important}html.jav-card-portrait-mode .javdb-card-meta{display:flex!important;align-items:center!important;gap:6px!important}.jav-card-magnet-overlay{position:fixed;inset:0;z-index:10000035;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px)}.jav-card-magnet-panel{width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:10px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-card-magnet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e5e7eb}.jav-card-magnet-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:15px;font-weight:850}.jav-card-magnet-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-card-magnet-body{padding:12px;overflow:auto}.jav-card-magnet-body .jav-nong-wrapper{width:100%!important;display:block!important;box-sizing:border-box!important}`);
   }
   function isListPage() { return !SiteManager.isDetailPage(); }
   function cardSite(card) {
@@ -7298,6 +7432,106 @@
    if (!insideMenu) document.querySelectorAll('.jav-card-quick-menu.is-open').forEach(closeQuickMenu);
   };
   window.addEventListener('click', window.__LAOSIJI_QUICK_MENU_EVENTS__, true);
+  const RESOURCE_FLAG_LABELS = { favorite: ['收藏', '已收藏'], watched: ['观看', '已观看'], downloaded: ['下载', '已下载'], blocked: ['屏蔽', '已屏蔽'] };
+  const RESOURCE_MARKERS = Object.entries(RESOURCE_FLAG_LABELS); const resourceApi = () => window.__LAOSIJI_RESOURCE_LIBRARY__;
+  const resourceFlags = code => {
+   const api = resourceApi();
+   return api?.getWorkFlags?.(api.getState?.().works?.[code]) || {}; };
+  function syncBlacklistCard(card, code = SiteManager.getCardCode(card)) {
+   if (cardSite(card) !== 'javdb' || !code) return false;
+   const api = resourceApi();
+   if (!api?.isWorkBlacklisted) return false;
+   const title = card.querySelector('.javdb-card-headline, .javdb-card-title, .video-title, .title')?.textContent || '';
+   const actorNames = [...card.querySelectorAll('a[href*="/actors/"]:not(.jav-card-quick-actions a)')].map(anchor => anchor.textContent.trim()).filter(Boolean);
+   const stored = api.getState?.().works?.[code] || {};
+   const blocked = !!api.isWorkBlacklisted({ ...stored, code, title: title.trim() || stored.title || '', actorNames: [...new Set([...(stored.actorNames || []), ...actorNames])] });
+   card.hidden = blocked; card.dataset.javdbBlacklistHidden = blocked ? '1' : '0';
+   return blocked; }
+  function resourceMetadata(card, code) {
+   const titleNode = card?.querySelector('.javdb-card-headline, .javdb-card-title, .video-title, .title');
+   const image = card?.querySelector('img[src], img[data-src]'); const anchor = card?.querySelector('a[href]'); let url = ''; let cover = '';
+   try { url = anchor ? new URL(anchor.getAttribute('href') || '', location.href).href : ''; } catch (_) { }
+   try { cover = image ? new URL(image.getAttribute('src') || image.getAttribute('data-src') || '', location.href).href : ''; } catch (_) { }
+   return { code, title: String(titleNode?.textContent || '').replace(code, '').trim(), cover, url, source: 'javdb', type: 'unknown', tags: [], actorNames: [] };
+  }
+  function closeResourceMenu(menu) {
+   if (!menu) return;
+   menu.classList.remove('is-open'); menu.querySelector('.jav-card-resource-menu-trigger')?.setAttribute('aria-expanded', 'false');
+   const popover = menu.__resourcePopover;
+   if (!popover) return;
+   popover.classList.remove('is-open'); popover.style.removeProperty('left'); popover.style.removeProperty('top'); popover.style.removeProperty('visibility');
+   if (popover.parentNode !== menu) menu.appendChild(popover);
+  }
+  function toggleResourceMenu(menu) {
+   const trigger = menu?.querySelector('.jav-card-resource-menu-trigger'); const popover = menu?.__resourcePopover;
+   if (!trigger || !popover) return;
+   document.querySelectorAll('.jav-card-resource-menu.is-open').forEach(item => { if (item !== menu) closeResourceMenu(item); });
+   if (menu.classList.contains('is-open')) return closeResourceMenu(menu);
+   menu.classList.add('is-open'); trigger.setAttribute('aria-expanded', 'true');
+   popover.style.visibility = 'hidden';
+   popover.classList.add('is-open'); document.body.appendChild(popover);
+   const rect = trigger.getBoundingClientRect(); const width = popover.offsetWidth || 128; const height = popover.offsetHeight || 150;
+   popover.style.left =`${Math.min(Math.max(6, rect.right - width), window.innerWidth - width - 6)}px`;
+   popover.style.top =`${Math.max(6, rect.top >= height + 8 ? rect.top - height - 6 : Math.min(window.innerHeight - height - 6, rect.bottom + 6))}px`;
+   popover.style.visibility = 'visible'; }
+  function syncResourceMarkers(card, code) {
+   if (cardSite(card) !== 'javdb') return;
+   const cover = card.querySelector('.jav-card-cover, .cover');
+   if (!cover) return;
+   const flags = resourceFlags(code); const active = RESOURCE_MARKERS.filter(([flag]) => flags[flag]);
+   let markers = cover.querySelector('.jav-card-resource-markers');
+   if (!active.length) { markers?.remove(); return; }
+   if (!markers) { markers = document.createElement('span'); markers.className = 'jav-card-resource-markers'; cover.appendChild(markers); }
+   const html = active.map(([flag, labels]) =>`<span class="jav-card-resource-marker jav-card-resource-marker-${flag}">${labels[1]}</span>`).join('');
+   if (markers.innerHTML !== html) markers.innerHTML = html;
+  }
+  function syncResourceMenu(card, code) {
+   const menu = card?.querySelector('.jav-card-resource-menu');
+   if (!menu) return;
+   const flags = resourceFlags(code);
+   menu.querySelectorAll('[data-resource-work-flag]').forEach(button => {
+    const active = !!flags[button.dataset.resourceWorkFlag]; const labels = RESOURCE_FLAG_LABELS[button.dataset.resourceWorkFlag];
+    button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
+    if (labels && button.textContent !== labels[active ? 1 : 0]) button.textContent = labels[active ? 1 : 0];
+   }); }
+  function addResourceMenu(card, actions, code) {
+   if (cardSite(card) !== 'javdb' || !actions || !code) return;
+   let menu = card.querySelector('.jav-card-resource-menu');
+   if (!menu || menu.dataset.resourceMenuVersion !== '3') {
+    if (menu) { closeResourceMenu(menu); menu.remove(); }
+    menu = document.createElement('span'); menu.className = 'jav-card-resource-menu'; menu.dataset.resourceMenuVersion = '3';
+    menu.innerHTML = '<button type="button" class="jav-card-quick-btn jav-card-resource-menu-trigger" title="鉴定处理" aria-label="鉴定处理" aria-haspopup="menu" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="4em" height="4em" class="resource-menu-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M42.238 6.426c4.8 0 7.238 2.34 7.333 6.979l.003.286V42.31c0 4.731-2.34 7.167-7.045 7.262l-.29.003H13.784c-4.777 0-7.259-2.318-7.356-6.977l-.003-.288V13.69c0-4.754 2.386-7.168 7.07-7.262l.29-.003zm-.07 3.773H13.855c-2.268 0-3.57 1.164-3.652 3.448l-.004.232V42.12c0 2.359 1.23 3.598 3.433 3.676l.223.004h28.313c2.245 0 3.547-1.164 3.629-3.448l.004-.232V13.88c0-2.359-1.23-3.676-3.412-3.676zM33 38a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zm8-7a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zM14.1 14.239c1.465-1.645 3.856-1.652 5.31-.02l.24.277l.198.248l.162.216l.18.259l.156.262l.073-.13l.127-.2l.126-.18l.077-.103l.182-.234l.107-.13l.246-.285c1.448-1.627 3.844-1.625 5.31.02s1.42 4.202.017 5.961l-.304.367l-.376.43l-.432.477l-.716.77l-.75.787l-.958.985l-.677.679l-.512.497l-.125.114c-1.043.921-1.761.897-2.72.096l-.18-.158l-.237-.225l-.808-.799l-.891-.904l-.962-1l-.378-.403l-.535-.581l-.475-.534l-.27-.319q-.124-.15-.223-.279c-1.444-1.875-1.447-4.316.018-5.961"/></svg></button><span class="jav-card-resource-menu-popover" role="menu"></span>';
+    const popover = menu.querySelector('.jav-card-resource-menu-popover');
+    menu.__resourcePopover = popover;
+    Object.entries(RESOURCE_FLAG_LABELS).forEach(([flag, labels]) => { const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-card-resource-menu-item'; button.dataset.resourceWorkFlag = flag; button.textContent = labels[0]; popover.appendChild(button); });
+    menu.querySelector('.jav-card-resource-menu-trigger').addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); toggleResourceMenu(menu); }, true);
+    menu.querySelector('.jav-card-resource-menu-trigger').addEventListener('keydown', event => { if (event.key !== 'Enter' && event.key !== ' ') return; event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); toggleResourceMenu(menu); }, true);
+    popover.addEventListener('click', event => {
+     const button = event.target.closest?.('[data-resource-work-flag]');
+     if (!button) return;
+     event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.();
+     const currentCode = menu.dataset.code || code; const api = resourceApi(); const flag = button.dataset.resourceWorkFlag;
+     const previous = !!resourceFlags(currentCode)[flag];
+     button.disabled = true;
+     Promise.resolve(api?.toggleWorkFlag?.(currentCode, flag, resourceMetadata(card, currentCode))).then(result => {
+      const active = typeof result === 'boolean' ? result : !previous;
+      button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
+      const labels = RESOURCE_FLAG_LABELS[flag];
+      if (labels) button.textContent = labels[active ? 1 : 0];
+      syncResourceMenu(card, currentCode); syncResourceMarkers(card, currentCode); closeResourceMenu(menu);
+     }).catch(() => closeResourceMenu(menu)).finally(() => { button.disabled = false; });
+    }, true); }
+   menu.dataset.code = code;
+   syncResourceMenu(card, code); syncResourceMarkers(card, code); actions.appendChild(menu); }
+  if (window.__LAOSIJI_RESOURCE_MENU_EVENTS__) window.removeEventListener('click', window.__LAOSIJI_RESOURCE_MENU_EVENTS__, true);
+  if (window.__LAOSIJI_RESOURCE_STATE_EVENTS__) {
+   window.removeEventListener('laosiji-resource-state-changed', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
+   window.removeEventListener('laosiji-resource-state-ready', window.__LAOSIJI_RESOURCE_STATE_EVENTS__); }
+  window.__LAOSIJI_RESOURCE_MENU_EVENTS__ = event => { if (!event.target.closest?.('.jav-card-resource-menu, .jav-card-resource-menu-popover')) document.querySelectorAll('.jav-card-resource-menu.is-open').forEach(closeResourceMenu); };
+  window.addEventListener('click', window.__LAOSIJI_RESOURCE_MENU_EVENTS__, true);
+  window.__LAOSIJI_RESOURCE_STATE_EVENTS__ = () => document.querySelectorAll('.javdb-grid-card').forEach(card => { const code = SiteManager.getCardCode(card); if (code && !syncBlacklistCard(card, code)) { attachToCard(card); syncResourceMenu(card, code); syncResourceMarkers(card, code); } });
+  window.addEventListener('laosiji-resource-state-changed', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
+  window.addEventListener('laosiji-resource-state-ready', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
   function attachToCard(card) {
    if (!card) return;
    card.querySelectorAll('.jav-list-preview-btn').forEach(el => el.remove());
@@ -7306,10 +7540,11 @@
    else card.querySelector('.jav-sukebei-offline-115')?.remove();
    const site = cardSite(card); const code = SiteManager.getCardCode(card); const slot = targetSlot(card);
    if (!code || !slot) { existing?.remove(); return; }
+   if (syncBlacklistCard(card, code)) { return; }
    if (existing) {
     const actions = visibleActions(); const actionKeys = new Set(actions.map(action => action.key));
     existing.dataset.code = code;
-    existing.querySelectorAll('.jav-card-quick-btn:not(.jav-card-quick-menu-trigger)').forEach(btn => {
+    existing.querySelectorAll('.jav-card-quick-btn:not(.jav-card-quick-menu-trigger):not(.jav-card-resource-menu-trigger)').forEach(btn => {
      const meta = ACTIONS.find(item => item.key === btn.dataset.action);
      if (!actionKeys.has(btn.dataset.action)) { btn.remove(); return; }
      btn.setAttribute('avid', code);
@@ -7320,14 +7555,14 @@
      if (!existing.querySelector(`[data-action="${meta.key}"]`)) {
       existing.appendChild(createButton(meta, code, card)); }
     });
-    addQuickMenu(card, existing, code); insertActions(slot, existing, site, card);
+    addQuickMenu(card, existing, code); addResourceMenu(card, existing, code); insertActions(slot, existing, site, card);
     return; }
    const actions = document.createElement('span');
    actions.className = 'toolbar-b jav-card-quick-actions'; actions.dataset.code = code;
    visibleActions().forEach(meta => actions.appendChild(createButton(meta, code, card))); addQuickMenu(card, actions, code);
-   insertActions(slot, actions, site, card); }
+   addResourceMenu(card, actions, code); insertActions(slot, actions, site, card); }
   function removeAll() {
-   document.querySelectorAll('.jav-card-quick-actions, .jav-card-quick-menu, .jav-card-quick-menu-popover, .jav-list-preview-btn, .jav-sukebei-offline-115').forEach(el => el.remove());
+   document.querySelectorAll('.jav-card-quick-actions, .jav-card-quick-menu, .jav-card-quick-menu-popover, .jav-card-resource-menu, .jav-card-resource-menu-popover, .jav-card-resource-markers, .jav-list-preview-btn, .jav-sukebei-offline-115').forEach(el => el.remove());
    closeMagnetPopup(); }
   function sync() {
    if (!isListPage()) { removeAll(); return; }
@@ -8111,11 +8346,14 @@
     const raw = sessionStorage.getItem(this.listCacheKey(code));
     if (!raw) return undefined;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed) || !parsed.length) { sessionStorage.removeItem(this.listCacheKey(code)); return undefined; }
+    return parsed;
    } catch { return undefined; } },
   setListCached(code, value) {
    try {
-    sessionStorage.setItem(this.listCacheKey(code), JSON.stringify(Array.isArray(value) ? value : []));
+    const matches = Array.isArray(value) ? value : [];
+    if (!matches.length) { sessionStorage.removeItem(this.listCacheKey(code)); return; }
+    sessionStorage.setItem(this.listCacheKey(code), JSON.stringify(matches));
    } catch {} },
   clearCached(code) {
    try {
@@ -8156,7 +8394,9 @@
    if (fc2) return fc2;
    return String(code || '').trim().toLowerCase().replace(/^fc2-(?:ppv-)?/, ''); },
   searchVariants(code) {
-   const normalized = this.normalizeKeepSeparator(code); const variants = [normalized]; const fc2 = this.fc2Number(normalized);
+   const normalized = this.normalizeKeepSeparator(code); const variants = [normalized]; const compact = normalized.replace(/[-_]/g, '');
+   if (compact !== normalized) variants.push(compact);
+   const fc2 = this.fc2Number(normalized);
    if (fc2) {
     variants.push(`FC2-${fc2}`,`FC2-PPV-${fc2}`, fc2);
    }
@@ -8241,6 +8481,7 @@
     search_value: keyword,
     limit: '50',
     offset: '0',
+    type: '4',
    });
    return new Promise((resolve, reject) => {
     GM_xmlhttpRequest({
@@ -8293,7 +8534,8 @@
    if (cached !== undefined) return cached;
    if (this.pendingAll.has(normalized)) return this.pendingAll.get(normalized);
    const task = this.searchAll(normalized) .then(matches => {
-     this.setListCached(normalized, matches); this.setCached(normalized, matches[0] || null);
+     this.setListCached(normalized, matches);
+     if (matches.length) this.setCached(normalized, matches[0]);
      return matches;
     }) .finally(() => this.pendingAll.delete(normalized));
    this.pendingAll.set(normalized, task);
@@ -8702,6 +8944,1295 @@
   result.abort = () => request.abort?.() || false;
   return result; };
  Core.expose('__LAOSIJI_SUBTITLE__', Subtitle);
+ function ensureResourceLibraryStyles() {
+  injectStyle('jav-resource-library-style',`.jav-resource-overlay{position:fixed;inset:0;z-index:10000060;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.44);backdrop-filter:blur(6px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-resource-center{width:min(96vw,1600px);height:min(90vh,960px);max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);display:grid;grid-template-columns:190px minmax(0,1fr);overflow:hidden;border:1px solid #d8dee8;border-radius:10px;background:#f8fafc;color:#0f172a;box-shadow:0 28px 80px rgba(15,23,42,.3)}.jav-resource-center *{box-sizing:border-box}.jav-resource-nav{display:flex;flex-direction:column;gap:4px;padding:14px 10px;border-right:1px solid #e2e8f0;background:#fff}.jav-resource-brand{padding:5px 8px 14px;font-size:16px;font-weight:850;color:#0f172a}.jav-resource-nav button{height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:#475569;font-size:13px;font-weight:700;text-align:left;cursor:pointer}.jav-resource-nav button:hover{background:#f1f5f9;color:#1e3a8a}.jav-resource-nav button.is-active{background:#dbeafe;color:#1d4ed8}.jav-resource-nav-spacer{flex:1}.jav-resource-nav-close{color:#64748b!important}.jav-resource-main{min-width:0;min-height:0;display:flex;flex-direction:column;background:#f8fafc}.jav-resource-head{display:flex;align-items:center;min-height:66px;padding:13px 18px;border-bottom:1px solid #e2e8f0;background:#fff}.jav-resource-head-title{font-size:18px;font-weight:850;line-height:1.2}.jav-resource-backup{flex:1 1 auto;min-height:0;overflow:auto;padding:30px 34px 24px}.jav-resource-backup-intro{max-width:620px}.jav-resource-backup-kicker{color:#2563eb;font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.jav-resource-backup h2{margin:5px 0 8px;color:#0f172a;font-size:22px;line-height:1.2}.jav-resource-backup p{margin:0;color:#64748b;font-size:13px;line-height:1.65}.jav-resource-library{flex:1 1 auto;min-height:0;overflow:auto;padding:12px}.jav-resource-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.jav-resource-toolbar-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.jav-resource-toolbar input,.jav-resource-toolbar select{height:34px;min-width:130px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-toolbar input{min-width:210px}.jav-resource-toolbar button{height:34px;padding:0 12px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px;font-weight:700;cursor:pointer}.jav-resource-toolbar button.primary{border-color:#2563eb;background:#2563eb;color:#fff}.jav-resource-toolbar button:disabled{opacity:.6;cursor:wait}.jav-resource-summary{margin:0 0 12px;color:#64748b;font-size:12px}.jav-resource-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;width:100%;min-width:0;max-width:1680px;margin:0 auto;padding:4px}.jav-resource-card{display:flex;flex-direction:column;min-width:0;padding:16px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}.jav-resource-card:hover{border-color:#93c5fd}.jav-resource-card-head{display:flex;align-items:center;gap:10px;min-width:0}.jav-resource-avatar{width:52px;height:52px;flex:none;border-radius:50%;object-fit:cover;background:#e2e8f0}.jav-resource-card-title{min-width:0;color:#0f172a;font-size:14px;font-weight:850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-card-subtitle{margin-top:3px;color:#94a3b8;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-card-meta{display:grid;gap:4px;margin:12px 0;color:#64748b;font-size:11px}.jav-resource-card-meta strong{color:#334155}.jav-resource-card-actions{display:flex;gap:7px;margin-top:auto}.jav-resource-card-actions button,.jav-resource-card-actions.button{height:30px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none}.jav-resource-card-actions button.primary{border-color:#2563eb;background:#2563eb;color:#fff}.jav-resource-type{display:inline-flex;align-items:center;width:max-content;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:850}.jav-resource-type.uncensored{background:#dcfce7;color:#15803d}.jav-resource-type.censored{background:#fef3c7;color:#a16207}.jav-resource-type.unknown{background:#f1f5f9;color:#64748b}.jav-resource-work-cover{width:100%;aspect-ratio:3/2;overflow:hidden;border-radius:5px;background:#f1f5f9}.jav-resource-work-cover img{width:100%;height:100%;object-fit:cover}.jav-resource-work-code{color:#2563eb;font-size:12px;font-weight:850}.jav-resource-work-title{margin-top:4px;color:#0f172a;font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-empty{padding:50px 12px;text-align:center;color:#94a3b8;font-size:13px}.jav-resource-progress{margin:0 0 12px;padding:9px 11px;border:1px solid #bfdbfe;border-radius:6px;background:#eff6ff;color:#1d4ed8;font-size:12px}.jav-resource-backup-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:24px 0}.jav-resource-backup-stats div{padding:14px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}.jav-resource-backup-stats strong,.jav-resource-backup-stats span{display:block}.jav-resource-backup-stats strong{color:#0f172a;font-size:22px;line-height:1.2}.jav-resource-backup-stats span{margin-top:3px;color:#94a3b8;font-size:12px;font-weight:700}.jav-resource-backup-actions,.jav-resource-backup-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 0;border-top:1px solid #e2e8f0}.jav-resource-backup-tools{border-bottom:1px solid #e2e8f0}.jav-resource-backup-actions button,.jav-resource-backup-tools button,.jav-resource-backup-apply,.jav-resource-backup-cancel,.jav-resource-health-repair{height:34px;padding:0 12px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;font-size:13px;font-weight:800;cursor:pointer}.jav-resource-backup-actions button:first-child,.jav-resource-backup-apply{border-color:#2563eb;background:#2563eb;color:#fff}.jav-resource-backup-actions button:hover,.jav-resource-backup-tools button:hover,.jav-resource-backup-cancel:hover,.jav-resource-health-repair:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.jav-resource-backup-actions span,.jav-resource-backup-tools span{color:#94a3b8;font-size:11px}.jav-resource-backup-tools button:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}.jav-resource-file-input{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}.jav-resource-health{margin-top:16px;padding:12px 14px;border:1px solid #bbf7d0;border-radius:7px;background:#f0fdf4;color:#166534;font-size:12px;line-height:1.7}.jav-resource-health strong,.jav-resource-health span{display:block}.jav-resource-health.has-errors{border-color:#fecaca;background:#fef2f2;color:#b91c1c}.jav-resource-health-repair{margin-top:10px;height:30px;padding:0 10px;border-color:#fecaca;color:#b91c1c}.jav-resource-webdav{margin-top:18px;padding:16px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}.jav-resource-webdav-title,.jav-resource-cloud-title{color:#0f172a;font-size:13px;font-weight:850}.jav-resource-webdav-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-top:10px}.jav-resource-webdav-grid input{min-width:0;height:34px;padding:0 10px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#0f172a;font-size:12px;outline:none}.jav-resource-webdav-grid input:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.13)}.jav-resource-webdav-actions,.jav-resource-conflict-actions,.jav-resource-cleanup-confirm div{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}.jav-resource-webdav-actions button,.jav-resource-cloud-item button,.jav-resource-cleanup-actions button,.jav-resource-cleanup-confirm button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-webdav-actions button:hover,.jav-resource-cloud-item button:hover,.jav-resource-cleanup-actions button:hover,.jav-resource-cleanup-confirm button:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.jav-resource-webdav-actions button:disabled,.jav-resource-cloud-item button:disabled{opacity:.6;cursor:wait}.jav-resource-webdav-actions span{color:#94a3b8;font-size:11px}.jav-resource-cloud-list,.jav-resource-history{margin-top:16px;border-top:1px solid #e2e8f0}.jav-resource-cloud-title{padding:12px 0 8px;font-size:12px}.jav-resource-cloud-item,.jav-resource-history-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f5f9}.jav-resource-cloud-file,.jav-resource-history-main{min-width:0;flex:1}.jav-resource-cloud-file strong,.jav-resource-cloud-file span,.jav-resource-history-main strong,.jav-resource-history-main span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-cloud-file strong,.jav-resource-history-main strong{color:#334155;font-size:12px}.jav-resource-cloud-file span,.jav-resource-history-main span{margin-top:3px;color:#94a3b8;font-size:11px}.jav-resource-cloud-empty{padding:12px 0;color:#94a3b8;font-size:11px}.jav-resource-history-status{width:34px;flex:none;font-size:11px;font-weight:850;text-align:center}.jav-resource-history-status.is-ok{color:#047857}.jav-resource-history-status.is-error{color:#b91c1c}.jav-resource-history-status.is-conflict{color:#b45309}.jav-resource-history-item time{flex:none;color:#94a3b8;font-size:11px}.jav-resource-import-preview{margin-top:18px;padding:16px;border:1px solid #bfdbfe;border-radius:7px;background:#eff6ff}.jav-resource-backup-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:#475569;font-size:12px}.jav-resource-backup-summary strong{width:100%;color:#1e3a8a;font-size:13px}.jav-resource-import-errors{margin:12px 0;color:#b91c1c;font-size:12px;line-height:1.7}.jav-resource-import-ok{margin:12px 0;color:#047857;font-size:12px}.jav-resource-backup-apply:disabled{border-color:#cbd5e1;background:#cbd5e1;cursor:not-allowed}.jav-resource-conflict,.jav-resource-cleanup-confirm{margin-top:16px;padding:14px;border:1px solid #fca5a5;border-radius:7px;background:#fff1f2;color:#9f1239}.jav-resource-conflict strong,.jav-resource-conflict span,.jav-resource-cleanup-confirm strong{display:block}.jav-resource-conflict span,.jav-resource-cleanup-confirm strong{margin-top:4px;font-size:12px;line-height:1.6}.jav-resource-cleanup{margin-top:18px;padding-top:2px;border-top:1px solid #e2e8f0}.jav-resource-cleanup p{margin:0 0 10px;color:#94a3b8;font-size:11px;line-height:1.6}.jav-resource-cleanup-confirm{margin:10px 0}.jav-resource-cleanup-confirm button:first-child{border-color:#dc2626;background:#dc2626;color:#fff}.jav-resource-confirm{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:20px;background:rgba(15,23,42,.28)}.jav-resource-confirm-box{width:min(360px,100%);padding:18px;border:1px solid #fecaca;border-radius:8px;background:#fff;color:#334155;box-shadow:0 18px 50px rgba(15,23,42,.24)}.jav-resource-confirm-box strong,.jav-resource-confirm-box span{display:block}.jav-resource-confirm-box strong{font-size:14px;color:#991b1b}.jav-resource-confirm-box span{margin-top:8px;font-size:12px;line-height:1.6}.jav-resource-confirm-box div{display:flex;gap:8px;margin-top:14px}.jav-resource-confirm-box button{height:30px;padding:0 11px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-confirm-box button:first-child{border-color:#dc2626;background:#dc2626;color:#fff}html[data-theme="dark"] .jav-resource-center{border-color:#3f3f46;background:#18181b;color:#f4f4f5}html[data-theme="dark"] .jav-resource-nav,html[data-theme="dark"] .jav-resource-head,html[data-theme="dark"] .jav-resource-backup-stats div,html[data-theme="dark"] .jav-resource-webdav,html[data-theme="dark"] .jav-resource-card{border-color:#3f3f46;background:#27272a;color:#f4f4f5}html[data-theme="dark"] .jav-resource-main{background:#18181b}html[data-theme="dark"] .jav-resource-brand,html[data-theme="dark"] .jav-resource-head-title,html[data-theme="dark"] .jav-resource-backup h2,html[data-theme="dark"] .jav-resource-backup-stats strong,html[data-theme="dark"] .jav-resource-cloud-title,html[data-theme="dark"] .jav-resource-card-title,html[data-theme="dark"] .jav-resource-work-title{color:#fafafa}html[data-theme="dark"] .jav-resource-nav button{color:#d4d4d8}html[data-theme="dark"] .jav-resource-nav button:hover{background:#3f3f46;color:#bfdbfe}html[data-theme="dark"] .jav-resource-nav button.is-active{background:#1e3a5f;color:#bfdbfe}html[data-theme="dark"] .jav-resource-backup p,html[data-theme="dark"] .jav-resource-backup-stats span,html[data-theme="dark"] .jav-resource-cloud-file span,html[data-theme="dark"] .jav-resource-history-main span,html[data-theme="dark"] .jav-resource-card-meta,html[data-theme="dark"] .jav-resource-card-subtitle{color:#a1a1aa}html[data-theme="dark"] .jav-resource-backup-actions button,html[data-theme="dark"] .jav-resource-backup-tools button,html[data-theme="dark"] .jav-resource-backup-cancel,html[data-theme="dark"] .jav-resource-webdav-grid input,html[data-theme="dark"] .jav-resource-webdav-actions button,html[data-theme="dark"] .jav-resource-cloud-item button,html[data-theme="dark"] .jav-resource-cleanup-actions button,html[data-theme="dark"] .jav-resource-cleanup-confirm button,html[data-theme="dark"] .jav-resource-toolbar input,html[data-theme="dark"] .jav-resource-toolbar select,html[data-theme="dark"] .jav-resource-toolbar button,html[data-theme="dark"] .jav-resource-card-actions button{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-import-preview{border-color:#1e3a5f;background:#172554}html[data-theme="dark"] .jav-resource-backup-summary strong{color:#bfdbfe}html[data-theme="dark"] .jav-resource-health{border-color:#14532d;background:#052e16;color:#bbf7d0}html[data-theme="dark"] .jav-resource-health.has-errors,html[data-theme="dark"] .jav-resource-conflict,html[data-theme="dark"] .jav-resource-cleanup-confirm{border-color:#7f1d1d;background:#450a0a;color:#fecaca}html[data-theme="dark"] .jav-resource-cloud-list,html[data-theme="dark"] .jav-resource-history,html[data-theme="dark"] .jav-resource-cleanup{border-color:#3f3f46}html[data-theme="dark"] .jav-resource-cloud-item,html[data-theme="dark"] .jav-resource-history-item{border-color:#3f3f46}@media (max-width:700px){.jav-resource-overlay{padding:8px}.jav-resource-center{width:calc(100vw - 16px);height:calc(100vh - 16px);grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.jav-resource-nav{display:flex;flex-direction:row;align-items:center;overflow:auto;padding:8px;border-right:0;border-bottom:1px solid #e2e8f0}.jav-resource-brand{padding:5px 8px;white-space:nowrap}.jav-resource-nav button{flex:none}.jav-resource-nav-spacer{display:none}.jav-resource-nav-close{margin-left:auto}.jav-resource-backup{padding:22px 16px}.jav-resource-backup-stats{gap:6px}.jav-resource-backup-stats div{padding:10px}.jav-resource-webdav-grid{grid-template-columns:1fr 1fr}.jav-resource-webdav-grid input:first-child,.jav-resource-webdav-grid input:last-child{grid-column:1/-1}}`);
+  injectStyle('jav-resource-library-polish',`.actress-card{position:relative;display:flex;flex-direction:column;min-width:0;padding:16px;border-radius:7px;box-shadow:none}.actress-card__badges{display:flex;align-items:center;gap:4px;margin-bottom:12px}.actress-card__profile{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:12px;color:inherit;text-decoration:none}.actress-card-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;background:#f1f5f9}.actress-card__profile>span{min-width:0}.actress-card-name,.actress-card-allname{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.actress-card-name{color:#0f172a;font-size:15px;font-weight:700}.actress-card-allname{margin-top:4px;color:#64748b;font-size:12px}.actress-card__meta{display:grid;gap:8px;margin:12px 0}.actress-card__meta-row{display:grid;grid-template-columns:76px minmax(0,1fr);gap:8px;color:#64748b;font-size:12px}.actress-card__meta-row dt{color:#94a3b8}.actress-card__meta-row dd{overflow:hidden;margin:0;color:#334155;text-overflow:ellipsis;white-space:nowrap}.actress-card__note{min-height:20px;margin:0 0 12px;color:#64748b;font-size:12px}.actress-card__actions{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-top:auto}.actress-card__actions button{min-width:0;min-height:36px;padding:0 12px;border-radius:5px;font-size:13px;font-weight:800;line-height:1.2;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease}.actress-card__actions .btn-check-actress{border:1px solid #2563eb;background:#2563eb;color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.2)}.actress-card__actions .btn-check-actress:hover{border-color:#1d4ed8;background:#1d4ed8;box-shadow:0 2px 5px rgba(37,99,235,.25)}.actress-card__actions .btn-check-actress:focus-visible,.actress-card__actions .jav-resource-actor-remove:focus-visible{outline:3px solid rgba(59,130,246,.3);outline-offset:1px}.actress-card__actions .jav-resource-actor-remove{flex:0 0 auto;border:1px solid #fecaca;background:#fff1f2;color:#b91c1c}.actress-card__actions .jav-resource-actor-remove:hover{border-color:#f87171;background:#fee2e2;color:#991b1b}.actress-card__actions button:disabled{cursor:wait;opacity:.6}.jav-resource-badge{box-sizing:border-box;display:inline-flex;min-height:24px;align-items:center;justify-content:center;padding:2px 8px;border:1px solid transparent;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:600;line-height:1.2;white-space:nowrap}.jav-resource-badge-count{background:#dbeafe;color:#2563eb}.jav-resource-badge-type.uncensored{background:#dcfce7;color:#15803d}.jav-resource-badge-type.censored{background:#fef3c7;color:#a16207}.jav-resource-badge-type.unknown{background:#f1f5f9;color:#64748b}.nv-card{padding:0;border-radius:7px;box-shadow:none}.nv-card:hover{border-color:#2563eb;box-shadow:none}.nv-card__link{display:block;color:inherit;text-decoration:none}.nv-card__cover{position:relative;width:100%;overflow:hidden;aspect-ratio:3/2;border-radius:5px;background:#f1f5f9}.nv-cover-img{width:100%;height:100%;object-fit:cover}.nv-card__empty{display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:11px}.nv-card__body{display:grid;gap:3px;padding:8px 8px 4px}.nv-card__title,.nv-card__actress{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nv-card__title{color:#0f172a;font-size:12px;font-weight:700}.nv-card__actress,.nv-card__date{color:#64748b;font-size:11px}.nv-card__statuses{display:flex;align-items:center;min-height:24px;margin-top:3px}.nv-card .jav-resource-badge{margin-top:0}.nv-card .jav-resource-card-actions{margin-top:4px;padding:0 8px 8px}.nv-card .jav-resource-card-actions button{width:100%;flex:1}.jav-resource-card-markers{position:absolute;top:6px;left:6px;z-index:2;display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 12px);pointer-events:none}.jav-resource-card-marker{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid rgba(255,255,255,.72);border-radius:4px;box-shadow:0 1px 3px rgba(15,23,42,.25);color:#fff;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap}.jav-resource-card-marker-favorite{background:#d97706}.jav-resource-card-marker-watched{background:#2563eb}.jav-resource-card-marker-downloaded{background:#059669}.jav-resource-card-marker-blocked{background:#dc2626}.jav-resource-card-actions button{flex:1}.jav-resource-card-actions a{display:inline-flex;align-items:center;justify-content:center;flex:1;height:30px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:11px;font-weight:700;text-decoration:none}.jav-resource-card-actions button:hover,.jav-resource-card-actions a:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.jav-resource-library--workspace{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}.jav-resource-content-scroll{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}.jav-resource-operation-stop{border-color:#fca5a5!important;background:#fff1f2!important;color:#b91c1c!important}.jav-resource-pagination{display:flex;align-items:center;justify-content:center;gap:10px;flex:0 0 auto;position:sticky;bottom:0;margin-top:12px;padding:12px 0;border-top:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;z-index:1}.jav-resource-pagination button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-pagination button:disabled{opacity:.45;cursor:not-allowed}@media (max-width:767px){.jav-resource-toolbar{align-items:stretch;flex-direction:column}.jav-resource-toolbar select,.jav-resource-toolbar button{min-height:44px}.jav-resource-grid{grid-template-columns:1fr}.jav-resource-card-actions{flex-wrap:wrap}}html[data-theme="dark"] .jav-resource-pagination{border-color:#3f3f46;background:#18181b}html[data-theme="dark"] .jav-resource-card{box-shadow:none}html[data-theme="dark"] .actress-card-name,html[data-theme="dark"] .nv-card__title{color:#fafafa}html[data-theme="dark"] .actress-card-allname,html[data-theme="dark"] .actress-card__meta-row,html[data-theme="dark"] .actress-card__meta-row dt,html[data-theme="dark"] .actress-card__note,html[data-theme="dark"] .actress-card__meta-row dd,html[data-theme="dark"] .nv-card__actress,html[data-theme="dark"] .nv-card__date{color:#a1a1aa}html[data-theme="dark"] .jav-resource-card-actions a{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-operation-stop{border-color:#7f1d1d!important;background:#450a0a!important;color:#fecaca!important}.jav-resource-overlay{overscroll-behavior:contain}.jav-resource-backup--library{display:flex;flex-direction:column;min-height:0;overflow:hidden}.jav-resource-backup--library>.jav-resource-library{flex:1 1 auto;min-height:0}.jav-resource-type.western,.jav-resource-badge-type.western{background:#e0e7ff;color:#4338ca}.jav-resource-history-view{display:flex;flex-direction:column;min-height:0;height:100%;overflow:hidden}.jav-resource-history-tabs{display:flex;gap:4px;margin-bottom:10px}.jav-resource-history-tabs button{height:32px;padding:0 12px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-history-tabs button.is-active{border-color:#2563eb;background:#dbeafe;color:#1d4ed8}.jav-resource-history-list{flex:1;min-height:0;overflow:auto;border:1px solid #e2e8f0;border-radius:6px;background:#fff}.jav-resource-history-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-bottom:1px solid #f1f5f9}.jav-resource-history-row:last-child{border-bottom:0}.jav-resource-history-row strong,.jav-resource-history-row span{display:block}.jav-resource-history-row strong{color:#0f172a;font-size:13px}.jav-resource-history-row span{margin-top:3px;color:#64748b;font-size:12px}.jav-resource-history-row time{flex:none;color:#94a3b8;font-size:11px}.jav-resource-history-flags{display:flex;gap:5px;flex-wrap:wrap}.jav-resource-flag{height:28px;padding:0 8px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#64748b;font-size:11px;font-weight:700;cursor:pointer}.jav-resource-flag.is-active{border-color:#2563eb;background:#dbeafe;color:#1d4ed8}.jav-resource-card-actions-flags{flex-wrap:wrap}.jav-resource-card-actions-flags>[data-resource-ack-work]{flex:1 1 100%}.jav-resource-card-menu{position:relative;flex:1;min-width:0}.jav-resource-card-menu-trigger{width:100%;height:28px;padding:0 8px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:11px;font-weight:800;cursor:pointer}.jav-resource-card-menu-popover{display:none;position:absolute;right:0;bottom:calc(100%+6px);z-index:10000061;min-width:120px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.16)}.jav-resource-card-menu.is-open .jav-resource-card-menu-popover{display:grid;gap:3px;position:fixed;right:auto;bottom:auto}.jav-resource-card-menu-popover .jav-resource-flag{width:100%;text-align:left}.jav-resource-history-table-wrap{flex:1;min-height:0;overflow:auto;border:1px solid #e2e8f0;border-radius:6px;background:#fff}.jav-resource-history-table{width:100%;min-width:1080px;border-collapse:separate;border-spacing:0;color:#334155;font-size:12px}.jav-resource-history-table th{position:sticky;top:0;z-index:1;height:38px;padding:0 12px;border-bottom:1px solid #dbe3ef;background:#f8fafc;color:#334155;font-size:12px;font-weight:850;text-align:left;white-space:nowrap}.jav-resource-history-table td{height:58px;padding:8px 12px;border-bottom:1px solid #e5e7eb;vertical-align:middle;white-space:nowrap}.jav-resource-history-table tbody tr:nth-child(even){background:#fafafa}.jav-resource-history-table tbody tr:hover{background:#f1f5f9}.jav-resource-history-table tbody tr:last-child td{border-bottom:0}.jav-resource-history-table th:nth-child(1){width:130px}.jav-resource-history-table th:nth-child(2){width:170px}.jav-resource-history-table th:nth-child(3),.jav-resource-history-table th:nth-child(4){width:160px}.jav-resource-history-table th:nth-child(5){width:120px}.jav-resource-history-table th:nth-child(6){width:90px}.jav-resource-history-table th:nth-child(7){width:150px}.jav-resource-history-table th:nth-child(8){width:130px}.jav-resource-history-table th:nth-child(9){width:150px}.jav-resource-history-code{color:#2563eb;text-decoration:none}.jav-resource-history-code:hover{text-decoration:underline}.jav-resource-history-source{color:#ec4899}.jav-resource-history-statuses{display:flex;align-items:center;gap:4px}.jav-resource-history-status-pill{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:4px;font-size:11px;font-weight:800}.jav-resource-history-status-pill.jav-flag-favorite{background:#fef3c7;color:#a16207}.jav-resource-history-status-pill.jav-flag-watched{background:#dbeafe;color:#1d4ed8}.jav-resource-history-status-pill.jav-flag-downloaded{background:#d1fae5;color:#047857}.jav-resource-history-status-pill.jav-flag-blocked{background:#fee2e2;color:#b91c1c}.jav-resource-history-muted{color:#94a3b8;font-size:11px}.jav-resource-history-actions{display:flex;align-items:center;gap:6px}.jav-resource-history-edit,.jav-resource-history-detail{display:inline-flex;align-items:center;justify-content:center;height:30px;min-width:64px;padding:0 10px;border:0;border-radius:4px;box-shadow:0 2px 5px rgba(15,23,42,.14);font-size:11px;font-weight:850;text-decoration:none;cursor:pointer}.jav-resource-history-edit{background:#d1a83f;color:#fff}.jav-resource-history-edit:hover{background:#b88e27}.jav-resource-history-detail{background:#3197d8;color:#fff}.jav-resource-history-detail:hover{background:#1976b6}.jav-resource-history-edit-panel{display:flex;flex-wrap:wrap;gap:4px;width:150px;margin-top:6px;padding:5px;border:1px solid #dbe3ef;border-radius:5px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.14);white-space:normal}.jav-resource-history-edit-panel .jav-resource-flag{height:26px}.jav-resource-history-edit-panel .jav-resource-flag.is-active{border-color:#2563eb;background:#dbeafe;color:#1d4ed8}.jav-resource-data-cleanup{margin-top:18px;padding:16px;border:1px solid #fecaca;border-radius:7px;background:#fffafa}.jav-resource-data-cleanup+.jav-resource-data-cleanup{display:none}.jav-resource-data-cleanup p{margin:6px 0 0;color:#64748b;font-size:12px;line-height:1.6}.jav-resource-data-cleanup-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.jav-resource-data-cleanup select{height:32px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-data-cleanup button{height:32px;padding:0 11px;border:1px solid #dc2626;border-radius:5px;background:#dc2626;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-data-cleanup .jav-resource-cleanup-confirm{margin-bottom:0}.jav-resource-blacklist-view{gap:0}.jav-resource-blacklist-intro{margin:0 0 12px;padding:10px 12px;border:1px solid #fecaca;border-radius:6px;background:#fff1f2;color:#9f1239;font-size:12px;line-height:1.6}.jav-resource-blacklist-list{border:1px solid #e2e8f0;border-radius:6px;background:#fff}.jav-resource-blacklist-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border-bottom:1px solid #f1f5f9}.jav-resource-blacklist-row:last-child{border-bottom:0}.jav-resource-blacklist-row>div{min-width:0;flex:1}.jav-resource-blacklist-row strong,.jav-resource-blacklist-row span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-blacklist-row strong{color:#334155;font-size:13px}.jav-resource-blacklist-row span{margin-top:3px;color:#94a3b8;font-size:11px}.jav-resource-blacklist-row button{height:30px;padding:0 10px;border:1px solid #fecaca;border-radius:5px;background:#fff1f2;color:#b91c1c;font-size:11px;font-weight:800;cursor:pointer}.jav-resource-blacklist-row button:hover{border-color:#f87171;background:#fee2e2}.jav-resource-actor-blacklist{flex:0 0 auto!important;border-color:#fecaca!important;color:#b91c1c!important}.jav-resource-actor-blacklist.is-active{background:#fee2e2!important}.jav-resource-badge-blocked{background:#fee2e2;color:#b91c1c}.jav-resource-blacklist-keyword-form{display:flex;align-items:flex-end;gap:8px;margin:12px 0 7px}.jav-resource-blacklist-keyword-form label{display:grid;gap:5px;flex:1;color:#64748b;font-size:11px;font-weight:800}.jav-resource-blacklist-keyword-form input{height:34px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-blacklist-keyword-form button{height:34px;padding:0 13px;border:1px solid #2563eb;border-radius:5px;background:#2563eb;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-keyword-list{display:flex;flex-wrap:wrap;gap:6px;min-height:30px;padding:4px 0 8px}.jav-resource-keyword-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border:1px solid #fecaca;border-radius:5px;background:#fff1f2;color:#9f1239;font-size:12px}.jav-resource-keyword-chip button{width:18px;height:18px;padding:0;border:0;background:transparent;color:#b91c1c;font-size:16px;line-height:1;cursor:pointer}.jav-resource-blacklist-muted{color:#94a3b8;font-size:11px}.actress-card-name{font-size:16px}.actress-card-allname{font-size:13px}.actress-card__meta-row,.actress-card__note{font-size:13px}.actress-card .jav-resource-badge{font-size:12px}.actress-card__actions button{font-size:13px;min-height:34px}.jav-resource-blacklist-actions{display:flex;align-items:center;gap:6px;flex:none}.jav-resource-blacklist-actions button{min-width:72px}.jav-resource-blacklist-actions .jav-resource-blacklist-check{border-color:#2563eb;background:#eff6ff;color:#1d4ed8}.jav-resource-blacklist-actions .jav-resource-blacklist-check:hover{border-color:#1d4ed8;background:#dbeafe;color:#1e40af}.jav-resource-blacklist-actions button:disabled{cursor:wait;opacity:.6}.jav-resource-history-table{table-layout:fixed!important;min-width:0!important}.jav-resource-history-actors{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-backup--history{overflow:auto}.jav-resource-backup--history>.jav-resource-history-view{flex:0 0 auto;height:auto;overflow:visible}.jav-resource-backup--history .jav-resource-history-table-wrap{flex:0 0 auto;overflow-x:hidden;overflow-y:visible}@media (max-width:1200px){.jav-resource-history-table{min-width:1080px!important}.jav-resource-backup--history .jav-resource-history-table-wrap{overflow-x:auto}}.nv-card__body{gap:4px;padding:10px 10px 5px}.nv-card__title{font-size:14px}.nv-card__actress{font-size:13px}.nv-card__date-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}.nv-card__date{min-width:0;overflow:hidden;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.nv-card__statuses{display:flex;align-items:center;flex:0 0 auto;min-height:0;margin:0}.nv-card .jav-resource-badge{margin:0;font-size:12px}.nv-card .jav-resource-card-actions button{font-size:13px;min-height:34px}html[data-theme="dark"] .jav-resource-card-menu-trigger,html[data-theme="dark"] .jav-resource-card-menu-popover,html[data-theme="dark"] .jav-resource-flag{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-table-wrap,html[data-theme="dark"] .jav-resource-history-table{background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-table th{border-color:#3f3f46;background:#27272a;color:#f4f4f5}html[data-theme="dark"] .jav-resource-history-table td{border-color:#3f3f46}html[data-theme="dark"] .jav-resource-history-table tbody tr:nth-child(even){background:#202023}html[data-theme="dark"] .jav-resource-history-table tbody tr:hover{background:#2f2f34}html[data-theme="dark"] .jav-resource-history-edit-panel{border-color:#52525b;background:#18181b}html[data-theme="dark"] .actress-card__actions .btn-check-actress{border-color:#60a5fa;background:#2563eb;color:#fff}html[data-theme="dark"] .actress-card__actions .btn-check-actress:hover{border-color:#93c5fd;background:#3b82f6}html[data-theme="dark"] .actress-card__actions .jav-resource-actor-remove{border-color:#7f1d1d;background:#450a0a;color:#fecaca}html[data-theme="dark"] .actress-card__actions .jav-resource-actor-remove:hover{border-color:#ef4444;background:#7f1d1d;color:#fee2e2}html[data-theme="dark"] .jav-resource-blacklist-actions .jav-resource-blacklist-check{border-color:#60a5fa;background:#172554;color:#bfdbfe}html[data-theme="dark"] .jav-resource-blacklist-actions .jav-resource-blacklist-check:hover{border-color:#93c5fd;background:#1e3a8a;color:#dbeafe}`);
+  injectStyle('jav-resource-library-history-actions',`.jav-resource-history-remove{display:inline-flex;align-items:center;justify-content:center;height:30px;min-width:64px;padding:0 10px;border:0;border-radius:4px;background:#c2410c;color:#fff;box-shadow:0 2px 5px rgba(15,23,42,.14);font-size:11px;font-weight:850;cursor:pointer}.jav-resource-history-remove:hover{background:#9a3412}.jav-resource-history-query-actors{display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 8px;border:1px solid #93c5fd;border-radius:4px;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.jav-resource-history-query-actors:hover{border-color:#60a5fa;background:#dbeafe}.jav-resource-history-query-actors:disabled{opacity:.65;cursor:wait}.jav-resource-history-remove-confirm{display:grid;gap:6px;width:220px;margin-top:6px;padding:7px;border:1px solid #fed7aa;border-radius:5px;background:#fff7ed;color:#9a3412;white-space:normal}.jav-resource-history-remove-confirm span{font-size:11px;line-height:1.45}.jav-resource-history-remove-confirm div{display:flex;gap:5px}.jav-resource-history-remove-confirm button{height:27px;padding:0 8px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;color:#475569;font-size:11px;font-weight:800;cursor:pointer}.jav-resource-history-remove-confirm button:first-child{border-color:#c2410c;background:#c2410c;color:#fff}.jav-resource-history-remove-confirm button:first-child:hover{background:#9a3412}html[data-theme="dark"] .jav-resource-history-query-actors{border-color:#1d4ed8;background:#172554;color:#bfdbfe}html[data-theme="dark"] .jav-resource-history-query-actors:hover{border-color:#3b82f6;background:#1e3a8a}html[data-theme="dark"] .jav-resource-history-remove-confirm{border-color:#7c2d12;background:#431407;color:#fed7aa}html[data-theme="dark"] .jav-resource-history-remove-confirm button{border-color:#52525b;background:#18181b;color:#e4e4e7}`);
+  injectStyle('jav-resource-library-history-confirm',`.jav-resource-history-view{position:relative}.jav-resource-history-actions{white-space:nowrap}.jav-resource-history-actions button,.jav-resource-history-actions a{flex:0 0 auto;white-space:nowrap}.jav-resource-history-menu{display:inline-block;min-width:74px;flex:none}.jav-resource-history-menu .jav-resource-card-menu-trigger{min-width:74px}.jav-resource-history-menu .jav-resource-card-menu-popover{min-width:148px;white-space:nowrap}.jav-resource-history-menu.is-open .jav-resource-card-menu-popover{position:fixed;right:auto;bottom:auto;z-index:10000061}.jav-resource-history-menu .jav-resource-history-detail{display:flex;align-items:center;height:28px;min-width:0;padding:0 8px;color:#3197d8;font-size:11px;font-weight:800;text-decoration:none}.jav-resource-history-menu .jav-resource-history-detail:hover{background:#eff6ff;color:#1976b6}.jav-resource-history-menu-remove{width:100%;height:28px;padding:0 8px;border:1px solid #fed7aa;border-radius:5px;background:#fff7ed;color:#c2410c;font-size:11px;font-weight:800;text-align:left;cursor:pointer;white-space:nowrap}.jav-resource-history-menu-remove:hover{border-color:#fdba74;background:#ffedd5;color:#9a3412}.jav-resource-history-remove-confirm{position:absolute;inset:0;z-index:10;display:grid;place-items:center;width:auto;margin:0;padding:24px;border:0;border-radius:0;background:rgba(15,23,42,.28);color:inherit;gap:0;white-space:normal}.jav-resource-history-remove-dialog{display:block;width:min(380px,100%);padding:18px;border:1px solid #fecaca;border-radius:8px;background:#fff;color:#334155;box-shadow:0 18px 50px rgba(15,23,42,.24);gap:0}.jav-resource-history-remove-dialog strong,.jav-resource-history-remove-dialog span{display:block}.jav-resource-history-remove-dialog strong{color:#991b1b;font-size:14px}.jav-resource-history-remove-dialog span{margin-top:8px;font-size:12px;line-height:1.6}.jav-resource-history-remove-dialog div{display:flex;gap:8px;margin-top:14px}.jav-resource-history-remove-dialog button{height:30px;padding:0 11px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}.jav-resource-history-remove-dialog button:first-child{border-color:#dc2626;background:#dc2626;color:#fff}.jav-resource-history-remove-dialog button:first-child:hover{background:#b91c1c}html[data-theme="dark"] .jav-resource-history-remove-confirm{background:rgba(0,0,0,.42)}html[data-theme="dark"] .jav-resource-history-remove-dialog{border-color:#7f1d1d;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-remove-dialog strong{color:#fca5a5}html[data-theme="dark"] .jav-resource-history-remove-dialog button{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-menu-remove{border-color:#7c2d12;background:#431407;color:#fed7aa}html[data-theme="dark"] .jav-resource-history-menu .jav-resource-history-detail:hover{background:#172554;color:#93c5fd}`);
+  injectStyle('jav-resource-library-card-grid',`.jav-resource-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}`);
+ }
+ const ResourceLibrary = (() => {
+  const STORAGE_KEY = 'laosiji_resource_library_v1'; const CACHE_DB_NAME = 'laosiji_resource_library_cache'; const CACHE_DB_VERSION = 3;
+  const BACKUP_FORMAT = 'laosiji-resource-library'; const BACKUP_VERSION = 2; const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
+  const WEBDAV_KEY =`${STORAGE_KEY}_webdav`;
+  const WEBDAV_SYNC_KEY =`${STORAGE_KEY}_webdav_sync`;
+  const BACKUP_HISTORY_KEY =`${STORAGE_KEY}_backup_history`;
+  const MAX_BACKUP_HISTORY = 20; let state = null; let resourceDbPromise = null; let resourceStateHydration = null; let resourceWriteQueue = Promise.resolve();
+  let resourceStateRevision = 0; let recoverySnapshot = null; let activeResourceOperation = null; const actorLookupInFlight = new Map();
+  function isSupported() {
+   return /(?:^|\.)javdb\.com$/i.test(location.hostname) && !(typeof MobilePolicy !== 'undefined' && MobilePolicy.isMobile()); }
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[char]);
+  function createState() {
+   return { version: 3, works: {}, actors: {}, relations: {}, blacklist: { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] }, updatedAt: 0 }; }
+  function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function normalizeStoredState(value) {
+   const source = value && typeof value === 'object' ? value : {};
+   const result = createState();
+   ['works', 'actors', 'relations'].forEach(kind => {
+    if (!source[kind] || typeof source[kind] !== 'object' || Array.isArray(source[kind])) return;
+    Object.entries(source[kind]).forEach(([key, item]) => {
+     if (item && typeof item === 'object' && !Array.isArray(item)) result[kind][key] = clone(item);
+    });
+   });
+   const sourceBlacklist = source.blacklist && typeof source.blacklist === 'object' && !Array.isArray(source.blacklist) ? source.blacklist : {};
+   ['actors', 'works'].forEach(kind => {
+    const entries = sourceBlacklist[kind];
+    if (!entries || typeof entries !== 'object' || Array.isArray(entries)) return;
+    Object.entries(entries).forEach(([key, item]) => {
+     if (item && typeof item === 'object' && !Array.isArray(item)) result.blacklist[kind][key] = clone(item);
+    });
+   });
+   const normalizeKeywords = (values, transform) => [...new Set((Array.isArray(values) ? values : []).map(value => transform(String(value || '').trim())).filter(Boolean))];
+   result.blacklist.codeKeywords = normalizeKeywords(sourceBlacklist.codeKeywords, value => value.toUpperCase());
+   result.blacklist.titleKeywords = normalizeKeywords(sourceBlacklist.titleKeywords, value => value.toLowerCase());
+   Object.values(result.works).forEach(work => {
+    if (!(work?.flags?.blocked ?? work?.filter)) return;
+    const code = String(work.code || '').trim();
+    if (code && !result.blacklist.works[code]) result.blacklist.works[code] = { code, addedAt: Number(work.modifiedAt || work.createdAt) || Date.now() };
+    if (work.flags) work.flags.blocked = false;
+    if ('filter' in work) work.filter = false;
+   });
+   result.updatedAt = Number(source.updatedAt) || 0;
+   return result; }
+  function getState() {
+   if (state) return state;
+   state = createState();
+   return state; }
+  function emitResourceEvent(name) {
+   if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
+   try { window.dispatchEvent(new Event(name)); } catch (_) { }
+  }
+  function getResourceDb() {
+   if (!window.indexedDB) return Promise.resolve(null);
+   if (resourceDbPromise) return resourceDbPromise;
+   resourceDbPromise = new Promise((resolve, reject) => {
+    try {
+     const request = window.indexedDB.open(CACHE_DB_NAME, CACHE_DB_VERSION);
+     request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains('snapshots')) request.result.createObjectStore('snapshots');
+     };
+     request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error || new Error('IndexedDB open failed'));
+    } catch (error) { reject(error); }
+   }).catch(() => null);
+   return resourceDbPromise; }
+  async function readIndexedDbValue(key) {
+   const db = await getResourceDb();
+   if (!db) return null;
+   return new Promise(resolve => {
+    try {
+     const request = db.transaction('snapshots', 'readonly').objectStore('snapshots').get(key);
+     request.onsuccess = () => resolve(request.result || null); request.onerror = () => resolve(null);
+    } catch (_) { resolve(null); }
+   }); }
+  async function writeIndexedDbValue(key, value) {
+   const db = await getResourceDb();
+   if (!db) throw new Error('IndexedDB unavailable');
+   return new Promise((resolve, reject) => {
+    try {
+     const transaction = db.transaction('snapshots', 'readwrite');
+     transaction.objectStore('snapshots').put(clone(value), key);
+     transaction.oncomplete = () => resolve(true); transaction.onerror = () => reject(transaction.error || new Error('IndexedDB write failed'));
+     transaction.onabort = () => reject(transaction.error || new Error('IndexedDB write aborted'));
+    } catch (error) { reject(error); }
+   }); }
+  async function deleteIndexedDbValue(key) {
+   const db = await getResourceDb();
+   if (!db) return false;
+   return new Promise((resolve, reject) => {
+    try {
+     const transaction = db.transaction('snapshots', 'readwrite');
+     transaction.objectStore('snapshots').delete(key);
+     transaction.oncomplete = () => resolve(true); transaction.onerror = () => reject(transaction.error || new Error('IndexedDB delete failed'));
+     transaction.onabort = () => reject(transaction.error || new Error('IndexedDB delete aborted'));
+    } catch (error) { reject(error); }
+   }); }
+  function hydrateResourceState(onReady) {
+   if (!resourceStateHydration) {
+    resourceStateHydration = Promise.all([
+     readIndexedDbValue('latest'),
+     readIndexedDbValue('recovery'),
+    ]).then(([indexedState, indexedRecovery]) => {
+     state = indexedState ? normalizeStoredState(indexedState) : createState(); resourceStateRevision += 1;
+     recoverySnapshot = indexedRecovery?.format === BACKUP_FORMAT && indexedRecovery?.data ? indexedRecovery : null;
+     emitResourceEvent('laosiji-resource-state-ready');
+     return state;
+    }).catch(() => {
+     state = createState(); resourceStateRevision += 1; recoverySnapshot = null;
+     emitResourceEvent('laosiji-resource-state-ready');
+     return state;
+    }); }
+   if (onReady) resourceStateHydration.then(onReady);
+   return resourceStateHydration; }
+  function persist() {
+   const library = getState();
+   library.updatedAt = Date.now(); resourceStateRevision += 1;
+   const snapshot = clone(library);
+   resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => writeIndexedDbValue('latest', snapshot));
+   emitResourceEvent('laosiji-resource-state-changed');
+   return resourceWriteQueue; }
+  const RESOURCE_WORK_FLAG_META = { favorite: '收藏', watched: '观看', downloaded: '下载' };
+  const ACTOR_NAME_EXCLUSIONS = new Set(['有码', '无码', '欧美', '未知', '演员', '女优', '类别', '类型', 'censored', 'uncensored', 'western']);
+  ['\u6709\u7801', '\u65e0\u7801', '\u6b27\u7f8e', '\u672a\u77e5', '\u6f14\u5458', '\u5973\u4f18', '\u7c7b\u522b', '\u7c7b\u578b'].forEach(name => ACTOR_NAME_EXCLUSIONS.add(name));
+  function normalizeActorNames(values, code = '') {
+   values = (Array.isArray(values) ? values : [values]).flatMap(value => String(value || '').split(/[\u3001,\uFF0C|/]+/));
+   const codeKey = String(code || '').trim().toLowerCase();
+   return [...new Set((Array.isArray(values) ? values : [values]).flatMap(value => String(value || '').split(/[、,，|/]+/))
+    .map(value => value.replace(/\s+/g, ' ').trim()) .filter(value => value && value.toLowerCase() !== codeKey && !ACTOR_NAME_EXCLUSIONS.has(value)))]; }
+  function linkKnownActorsToWorks(library) {
+   const actorEntries = Object.entries(library.actors || {});
+   let changed = false;
+   Object.values(library.works || {}).forEach(work => {
+    const beforeNames = JSON.stringify(work.actorNames || []); const beforeIds = JSON.stringify(work.actorIds || []);
+    work.actorNames = normalizeActorNames(work.actorNames, work.code);
+    const known = new Set(Array.isArray(work.actorIds) ? work.actorIds : []);
+    work.actorNames.forEach(name => actorEntries.forEach(([actorId, actor]) => {
+     const aliases = [actor?.name, ...(Array.isArray(actor?.aliases) ? actor.aliases : [])].filter(Boolean).map(item => String(item).trim().toLowerCase());
+     if (aliases.includes(name.toLowerCase())) known.add(actorId);
+    }));
+    work.actorIds = [...known];
+    work.actorIds.forEach(actorId => {
+     if (library.actors[actorId]) library.relations[`${work.code}:${actorId}`] = { workCode: work.code, actorId, updatedAt: Date.now() };
+    });
+    changed = changed || beforeNames !== JSON.stringify(work.actorNames) || beforeIds !== JSON.stringify(work.actorIds);
+   });
+   return changed; }
+  function ensureResourceWork(code, metadata = {}) {
+   const normalizedCode = String(code || '').trim();
+   if (!normalizedCode) return null;
+   const library = getState(); const now = Date.now(); const previous = library.works[normalizedCode];
+   if (!previous || typeof previous !== 'object' || Array.isArray(previous)) {
+    library.works[normalizedCode] = {
+     code: normalizedCode,
+     title: String(metadata.title || normalizedCode).trim(),
+     cover: String(metadata.cover || '').trim(),
+     publishTime: String(metadata.publishTime || '').trim(),
+     url: String(metadata.url || '').trim(),
+     type: metadata.type || 'unknown',
+     source: metadata.source || 'javdb',
+     tags: Array.isArray(metadata.tags) ? [...metadata.tags] : [],
+     actorIds: Array.isArray(metadata.actorIds) ? [...new Set(metadata.actorIds.filter(Boolean))] : [],
+     actorNames: normalizeActorNames(metadata.actorNames, normalizedCode),
+     flags: { favorite: false, watched: false, downloaded: false },
+     activity: [],
+     createdAt: now,
+     modifiedAt: 0,
+     lastSeenAt: now, };
+    return library.works[normalizedCode]; }
+   if (!previous.code) previous.code = normalizedCode;
+   ['title', 'cover', 'publishTime', 'url', 'type', 'source'].forEach(key => {
+    if (!previous[key] && metadata[key]) previous[key] = String(metadata[key]).trim();
+   });
+   if (!Array.isArray(previous.tags)) previous.tags = Array.isArray(metadata.tags) ? [...metadata.tags] : [];
+   if (!Array.isArray(previous.actorIds)) previous.actorIds = [];
+   if (Array.isArray(metadata.actorNames) && metadata.actorNames.length) previous.actorNames = normalizeActorNames([...(previous.actorNames || []), ...metadata.actorNames], normalizedCode);
+   else previous.actorNames = normalizeActorNames(previous.actorNames, normalizedCode);
+   if (!previous.createdAt) previous.createdAt = now;
+   previous.lastSeenAt = now;
+   return previous; }
+  function getBlacklist(library = getState()) {
+   if (!library.blacklist || typeof library.blacklist !== 'object' || Array.isArray(library.blacklist)) library.blacklist = { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] };
+   ['actors', 'works'].forEach(kind => {
+    if (!library.blacklist[kind] || typeof library.blacklist[kind] !== 'object' || Array.isArray(library.blacklist[kind])) library.blacklist[kind] = {};
+   });
+   ['codeKeywords', 'titleKeywords'].forEach(kind => {
+    if (!Array.isArray(library.blacklist[kind])) library.blacklist[kind] = [];
+   });
+   return library.blacklist; }
+  function getWorkBlacklistReason(work, library = getState()) {
+   if (!work) return '';
+   const blacklist = getBlacklist(library); const code = String(work.code || '').trim();
+   if (code && Object.values(blacklist.actors).some(actor => Array.isArray(actor.workCodes) && actor.workCodes.includes(code))) return '演员黑名单';
+   if ((work.actorIds || []).some(actorId => blacklist.actors[actorId])) return '演员黑名单';
+   const actorNames = normalizeActorNames(work.actorNames, code).map(name => name.toLowerCase()); const titleText = String(work.title || '').toLowerCase();
+   if (Object.values(blacklist.actors).some(actor => [actor.name, ...(actor.aliases || [])].filter(Boolean).some(name => {
+    const normalizedName = String(name).trim().toLowerCase();
+    return actorNames.includes(normalizedName) || (normalizedName.length >= 2 && titleText.includes(normalizedName));
+   }))) return '演员黑名单';
+   if (code && blacklist.works[code]) return '作品黑名单';
+   const codeText = code.toUpperCase();
+   if (blacklist.codeKeywords.some(keyword => keyword && codeText.includes(keyword))) return '番号关键词';
+   if (blacklist.titleKeywords.some(keyword => keyword && titleText.includes(keyword))) return '标题关键词';
+   return ''; }
+  function isWorkBlacklisted(work, library = getState()) { return !!getWorkBlacklistReason(work, library); }
+  function isActorBlacklisted(actorId, library = getState()) { return !!(actorId && getBlacklist(library).actors[actorId]); }
+  function setWorkBlacklist(code, metadata = {}, blocked = true) {
+   const work = ensureResourceWork(code, metadata);
+   if (!work) return false;
+   const blacklist = getBlacklist(); const normalizedCode = work.code;
+   if (blocked) blacklist.works[normalizedCode] = { code: normalizedCode, addedAt: Date.now() };
+   else delete blacklist.works[normalizedCode];
+   work.modifiedAt = Date.now(); work.activity = Array.isArray(work.activity) ? work.activity : [];
+   work.activity.unshift({ action: 'blocked', value: blocked, at: Date.now() });
+   work.activity = work.activity.slice(0, 50);
+   return blocked; }
+  function setActorBlacklist(actorId, actor, blocked = true) {
+   const blacklist = getBlacklist();
+   if (!actorId) return false;
+   if (blocked) {
+    const previous = blacklist.actors[actorId] || {};
+    blacklist.actors[actorId] = { ...previous, actorId, name: String(actor?.name || previous.name || actorId), aliases: Array.isArray(actor?.aliases) ? [...actor.aliases] : (Array.isArray(previous.aliases) ? [...previous.aliases] : []), addedAt: previous.addedAt || Date.now() };
+   }
+   else delete blacklist.actors[actorId];
+   return blocked; }
+  async function toggleResourceActorBlacklist(actorId, metadata = {}) {
+   await hydrateResourceState();
+   const library = getState(); const blocked = !isActorBlacklisted(actorId, library);
+   const actor = library.actors[actorId] || {
+    starId: actorId,
+    name: String(metadata.name || actorId),
+    aliases: [],
+    type: 'unknown',
+    source: 'javdb',
+    url: absoluteUrl(`/actors/${encodeURIComponent(actorId)}`),
+   };
+   library.actors[actorId] = { ...actor, ...metadata, starId: actorId, name: String(metadata.name || actor.name || actorId) };
+   setActorBlacklist(actorId, library.actors[actorId], blocked);
+   if (blocked) {
+    try {
+     await syncBlacklistedActor(actorId);
+    } catch (error) { errorLog('actor blacklist work sync failed:', error?.message || error); } }
+   await persist();
+   return blocked; }
+  async function syncBlacklistedActor(actorId, onProgress, operation) {
+   await hydrateResourceState();
+   const library = getState(); const entry = getBlacklist().actors[actorId];
+   if (!entry) throw new Error('演员不在黑名单中');
+   const actor = library.actors[actorId] || {
+    starId: actorId,
+    name: String(entry.name || actorId),
+    aliases: Array.isArray(entry.aliases) ? [...entry.aliases] : [],
+    type: 'unknown',
+    source: 'javdb',
+    url: absoluteUrl(`/actors/${encodeURIComponent(actorId)}`),
+   };
+   library.actors[actorId] = actor;
+   const result = await syncActorWorks(actorId, onProgress, operation);
+   const workCodes = Object.values(library.works).filter(work => work.actorIds?.includes(actorId)).map(work => work.code).filter(Boolean);
+   entry.workCodes = [...new Set([...(Array.isArray(entry.workCodes) ? entry.workCodes : []), ...workCodes])]; entry.name = actor.name || entry.name || actorId;
+   entry.aliases = Array.isArray(actor.aliases) ? [...actor.aliases] : []; entry.worksSyncedAt = Date.now();
+   await persist();
+   return result; }
+  async function syncPendingBlacklistedActors() {
+   await hydrateResourceState();
+   const library = getState(); const pending = Object.values(getBlacklist().actors).filter(actor => actor?.actorId && !actor.worksSyncedAt);
+   let changed = false;
+   for (const entry of pending) {
+    const actorId = String(entry.actorId);
+    if (!library.actors[actorId]) {
+     library.actors[actorId] = {
+      starId: actorId,
+      name: String(entry.name || actorId),
+      aliases: Array.isArray(entry.aliases) ? [...entry.aliases] : [],
+      type: 'unknown',
+      source: 'javdb',
+      url: absoluteUrl(`/actors/${encodeURIComponent(actorId)}`),
+     }; }
+    try {
+     await syncBlacklistedActor(actorId);
+     changed = true;
+    } catch (error) { errorLog('pending actor blacklist sync failed:', error?.message || error); } }
+   if (changed) await persist();
+  }
+  async function toggleResourceWorkFlag(code, flag, metadata = {}) {
+   await hydrateResourceState();
+   if (flag === 'blocked') {
+    const work = ensureResourceWork(code, metadata);
+    if (!work) return false;
+    const blocked = !getBlacklist().works[work.code];
+    setWorkBlacklist(work.code, metadata, blocked); await persist();
+    return blocked; }
+   const work = RESOURCE_WORK_FLAG_META[flag] ? ensureResourceWork(code, metadata) : null;
+   if (!work) return false;
+   const flags = {
+    favorite: !!(work.flags?.favorite ?? work.favorite),
+    watched: !!(work.flags?.watched ?? work.hasWatch),
+    downloaded: !!(work.flags?.downloaded ?? work.hasDown), };
+   flags[flag] = !flags[flag]; work.flags = flags; work.modifiedAt = Date.now(); work.activity = Array.isArray(work.activity) ? work.activity : [];
+   work.activity.unshift({ action: flag, value: flags[flag], at: Date.now() });
+   work.activity = work.activity.slice(0, 50);
+   await persist();
+   return flags[flag]; }
+  function parseWorkActors(html, pageUrl) {
+   const doc = parseHTML(html); const seen = new Set();
+   const actorLinks = doc.querySelectorAll('.movie-panel-info a[href*="/actors/"], .video-panel a[href*="/actors/"], a[href*="/actors/"]');
+   return [...actorLinks].map(anchor => {
+    // The marker belongs to the current link and follows it. Never inspect
+    // the previous sibling: it may be the female marker of the prior actor.
+    const femaleMarker = anchor.nextElementSibling?.matches?.('.symbol.female, .female') || anchor.matches?.('.female, [data-gender="female"]')
+     || String(anchor.getAttribute('data-gender') || '').toLowerCase() === 'female';
+    if (!femaleMarker) return null;
+    const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); let path = '';
+    try { path = new URL(href || '', pageUrl).pathname; } catch (_) { }
+    const match = path.match(/\/actors\/([^/?#]+)/i); const starId = match?.[1] || '';
+    const name = String(anchor.querySelector('.name, .actor-name, .info')?.textContent || anchor.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!starId || !name || ACTOR_NAME_EXCLUSIONS.has(starId.toLowerCase()) || ACTOR_NAME_EXCLUSIONS.has(name) || seen.has(starId)) return null;
+    seen.add(starId);
+    return { starId, name, url: href };
+   }).filter(Boolean); }
+  function parseWorkPublishTime(html) {
+   const doc = parseHTML(html);
+   const blocks = doc.querySelectorAll('.movie-panel-info .panel-block, .video-meta-panel .panel-block, .movie-panel-info p, .video-meta-panel p');
+   for (const block of blocks) {
+    const label = String(block.querySelector('strong, .header, dt')?.textContent || '').replace(/[：:]/g, '').trim();
+    if (!/(日期|发行日期|发布日期|發行日期|發布日期|release date|released|date)/i.test(label)) continue;
+    const value = String(block.querySelector('.value, dd, span')?.textContent || block.textContent || '')
+     .replace(label, '').replace(/^[：:\s]+/, '').replace(/\s+/g, ' ').trim();
+    const match = value.match(/\b(?:19|20)\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}(?:日)?\b/);
+    if (match) return match[0].replace(/[年月]/g, '-').replace(/日$/, '').replace(/[/.]/g, '-');
+    if (value) return value;
+   }
+   return ''; }
+  async function enrichWorkActors(code, detailUrl, options = {}) {
+   await hydrateResourceState();
+   const normalizedCode = String(code || '').trim(); const url = absoluteUrl(detailUrl);
+   if (!normalizedCode || !url) return false;
+   const current = getState().works[normalizedCode] || ensureResourceWork(normalizedCode, { code: normalizedCode, url, source: 'javdb' });
+   // Re-run enrichment after parser changes so stale non-female names are removed.
+   if (!current || (current.actorInfoVersion === 3 && !options.force)) return false;
+   if (actorLookupInFlight.has(normalizedCode)) return actorLookupInFlight.get(normalizedCode);
+   const task = (async () => {
+    const response = await gmFetch(url, { method: 'GET', timeout: 20000 });
+    if (!response.loadstuts || !response.responseText) return false;
+    const actors = parseWorkActors(response.responseText, url); const library = getState(); const work = library.works[normalizedCode];
+    if (!work) return false;
+    // Replace the snapshot instead of merging it with stale card/detail data.
+    work.actorNames = normalizeActorNames(actors.map(actor => actor.name), normalizedCode);
+    const publishTime = parseWorkPublishTime(response.responseText);
+    if (publishTime) work.publishTime = publishTime;
+    work.actorIds = [];
+    actors.forEach(actor => {
+     const previousActor = library.actors[actor.starId] || {};
+     library.actors[actor.starId] = { ...previousActor,
+      starId: actor.starId,
+      name: actor.name || previousActor.name || actor.starId,
+      aliases: [...new Set([...(previousActor.aliases || []), actor.name].filter(Boolean))],
+      url: actor.url || previousActor.url || '',
+      source: previousActor.source || 'javdb',
+      type: previousActor.type || 'censored', };
+     work.actorIds.push(actor.starId);
+    });
+    work.actorIds = [...new Set(work.actorIds)];
+    Object.entries(library.relations).forEach(([key, relation]) => {
+     if (relation?.workCode === work.code && !work.actorIds.includes(relation.actorId)) delete library.relations[key];
+    });
+    work.actorIds.forEach(actorId => {
+     if (library.actors[actorId]) library.relations[`${work.code}:${actorId}`] = { workCode: work.code, actorId, updatedAt: Date.now() };
+    });
+    work.actorInfoFetchedAt = Date.now(); work.actorInfoVersion = 3;
+    persist();
+    return true;
+   })().finally(() => actorLookupInFlight.delete(normalizedCode));
+   actorLookupInFlight.set(normalizedCode, task);
+   return task; }
+  function exportBackup() { return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data: clone(getState()) }; }
+  function downloadBackup() {
+   const blob = new Blob([JSON.stringify(exportBackup(), null, 2)], { type: 'application/json' });
+   const url = URL.createObjectURL(blob); const link = document.createElement('a');
+   const filename = `laosiji-resource-backup-${new Date().toISOString().replace(/[.:]/g, '-')}.json`;
+   link.href = url; link.download = filename;
+   document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+   return filename; }
+  function getBackupHistory() {
+   const saved = GM_getValue(BACKUP_HISTORY_KEY, '');
+   try {
+    const history = typeof saved === 'string' ? JSON.parse(saved || '[]') : saved;
+    return Array.isArray(history) ? history.filter(item => item && typeof item === 'object').slice(0, MAX_BACKUP_HISTORY) : [];
+   } catch (_) { return []; } }
+  function recordBackupHistory(action, status, details = {}) {
+   const history = getBackupHistory();
+   history.unshift({ action, status, filename: String(details.filename || ''), message: String(details.message || ''), at: Date.now() });
+   GM_setValue(BACKUP_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_BACKUP_HISTORY))); }
+  function webdavSyncId(config) { return `${config.url}\n${config.filename}`; }
+  function getWebdavSyncRecord(config) {
+   const saved = GM_getValue(WEBDAV_SYNC_KEY, '');
+   try {
+    const records = typeof saved === 'string' ? JSON.parse(saved || '{}') : saved;
+    const record = records?.[webdavSyncId(config)];
+    return record && typeof record === 'object' ? record : null;
+   } catch (_) { return null; } }
+  function saveWebdavSyncRecord(config, digest, action) {
+   const saved = GM_getValue(WEBDAV_SYNC_KEY, '');
+   let records = {};
+   try { records = typeof saved === 'string' ? JSON.parse(saved || '{}') : saved; } catch (_) { records = {}; }
+   if (!records || typeof records !== 'object' || Array.isArray(records)) records = {};
+   records[webdavSyncId(config)] = { digest, action, at: Date.now() };
+   GM_setValue(WEBDAV_SYNC_KEY, JSON.stringify(records)); }
+  async function backupDigest(value) {
+   if (!globalThis.crypto?.subtle) throw new Error('当前浏览器不支持 WebDAV 冲突检测');
+   const text = typeof value === 'string' ? value : JSON.stringify(value); let normalized = text;
+   try { normalized = JSON.stringify(JSON.parse(text)); } catch (_) { normalized = text.trim(); }
+   const buffer = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized));
+   return Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join(''); }
+  function getWebdavConfig() {
+   const saved = GM_getValue(WEBDAV_KEY, '');
+   try {
+    const config = typeof saved === 'string' ? JSON.parse(saved || '{}') : saved;
+    return { url: String(config?.url || '').trim(), username: String(config?.username || ''), password: String(config?.password || ''), filename: String(config?.filename || 'laosiji-resource-backup.json').trim() || 'laosiji-resource-backup.json' };
+   } catch (_) { return { url: '', username: '', password: '', filename: 'laosiji-resource-backup.json' }; } }
+  function saveWebdavConfig(config) {
+   const next = { url: String(config?.url || '').trim().replace(/\/+$/, ''), username: String(config?.username || ''), password: String(config?.password || ''), filename: String(config?.filename || 'laosiji-resource-backup.json').trim() || 'laosiji-resource-backup.json' };
+   GM_setValue(WEBDAV_KEY, JSON.stringify(next));
+   return next; }
+  function webdavAuth(config) {
+   const bytes = new TextEncoder().encode(`${config.username}:${config.password}`);
+   return `Basic ${btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))}`;
+  }
+  function webdavTarget(config, includeFilename = true) {
+   if (!config.url) throw new Error('请先填写 WebDAV 地址');
+   try { return new URL(includeFilename ? encodeURIComponent(config.filename) : '', `${config.url.replace(/\/+$/, '')}/`).href; } catch (_) { throw new Error('WebDAV 地址格式不正确'); }
+  }
+  async function webdavRequest(method, config, body = '') {
+   const response = await gmFetch(webdavTarget(config, method !== 'PROPFIND'), {
+    method,
+    headers: { authorization: webdavAuth(config), accept: 'application/json, text/plain, */*', ...(method === 'PROPFIND' ? { depth: '0' } : {}), ...(method === 'PUT' ? { 'content-type': 'application/json; charset=utf-8' } : {}) },
+    data: body,
+    timeout: 30000,
+   });
+   if (!response.loadstuts || response.status < 200 || response.status >= 400) {
+    const error = new Error(`WebDAV 请求失败: HTTP ${response.status || 0}`);
+    error.status = response.status || 0;
+    throw error; }
+   return response; }
+  async function webdavTest(config) { return { status: (await webdavRequest('PROPFIND', config)).status, message: '连接成功' }; }
+  async function webdavUpload(config, options = {}) {
+   const body = JSON.stringify(exportBackup(), null, 2); const previous = getWebdavSyncRecord(config);
+   if (previous?.digest && !options.force) {
+    let remoteBody = '';
+    try { remoteBody = (await webdavRequest('GET', config)).responseText || ''; } catch (error) { if (error.status !== 404) throw error; }
+    if (remoteBody && await backupDigest(remoteBody) !== previous.digest) {
+     const conflict = new Error('云端备份已在其他位置发生修改');
+     conflict.code = 'WEBDAV_CONFLICT';
+     throw conflict; } }
+   const response = await webdavRequest('PUT', config, body);
+   saveWebdavSyncRecord(config, await backupDigest(body), 'upload');
+   return { status: response.status, message: '备份已上传' }; }
+  async function webdavDownload(config) {
+   const response = await webdavRequest('GET', config); const body = response.responseText || '';
+   const prepared = prepareImport(JSON.parse(body || '{}'));
+   saveWebdavSyncRecord(config, await backupDigest(body), 'download');
+   return { fileName: config.filename, ...prepared }; }
+  async function webdavDelete(config) { return { status: (await webdavRequest('DELETE', config)).status, message: '云端备份已删除' }; }
+  function xmlNodeText(node, localName) { return Array.from(node?.getElementsByTagName?.('*') || []).find(element => element.localName === localName)?.textContent?.trim() || ''; }
+  function decodeUri(value) {
+   try { return decodeURIComponent(value); } catch (_) { return value; }
+  }
+  function parseWebdavListing(xmlText, config) {
+   if (!xmlText.trim()) return [];
+   const documentXml = new DOMParser().parseFromString(xmlText, 'application/xml');
+   if (documentXml.getElementsByTagName('parsererror').length) throw new Error('WebDAV 返回的目录格式无效');
+   const base = new URL(`${config.url.replace(/\/+$/, '')}/`);
+   const seen = new Set();
+   return Array.from(documentXml.getElementsByTagName('*')).filter(node => node.localName === 'response').map(node => {
+    const href = xmlNodeText(node, 'href'); const resourceUrl = href ? new URL(href, base) : null;
+    const resourceType = Array.from(node.getElementsByTagName('*')).find(element => element.localName === 'resourcetype');
+    const isCollection = Array.from(resourceType?.getElementsByTagName?.('*') || []).some(element => element.localName === 'collection');
+    if (!resourceUrl || isCollection) return null;
+    const pathname = decodeUri(resourceUrl.pathname); const basePath = decodeUri(base.pathname).replace(/\/+$/, '') + '/';
+    const filename = (pathname.startsWith(basePath) ? pathname.slice(basePath.length) : '').split('/').filter(Boolean).pop() || '';
+    if (!filename || !/\.json$/i.test(filename) || seen.has(filename)) return null;
+    seen.add(filename);
+    return { filename, size: Number(xmlNodeText(node, 'getcontentlength')) || 0, modifiedAt: xmlNodeText(node, 'getlastmodified') };
+   }).filter(Boolean).sort((a, b) => (Date.parse(b.modifiedAt) || 0) - (Date.parse(a.modifiedAt) || 0)); }
+  async function webdavList(config) {
+   const response = await webdavRequest('PROPFIND', config);
+   return { status: response.status, items: parseWebdavListing(response.responseText || '', config) }; }
+  function saveRecoverySnapshot() {
+   const snapshot = { format: BACKUP_FORMAT, version: BACKUP_VERSION, createdAt: new Date().toISOString(), data: clone(getState()) };
+   recoverySnapshot = snapshot;
+   resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => writeIndexedDbValue('recovery', snapshot));
+   return snapshot; }
+  function getRecoverySnapshot() { return recoverySnapshot; }
+  function restoreRecoverySnapshot() {
+   const snapshot = getRecoverySnapshot();
+   if (!snapshot) throw new Error('没有可恢复的本地快照');
+   const prepared = prepareImport(snapshot);
+   state = { version: 2, ...prepared.data, updatedAt: Date.now() };
+   persist();
+   return state; }
+  function checkIntegrity() {
+   const library = getState(); const issues = []; const workCodes = new Set(Object.keys(library.works)); const actorIds = new Set(Object.keys(library.actors));
+   Object.entries(library.works).forEach(([key, work]) => { if (!work || typeof work !== 'object' || Array.isArray(work)) issues.push(`作品记录异常：${key}`); });
+   Object.entries(library.actors).forEach(([key, actor]) => { if (!actor || typeof actor !== 'object' || Array.isArray(actor)) issues.push(`演员记录异常：${key}`); });
+   Object.entries(library.relations).forEach(([key, relation]) => {
+    if (!relation || typeof relation !== 'object' || !relation.workCode || !workCodes.has(relation.workCode) || !relation.actorId || !actorIds.has(relation.actorId)) issues.push(`孤立关系：${key}`);
+   });
+   return { checkedAt: Date.now(), works: workCodes.size, actors: actorIds.size, relations: Object.keys(library.relations).length, issues }; }
+  function repairIntegrity() {
+   const library = getState(); let removedRecords = 0;
+   Object.entries(library.works).forEach(([key, value]) => { if (!value || typeof value !== 'object' || Array.isArray(value)) { delete library.works[key]; removedRecords += 1; } });
+   Object.entries(library.actors).forEach(([key, value]) => { if (!value || typeof value !== 'object' || Array.isArray(value)) { delete library.actors[key]; removedRecords += 1; } });
+   const workCodes = new Set(Object.keys(library.works)); const actorIds = new Set(Object.keys(library.actors));
+   Object.entries(library.relations).forEach(([key, relation]) => {
+    if (!relation || typeof relation !== 'object' || !relation.workCode || !workCodes.has(relation.workCode) || !relation.actorId || !actorIds.has(relation.actorId)) { delete library.relations[key]; removedRecords += 1; }
+   });
+   persist();
+   return { removedRecords, report: checkIntegrity() }; }
+  function prepareImport(raw) {
+   const payload = raw?.data && typeof raw.data === 'object' ? raw.data : raw; const errors = [];
+   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('备份内容不是对象');
+   if (raw?.format && raw.format !== BACKUP_FORMAT) throw new Error('不是老司机资源管理备份文件');
+   const data = { works: {}, actors: {}, relations: {}, blacklist: { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] } };
+   ['works', 'actors', 'relations'].forEach(kind => {
+    const source = payload[kind];
+    if (!source) return;
+    if (typeof source !== 'object' || Array.isArray(source)) { errors.push(`${kind} 数据格式无效`); return; }
+    Object.entries(source).forEach(([key, value]) => {
+     if (!value || typeof value !== 'object' || Array.isArray(value)) { errors.push(`跳过无效${kind}记录：${key}`); return; }
+     data[kind][key] = clone(value);
+    });
+   });
+   if (payload.blacklist && typeof payload.blacklist === 'object' && !Array.isArray(payload.blacklist)) {
+    ['actors', 'works'].forEach(kind => {
+     const source = payload.blacklist[kind];
+     if (!source || typeof source !== 'object' || Array.isArray(source)) return;
+     Object.entries(source).forEach(([key, value]) => {
+      if (value && typeof value === 'object' && !Array.isArray(value)) data.blacklist[kind][key] = clone(value);
+     });
+    });
+    ['codeKeywords', 'titleKeywords'].forEach(kind => {
+     if (Array.isArray(payload.blacklist[kind])) data.blacklist[kind] = [...new Set(payload.blacklist[kind].map(value => String(value || '').trim()).filter(Boolean))];
+    }); }
+   return { data, errors }; }
+  function mergeValues(previous, incoming) {
+   if (Array.isArray(previous) || Array.isArray(incoming)) return [...new Set([...(Array.isArray(previous) ? previous : []), ...(Array.isArray(incoming) ? incoming : [])])];
+   if (previous && typeof previous === 'object' && incoming && typeof incoming === 'object') {
+    return Object.keys({ ...previous, ...incoming }).reduce((result, key) => {
+     result[key] = key in incoming ? mergeValues(previous[key], incoming[key]) : clone(previous[key]);
+     return result;
+    }, {}); }
+   return incoming ?? previous; }
+  function mergeImportedState(imported) {
+   saveRecoverySnapshot();
+   const library = getState();
+   ['works', 'actors', 'relations'].forEach(kind => Object.entries(imported[kind] || {}).forEach(([key, value]) => { library[kind][key] = mergeValues(library[kind][key], value); }));
+   const blacklist = getBlacklist(library);
+   ['actors', 'works'].forEach(kind => Object.entries(imported.blacklist?.[kind] || {}).forEach(([key, value]) => { blacklist[kind][key] = mergeValues(blacklist[kind][key], value); }));
+   ['codeKeywords', 'titleKeywords'].forEach(kind => { blacklist[kind] = [...new Set([...(blacklist[kind] || []), ...(imported.blacklist?.[kind] || [])])]; });
+   persist();
+   return library; }
+  function clearAuxiliaryData() {
+   GM_setValue(WEBDAV_SYNC_KEY, '{}');
+   GM_setValue(BACKUP_HISTORY_KEY, '[]');
+   recoverySnapshot = null;
+   resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => deleteIndexedDbValue('recovery')).catch(() => {}); }
+  function formatDate(value) { return value ? new Date(value).toLocaleString() : '未知时间'; }
+  function normalizeCode(value) {
+   const raw = String(value || '').trim().toUpperCase();
+   if (!raw) return '';
+   if (typeof normalizeAvid === 'function') return normalizeAvid(raw);
+   const match = raw.match(/^([A-Z]+)[-_ ]?(\d+)$/);
+   return match ? `${match[1]}-${match[2]}` : raw.replace(/\s+/g, '-');
+  }
+  function absoluteUrl(value, base = location.origin) {
+   try {
+    const url = new URL(String(value || ''), base);
+    return /^https?:$/i.test(url.protocol) ? url.href : '';
+   } catch (_) { return ''; } }
+  function classifyType(value) {
+   const text = String(value || '').toLowerCase();
+   if (/无码|無碼|uncensored/.test(text)) return 'uncensored';
+   if (/欧美|歐美|western/.test(text)) return 'western';
+   if (/有码|有碼|censored/.test(text)) return 'censored';
+   return 'unknown'; }
+  function actorType(actor) {
+   const value = actor?.type || actor?.actressType || '';
+   if (value === 'uncensored' || value === 'censored' || value === 'western') return value;
+   const classified = classifyType(value);
+   return classified !== 'unknown' ? classified : actor?.source === 'javdb' ? 'censored' : 'unknown'; }
+  function parseActorPage(html, pageUrl) {
+   const doc = parseHTML(html); const container = doc.querySelector('#actors');
+   if (!container) throw new Error('未找到 JavDB 演员列表');
+   const actors = [];
+   container.querySelectorAll('.actor-box a[href*="/actors/"]').forEach(anchor => {
+    const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); const match = new URL(href || pageUrl).pathname.match(/\/actors\/([^/?#]+)/i);
+    const starId = match?.[1] || ''; const infoText = anchor.querySelector('.info')?.textContent || '';
+    const typeHint = [
+     anchor.querySelector('.info, .actor-info, .tag, .badge, [class*="type"], [class*="category"]')?.textContent,
+     anchor.getAttribute('data-type'),
+     anchor.getAttribute('data-category'),
+     anchor.getAttribute('title'),
+     anchor.textContent,
+     anchor.closest('.actor-box')?.textContent,
+    ].filter(Boolean).join(' ');
+    const title = String(anchor.getAttribute('title') || anchor.querySelector('.info')?.textContent || '').trim();
+    const aliases = title.split(/[,，、]/).map(item => item.trim()).filter(Boolean);
+    const name = aliases[0] || String(anchor.querySelector('.info')?.textContent || '').trim();
+    if (!starId || !name) return;
+    const detectedType = classifyType(typeHint || infoText);
+    actors.push({ starId, name, aliases, avatar: absoluteUrl(anchor.querySelector('img')?.getAttribute('src'), pageUrl), type: detectedType === 'uncensored' ? 'uncensored' : detectedType === 'western' ? 'western' : 'censored', source: 'javdb', url: href });
+   });
+   const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]');
+   const nextUrl = next ? absoluteUrl(next.getAttribute('href'), pageUrl) : '';
+   return { actors, nextUrl, isChallenge: /Just a moment|cf-chl-|Cloudflare/i.test(doc.title + doc.body.textContent) }; }
+  function extractWorkCode(text) {
+   const source = String(text || '').toUpperCase();
+   const match = source.match(/\b(?:FC2[-_ ]?PPV[-_ ]?\d{4,}|[A-Z]{2,10}[-_ ]?\d{2,8})\b/);
+   return normalizeCode(match?.[0] || ''); }
+  function parseWorkPage(html, pageUrl) {
+   const doc = parseHTML(html); const anchors = [...doc.querySelectorAll('a[href*="/v/"]')]; const works = []; const seen = new Set();
+   anchors.forEach(anchor => {
+    const card = anchor.closest('.item, .box, .movie-box, .video-box, .movie-list-item, .card') || anchor;
+    const text = card.textContent || anchor.textContent || ''; const code = extractWorkCode(text) || extractWorkCode(anchor.getAttribute('href'));
+    if (!code || seen.has(code)) return;
+    seen.add(code);
+    const image = card.querySelector('img[src], img[data-src]'); const titleNode = card.querySelector('.title, .name, .video-title, [class*="title"]');
+    const dateNode = card.querySelector('.meta, .date, .time, .release-date, time');
+    const title = String(titleNode?.textContent || anchor.textContent || '').replace(code, '').replace(/[|｜]/g, '').trim();
+    works.push({ code, title, cover: absoluteUrl(image?.getAttribute('src') || image?.getAttribute('data-src'), pageUrl), publishTime: String(dateNode?.textContent || '').trim(), url: absoluteUrl(anchor.getAttribute('href'), pageUrl), type: classifyType(text), source: 'javdb', tags: [] });
+   });
+   const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]');
+   return { works, nextUrl: next ? absoluteUrl(next.getAttribute('href'), pageUrl) : '', isChallenge: /Just a moment|cf-chl-|Cloudflare/i.test(doc.title + doc.body.textContent) };
+  }
+  function parseActorProfile(html) {
+   const doc = parseHTML(html);
+   const name = String(doc.querySelector('.actor-section-name, .avatar-box .photo-info .pb10, h1.title')?.textContent || '').replace(/\s+/g, ' ').trim();
+   const aliases = normalizeActorNames(name.split(/[,，、]/));
+   return { name: aliases[0] || name, aliases }; }
+  function createResourceOperation() { return { cancelled: false, request: null, cancel() { this.cancelled = true; this.request?.abort?.(); } }; }
+  function throwIfResourceOperationCancelled(operation) {
+   if (operation?.cancelled) throw new Error('RESOURCE_OPERATION_CANCELLED');
+  }
+  async function fetchResourcePage(url, operation) {
+   throwIfResourceOperationCancelled(operation);
+   const request = gmFetch(url, { method: 'GET', timeout: 30000 });
+   if (operation) operation.request = request;
+   const response = await request;
+   if (operation && operation.request === request) operation.request = null;
+   throwIfResourceOperationCancelled(operation);
+   if (!response.loadstuts || !response.responseText) throw new Error(`请求失败 HTTP ${response.status || 0}`);
+   return response.responseText; }
+  async function syncActors(onProgress, operation) {
+   await hydrateResourceState();
+   const library = getState(); const origin = location.origin; const seen = new Set(); let url = new URL('/users/collection_actors', origin).href;
+   let pages = 0; const now = Date.now();
+   while (url && pages < 200 && !seen.has(url)) {
+    throwIfResourceOperationCancelled(operation); seen.add(url);
+    pages += 1;
+    onProgress?.(`同步演员 ${pages} 页`);
+    const result = parseActorPage(await fetchResourcePage(url, operation), url);
+    if (result.isChallenge) throw new Error('JavDB 返回了 Cloudflare 验证页面');
+    result.actors.forEach(actor => {
+     const previous = library.actors[actor.starId] || {};
+     library.actors[actor.starId] = { ...previous, ...actor, aliases: actor.aliases.length ? actor.aliases : previous.aliases || [], lastSyncAt: now };
+    });
+    url = result.nextUrl && new URL(result.nextUrl).origin === origin ? result.nextUrl : ''; }
+   linkKnownActorsToWorks(library); persist();
+   return { actors: Object.keys(library.actors).length, pages }; }
+  async function syncActorWorks(actorId, onProgress, operation) {
+   await hydrateResourceState();
+   const library = getState(); const actor = library.actors[actorId];
+   if (!actor) throw new Error('演员记录不存在');
+   const pageUrl = absoluteUrl(`/actors/${encodeURIComponent(actorId)}`);
+   onProgress?.(`检测 ${actor.name || actorId}`);
+   const firstPageHtml = await fetchResourcePage(pageUrl, operation); const profile = parseActorProfile(firstPageHtml);
+   if (profile.name && (!actor.name || actor.name === actorId)) actor.name = profile.name;
+   if (profile.aliases.length) actor.aliases = [...new Set([...(actor.aliases || []), ...profile.aliases])];
+   const result = parseWorkPage(firstPageHtml, pageUrl);
+   if (result.isChallenge) throw new Error('JavDB 返回了 Cloudflare 验证页面');
+   const now = Date.now(); let added = 0; const allWorks = result.works.slice(); let nextUrl = result.nextUrl || ''; const seenPages = new Set([pageUrl]);
+   let pageCount = 1;
+   while (nextUrl && pageCount < 200 && !seenPages.has(nextUrl)) {
+    seenPages.add(nextUrl); throwIfResourceOperationCancelled(operation);
+    const nextResult = parseWorkPage(await fetchResourcePage(nextUrl, operation), nextUrl);
+    if (nextResult.isChallenge) throw new Error('actor blacklist work sync challenge');
+    allWorks.push(...nextResult.works);
+    try {
+     nextUrl = nextResult.nextUrl && new URL(nextResult.nextUrl).origin === location.origin ? nextResult.nextUrl : '';
+    } catch (_) { nextUrl = ''; }
+    pageCount += 1; }
+   result.works = allWorks;
+   result.works.forEach(work => {
+    const previous = library.works[work.code];
+    if (!previous) added += 1;
+    const inferredType = work.type === 'unknown' ? actorType(actor) : work.type;
+     library.works[work.code] = { ...previous, ...work, type: previous?.type && previous.type !== 'unknown' ? previous.type : inferredType, actorIds: [...new Set([...(previous?.actorIds || []), actorId])], actorNames: normalizeActorNames([...(previous?.actorNames || []), actor.name], work.code), actorInfoVersion: 3, actorInfoFetchedAt: now, createdAt: previous?.createdAt || now, modifiedAt: previous?.modifiedAt || 0, lastSeenAt: now };
+    const relationKey = `${work.code}:${actorId}`;
+    library.relations[relationKey] = { workCode: work.code, actorId, updatedAt: now };
+   });
+   actor.lastCheckAt = now; actor.lastWorkCount = result.works.length; actor.newWorkCount = (actor.newWorkCount || 0) + added;
+   actor.lastPublishTime = result.works.map(item => item.publishTime).filter(Boolean).sort().at(-1) || actor.lastPublishTime || '';
+   persist();
+   return { found: result.works.length, added }; }
+  async function syncAllActorWorks(actorIds, onProgress, operation) {
+   const ids = (actorIds?.length ? actorIds : Object.keys(getState().actors)).filter(Boolean); let found = 0; let added = 0;
+   for (const actorId of ids) {
+    throwIfResourceOperationCancelled(operation);
+    const result = await syncActorWorks(actorId, onProgress, operation);
+    found += result.found; added += result.added; }
+   return { actors: ids.length, found, added }; }
+  async function uncollectResourceActor(actorId) {
+   const token = document.querySelector('meta[name="csrf-token"]')?.content;
+   if (!token) throw new Error('未找到 JavDB 授权令牌');
+   const request = gmFetch(absoluteUrl(`/actors/${encodeURIComponent(actorId)}/uncollect`), { method: 'POST', headers: { 'x-csrf-token': token }, timeout: 30000 });
+   const response = await request;
+   if (!response.loadstuts) throw new Error(`取消收藏失败 HTTP ${response.status || 0}`);
+   return response; }
+  function open(initialView = 'actors', initialBlacklistView = 'actors', initialWorksStatusFilter = 'all') {
+   if (!isSupported()) return null;
+   const previousOverlay = document.getElementById('jav-resource-overlay');
+   previousOverlay?.dispatchEvent(new Event('laosiji-resource-dispose')); previousOverlay?.remove();
+   if (previousOverlay) { document.body.style.overflow = ''; document.documentElement.style.overflow = ''; }
+   ensureResourceLibraryStyles();
+   const overlay = document.createElement('div');
+   overlay.id = 'jav-resource-overlay'; overlay.className = 'jav-resource-overlay';
+   const previousBodyOverflow = document.body.style.overflow; const previousDocumentOverflow = document.documentElement.style.overflow;
+   document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden';
+   overlay.innerHTML = `<section class="jav-resource-center" role="dialog" aria-modal="true" aria-label="资源管理"><nav class="jav-resource-nav"><div class="jav-resource-brand">资源管理</div><button type="button" data-resource-view="actors" class="is-active" aria-current="page">演员库</button><button type="button" data-resource-view="works">作品库</button><button type="button" data-resource-view="history">鉴定记录</button><button type="button" data-resource-view="blacklist">黑名单</button><button type="button" data-resource-view="backup">备份与恢复</button><div class="jav-resource-nav-spacer"></div><button class="jav-resource-nav-close" type="button" data-resource-close="1">关闭</button></nav><main class="jav-resource-main"><header class="jav-resource-head"><div class="jav-resource-head-title">演员库</div></header><section class="jav-resource-backup"></section></main></section>`;
+   document.body.appendChild(overlay);
+   const backupEl = overlay.querySelector('.jav-resource-backup'); let pendingImport = null; let healthReport = null; let webdavListing = null;
+   let webdavListingLoading = false; let webdavConflict = null; let webdavConflictLoading = false; let cleanupPending = false;
+   let resourceCleanupPending = null; const validViews = new Set(['actors', 'works', 'history', 'blacklist', 'backup']);
+   const validBlacklistViews = new Set(['actors', 'works', 'keywords']); let activeView = validViews.has(initialView) ? initialView : 'actors';
+   let actorsFilter = 'all'; let actorsSearch = ''; let actorsPage = 1; const actorsPageSize = 20; let worksFilter = 'all'; let worksSearch = '';
+   let worksPage = 1; const worksPageSize = 20; const validWorksStatusFilters = new Set(['all', 'unmarked', 'favorite', 'watched', 'downloaded']);
+   let worksStatusFilter = validWorksStatusFilters.has(initialWorksStatusFilter) ? initialWorksStatusFilter : 'all';
+   let blacklistView = validBlacklistViews.has(initialBlacklistView) ? initialBlacklistView : 'actors'; let blacklistSearch = ''; let historyView = 'state';
+   let historyFilter = 'all'; let historySearch = ''; let historyRemoveCode = ''; const historyActorEnrichmentScheduled = new Set();
+   let actorWorkStatsRevision = -1; let actorWorkStats = null; let operationBusy = false; let operationMessage = '';
+   function syncOperationControl() {
+    const libraryEl = contentEl.querySelector('.jav-resource-library');
+    if (!libraryEl) return;
+    const grid = libraryEl.querySelector('.jav-resource-grid');
+    if (grid) libraryEl.classList.add('jav-resource-library--workspace');
+    if (grid && !grid.parentElement?.classList.contains('jav-resource-content-scroll')) {
+     const scroll = document.createElement('div');
+     scroll.className = 'jav-resource-content-scroll';
+     grid.parentNode.insertBefore(scroll, grid); scroll.appendChild(grid); }
+    libraryEl.querySelectorAll('.nv-card .jav-resource-card-actions a').forEach(link => link.remove());
+    libraryEl.querySelectorAll('.actress-card').forEach(card => {
+     const actor = getState().actors[card.dataset.starId]; const rows = card.querySelectorAll('.actress-card__meta-row');
+     if (actor && rows[0]) {
+      rows[0].querySelector('dt').textContent = '最近作品';
+      rows[0].querySelector('dd').textContent = formatPublishDate(actor.lastPublishTime || actor.lastPublishAt); }
+     card.querySelector('.actress-card__note')?.remove();
+     const actions = card.querySelector('.actress-card__actions');
+     if (actions && !actions.querySelector('[data-resource-uncollect-actor]')) {
+      const remove = document.createElement('button');
+      remove.type = 'button'; remove.className = 'jav-resource-actor-remove'; remove.dataset.resourceUncollectActor = card.dataset.starId || '';
+      remove.textContent = '取消收藏';
+      actions.appendChild(remove); }
+    });
+    let stop = libraryEl.querySelector('[data-resource-stop]');
+    if (!operationBusy) { stop?.remove(); return; }
+    if (stop) return;
+    stop = document.createElement('button'); stop.type = 'button'; stop.dataset.resourceStop = '1'; stop.className = 'jav-resource-operation-stop';
+    stop.textContent = '\u505c\u6b62\u5f53\u524d\u64cd\u4f5c';
+    libraryEl.querySelector('.jav-resource-toolbar-group')?.prepend(stop); }
+   const readWebdavForm = () => saveWebdavConfig({
+    url: backupEl.querySelector('[data-webdav-url]')?.value,
+    username: backupEl.querySelector('[data-webdav-username]')?.value,
+    password: backupEl.querySelector('[data-webdav-password]')?.value,
+    filename: backupEl.querySelector('[data-webdav-filename]')?.value,
+   });
+   const formatSize = bytes => !bytes ? '大小未知' : bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+   const contentEl = backupEl;
+   const closeResourceMenus = (except = null) => {
+    overlay.querySelectorAll('.jav-resource-card-menu.is-open').forEach(menu => {
+     if (menu === except) return;
+     menu.classList.remove('is-open'); menu.querySelector('[data-resource-work-menu]')?.setAttribute('aria-expanded', 'false');
+     const popover = menu.querySelector('.jav-resource-card-menu-popover');
+     if (popover) { popover.style.left = ''; popover.style.top = ''; }
+    }); };
+   const positionResourceMenu = menu => {
+    const trigger = menu.querySelector('[data-resource-work-menu]'); const popover = menu.querySelector('.jav-resource-card-menu-popover');
+    if (!trigger || !popover || !menu.classList.contains('is-open')) return;
+    const triggerRect = trigger.getBoundingClientRect(); const popoverRect = popover.getBoundingClientRect(); const width = popoverRect.width || 148;
+    const height = popoverRect.height || 130; const gap = 6; const left = Math.min(Math.max(8, triggerRect.right - width), window.innerWidth - width - 8);
+    const top = window.innerHeight - triggerRect.bottom >= height + gap ? triggerRect.bottom + gap : Math.max(8, triggerRect.top - height - gap);
+    popover.style.left = `${Math.round(left)}px`;
+    popover.style.top = `${Math.round(top)}px`;
+   };
+   const closeResourceMenusOnViewportChange = () => closeResourceMenus();
+   window.addEventListener('resize', closeResourceMenusOnViewportChange); overlay.addEventListener('scroll', closeResourceMenusOnViewportChange, true);
+   overlay.addEventListener('laosiji-resource-dispose', () => window.removeEventListener('resize', closeResourceMenusOnViewportChange), { once: true });
+   const typeLabel = type => type === 'uncensored' ? '无码' : type === 'censored' ? '有码' : type === 'western' ? '欧美' : '未知';
+   function getActorWorkStats() {
+    if (actorWorkStats && actorWorkStatsRevision === resourceStateRevision) return actorWorkStats;
+    const stats = new Map();
+    Object.values(getState().works).forEach(work => {
+     const flags = workFlags(work); const isNew = !Object.values(flags).some(Boolean);
+     (Array.isArray(work.actorIds) ? work.actorIds : []).forEach(actorId => {
+      const current = stats.get(actorId) || { total: 0, fresh: 0 };
+      current.total += 1;
+      if (isNew) current.fresh += 1;
+      stats.set(actorId, current);
+     });
+    });
+    actorWorkStats = stats; actorWorkStatsRevision = resourceStateRevision;
+    return stats; }
+   const actorWorkCount = actorId => getActorWorkStats().get(actorId)?.total || 0;
+   const actorNewCount = actorId => getActorWorkStats().get(actorId)?.fresh || 0;
+   const displayWorkType = work => work?.type && work.type !== 'unknown' ? work.type : (work?.actorIds || []).map(id => actorType(getState().actors[id])).find(type => type !== 'unknown') || 'unknown';
+   const workActorNames = work => {
+    const library = getState();
+    return normalizeActorNames([ ...(work?.actorIds || []).map(id => library.actors[id]?.name).filter(Boolean),
+     ...(Array.isArray(work?.actorNames) ? work.actorNames : []),
+    ], work?.code); };
+   const formatPublishDate = value => value ? String(value).trim().replace(/\s+\d{1,2}:\d{2}(?::\d{2})?.*$/, '') : '暂无记录';
+   const formatHistoryDate = value => {
+    const date = new Date(value);
+    if (!value || Number.isNaN(date.getTime())) return '暂无记录';
+    const pad = number => String(number).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+   };
+   const cleanupScopeLabel = scope => ({ works: '作品资料', actors: '演员资料', history: '鉴定记录', 'blacklist-actors': '演员黑名单', 'blacklist-works': '作品黑名单', 'blacklist-keywords': '关键词屏蔽', relations: '孤立关联', all: '全部资源' }[scope] || '资源数据');
+   const workFlagMeta = { favorite: ['收藏', 'jav-flag-favorite', '已收藏'], watched: ['观看', 'jav-flag-watched', '已观看'], downloaded: ['下载', 'jav-flag-downloaded', '已下载'] };
+   const workFlags = work => ({ favorite: !!(work?.flags?.favorite ?? work?.favorite), watched: !!(work?.flags?.watched ?? work?.hasWatch), downloaded: !!(work?.flags?.downloaded ?? work?.hasDown) });
+   function updateWorkFlag(code, flag) { return toggleResourceWorkFlag(code, flag); }
+   function removeWorkFromHistory(code) {
+    const work = getState().works[code];
+    if (!work) return false;
+    work.flags = { favorite: false, watched: false, downloaded: false, blocked: false };
+    work.acknowledged = false; work.activity = []; work.modifiedAt = Date.now();
+    persist();
+    return true; }
+   function getResourceCleanupMatches(scope, type) {
+    const library = getState(); const typeMatches = value => type === 'all' || value === type;
+    const actorIds = scope === 'actors' || scope === 'all' ? Object.entries(library.actors).filter(([, actor]) => typeMatches(actorType(actor))).map(([id]) => id) : [];
+    const workCodes = scope === 'works' || scope === 'all' ? Object.entries(library.works).filter(([, work]) => typeMatches(displayWorkType(work))).map(([code]) => code) : [];
+    const historyCodes = scope === 'history' ? Object.entries(library.works).filter(([, work]) => Object.values(workFlags(work)).some(Boolean) || Array.isArray(work.activity) && work.activity.length || work.acknowledged).map(([code]) => code) : [];
+    const orphanRelations = scope === 'relations' ? Object.entries(library.relations).filter(([, relation]) => !library.actors[relation?.actorId] || !library.works[relation?.workCode]).map(([key]) => key) : [];
+    return { actorIds, workCodes, historyCodes, orphanRelations }; }
+   function clearResourceData(scope, type) {
+    const library = getState(); const matches = getResourceCleanupMatches(scope, type);
+    const { actorIds, workCodes } = matches;
+    const actorIdSet = new Set(actorIds); const workCodeSet = new Set(workCodes);
+    if (scope === 'history') {
+     matches.historyCodes.forEach(code => {
+      const work = library.works[code];
+      if (!work) return;
+      work.flags = { favorite: false, watched: false, downloaded: false };
+      work.activity = []; work.acknowledged = false; work.modifiedAt = Date.now();
+     });
+     persist();
+     return { actors: 0, works: 0, relations: 0, history: matches.historyCodes.length, blacklist: 0 }; }
+    if (scope === 'blacklist-actors') {
+     const count = Object.keys(library.blacklist.actors || {}).length;
+     library.blacklist.actors = {};
+     persist();
+     return { actors: 0, works: 0, relations: 0, history: 0, blacklist: count }; }
+    if (scope === 'blacklist-works') {
+     const count = Object.keys(library.blacklist.works || {}).length;
+     library.blacklist.works = {};
+     persist();
+     return { actors: 0, works: 0, relations: 0, history: 0, blacklist: count }; }
+    if (scope === 'blacklist-keywords') {
+     const count = (library.blacklist.codeKeywords || []).length + (library.blacklist.titleKeywords || []).length;
+     library.blacklist.codeKeywords = []; library.blacklist.titleKeywords = [];
+     persist();
+     return { actors: 0, works: 0, relations: 0, history: 0, blacklist: count }; }
+    if (scope === 'relations') {
+     matches.orphanRelations.forEach(key => delete library.relations[key]); persist();
+     return { actors: 0, works: 0, relations: matches.orphanRelations.length, history: 0, blacklist: 0 }; }
+    if (scope === 'all') {
+     const result = { actors: Object.keys(library.actors).length, works: Object.keys(library.works).length, relations: Object.keys(library.relations).length, history: 0, blacklist: Object.keys(library.blacklist.actors || {}).length + Object.keys(library.blacklist.works || {}).length + (library.blacklist.codeKeywords || []).length + (library.blacklist.titleKeywords || []).length };
+     library.actors = {};
+     library.works = {};
+     library.relations = {};
+     library.blacklist = { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] };
+     persist();
+     return result; }
+    actorIds.forEach(id => delete library.actors[id]); workCodes.forEach(code => delete library.works[code]);
+    if (scope === 'works') workCodes.forEach(code => delete library.blacklist.works[code]);
+    if (scope === 'actors') actorIds.forEach(id => delete library.blacklist.actors[id]);
+    if (actorIdSet.size) Object.values(library.works).forEach(work => {
+     if (Array.isArray(work?.actorIds)) work.actorIds = work.actorIds.filter(id => !actorIdSet.has(id));
+    });
+    let relations = 0;
+    Object.entries(library.relations).forEach(([key, relation]) => {
+     if (actorIdSet.has(relation?.actorId) || workCodeSet.has(relation?.workCode)) { delete library.relations[key]; relations += 1; }
+    });
+    persist();
+    return { actors: actorIds.length, works: workCodes.length, relations }; }
+   function renderActors() {
+    const library = getState(); let actors = Object.values(library.actors);
+    if (actorsFilter !== 'all') actors = actors.filter(actor => actorType(actor) === actorsFilter);
+    if (actorsSearch) actors = actors.filter(actor => `${actor.name} ${(Array.isArray(actor.aliases) ? actor.aliases : actor.allName || []).join(' ')}`.toLowerCase().includes(actorsSearch.toLowerCase()));
+    actors.sort((a, b) => (actorNewCount(b.starId) - actorNewCount(a.starId)) || String(a.name).localeCompare(String(b.name)));
+    const totalPages = Math.max(1, Math.ceil(actors.length / actorsPageSize));
+    actorsPage = Math.min(Math.max(1, actorsPage), totalPages);
+    const pageActors = actors.slice((actorsPage - 1) * actorsPageSize, actorsPage * actorsPageSize);
+    const cards = pageActors.map(actor => {
+     const newCount = actorNewCount(actor.starId);
+     const avatar = actor.avatar || 'https://c0.jdbstatic.com/images/actor_unknow.jpg';
+     const type = actorType(actor); const aliases = Array.isArray(actor.aliases) ? actor.aliases : Array.isArray(actor.allName) ? actor.allName : [];
+     const blacklisted = !!getBlacklist().actors[actor.starId];
+     return `<article class="jav-resource-card actress-card" data-star-id="${escape(actor.starId)}"><div class="actress-card__badges"><span class="jav-resource-badge jav-resource-badge-count">${newCount} 新</span><span class="jav-resource-badge jav-resource-badge-type ${escape(type)}">${typeLabel(type)}</span>${blacklisted ? '<span class="jav-resource-badge jav-resource-badge-blocked">已屏蔽作品</span>' : ''}</div><a class="actress-card__profile" href="${escape(actor.url ||`/actors/${encodeURIComponent(actor.starId)}`)}" target="_blank" rel="noopener"><img class="actress-card-avatar" loading="lazy" src="${escape(avatar)}" alt="${escape(actor.name)}"><span><span class="actress-card-name">${escape(actor.name)}</span><span class="actress-card-allname">${escape(aliases.slice(1).join('、') || '暂无别名')}</span></span></a><dl class="actress-card__meta"><div class="actress-card__meta-row"><dt>作品</dt><dd>${actorWorkCount(actor.starId)} 部 · 待处理 ${newCount}</dd></div><div class="actress-card__meta-row"><dt>上次检测</dt><dd>${escape(formatDate(actor.lastCheckAt || actor.lastCheckTime))}</dd></div></dl><p class="actress-card__note">${escape(newCount ? `待处理 ${newCount} 部最新作品` : '暂无待处理作品')}</p><div class="actress-card__actions"><button type="button" class="primary btn-check-actress" data-resource-check-actor="${escape(actor.starId)}">检测最新作品</button></div></article>`;
+    }).join('');
+    const pagination = actors.length > actorsPageSize ? `<nav class="jav-resource-pagination" aria-label="演员库分页"><button type="button" data-resource-actors-page="${actorsPage - 1}" ${actorsPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${actorsPage} / ${totalPages} 页</span><button type="button" data-resource-actors-page="${actorsPage + 1}" ${actorsPage >= totalPages ? 'disabled' : ''}>下一页</button></nav>` : '';
+    contentEl.innerHTML = `<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" class="primary" data-resource-sync-actors="1" ${operationBusy ? 'disabled' : ''}>同步演员</button><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>检测最新作品</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-actors-search="1" value="${escape(actorsSearch)}" placeholder="搜索演员"><select data-resource-actors-filter="1"><option value="all" ${actorsFilter === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${actorsFilter === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${actorsFilter === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${actorsFilter === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${actorsFilter === 'unknown' ? 'selected' : ''}>未知</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${actors.length} / ${Object.keys(library.actors).length} 位演员</p><div class="jav-resource-grid">${cards || '<div class="jav-resource-empty">暂无演员，请先同步 JavDB 收藏演员</div>'}</div>${pagination}</div>`;
+   }
+   function renderWorks() {
+    const library = getState();
+    let works = Object.values(library.works).map(work => ({ ...work, type: displayWorkType(work) }));
+    works = works.filter(work => !isWorkBlacklisted(work, library));
+    if (worksFilter !== 'all') works = works.filter(work => (work.type || 'unknown') === worksFilter);
+    if (worksStatusFilter !== 'all') {
+     works = works.filter(work => {
+      const flags = workFlags(work);
+      if (worksStatusFilter === 'unmarked') return !Object.values(flags).some(Boolean);
+      return !!flags[worksStatusFilter];
+     }); }
+    if (worksSearch) works = works.filter(work => `${work.code} ${work.title} ${(work.actorIds || []).map(id => library.actors[id]?.name || '').join(' ')}`.toLowerCase().includes(worksSearch.toLowerCase()));
+    works.sort((a, b) => String(b.publishTime || b.lastSeenAt || '').localeCompare(String(a.publishTime || a.lastSeenAt || '')));
+    const totalPages = Math.max(1, Math.ceil(works.length / worksPageSize));
+    worksPage = Math.min(Math.max(1, worksPage), totalPages);
+    const pageWorks = works.slice((worksPage - 1) * worksPageSize, worksPage * worksPageSize);
+    const cards = pageWorks.map(work => {
+     const names = normalizeActorNames((work.actorIds || []).map(id => library.actors[id]?.name), work.code).join('、'); const flags = workFlags(work);
+     const statusMarkers = Object.entries(workFlagMeta).filter(([flag]) => flags[flag]).map(([flag, meta]) => `<span class="jav-resource-card-marker jav-resource-card-marker-${flag}">${meta[2]}</span>`).join('');
+     const flagButtons = Object.entries(workFlagMeta).map(([flag, meta]) => `<button type="button" class="jav-resource-flag ${meta[1]}${flags[flag] ? ' is-active' : ''}" data-resource-work-flag="${flag}" data-resource-work-code="${escape(work.code)}" aria-pressed="${flags[flag]}">${flags[flag] ? meta[2] : meta[0]}</button>`).join('');
+     const flagMenu = `<div class="jav-resource-card-menu"><button type="button" class="jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">鉴定处理</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-blacklist-action" data-resource-work-blacklist="${escape(work.code)}">屏蔽作品</button></div></div>`;
+     const queryButton = work.url ? `<button type="button" class="jav-resource-history-query-actors" data-resource-work-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查询中...' : '查询演员'}</button>` : '';
+     return `<article class="jav-resource-card nv-card"><a class="nv-card__link" href="${escape(work.url || '#')}" target="_blank" rel="noopener"><div class="nv-card__cover">${work.cover ? `<img class="nv-cover-img" loading="lazy" src="${escape(work.cover)}" alt="${escape(work.code)}">` : '<div class="nv-card__empty">暂无封面</div>'}${statusMarkers ? `<div class="jav-resource-card-markers">${statusMarkers}</div>` : ''}</div><div class="nv-card__body"><div class="nv-card__title" title="${escape(work.code)}">${escape(work.code)}</div><div class="nv-card__actress" title="${escape(names || '未关联演员')}">${escape(names || '未关联演员')}</div><div class="nv-card__date-row"><div class="nv-card__date">${escape(work.publishTime || '发行时间未知')}</div><div class="nv-card__statuses"><span class="jav-resource-badge jav-resource-badge-type ${escape(work.type || 'unknown')}">${typeLabel(work.type)}</span></div></div></div></a><div class="jav-resource-card-actions jav-resource-card-actions-flags">${queryButton}${flagMenu}</div></article>`;
+    }).join('');
+    const pagination = works.length > worksPageSize ? `<nav class="jav-resource-pagination" aria-label="作品库分页"><button type="button" data-resource-works-page="${worksPage - 1}" ${worksPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${worksPage} / ${totalPages} 页</span><button type="button" data-resource-works-page="${worksPage + 1}" ${worksPage >= totalPages ? 'disabled' : ''}>下一页</button></nav>` : '';
+    contentEl.innerHTML = `<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>检测全部演员</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-works-search="1" value="${escape(worksSearch)}" placeholder="搜索番号、标题或演员"><select data-resource-works-filter="1"><option value="all" ${worksFilter === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${worksFilter === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${worksFilter === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${worksFilter === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${worksFilter === 'unknown' ? 'selected' : ''}>未知</option></select><select data-resource-works-status-filter="1"><option value="all" ${worksStatusFilter === 'all' ? 'selected' : ''}>全部标记</option><option value="unmarked" ${worksStatusFilter === 'unmarked' ? 'selected' : ''}>未标记</option><option value="favorite" ${worksStatusFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${worksStatusFilter === 'watched' ? 'selected' : ''}>已观看</option><option value="downloaded" ${worksStatusFilter === 'downloaded' ? 'selected' : ''}>已下载</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${works.length} / ${Object.keys(library.works).length} 部作品</p><div class="jav-resource-grid">${cards || '<div class="jav-resource-empty">暂无作品，请先检测演员最新作品</div>'}</div>${pagination}</div>`;
+   }
+   function renderHistory() {
+    const library = getState();
+    const hasHistory = work => {
+     const flags = workFlags(work);
+     return Object.values(flags).some(Boolean) || (Array.isArray(work?.activity) && work.activity.length > 0); };
+    let works = Object.values(library.works).filter(hasHistory).map(work => ({ ...work, type: displayWorkType(work) }));
+    works = works.filter(work => !isWorkBlacklisted(work, library));
+    if (historyFilter !== 'all') works = works.filter(work => workFlags(work)[historyFilter]);
+    if (historySearch) works = works.filter(work => `${work.code} ${work.title} ${workActorNames(work).join(' ')}`.toLowerCase().includes(historySearch.toLowerCase()));
+    const tabs = `<div class="jav-resource-history-tabs"><button type="button" class="${historyView === 'state' ? 'is-active' : ''}" data-history-view="state">作品状态</button><button type="button" class="${historyView === 'activity' ? 'is-active' : ''}" data-history-view="activity">操作记录</button></div>`;
+    if (historyView === 'activity') {
+     const activities = Object.values(library.works).flatMap(work => (Array.isArray(work.activity) ? work.activity : []).map(item => ({ ...item, code: work.code, title: work.title }))).sort((a, b) => b.at - a.at);
+     const rows = activities.filter(item => !historySearch || `${item.code} ${item.title || ''}`.toLowerCase().includes(historySearch.toLowerCase())).map(item => `<div class="jav-resource-history-row"><strong>${escape(item.code)}</strong><span>${escape(workFlagMeta[item.action]?.[item.value ? 2 : 0] || (item.action === 'blocked' ? (item.value ? '加入作品黑名单' : '移出作品黑名单') : item.action))}</span><time>${escape(formatDate(item.at))}</time></div>`).join('');
+     contentEl.innerHTML = `<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-history-toolbar"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜索番号或演员"></div><div class="jav-resource-history-list">${rows || '<div class="jav-resource-empty">暂无操作记录</div>'}</div></div>`; return;
+    }
+    const removeTarget = historyRemoveCode ? works.find(work => work.code === historyRemoveCode) : null;
+    const removeConfirm = removeTarget ? `<div class="jav-resource-history-remove-confirm" role="dialog" aria-modal="true" aria-label="移出鉴定记录"><div class="jav-resource-history-remove-dialog"><strong>移出鉴定记录？</strong><span>仅清除该作品的鉴定状态和操作记录，作品库数据会保留。</span><div><button type="button" data-resource-history-remove-confirm="${escape(removeTarget.code)}">确认移出</button><button type="button" data-resource-history-remove-cancel="1">取消</button></div></div></div>` : '';
+    const rows = works.map(work => {
+     const flags = workFlags(work); const names = workActorNames(work).join('、'); const needsActorRefresh = work.actorInfoVersion !== 3;
+     const actorContent = needsActorRefresh && work.url
+      ? `<button type="button" class="jav-resource-history-query-actors" data-resource-history-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查询中...' : names ? '重新查询演员' : '查询演员'}</button>`
+      : names
+       ? `<span class="jav-resource-history-actors">${escape(names)}</span>`
+       : '<span class="jav-resource-history-muted">未找到演员</span>';
+     const statuses = Object.entries(workFlagMeta).filter(([flag]) => flags[flag]).map(([flag, meta]) => `<span class="jav-resource-history-status-pill ${meta[1]}">${meta[2]}</span>`).join('') || '<span class="jav-resource-history-muted">无标记</span>';
+     const codeLink = work.url ? `<a class="jav-resource-history-code" href="${escape(work.url)}" target="_blank" rel="noopener" title="${escape(work.title || work.code)}">${escape(work.code)}</a>` : `<span class="jav-resource-history-code">${escape(work.code)}</span>`;
+     const flagButtons = Object.entries(workFlagMeta).map(([flag, meta]) => `<button type="button" class="jav-resource-flag ${meta[1]}${flags[flag] ? ' is-active' : ''}" data-resource-work-flag="${flag}" data-resource-work-code="${escape(work.code)}" aria-pressed="${flags[flag]}">${flags[flag] ? meta[2] : meta[0]}</button>`).join('');
+     const detail = work.url ? `<a class="jav-resource-history-detail" href="${escape(work.url)}" target="_blank" rel="noopener">详情</a>` : '<span class="jav-resource-history-muted">无链接</span>';
+     const changeMenu = `<div class="jav-resource-card-menu jav-resource-history-menu"><button type="button" class="jav-resource-history-edit jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">变更</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-history-menu-remove" data-resource-history-remove="${escape(work.code)}">移出</button></div></div>`;
+     return `<tr class="jav-resource-history-table-row"><td>${codeLink}</td><td title="${escape(names)}">${actorContent}</td><td>${escape(formatHistoryDate(work.createdAt))}</td><td>${escape(formatHistoryDate(work.modifiedAt || work.activity?.[0]?.at))}</td><td>${escape(formatPublishDate(work.publishTime))}</td><td><span class="jav-resource-history-source">${escape(work.source || 'JavDB')}</span></td><td><div class="jav-resource-history-statuses">${statuses}</div></td><td><div class="jav-resource-history-actions">${changeMenu}${detail}</div></td></tr>`;
+    }).join('');
+    contentEl.innerHTML = `<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜索番号或演员"><select data-resource-history-filter="1"><option value="all" ${historyFilter === 'all' ? 'selected' : ''}>所有</option><option value="favorite" ${historyFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${historyFilter === 'watched' ? 'selected' : ''}>已观看</option><option value="downloaded" ${historyFilter === 'downloaded' ? 'selected' : ''}>已下载</option></select></div></div><div class="jav-resource-history-table-wrap"><table class="jav-resource-history-table"><thead><tr><th>番号</th><th>演员</th><th>创建时间</th><th>修改时间</th><th>发行时间</th><th>来源</th><th>状态</th><th>变更</th></tr></thead><tbody>${rows || `<tr><td colspan="8"><div class="jav-resource-empty">暂无状态记录</div></td></tr>`}</tbody></table></div>${removeConfirm}</div>`;
+   }
+   function renderBlacklist() {
+    const library = getState(); const blacklist = getBlacklist(library);
+    const tabs = `<div class="jav-resource-history-tabs"><button type="button" class="${blacklistView === 'actors' ? 'is-active' : ''}" data-blacklist-view="actors">演员黑名单</button><button type="button" class="${blacklistView === 'works' ? 'is-active' : ''}" data-blacklist-view="works">作品黑名单</button><button type="button" class="${blacklistView === 'keywords' ? 'is-active' : ''}" data-blacklist-view="keywords">关键词屏蔽</button></div>`;
+    if (blacklistView === 'actors') {
+     const entries = Object.values(blacklist.actors).filter(actor => !blacklistSearch || `${actor.name} ${(actor.aliases || []).join(' ')}`.toLowerCase().includes(blacklistSearch.toLowerCase()));
+     const rows = entries.map(actor => `<div class="jav-resource-blacklist-row"><div><strong>${escape(actor.name || actor.actorId)}</strong><span>${escape(actor.actorId)} · 关联作品将自动屏蔽</span></div><div class="jav-resource-blacklist-actions"><button type="button" class="jav-resource-blacklist-check" data-resource-blacklist-check-actor="${escape(actor.actorId)}" ${operationBusy ? 'disabled' : ''}>继续检测</button><button type="button" data-resource-blacklist-remove-actor="${escape(actor.actorId)}">移出</button></div></div>`).join('');
+     contentEl.innerHTML = `<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">加入黑名单的演员，其关联作品会从作品库和鉴定记录中隐藏。</div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜索黑名单演员"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暂无演员黑名单，请在演员详情页加入</div>'}</div></div>`;
+     return; }
+    if (blacklistView === 'works') {
+     const entries = Object.values(blacklist.works).map(item => library.works[item.code] || item).filter(work => !blacklistSearch || `${work.code} ${work.title || ''}`.toLowerCase().includes(blacklistSearch.toLowerCase()));
+     const rows = entries.map(work => `<div class="jav-resource-blacklist-row"><div><strong>${escape(work.code)}</strong><span>${escape(work.title || '作品黑名单')} · ${escape(getWorkBlacklistReason(work, library) || '手动屏蔽')}</span></div><button type="button" data-resource-blacklist-remove-work="${escape(work.code)}">移出</button></div>`).join('');
+     contentEl.innerHTML = `<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">从作品卡片执行“屏蔽作品”后会出现在这里，移出后恢复到作品库。</div><div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜索黑名单作品"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暂无作品黑名单</div>'}</div></div>`;
+     return; }
+    const codeKeywords = blacklist.codeKeywords.map(keyword => `<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="code" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="删除番号关键词">×</button></span>`).join('');
+    const titleKeywords = blacklist.titleKeywords.map(keyword => `<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="title" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="删除标题关键词">×</button></span>`).join('');
+    contentEl.innerHTML = `<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">命中番号或标题关键词的作品会从作品库和鉴定记录中隐藏。</div><div class="jav-resource-blacklist-keyword-form"><label>番号关键词<input type="text" data-resource-blacklist-keyword-input="code" placeholder="例如 FC2、无码"></label><button type="button" data-resource-blacklist-add-keyword="code">添加</button></div><div class="jav-resource-keyword-list">${codeKeywords || '<span class="jav-resource-blacklist-muted">暂无番号关键词</span>'}</div><div class="jav-resource-blacklist-keyword-form"><label>标题关键词<input type="text" data-resource-blacklist-keyword-input="title" placeholder="例如 字幕、合集"></label><button type="button" data-resource-blacklist-add-keyword="title">添加</button></div><div class="jav-resource-keyword-list">${titleKeywords || '<span class="jav-resource-blacklist-muted">暂无标题关键词</span>'}</div></div>`;
+   }
+   function renderActiveView() {
+    const title = activeView === 'actors' ? '演员库' : activeView === 'works' ? '作品库' : activeView === 'history' ? '鉴定记录' : activeView === 'blacklist' ? '黑名单' : '备份与恢复';
+    overlay.querySelector('.jav-resource-head-title').textContent = title;
+    backupEl.classList.toggle('jav-resource-backup--library', activeView === 'actors' || activeView === 'works' || activeView === 'history' || activeView === 'blacklist');
+    backupEl.classList.toggle('jav-resource-backup--history', activeView === 'history');
+    overlay.querySelectorAll('[data-resource-view]').forEach(button => {
+     const active = button.dataset.resourceView === activeView;
+     button.classList.toggle('is-active', active); button.setAttribute('aria-current', active ? 'page' : 'false');
+    });
+    if (activeView === 'actors') renderActors();
+    else if (activeView === 'works') renderWorks();
+    else if (activeView === 'history') renderHistory();
+    else if (activeView === 'blacklist') renderBlacklist();
+    else renderBackup();
+    syncOperationControl(); }
+   function renderResourceCleanup() {
+    const library = getState(); const selectedScope = resourceCleanupPending?.scope || 'works'; const selectedType = resourceCleanupPending?.type || 'all';
+    const matches = resourceCleanupPending ? getResourceCleanupMatches(selectedScope, selectedType) : null; const blacklist = getBlacklist(library);
+    const blacklistCount = selectedScope === 'blacklist-actors' ? Object.keys(blacklist.actors).length
+     : selectedScope === 'blacklist-works' ? Object.keys(blacklist.works).length
+      : selectedScope === 'blacklist-keywords' ? blacklist.codeKeywords.length + blacklist.titleKeywords.length : 0;
+    const preview = resourceCleanupPending ? selectedScope === 'history' ? `将清除 ${matches.historyCodes.length} 条鉴定记录，作品资料保留。`
+     : selectedScope === 'relations' ? `将清除 ${matches.orphanRelations.length} 条孤立关联。`
+      : selectedScope.startsWith('blacklist-') ? `将清除 ${blacklistCount} 条${cleanupScopeLabel(selectedScope)}。`
+       : `将删除 ${matches.actorIds.length} 位演员、${matches.workCodes.length} 部作品及相关关联。` : '';
+    const pending = resourceCleanupPending ? `<div class="jav-resource-cleanup-confirm"><strong>确认清理${cleanupScopeLabel(selectedScope)}？</strong><span>${preview}此操作不可撤销，请确认已完成备份。</span><div><button type="button" data-resource-data-cleanup-confirm="1">确认清理</button><button type="button" data-resource-data-cleanup-cancel="1">取消</button></div></div>` : '';
+    return `<div class="jav-resource-data-cleanup"><div class="jav-resource-webdav-title">资源数据清理</div><p>可分别清理作品资料、演员资料、鉴定记录、黑名单分类和孤立关联。鉴定记录只清除收藏/观看/下载状态及操作记录，不删除作品资料。</p><div class="jav-resource-data-cleanup-controls"><select data-resource-data-cleanup-scope="1"><option value="works" ${selectedScope === 'works' ? 'selected' : ''}>作品资料</option><option value="actors" ${selectedScope === 'actors' ? 'selected' : ''}>演员资料</option><option value="history" ${selectedScope === 'history' ? 'selected' : ''}>鉴定记录</option><option value="blacklist-actors" ${selectedScope === 'blacklist-actors' ? 'selected' : ''}>演员黑名单</option><option value="blacklist-works" ${selectedScope === 'blacklist-works' ? 'selected' : ''}>作品黑名单</option><option value="blacklist-keywords" ${selectedScope === 'blacklist-keywords' ? 'selected' : ''}>关键词屏蔽</option><option value="relations" ${selectedScope === 'relations' ? 'selected' : ''}>孤立关联</option><option value="all" ${selectedScope === 'all' ? 'selected' : ''}>全部资源</option></select><select data-resource-data-cleanup-type="1" ${['actors', 'works'].includes(selectedScope) ? '' : 'disabled'}><option value="all" ${selectedType === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${selectedType === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${selectedType === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${selectedType === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${selectedType === 'unknown' ? 'selected' : ''}>未知</option></select><button type="button" data-resource-data-cleanup="1">预览清理范围</button></div>${pending}</div>`;
+   }
+   function renderBackup() {
+    const library = getState(); const recovery = getRecoverySnapshot(); const webdav = getWebdavConfig();
+    const historyLabels = { export: '本地导出', import: '本地导入', upload: '云端上传', download: '云端下载', delete: '云端删除', cleanup: '清理辅助数据', resource_cleanup: '清理资源数据' };
+    const history = getBackupHistory();
+    backupEl.innerHTML = `<div class="jav-resource-backup-intro"><span class="jav-resource-backup-kicker">数据安全</span><h2>备份与恢复</h2><p>导出、导入和管理本地资源数据。导入会先预览，再与现有数据合并，不会静默覆盖。</p></div><div class="jav-resource-backup-stats"><div><strong>${Object.keys(library.actors).length}</strong><span>演员记录</span></div><div><strong>${Object.keys(library.works).length}</strong><span>作品记录</span></div><div><strong>${Object.keys(library.relations).length}</strong><span>关联记录</span></div></div><div class="jav-resource-backup-actions"><button type="button" data-resource-export="1">导出 JSON</button><button type="button" data-resource-import="1">选择备份文件</button><input class="jav-resource-file-input" type="file" accept="application/json,.json" data-resource-file-input="1"><span>最大支持 25 MB</span></div><div class="jav-resource-backup-tools"><button type="button" data-resource-health="1">检查数据</button><span>${healthReport ? `检查于 ${escape(formatDate(healthReport.checkedAt))}，${healthReport.issues.length ? `发现 ${healthReport.issues.length} 个问题` : '数据正常'}` : '尚未检查数据'}</span><button type="button" data-resource-recovery-restore="1" ${recovery ? '' : 'disabled'} title="用最近一次导入前自动保存的数据覆盖当前资源库">恢复导入前数据</button><span>${recovery ? `最近导入前快照：${escape(formatDate(recovery.createdAt))}` : '暂无导入前快照'}</span></div>${healthReport ? `<div class="jav-resource-health ${healthReport.issues.length ? 'has-errors' : ''}"><strong>${healthReport.issues.length ? '发现数据问题' : '数据完整性正常'}</strong><span>${healthReport.issues.length ? healthReport.issues.map(escape).join('<br>') : `已检查 ${healthReport.works} 条作品、${healthReport.actors} 条演员、${healthReport.relations} 条关联`}</span>${healthReport.issues.length ? '<button type="button" class="jav-resource-health-repair" data-resource-health-repair="1">修复数据</button>' : ''}</div>` : ''}${pendingImport ? `<div class="jav-resource-import-preview"><div class="jav-resource-backup-summary"><strong>导入预览：${escape(pendingImport.fileName || '备份文件')}</strong><span>演员 ${Object.keys(pendingImport.data.actors || {}).length}</span><span>作品 ${Object.keys(pendingImport.data.works || {}).length}</span><span>关联 ${Object.keys(pendingImport.data.relations || {}).length}</span></div>${pendingImport.errors?.length ? `<div class="jav-resource-import-errors">${pendingImport.errors.map(escape).join('<br>')}</div>` : '<div class="jav-resource-import-ok">文件格式有效，可以合并到本地资源库。</div>'}<button type="button" class="jav-resource-backup-apply" data-resource-import-apply="1" ${pendingImport.errors?.length ? 'disabled' : ''}>确认合并</button><button type="button" class="jav-resource-backup-cancel" data-resource-import-cancel="1">取消</button></div>` : ''}<div class="jav-resource-webdav"><div class="jav-resource-webdav-title">WebDAV 云端备份</div><div class="jav-resource-webdav-grid"><input type="url" placeholder="WebDAV 地址" value="${escape(webdav.url)}" data-webdav-url="1"><input type="text" placeholder="用户名" value="${escape(webdav.username)}" data-webdav-username="1"><input type="password" placeholder="密码" value="${escape(webdav.password)}" data-webdav-password="1"><input type="text" placeholder="文件名" value="${escape(webdav.filename)}" data-webdav-filename="1"></div><div class="jav-resource-webdav-actions"><button type="button" data-webdav-test="1">测试连接</button><button type="button" data-webdav-upload="1">上传备份</button><button type="button" data-webdav-download="1">下载备份</button><button type="button" data-webdav-list="1" ${webdavListingLoading ? 'disabled' : ''}>${webdavListingLoading ? '读取中...' : '云端列表'}</button><span>凭据仅保存在当前浏览器</span></div>${webdavConflict ? `<div class="jav-resource-conflict"><strong>检测到云端备份冲突</strong><span>云端文件与上次同步记录不同。请选择下载云端内容，或确认覆盖。</span><div class="jav-resource-conflict-actions"><button type="button" data-webdav-conflict-download="1" ${webdavConflictLoading ? 'disabled' : ''}>读取云端</button><button type="button" data-webdav-conflict-overwrite="1" ${webdavConflictLoading ? 'disabled' : ''}>覆盖云端</button><button type="button" data-webdav-conflict-cancel="1">取消</button></div></div>` : ''}${webdavListing ? `<div class="jav-resource-cloud-list"><div class="jav-resource-cloud-title">云端 JSON 备份</div>${webdavListing.length ? webdavListing.map(item => `<div class="jav-resource-cloud-item"><div class="jav-resource-cloud-file"><strong>${escape(item.filename)}</strong><span>${formatSize(item.size)} · ${escape(item.modifiedAt || '时间未知')}</span></div><button type="button" data-webdav-backup-download="${escape(item.filename)}">读取</button><button type="button" data-webdav-backup-delete="${escape(item.filename)}">删除</button></div>`).join('') : '<div class="jav-resource-cloud-empty">没有找到 JSON 备份</div>'}</div>` : ''}</div><div class="jav-resource-history"><div class="jav-resource-cloud-title">备份操作历史</div>${history.length ? history.map(item => `<div class="jav-resource-history-item"><span class="jav-resource-history-status ${item.status === 'success' ? 'is-ok' : item.status === 'conflict' ? 'is-conflict' : 'is-error'}">${item.status === 'success' ? '成功' : item.status === 'conflict' ? '冲突' : '失败'}</span><div class="jav-resource-history-main"><strong>${escape(historyLabels[item.action] || item.action)}${item.filename ? ` · ${escape(item.filename)}` : ''}</strong><span>${escape(item.message || '')}</span></div><time>${escape(formatDate(item.at))}</time></div>`).join('') : '<div class="jav-resource-cloud-empty">暂无操作记录</div>'}</div><div class="jav-resource-cleanup"><p>仅清理本地备份辅助数据，不会删除资源库内容或 WebDAV 配置。</p>${cleanupPending ? '<div class="jav-resource-cleanup-confirm"><strong>确认清理备份历史、冲突检测记录和本地缓存？</strong><div><button type="button" data-resource-cleanup-confirm="1">确认清理</button><button type="button" data-resource-cleanup-cancel="1">取消</button></div></div>' : '<div class="jav-resource-cleanup-actions"><button type="button" data-resource-cleanup="1">清理本地辅助数据</button></div>'}</div>`;
+    backupEl.insertAdjacentHTML('beforeend', renderResourceCleanup()); }
+   overlay.addEventListener('wheel', event => {
+    if (!event.deltaY) return;
+    if (event.target.closest?.('.jav-resource-card-menu-popover')) return;
+    let node = event.target instanceof Element ? event.target : null;
+    while (node && node !== overlay) {
+     const style = window.getComputedStyle(node); const canScrollY = node.scrollHeight > node.clientHeight && /auto|scroll|overlay/.test(style.overflowY);
+     if (canScrollY) {
+      const atTop = node.scrollTop <= 0; const atBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 1;
+      if ((event.deltaY < 0 && !atTop) || (event.deltaY > 0 && !atBottom)) return;
+     }
+     node = node.parentElement; }
+    event.preventDefault();
+   }, { passive: false });
+   overlay.addEventListener('click', async event => {
+    if (!state) await hydrateResourceState();
+    if (!event.target.closest('.jav-resource-card-menu')) closeResourceMenus();
+    const viewButton = event.target.closest('[data-resource-view]');
+    if (viewButton) { activeView = viewButton.dataset.resourceView || 'actors'; operationMessage = ''; renderActiveView(); return; }
+    const historyTab = event.target.closest('[data-history-view]');
+    if (historyTab) { historyView = historyTab.dataset.historyView || 'state'; renderActiveView(); return; }
+    const blacklistTab = event.target.closest('[data-blacklist-view]');
+    if (blacklistTab) { blacklistView = blacklistTab.dataset.blacklistView || 'actors'; blacklistSearch = ''; renderActiveView(); return; }
+    const menuTrigger = event.target.closest('[data-resource-work-menu]');
+    if (menuTrigger) {
+     const menu = menuTrigger.closest('.jav-resource-card-menu');
+     closeResourceMenus(menu);
+     const isOpen = menu?.classList.toggle('is-open') || false;
+     menuTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+     if (isOpen) requestAnimationFrame(() => positionResourceMenu(menu));
+     return; }
+    const historyActorQuery = event.target.closest('[data-resource-history-query-actors], [data-resource-work-query-actors]');
+    if (historyActorQuery) {
+     const code = historyActorQuery.dataset.resourceHistoryQueryActors || historyActorQuery.dataset.resourceWorkQueryActors || '';
+     const work = getState().works[code];
+     if (!work?.url || historyActorEnrichmentScheduled.has(code)) return;
+     historyActorEnrichmentScheduled.add(code); renderActiveView();
+     enrichWorkActors(code, work.url, { force: true }).then(updated => {
+      Utils.showToast(updated ? '演员已关联' : '未找到演员', updated ? code : `${code} 未解析到演员信息`, updated ? 2200 : 3000);
+     }).catch(error => {
+      Utils.showToast('演员查询失败', error.message || '请稍后重试', 3500);
+     }).finally(() => {
+      historyActorEnrichmentScheduled.delete(code);
+      if (overlay.isConnected) renderActiveView();
+     });
+     return; }
+    const historyRemove = event.target.closest('[data-resource-history-remove]');
+    if (historyRemove) { historyRemoveCode = historyRemove.dataset.resourceHistoryRemove || ''; return renderActiveView(); }
+    if (event.target.closest('[data-resource-history-remove-cancel]')) { historyRemoveCode = ''; return renderActiveView(); }
+    const historyRemoveConfirm = event.target.closest('[data-resource-history-remove-confirm]');
+    if (historyRemoveConfirm) {
+     removeWorkFromHistory(historyRemoveConfirm.dataset.resourceHistoryRemoveConfirm);
+     historyRemoveCode = '';
+     Utils.showToast('已移出鉴定记录', historyRemoveConfirm.dataset.resourceHistoryRemoveConfirm);
+     return renderActiveView(); }
+    if (event.target.closest('[data-resource-close]')) { activeResourceOperation?.cancel(); activeResourceOperation = null; overlay.dispatchEvent(new Event('laosiji-resource-dispose')); overlay.remove(); document.body.style.overflow = previousBodyOverflow; document.documentElement.style.overflow = previousDocumentOverflow; return; }
+    if (event.target.closest('[data-resource-stop]')) { activeResourceOperation?.cancel(); operationMessage = '\u6b63\u5728\u505c\u6b62\u64cd\u4f5c...'; return; }
+    const workPageClick = event.target.closest('[data-resource-works-page]'); const actorPageClick = event.target.closest('[data-resource-actors-page]');
+    if (actorPageClick) { const nextPage = Number(actorPageClick.dataset.resourceActorsPage); if (Number.isFinite(nextPage) && nextPage >= 1) { actorsPage = nextPage; renderActiveView(); requestAnimationFrame(() => { const scroll = contentEl.querySelector('.jav-resource-content-scroll'); if (scroll) scroll.scrollTop = 0; }); } return; }
+    if (workPageClick) { const nextPage = Number(workPageClick.dataset.resourceWorksPage); if (Number.isFinite(nextPage) && nextPage >= 1) { worksPage = nextPage; renderActiveView(); requestAnimationFrame(() => { const scroll = contentEl.querySelector('.jav-resource-content-scroll'); if (scroll) scroll.scrollTop = 0; }); } return; }
+    if (event.target.closest('[data-resource-sync-actors]')) {
+     if (operationBusy) return;
+     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在同步演员...';
+     renderActiveView();
+     syncActors(message => { operationMessage = message; renderActiveView(); }, activeResourceOperation).then(result => { operationMessage = `演员同步完成：${result.actors} 位，${result.pages} 页`; Utils.showToast('演员同步完成', `${result.actors} 位演员`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `演员同步失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); });
+     return; }
+    if (event.target.closest('[data-resource-check-all]')) {
+     if (operationBusy) return;
+     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在检测演员最新作品...';
+     renderActiveView();
+     syncAllActorWorks(null, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation).then(result => { operationMessage = `作品检测完成：${result.actors} 位演员，新增 ${result.added} 部作品`; Utils.showToast('作品检测完成', `新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `作品检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); });
+     return; }
+    const actorCheck = event.target.closest('[data-resource-check-actor]');
+    if (actorCheck) {
+     if (operationBusy) return;
+     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在检测演员最新作品...';
+     renderActiveView();
+     syncActorWorks(actorCheck.dataset.resourceCheckActor, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation).then(result => { operationMessage = `检测完成：发现 ${result.found} 部，新增 ${result.added} 部`; Utils.showToast('作品检测完成', `新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); });
+     return; }
+    const uncollect = event.target.closest('[data-resource-uncollect-actor]');
+    if (uncollect) {
+     if (operationBusy) return;
+     const actorId = uncollect.dataset.resourceUncollectActor; const actor = getState().actors[actorId];
+     if (!actor || !window.confirm(`确定取消收藏 ${actor.name || actorId}？`)) return;
+     operationBusy = true; operationMessage = '正在取消收藏...';
+     renderActiveView();
+     uncollectResourceActor(actorId).then(() => {
+      const library = getState();
+      delete library.actors[actorId];
+      Object.entries(library.relations).forEach(([key, relation]) => { if (relation.actorId === actorId) delete library.relations[key]; });
+      persist(); Utils.showToast('已取消收藏', actor.name || actorId);
+     }).catch(error => { operationMessage = `取消收藏失败：${error.message || error}`; Utils.showToast('取消收藏失败', error.message || '请稍后重试', 3500); }).finally(() => { operationBusy = false; renderActiveView(); });
+     return; }
+    const workBlacklist = event.target.closest('[data-resource-work-blacklist]'); const workFlag = event.target.closest('[data-resource-work-flag]');
+    if (workBlacklist) {
+     const code = workBlacklist.dataset.resourceWorkBlacklist; const work = getState().works[code];
+     setWorkBlacklist(code, work || { code }, true);
+     persist(); Utils.showToast('已加入作品黑名单', code); renderActiveView();
+     return; }
+    if (workFlag) {
+     updateWorkFlag(workFlag.dataset.resourceWorkCode, workFlag.dataset.resourceWorkFlag) .then(() => renderActiveView())
+      .catch(error => Utils.showToast('标记失败', error.message || '资源库写入失败', 3500));
+     return; }
+    if (event.target.closest('[data-resource-export]')) { const filename = downloadBackup(); recordBackupHistory('export', 'success', { filename }); Utils.showToast('备份已导出', filename); return renderBackup(); }
+    if (event.target.closest('[data-resource-import]')) return backupEl.querySelector('[data-resource-file-input]')?.click();
+    if (event.target.closest('[data-resource-import-cancel]')) { pendingImport = null; return renderBackup(); }
+    if (event.target.closest('[data-resource-import-apply]')) {
+     if (!pendingImport?.data) return;
+     const imported = pendingImport;
+     const count = kind => Object.keys(imported.data[kind] || {}).length;
+     mergeImportedState(imported.data);
+     recordBackupHistory('import', 'success', { filename: imported.fileName, message: `演员 ${count('actors')}，作品 ${count('works')}，关联 ${count('relations')}` });
+     pendingImport = null;
+     Utils.showToast('备份已合并', `作品 ${count('works')}，演员 ${count('actors')}`);
+     return renderBackup(); }
+    if (event.target.closest('[data-resource-health]')) { healthReport = checkIntegrity(); return renderBackup(); }
+    if (event.target.closest('[data-resource-health-repair]')) { const result = repairIntegrity(); healthReport = result.report; Utils.showToast('数据修复完成', `清理异常记录 ${result.removedRecords} 条`); return renderBackup(); }
+    if (event.target.closest('[data-resource-recovery-restore]')) {
+     if (!window.confirm('恢复会用最近一次导入前保存的数据覆盖当前资源库。是否继续？')) return;
+     try { restoreRecoverySnapshot(); healthReport = checkIntegrity(); Utils.showToast('已恢复导入前数据', '当前资源库已回到最近一次导入前状态'); } catch (error) { Utils.showToast('恢复失败', error.message || '本地快照不可用', 3500); }
+     return renderBackup(); }
+    if (event.target.closest('[data-resource-cleanup]')) { cleanupPending = true; return renderBackup(); }
+    if (event.target.closest('[data-resource-cleanup-cancel]')) { cleanupPending = false; return renderBackup(); }
+    if (event.target.closest('[data-resource-cleanup-confirm]')) { clearAuxiliaryData(); recordBackupHistory('cleanup', 'success', { message: '已清理本地备份辅助数据' }); cleanupPending = false; Utils.showToast('清理完成', '本地备份辅助数据已清理'); return renderBackup(); }
+    if (event.target.closest('[data-resource-data-cleanup-cancel]')) { resourceCleanupPending = null; return renderBackup(); }
+    if (event.target.closest('[data-resource-data-cleanup]')) {
+     const scope = backupEl.querySelector('[data-resource-data-cleanup-scope]')?.value;
+     const type = scope === 'all' ? 'all' : backupEl.querySelector('[data-resource-data-cleanup-type]')?.value;
+     if (!['all', 'actors', 'works', 'history', 'blacklist-actors', 'blacklist-works', 'blacklist-keywords', 'relations'].includes(scope) || !['all', 'uncensored', 'censored', 'western', 'unknown'].includes(type)) return;
+     const matches = getResourceCleanupMatches(scope, type);
+     resourceCleanupPending = { scope, type, actors: matches.actorIds.length, works: matches.workCodes.length, history: matches.historyCodes.length, relations: matches.orphanRelations.length };
+     return renderBackup(); }
+    if (event.target.closest('[data-resource-data-cleanup-confirm]') && resourceCleanupPending) {
+     const selection = resourceCleanupPending; const result = clearResourceData(selection.scope, selection.type);
+     recordBackupHistory('resource_cleanup', 'success', { message: `${cleanupScopeLabel(selection.scope)}：演员 ${result.actors || 0}，作品 ${result.works || 0}，鉴定记录 ${result.history || 0}，关联 ${result.relations || 0}，黑名单 ${result.blacklist || 0}` });
+     resourceCleanupPending = null; healthReport = null;
+     Utils.showToast('资源数据已清理', `${cleanupScopeLabel(selection.scope)}已清理`);
+     return renderBackup(); }
+    const checkBlacklistActor = event.target.closest('[data-resource-blacklist-check-actor]');
+    if (checkBlacklistActor) {
+     if (operationBusy) return;
+     const actorId = checkBlacklistActor.dataset.resourceBlacklistCheckActor;
+     if (!actorId || !getBlacklist().actors[actorId]) return;
+     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在继续检测演员作品...';
+     renderActiveView();
+     syncBlacklistedActor(actorId, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation)
+      .then(result => Utils.showToast('演员作品已更新', `发现 ${result.found} 部，新增 ${result.added} 部`))
+      .catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `继续检测失败：${error.message || error}`; Utils.showToast('演员作品检测失败', error.message || '资源库写入失败', 3500); })
+      .finally(() => { operationBusy = false; activeResourceOperation = null; operationMessage = ''; if (overlay.isConnected) renderActiveView(); });
+     return; }
+    const removeActor = event.target.closest('[data-resource-blacklist-remove-actor]');
+    if (removeActor) { setActorBlacklist(removeActor.dataset.resourceBlacklistRemoveActor, null, false); persist(); return renderActiveView(); }
+    const removeWork = event.target.closest('[data-resource-blacklist-remove-work]');
+    if (removeWork) { setWorkBlacklist(removeWork.dataset.resourceBlacklistRemoveWork, getState().works[removeWork.dataset.resourceBlacklistRemoveWork] || { code: removeWork.dataset.resourceBlacklistRemoveWork }, false); persist(); return renderActiveView(); }
+    const addKeyword = event.target.closest('[data-resource-blacklist-add-keyword]');
+    if (addKeyword) {
+     const kind = addKeyword.dataset.resourceBlacklistAddKeyword === 'code' ? 'codeKeywords' : 'titleKeywords';
+     const input = overlay.querySelector(`[data-resource-blacklist-keyword-input="${addKeyword.dataset.resourceBlacklistAddKeyword}"]`);
+     const value = String(input?.value || '').trim();
+     if (!value) return;
+     const normalized = kind === 'codeKeywords' ? value.toUpperCase() : value.toLowerCase(); const blacklist = getBlacklist();
+     if (!blacklist[kind].includes(normalized)) blacklist[kind].push(normalized);
+     persist();
+     return renderActiveView(); }
+    const removeKeyword = event.target.closest('[data-resource-blacklist-remove-keyword]');
+    if (removeKeyword) {
+     const kind = removeKeyword.dataset.resourceBlacklistRemoveKeyword === 'code' ? 'codeKeywords' : 'titleKeywords';
+     const value = removeKeyword.dataset.resourceBlacklistKeyword; const blacklist = getBlacklist();
+     blacklist[kind] = blacklist[kind].filter(item => item !== value);
+     persist();
+     return renderActiveView(); }
+    const listButton = event.target.closest('[data-webdav-list]');
+    if (listButton) {
+     const config = readWebdavForm();
+     webdavListingLoading = true;
+     renderBackup();
+     webdavList(config).then(result => { webdavListing = result.items; Utils.showToast('云端列表已更新', `找到 ${result.items.length} 个 JSON 备份`); }).catch(error => { webdavListing = null; Utils.showToast('读取云端列表失败', error.message || '请检查 WebDAV 配置', 3500); }).finally(() => { webdavListingLoading = false; renderBackup(); });
+     return; }
+    const cloudDownload = event.target.closest('[data-webdav-backup-download]');
+    if (cloudDownload) {
+     const filename = cloudDownload.dataset.webdavBackupDownload;
+     const config = saveWebdavConfig({ ...readWebdavForm(), filename });
+     webdavDownload(config).then(result => { pendingImport = result; recordBackupHistory('download', 'success', { filename }); Utils.showToast('云端备份已读取', '请确认导入预览内容'); }).catch(error => { recordBackupHistory('download', 'error', { filename, message: error.message }); Utils.showToast('云端备份读取失败', error.message || '请稍后重试', 3500); }).finally(renderBackup);
+     return; }
+    const cloudDelete = event.target.closest('[data-webdav-backup-delete]');
+    if (cloudDelete) {
+     const filename = cloudDelete.dataset.webdavBackupDelete; const confirm = document.createElement('div');
+     confirm.className = 'jav-resource-confirm';
+     confirm.innerHTML = `<div class="jav-resource-confirm-box"><strong>删除云端备份？</strong><span>${escape(filename)} 将从 WebDAV 中删除，此操作无法撤销。</span><div><button type="button" data-confirm-delete="1">确认删除</button><button type="button" data-cancel-delete="1">取消</button></div></div>`;
+     overlay.appendChild(confirm);
+     confirm.addEventListener('click', confirmEvent => {
+      if (confirmEvent.target.closest('[data-cancel-delete]')) { confirm.remove(); return; }
+      if (!confirmEvent.target.closest('[data-confirm-delete]')) return;
+      const config = saveWebdavConfig({ ...readWebdavForm(), filename });
+      confirm.remove();
+      webdavDelete(config).then(() => { recordBackupHistory('delete', 'success', { filename }); webdavListing = webdavListing?.filter(item => item.filename !== filename) || null; Utils.showToast('云端备份已删除', filename); }).catch(error => { recordBackupHistory('delete', 'error', { filename, message: error.message }); Utils.showToast('云端备份删除失败', error.message || '请稍后重试', 3500); }).finally(renderBackup);
+     });
+     return; }
+    if (event.target.closest('[data-webdav-conflict-cancel]')) { webdavConflict = null; return renderBackup(); }
+    const conflictAction = event.target.closest('[data-webdav-conflict-overwrite], [data-webdav-conflict-download]');
+    if (conflictAction && webdavConflict) {
+     const filename = webdavConflict.filename;
+     const config = saveWebdavConfig({ ...readWebdavForm(), filename });
+     webdavConflictLoading = true;
+     renderBackup();
+     const downloadRemote = conflictAction.dataset.webdavConflictDownload;
+     const task = downloadRemote ? webdavDownload(config).then(result => { pendingImport = result; webdavConflict = null; recordBackupHistory('download', 'success', { filename }); Utils.showToast('云端备份已读取', '请确认导入预览内容'); }) : webdavUpload(config, { force: true }).then(result => { webdavConflict = null; recordBackupHistory('upload', 'success', { filename, message: '冲突后强制覆盖' }); Utils.showToast('云端备份已覆盖', result.message); });
+     task.catch(error => { recordBackupHistory(downloadRemote ? 'download' : 'upload', 'error', { filename, message: error.message }); Utils.showToast(downloadRemote ? '读取云端备份失败' : '覆盖云端备份失败', error.message || '请稍后重试', 3500); }).finally(() => { webdavConflictLoading = false; renderBackup(); });
+     return; }
+    const action = event.target.closest('[data-webdav-test], [data-webdav-upload], [data-webdav-download]');
+    if (action) {
+     const config = readWebdavForm(); const kind = action.dataset.webdavTest ? 'test' : action.dataset.webdavUpload ? 'upload' : 'download';
+     const task = kind === 'test' ? webdavTest(config) : kind === 'upload' ? webdavUpload(config) : webdavDownload(config);
+     task.then(result => { if (kind === 'download') { pendingImport = result; recordBackupHistory('download', 'success', { filename: config.filename }); Utils.showToast('云端备份已读取', '请确认导入预览内容'); } else { if (kind === 'upload') recordBackupHistory('upload', 'success', { filename: config.filename }); Utils.showToast(kind === 'upload' ? '备份已上传' : 'WebDAV 连接成功', result.message); } }).catch(error => { if (kind === 'upload' && error.code === 'WEBDAV_CONFLICT') { webdavConflict = { filename: config.filename }; recordBackupHistory('upload', 'conflict', { filename: config.filename, message: error.message }); } else if (kind === 'download' || kind === 'upload') recordBackupHistory(kind, 'error', { filename: config.filename, message: error.message }); Utils.showToast(kind === 'upload' && error.code === 'WEBDAV_CONFLICT' ? '检测到云端冲突' : kind === 'download' ? '云端备份读取失败' : 'WebDAV 操作失败', error.message || '请检查地址和凭据', 3500); }).finally(renderBackup);
+    }
+   });
+   overlay.addEventListener('change', event => {
+    const actorFilter = event.target.closest('[data-resource-actors-filter]');
+    if (actorFilter) { actorsFilter = actorFilter.value; actorsPage = 1; return renderActiveView(); }
+    const workFilter = event.target.closest('[data-resource-works-filter]');
+    if (workFilter) { worksFilter = workFilter.value; worksPage = 1; return renderActiveView(); }
+    const workStatusFilter = event.target.closest('[data-resource-works-status-filter]');
+    if (workStatusFilter) { worksStatusFilter = workStatusFilter.value; worksPage = 1; return renderActiveView(); }
+    const historyFilterControl = event.target.closest('[data-resource-history-filter]');
+    if (historyFilterControl) { historyFilter = historyFilterControl.value; return renderActiveView(); }
+    const workPage = event.target.closest('[data-resource-works-page]');
+    if (workPage) { const nextPage = Number(workPage.dataset.resourceWorksPage); if (Number.isFinite(nextPage) && nextPage >= 1) { worksPage = nextPage; renderActiveView(); } return; }
+    const fileInput = event.target.closest('[data-resource-file-input]');
+    if (!fileInput?.files?.[0]) return;
+    const file = fileInput.files[0];
+    pendingImport = { fileName: file.name, data: { works: {}, actors: {}, relations: {} }, errors: [] };
+    if (file.size > MAX_IMPORT_BYTES) { pendingImport.errors.push('文件超过 25 MB 限制'); return renderBackup(); }
+    file.text().then(text => {
+     try { pendingImport = { fileName: file.name, ...prepareImport(JSON.parse(text)) }; } catch (error) { pendingImport.errors = [error.message || '备份文件解析失败']; }
+     renderBackup();
+    }).catch(() => { pendingImport.errors = ['备份文件读取失败']; renderBackup(); });
+   });
+   overlay.addEventListener('input', event => {
+    const actorSearch = event.target.closest('[data-resource-actors-search]');
+    if (actorSearch) { actorsSearch = actorSearch.value; actorsPage = 1; return; }
+    const workSearch = event.target.closest('[data-resource-works-search]');
+    if (workSearch) { worksSearch = workSearch.value; return; }
+    const historySearchControl = event.target.closest('[data-resource-history-search]');
+    if (historySearchControl) { historySearch = historySearchControl.value; return; }
+    const blacklistSearchControl = event.target.closest('[data-resource-blacklist-search]');
+    if (blacklistSearchControl) { blacklistSearch = blacklistSearchControl.value; return; }
+   });
+   overlay.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    if (event.target.closest('[data-resource-actors-search]')) { actorsPage = 1; renderActiveView(); }
+    if (event.target.closest('[data-resource-works-search]')) { worksPage = 1; renderActiveView(); }
+    if (event.target.closest('[data-resource-history-search]')) renderActiveView();
+    if (event.target.closest('[data-resource-blacklist-search]')) renderActiveView();
+   });
+   renderActiveView(); hydrateResourceState(() => renderActiveView()); }
+  hydrateResourceState().then(() => syncPendingBlacklistedActors().catch(error => errorLog('pending actor blacklist migration failed:', error?.message || error)));
+  return { open, getState, isSupported, toggleWorkFlag: toggleResourceWorkFlag, toggleActorBlacklist: toggleResourceActorBlacklist, isActorBlacklisted, isWorkBlacklisted, enrichWorkActors, getWorkFlags: work => ({ favorite: !!(work?.flags?.favorite ?? work?.favorite), watched: !!(work?.flags?.watched ?? work?.hasWatch), downloaded: !!(work?.flags?.downloaded ?? work?.hasDown), blocked: isWorkBlacklisted(work) }) };
+ })();
+  Core.expose('__LAOSIJI_RESOURCE_LIBRARY__', ResourceLibrary);
  const JumpSites = [
   {
    id: 'sukebei',
@@ -8800,7 +10331,7 @@
    getTitleElement() { return this.getInfoTable()?.querySelector('tr:first-child td') || null; },
    getCode(titleElem) {
     const raw = String(titleElem?.textContent || '').match(/\b(\d{6,9})\b/)?.[1] || '';
-    return raw ?`FC2-PPV-${raw}` : '';
+    return raw ? `FC2-PPV-${raw}` : '';
    } } ];
  Core.expose('__LAOSIJI_JUMP_SITES__', JumpSites);
  function clearMobileJumpMenuPosition(subMenu) {
@@ -8838,7 +10369,7 @@
    const gutter = 8; const viewportWidth = document.documentElement.clientWidth || window.innerWidth; const viewportHeight = window.innerHeight;
    const triggerRect = menuDiv.getBoundingClientRect(); const menuWidth = Math.max(0, Math.min(176, viewportWidth - gutter * 2));
    subMenu.style.setProperty('position', 'fixed'); subMenu.style.setProperty('top', '0px'); subMenu.style.setProperty('left', '0px');
-   subMenu.style.setProperty('width',`${menuWidth}px`, 'important');
+   subMenu.style.setProperty('width', `${menuWidth}px`, 'important');
    subMenu.style.setProperty('min-width', '0px', 'important'); subMenu.style.setProperty('visibility', 'hidden');
    const menuHeight = subMenu.getBoundingClientRect().height; const minimumTop = Math.min(viewportHeight - gutter, getFixedHeaderBottom());
    const preferredTop = Math.max(minimumTop, triggerRect.bottom + 4); const availableBelow = viewportHeight - gutter - preferredTop;
@@ -8846,9 +10377,9 @@
    const top = shouldOpenAbove ? Math.max(minimumTop, triggerRect.top - 4 - menuHeight) : preferredTop;
    const availableHeight = Math.max(0, viewportHeight - gutter - top); const maxLeft = Math.max(gutter, viewportWidth - gutter - menuWidth);
    const left = Math.min(Math.max(gutter, triggerRect.left), maxLeft);
-   subMenu.style.setProperty('top',`${top}px`);
-   subMenu.style.setProperty('left',`${left}px`);
-   subMenu.style.setProperty('max-height',`${availableHeight}px`);
+   subMenu.style.setProperty('top', `${top}px`);
+   subMenu.style.setProperty('left', `${left}px`);
+   subMenu.style.setProperty('max-height', `${availableHeight}px`);
    subMenu.style.setProperty('overflow-y', 'auto'); subMenu.style.removeProperty('visibility'); };
   const scheduleClose = () => {
    clearCloseTimer();
@@ -8880,7 +10411,7 @@
   window.addEventListener('resize', closeMenu, { passive: true }); }
  function createJumpMenu({ accent, mainBtn, subButtons, toggleTitle, className = '', stretchSubButtons = true }) {
   const menuDiv = document.createElement('div');
-  menuDiv.className =`search-menu${className ? ` ${className}` : ''}`;
+  menuDiv.className = `search-menu${className ? ` ${className}` : ''}`;
   menuDiv.style.setProperty('--jav-btn-accent', accent); mainBtn.classList.add('search-main-btn'); menuDiv.appendChild(mainBtn);
   const toggleBtn = document.createElement('button');
   toggleBtn.type = 'button'; toggleBtn.className = 'search-toggle-btn'; toggleBtn.title = toggleTitle;
@@ -8898,7 +10429,7 @@
  function addNyaaBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_nyaa', true)) return;
   if (/sukebei\.nyaa/i.test(location.hostname)) return;
-  const btn = Utils.createJumpLinkBtn('🔍 Sukebei', '#17a2b8',`https://sukebei.nyaa.si/?f=0&c=0_0&q=${encodeURIComponent(code)}`);
+  const btn = Utils.createJumpLinkBtn('🔍 Sukebei', '#17a2b8', `https://sukebei.nyaa.si/?f=0&c=0_0&q=${encodeURIComponent(code)}`);
   container.appendChild(btn); }
  function addJavbusBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_javbus', true)) return;
@@ -8908,32 +10439,32 @@
  function addJavdbBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_javdb', true)) return;
   if (/javdb\.com/i.test(location.hostname)) return;
-  const btn = Utils.createJumpLinkBtn('📀 JavDB', '#6f42c1',`https://javdb.com/search?q=${encodeURIComponent(code)}`);
+  const btn = Utils.createJumpLinkBtn('📀 JavDB', '#6f42c1', `https://javdb.com/search?q=${encodeURIComponent(code)}`);
   container.appendChild(btn); }
  function getFc2Number(code) { return String(code || '').trim().match(/^FC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})$/i)?.[1] || ''; }
  function getFc2CmaArticleUrl(code) {
   const fc2Number = getFc2Number(code);
-  return fc2Number ?`https://fc2cmadb.com/articles/${fc2Number}` : '';
+  return fc2Number ? `https://fc2cmadb.com/articles/${fc2Number}` : '';
  }
  function addMissAVBtn(code, container, useCapture = false) {
   const showMissav = GM_getValue('btn_show_missav', true);
   if (!showMissav) return;
   const codeLower = String(code || '').trim().toLowerCase(); const codeCompactLower = codeLower.replace(/-/g, ''); const fc2Number = getFc2Number(code);
-  const fc2Slug = fc2Number ?`fc2-ppv-${fc2Number}` : '';
-  const fc2JavdaySlug = fc2Number ?`FC2PPV${fc2Number}` : '';
+  const fc2Slug = fc2Number ? `fc2-ppv-${fc2Number}` : '';
+  const fc2JavdaySlug = fc2Number ? `FC2PPV${fc2Number}` : '';
   const get123AvLocalePrefix = () => {
    if (/(?:^|\.)123av\.com$/i.test(location.hostname)) {
     const locale = location.pathname.match(/^\/([a-z]{2}(?:-[a-z]{2})?)\//i)?.[1];
-    if (locale) return`/${locale.toLowerCase()}`;
+    if (locale) return `/${locale.toLowerCase()}`;
    }
    return '/cn'; };
   const videoUrlMap = {
-   missav:`https://missav.ws/${fc2Slug || codeLower}`,
-   jable:`https://jable.tv/videos/${codeLower}/`,
-   '123av':`https://123av.com${get123AvLocalePrefix()}/v/${fc2Slug || codeLower}`,
-   javday: fc2JavdaySlug ?`https://javday.app/index.php/videos/${fc2JavdaySlug}/` :`https://javday.app/videos/${codeCompactLower}/`,
-   supjav:`https://supjav.com/zh/?s=${encodeURIComponent(fc2Number || code)}`,
-   javrate:`https://www.javrate.com/search/${encodeURIComponent(codeLower)}`,
+   missav: `https://missav.ws/${fc2Slug || codeLower}`,
+   jable: `https://jable.tv/videos/${codeLower}/`,
+   '123av': `https://123av.com${get123AvLocalePrefix()}/v/${fc2Slug || codeLower}`,
+   javday: fc2JavdaySlug ? `https://javday.app/index.php/videos/${fc2JavdaySlug}/` : `https://javday.app/videos/${codeCompactLower}/`,
+   supjav: `https://supjav.com/zh/?s=${encodeURIComponent(fc2Number || code)}`,
+   javrate: `https://www.javrate.com/search/${encodeURIComponent(codeLower)}`,
   };
   const enabledVideoKeys = new Set([ ...(showMissav ? ['missav', 'jable', '123av', 'javday', 'supjav', 'javrate'] : []),
   ]);
@@ -9025,11 +10556,11 @@
  function normalizePan115Matches(value) {
   return (Array.isArray(value) ? value : value?.pickcode ? [value] : []) .filter(item => item?.pickcode); }
  function pan115DisplayLabel(base, matches) {
-  return matches.length > 1 ?`${base}×${matches.length}` : base;
+  return matches.length > 1 ? `${base}×${matches.length}` : base;
  }
  function pan115MatchTitle(matches, code) {
   return normalizePan115Matches(matches) .map(item => [item.name, item.sizeText || Pan115.formatSize(item.size)].filter(Boolean).join(' · '))
-   .join('\n') ||`115播放：${Pan115.normalizeKeepSeparator(code)}`;
+   .join('\n') || `115播放：${Pan115.normalizeKeepSeparator(code)}`;
  }
  function refreshPan115Control(control, code, matches) {
   const list = normalizePan115Matches(matches);
@@ -9136,7 +10667,7 @@
  function createPan115CandidateAction(action, context) {
   const button = document.createElement('button'); const disabled = typeof action.disabled === 'function' && action.disabled(context);
   button.type = 'button';
-  button.className =`jav-pan115-candidate-action ${action.className || ''}`.trim();
+  button.className = `jav-pan115-candidate-action ${action.className || ''}`.trim();
   button.dataset.pan115Action = action.key || ''; button.textContent = typeof action.label === 'function' ? action.label(context) : action.label;
   button.disabled = !!disabled; button.title = typeof action.title === 'function' ? action.title(context) : action.title || '';
   button.addEventListener('click', event => {
@@ -9172,7 +10703,7 @@
      if (!match.fileId) return;
      const confirmed = await confirmPan115Action({
       title: '删除 115 文件',
-      message:`确定删除这个文件吗？\n\n${match.name || match.fileId}`,
+      message: `确定删除这个文件吗？\n\n${match.name || match.fileId}`,
       confirmText: '删除',
      });
      if (!confirmed) return;
@@ -9207,7 +10738,7 @@
   header.appendChild(titleWrap);
   const title = document.createElement('div');
   title.className = 'jav-pan115-chooser-title';
-  title.textContent =`${normalized || code} 的 115 匹配`;
+  title.textContent = `${normalized || code} 的 115 匹配`;
   titleWrap.appendChild(title);
   const desc = document.createElement('div');
   desc.className = 'jav-pan115-chooser-desc';
@@ -9219,19 +10750,19 @@
   list.className = 'jav-pan115-candidate-list';
   dialog.appendChild(list);
   const refreshDesc = () => {
-   desc.textContent =`共 ${matches.length} 个候选，可选择播放或管理文件。`;
+   desc.textContent = `共 ${matches.length} 个候选，可选择播放或管理文件。`;
   };
   refreshDesc();
   matches.forEach((match, index) => {
    const row = document.createElement('div');
-   row.className =`jav-pan115-candidate${match.lowPriorityReason ? ' is-low-priority' : ''}`;
+   row.className = `jav-pan115-candidate${match.lowPriorityReason ? ' is-low-priority' : ''}`;
    list.appendChild(row);
    const main = document.createElement('div');
    main.className = 'jav-pan115-candidate-main';
    row.appendChild(main);
    const name = document.createElement('div');
    name.className = 'jav-pan115-candidate-name';
-   name.textContent = match.name ||`候选 ${index + 1}`;
+   name.textContent = match.name || `候选 ${index + 1}`;
    name.title = match.name || '';
    main.appendChild(name);
    const meta = document.createElement('div');
@@ -9328,22 +10859,31 @@
   return badge; }
  let pan115ListRunning = false;
  async function renderPan115ListBadges() {
-  if (!Pan115.enabled() || pan115ListRunning || SiteManager.isDetailPage()) return;
+  if (!Pan115.enabled() || pan115ListRunning || SiteManager.isDetailPage() || document.querySelector('#jav-resource-overlay')) return;
   pan115ListRunning = true;
-  const targets = SiteManager.collectPan115ListTargets().slice(0, 36);
+  const targets = SiteManager.collectPan115ListTargets();
   try {
-   targets.forEach(({ anchor }) => { anchor.dataset.pan115Checked = '1'; });
-   await Promise.all(targets.map(async ({ anchor, code }) => {
-    try {
-     const matches = await Pan115.searchAllCached(code);
-     SiteManager.insertPan115ListBadge(anchor, matches, code);
-    } catch (err) { errorLog('115列表单项查询失败:', err); }
-   }));
+   let nextIndex = 0;
+   const worker = async () => {
+    while (nextIndex < targets.length) {
+     const target = targets[nextIndex++];
+     const { anchor, code } = target;
+     if (!anchor?.isConnected) continue;
+     anchor.dataset.pan115Checked = '1';
+     try {
+      const matches = await Pan115.searchAllCached(code);
+      if (anchor.isConnected) SiteManager.insertPan115ListBadge(anchor, matches, code);
+     } catch (err) {
+      if (anchor.isConnected) delete anchor.dataset.pan115Checked;
+      errorLog('115列表单项查询失败:', err); } } };
+   const isJavdbApiList = !!document.querySelector('.javdb-api-shell .movie-list');
+   const workerCount = isJavdbApiList ? Math.min(4, targets.length) : targets.length;
+   await Promise.all(Array.from({ length: workerCount }, worker));
   } catch (err) {
    errorLog('115列表自动查询失败:', err);
   } finally {
    pan115ListRunning = false;
-   if (Pan115.enabled() && SiteManager.collectPan115ListTargets().length) schedulePan115ListBadges();
+   if (Pan115.enabled() && !document.querySelector('#jav-resource-overlay') && SiteManager.collectPan115ListTargets().length) schedulePan115ListBadges();
   } }
  function removePan115Ui() {
   clearTimeout(pan115ListTimer); closePan115Chooser(); document.querySelectorAll('.jav-pan115-badge, .jav-pan115-play-btn').forEach(el => el.remove());
@@ -9461,7 +11001,7 @@
    ensureStyle();
    let row = Array.from(info.anchor.parentNode?.children || []).find(el => el.classList?.contains('jav-title-translation'));
    if (!row) { row = document.createElement('div'); row.className = 'jav-title-translation is-loading'; info.anchor.insertAdjacentElement('afterend', row); }
-   const id = `${info.site}:${target}:${info.text}`;
+   const id =`${info.site}:${target}:${info.text}`;
    if (row.dataset.translateId === id && ['loading', 'loaded'].includes(row.dataset.state)) return;
    row.dataset.translateId = id; row.dataset.state = 'loading'; row.className = 'jav-title-translation is-loading'; row.textContent = translateMessage(target);
    try {
@@ -9577,7 +11117,7 @@
     btn.setAttribute('style', style);
    });
   } else if (site.id === 'missav') {
-   btnGroup.style.cssText = `margin:10px 0 6px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative;z-index:9999;`;
+   btnGroup.style.cssText =`margin:10px 0 6px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative;z-index:9999;`;
   }
   if (site.id === 'emby') {
    btnGroup.classList.add('emby-fix');
@@ -9725,7 +11265,7 @@
    if (!config?.site) return '';
    const url = new URL(location.href);
    url.hash = '';
-   return `${this.cachePrefix}${config.site}_${url.href}`;
+   return`${this.cachePrefix}${config.site}_${url.href}`;
   },
   readSnapshot(config = this.state) {
    const key = this.cacheKey(config);
@@ -9824,7 +11364,7 @@
   setStatus(text, className = '') {
    const sentinel = this.state?.sentinel;
    if (!sentinel) return;
-   sentinel.className = `jav-infinite-sentinel ${className}`.trim();
+   sentinel.className =`jav-infinite-sentinel ${className}`.trim();
    sentinel.textContent = text; },
   async fetchDoc(url, requestContext = null) {
    const target = new URL(url, location.href);
