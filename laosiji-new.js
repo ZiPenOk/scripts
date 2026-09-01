@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.0.1
+// @version      2.8.1
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.8.0.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.8.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -457,6 +457,33 @@
   { key: 'supjav', label: 'SupJav', host: /supjav\.com/i, color: '#ef4444' },
   { key: 'javrate', label: 'JavRate', host: /javrate\.com/i, color: '#8b5cf6' }, ];
  Core.expose('__LAOSIJI_VIDEO_ENGINES__', VIDEO_ENGINES);
+ const CACHE_CATEGORY_META = [
+  {
+   id: 'media',
+   label: '预览图与封面',
+   description: '列表预览图、封面悬浮图和 115 封面',
+   prefixes: ['thumb_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_'], },
+  {
+   id: 'trailer',
+   label: '预告片与播放进度',
+   description: '预告片解析、播放进度和日本源临时失败记录',
+   prefixes: ['trailer_cache_', 'trailer_playback_', 'javxy_jp_source_failed_until_'], },
+  {
+   id: 'pan115',
+   label: '115 匹配',
+   description: '115 单项匹配与列表匹配结果',
+   prefixes: ['pan115_cache_', 'pan115_list_cache_'], },
+  {
+   id: 'page',
+   label: '页面数据',
+   description: '瀑布流恢复、123AV/FC2 数据和标题翻译',
+   prefixes: ['laosiji_infinite_v1_', 'javdb_123av_fc2_cache_v3_', 'title_translate_pa_v1_', 'javdb_over18_confirming'], },
+  {
+   id: 'favorites',
+   label: '收藏演员高亮缓存',
+   description: '详情页高亮索引，清理后会自动重新同步',
+   gmKeys: ['javdb_favorite_actors_cache', 'javdb_favorite_actors_cache_dirty_at', 'javdb_favorite_actors_pending'],
+   gmReset: { javdb_favorite_actors_cache: null, javdb_favorite_actors_cache_dirty_at: 0, javdb_favorite_actors_pending: null }, }, ];
  const Ui = {
   on(el, event, handler, options) {
    if (!el || typeof handler !== 'function') return null;
@@ -492,8 +519,29 @@
    Object.keys(sessionStorage).forEach(key => {
     if (prefixes.some(prefix => key.startsWith(prefix))) { sessionStorage.removeItem(key); count += 1; }
    });
-   return count; }, };
- Core.expose('__LAOSIJI_UI__', Ui);
+   return count; },
+  getCacheCategories() {
+   return CACHE_CATEGORY_META.map(category => ({ ...category,
+    prefixes: [...(category.prefixes || [])],
+    gmKeys: [...(category.gmKeys || [])],
+   })); },
+  clearCacheCategory(categoryId) {
+   const category = CACHE_CATEGORY_META.find(item => item.id === categoryId);
+   if (!category) return 0;
+   let count = this.clearSessionByPrefixes(category.prefixes || []);
+   (category.gmKeys || []).forEach(key => {
+    const marker = '__LAOSIJI_CACHE_MISSING__'; let value;
+    try { value = GM_getValue(key, marker); } catch (_) { value = marker; }
+    if (value === marker) return;
+    try {
+     GM_setValue(key, Object.prototype.hasOwnProperty.call(category.gmReset || {}, key) ? category.gmReset[key] : null);
+     count += 1;
+    } catch (_) {
+    }
+   });
+   return count; },
+  clearAllCacheCategories() { return CACHE_CATEGORY_META.reduce((count, category) => count + this.clearCacheCategory(category.id), 0); }, };
+ Core.expose('__LAOSIJI_UI__', Ui); Core.expose('__LAOSIJI_CACHE_CATEGORIES__', CACHE_CATEGORY_META);
  function getNotifyTone(title, text) {
   const raw =`${title || ''} ${text || ''}`;
   if (/失败|錯誤|错误|未登录|未登入|异常|失效|无法|失敗|請先|请先/i.test(raw)) return 'error';
@@ -646,7 +694,7 @@
  })();
  Core.expose('__LAOSIJI_MOBILE_POLICY__', MobilePolicy);
  function injectSettingsPanelStyles() {
-  GM_addStyle(`#jav-settings-overlay{position:fixed;inset:0;z-index:10000020;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(7px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#jav-settings-panel{width:min(800px,94vw);max-height:88vh;background:linear-gradient(180deg,#f8fbff 0%,#f6f3ff 46%,#fff7ed 100%);color:#111827;border:1px solid rgba(148,163,184,.38);border-radius:16px;box-shadow:0 26px 76px rgba(15,23,42,.36);display:flex;flex-direction:column;overflow:hidden}#jav-settings-panel *{box-sizing:border-box}#jav-settings-panel .sp-header{padding:18px 22px;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 54%,#7c2d12 100%);border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between;flex:0 0 auto}#jav-settings-panel .sp-title{font-size:18px;font-weight:750;color:#fff}#jav-settings-panel .sp-close{width:32px;height:32px;border:1px solid rgba(255,255,255,.24);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:18px;line-height:1}#jav-settings-panel .sp-close:hover{background:rgba(255,255,255,.18)}#jav-settings-panel .sp-body{padding:18px 22px;overflow:auto;display:grid;gap:14px;flex:1 1 auto;min-height:0;overscroll-behavior:contain;scrollbar-gutter:stable}#jav-settings-panel .sp-card{position:relative;background:rgba(255,255,255,.92);border:1px solid rgba(203,213,225,.88);border-radius:10px;padding:15px;box-shadow:0 10px 24px rgba(15,23,42,.06);overflow:hidden}#jav-settings-panel .sp-card::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#2563eb}#jav-settings-panel .sp-card-magnet::before{background:#16a34a}#jav-settings-panel .sp-card-features::before{background:#00a85a}#jav-settings-panel .sp-card-order::before{background:#dc2626}#jav-settings-panel .sp-card-title{font-size:13px;font-weight:750;color:#1e293b;margin-bottom:12px}#jav-settings-panel .sp-card-jump::before{background:#6366f1}#jav-settings-panel .sp-card-jump .sp-grid{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}#jav-settings-panel .sp-feature-order-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:stretch}#jav-settings-panel .sp-feature-order-row>.sp-card{height:100%}#jav-settings-panel .sp-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#jav-settings-panel .sp-feature-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-item:has(#sp-clear-preview-cache){order:2;grid-column:1}#jav-settings-panel .sp-feature-item:has(#sp-clear-trailer-cache){order:2;grid-column:2}#jav-settings-panel .sp-feature-item .sp-desc{margin-top:2px;font-size:11px}#jav-settings-panel .sp-feature-select{order:1;grid-column:2;display:grid;grid-template-columns:1fr 64px;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-select .sp-select{height:28px;padding:3px 2px 3px 4px;font-size:12px;text-align:left}#jav-settings-panel .sp-feature-magnet-display{order:1;grid-column:1;grid-template-columns:minmax(0,1fr) 100px}#jav-settings-panel .sp-feature-select:has(#sp-pan115-player){grid-template-columns:minmax(0,1fr) 100px}#jav-settings-panel .sp-feature-restore-toggle{order:4;grid-column:1 / -1;cursor:pointer}#jav-settings-panel .sp-feature-item:has(#sp-javdb-native-pages){order:3;grid-column:1 / -1;cursor:pointer}#jav-settings-panel .sp-feature-checkbox{width:18px;height:18px;flex:0 0 auto;accent-color:#4f46e5;cursor:pointer}#jav-settings-panel .sp-cache-clean{background:linear-gradient(135deg,#fff 0%,#f8fbff 58%,#f0f9ff 100%)}#jav-settings-panel .sp-cache-clear-btn{position:relative;width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border:1px solid #bae6fd;border-radius:10px;background:linear-gradient(180deg,#f0f9ff,#fff);color:#0284c7;cursor:pointer;overflow:hidden;transition:transform .16s,border-color .16s,background .16s,color .16s,box-shadow .16s}#jav-settings-panel .sp-cache-clear-btn::after{content:'';position:absolute;inset:-8px;border-radius:inherit;background:radial-gradient(circle,rgba(14,165,233,.22),transparent 62%);opacity:0;transform:scale(.45);transition:opacity .22s,transform .22s}#jav-settings-panel .sp-cache-clear-btn:hover{transform:translateY(-1px);border-color:#38bdf8;color:#0369a1;box-shadow:0 8px 18px rgba(14,165,233,.18)}#jav-settings-panel .sp-cache-clear-btn:active{transform:translateY(0) scale(.96)}#jav-settings-panel .sp-cache-clear-btn.is-clearing::after{opacity:1;transform:scale(1)}#jav-settings-panel .sp-cache-clear-btn.is-done{border-color:#86efac;background:linear-gradient(180deg,#ecfdf5,#fff);color:#15803d}#jav-settings-panel .sp-cache-clear-icon{position:relative;z-index:1;display:inline-block;font-size:15px;line-height:1}#jav-settings-panel .sp-cache-clear-btn.is-clearing .sp-cache-clear-icon{animation:spCacheSpin .48s ease}@keyframes spCacheSpin{to{transform:rotate(360deg)}}#jav-settings-panel .sp-field{display:flex;flex-direction:column;gap:6px;min-width:0}#jav-settings-panel .sp-label{font-size:12px;font-weight:650;color:#475569}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{width:100%;min-width:0;height:34px;padding:6px 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:13px;outline:none}#jav-settings-panel .sp-input:focus,#jav-settings-panel .sp-select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.13)}#jav-settings-panel .sp-engine-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:end}#jav-settings-panel .sp-cache-actions{display:flex;align-items:center;gap:8px;margin-right:auto}#jav-settings-panel .sp-cache-feedback{min-width:64px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-footer-links{display:flex;align-items:center;gap:8px;margin-right:4px}#jav-settings-panel .sp-footer-link{color:#475569;font-size:12px;font-weight:700;text-decoration:none;padding:6px 8px;border-radius:7px}#jav-settings-panel .sp-footer-link:hover{color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-footer-sep{width:1px;height:16px;background:#cbd5e1}#jav-settings-panel .sp-desc{font-size:12px;color:#64748b;line-height:1.45}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;width:42px;height:24px;flex:0 0 auto}#jav-settings-panel .sp-toggle input{opacity:0;width:0;height:0}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform .18s}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#2563eb}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-order-list{display:flex;flex-direction:column;gap:8px}#jav-settings-panel .sp-order-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(90deg,#fff 0%,#f8fafc 100%);user-select:none}#jav-settings-panel .sp-order-name{font-size:13px;font-weight:700;color:#1e293b}#jav-settings-panel .sp-dot{width:9px;height:9px;border-radius:50%}#jav-settings-panel .sp-order-actions{display:flex;gap:5px}#jav-settings-panel .sp-order-btn{width:28px;height:28px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;cursor:pointer;font-size:14px;line-height:1}#jav-settings-panel .sp-order-btn:hover:not(:disabled){border-color:#2563eb;color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-order-btn:disabled{opacity:.36;cursor:not-allowed}#jav-settings-panel .sp-footer{padding:14px 22px;background:rgba(255,255,255,.92);border-top:1px solid rgba(203,213,225,.86);display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:0 0 auto}#jav-settings-panel .sp-btn{height:34px;padding:0 16px;border-radius:8px;border:1px solid transparent;font-size:13px;font-weight:700;cursor:pointer}#jav-settings-panel .sp-btn-cancel{background:#fff;color:#475569;border-color:#cbd5e1}#jav-settings-panel .sp-btn-clear{background:#fff7ed;color:#9a3412;border-color:#fed7aa}#jav-settings-panel .sp-btn-clear:hover{background:#ffedd5}#jav-settings-panel .sp-btn-save{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;box-shadow:0 8px 20px rgba(79,70,229,.25)}@media (max-width:640px){#jav-settings-panel .sp-grid,#jav-settings-panel .sp-engine-row,#jav-settings-panel .sp-feature-grid,#jav-settings-panel .sp-feature-order-row{grid-template-columns:1fr}#jav-settings-panel .sp-feature-item{grid-column:auto!important}#jav-settings-panel .sp-cache-actions{margin-right:0}#jav-settings-panel .sp-footer{flex-wrap:wrap}}#jav-settings-panel .sp-chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}#jav-settings-panel .sp-chip input{display:none}#jav-settings-panel .sp-chip-label{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:999px;border:.5px solid var(--color-border-secondary,#cbd5e1);background:var(--color-background-secondary,#f8fafc);color:var(--color-text-secondary,#64748b);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;user-select:none}#jav-settings-panel .sp-chip input:checked+.sp-chip-label{border-color:#6366f1;background:#eef2ff;color:#4338ca}#jav-settings-panel .sp-chip-label:hover{border-color:#a5b4fc;background:#f0f4ff;color:#4338ca}#jav-settings-panel .sp-chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex:0 0 auto}@media (max-width:720px){#jav-settings-overlay{align-items:flex-start;padding:6px}#jav-settings-panel{width:100%;max-height:calc(100dvh - 12px);border-radius:12px}#jav-settings-panel .sp-header{padding:14px 16px}#jav-settings-panel .sp-body{padding:12px;gap:10px}#jav-settings-panel .sp-card{padding:12px}#jav-settings-panel .sp-footer{padding:10px 12px;gap:8px}#jav-settings-panel .sp-btn{min-height:40px}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{min-height:40px;height:40px}#jav-settings-panel .sp-chip-label{min-height:36px;padding:7px 10px}}html[data-laosiji-mobile] #jav-settings-overlay{align-items:center;padding:6px}html[data-laosiji-mobile] #jav-settings-panel{width:min(800px,calc(100vw - 12px));height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);min-height:0;box-sizing:border-box}html[data-laosiji-mobile] #jav-settings-panel .sp-body{display:flex;flex-direction:column;align-items:stretch;scroll-padding-block:12px;-webkit-overflow-scrolling:touch}html[data-laosiji-mobile] #jav-settings-panel .sp-grid,html[data-laosiji-mobile] #jav-settings-panel .sp-engine-row,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-grid,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-order-row{grid-template-columns:minmax(0,1fr)}html[data-laosiji-mobile] #jav-settings-panel .sp-feature-item,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-magnet-display,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-restore-toggle,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-item:has(#sp-clear-preview-cache),html[data-laosiji-mobile] #jav-settings-panel .sp-feature-item:has(#sp-clear-trailer-cache),html[data-laosiji-mobile] #jav-settings-panel .sp-feature-item:has(#sp-javdb-native-pages){grid-column:auto!important}html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-magnet-display,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select:has(#sp-pan115-player){grid-template-columns:minmax(0,1fr) 108px}html[data-laosiji-mobile] #jav-settings-panel .sp-card,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-order-row{flex:0 0 auto}html[data-laosiji-mobile] #jav-settings-panel .sp-footer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}html[data-laosiji-mobile] #jav-settings-panel .sp-cache-actions{display:grid;grid-column:1 / -1;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;width:100%;margin:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer-links{min-width:0;gap:2px;margin:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer-link{padding:6px 5px;white-space:nowrap}html[data-laosiji-mobile] #jav-settings-panel .sp-cache-feedback{grid-column:1 / -1;min-width:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer>.sp-btn{width:100%}`);
+  GM_addStyle(`#jav-settings-overlay{position:fixed;inset:0;z-index:10000020;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(7px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#jav-settings-panel{width:min(800px,94vw);max-height:88vh;background:linear-gradient(180deg,#f8fbff 0%,#f6f3ff 46%,#fff7ed 100%);color:#111827;border:1px solid rgba(148,163,184,.38);border-radius:16px;box-shadow:0 26px 76px rgba(15,23,42,.36);display:flex;flex-direction:column;overflow:hidden}#jav-settings-panel *{box-sizing:border-box}#jav-settings-panel .sp-header{padding:18px 22px;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 54%,#7c2d12 100%);border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between;flex:0 0 auto}#jav-settings-panel .sp-title{font-size:18px;font-weight:750;color:#fff}#jav-settings-panel .sp-close{width:32px;height:32px;border:1px solid rgba(255,255,255,.24);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:18px;line-height:1}#jav-settings-panel .sp-close:hover{background:rgba(255,255,255,.18)}#jav-settings-panel .sp-body{padding:18px 22px;overflow:auto;display:grid;gap:14px;flex:1 1 auto;min-height:0;overscroll-behavior:contain;scrollbar-gutter:stable}#jav-settings-panel .sp-card{position:relative;background:rgba(255,255,255,.92);border:1px solid rgba(203,213,225,.88);border-radius:10px;padding:15px;box-shadow:0 10px 24px rgba(15,23,42,.06);overflow:hidden}#jav-settings-panel .sp-card::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#2563eb}#jav-settings-panel .sp-card-magnet::before{background:#16a34a}#jav-settings-panel .sp-card-features::before{background:#00a85a}#jav-settings-panel .sp-card-order::before{background:#dc2626}#jav-settings-panel .sp-card-title{font-size:13px;font-weight:750;color:#1e293b;margin-bottom:12px}#jav-settings-panel .sp-card-jump::before{background:#6366f1}#jav-settings-panel .sp-card-jump .sp-grid{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}#jav-settings-panel .sp-feature-order-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:stretch}#jav-settings-panel .sp-feature-order-row>.sp-card{height:100%}#jav-settings-panel .sp-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#jav-settings-panel .sp-feature-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-item .sp-desc{margin-top:2px;font-size:11px}#jav-settings-panel .sp-feature-select{order:1;grid-column:2;display:grid;grid-template-columns:1fr 64px;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-select .sp-select{height:28px;padding:3px 2px 3px 4px;font-size:12px;text-align:left}#jav-settings-panel .sp-feature-magnet-display{order:1;grid-column:1;grid-template-columns:minmax(0,1fr) 100px}#jav-settings-panel .sp-feature-select:has(#sp-pan115-player){grid-template-columns:minmax(0,1fr) 100px}#jav-settings-panel .sp-feature-restore-toggle{order:4;grid-column:1 / -1;cursor:pointer}#jav-settings-panel .sp-feature-item:has(#sp-javdb-native-pages){order:3;grid-column:1 / -1;cursor:pointer}#jav-settings-panel .sp-feature-checkbox{width:18px;height:18px;flex:0 0 auto;accent-color:#4f46e5;cursor:pointer}#jav-settings-panel .sp-cache-clean{background:linear-gradient(135deg,#fff 0%,#f8fbff 58%,#f0f9ff 100%)}#jav-settings-panel .sp-cache-clear-btn{position:relative;width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border:1px solid #bae6fd;border-radius:10px;background:linear-gradient(180deg,#f0f9ff,#fff);color:#0284c7;cursor:pointer;overflow:hidden;transition:transform .16s,border-color .16s,background .16s,color .16s,box-shadow .16s}#jav-settings-panel .sp-cache-clear-btn::after{content:'';position:absolute;inset:-8px;border-radius:inherit;background:radial-gradient(circle,rgba(14,165,233,.22),transparent 62%);opacity:0;transform:scale(.45);transition:opacity .22s,transform .22s}#jav-settings-panel .sp-cache-clear-btn:hover{transform:translateY(-1px);border-color:#38bdf8;color:#0369a1;box-shadow:0 8px 18px rgba(14,165,233,.18)}#jav-settings-panel .sp-cache-clear-btn:active{transform:translateY(0) scale(.96)}#jav-settings-panel .sp-cache-clear-btn.is-clearing::after{opacity:1;transform:scale(1)}#jav-settings-panel .sp-cache-clear-btn.is-done{border-color:#86efac;background:linear-gradient(180deg,#ecfdf5,#fff);color:#15803d}#jav-settings-panel .sp-cache-clear-icon{position:relative;z-index:1;display:inline-block;font-size:15px;line-height:1}#jav-settings-panel .sp-cache-clear-btn.is-clearing .sp-cache-clear-icon{animation:spCacheSpin .48s ease}@keyframes spCacheSpin{to{transform:rotate(360deg)}}#jav-settings-panel .sp-field{display:flex;flex-direction:column;gap:6px;min-width:0}#jav-settings-panel .sp-label{font-size:12px;font-weight:650;color:#475569}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{width:100%;min-width:0;height:34px;padding:6px 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:13px;outline:none}#jav-settings-panel .sp-input:focus,#jav-settings-panel .sp-select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.13)}#jav-settings-panel .sp-engine-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:end}#jav-settings-panel .sp-cache-actions{display:flex;align-items:center;gap:8px;margin-right:auto}#jav-settings-panel .sp-cache-feedback{min-width:64px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-footer-links{display:flex;align-items:center;gap:8px;margin-right:4px}#jav-settings-panel .sp-footer-link{color:#475569;font-size:12px;font-weight:700;text-decoration:none;padding:6px 8px;border-radius:7px}#jav-settings-panel .sp-footer-link:hover{color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-footer-sep{width:1px;height:16px;background:#cbd5e1}#jav-settings-panel .sp-desc{font-size:12px;color:#64748b;line-height:1.45}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;width:42px;height:24px;flex:0 0 auto}#jav-settings-panel .sp-toggle input{opacity:0;width:0;height:0}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;cursor:pointer;transition:background .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform .18s}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#2563eb}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-order-list{display:flex;flex-direction:column;gap:8px}#jav-settings-panel .sp-order-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(90deg,#fff 0%,#f8fafc 100%);user-select:none}#jav-settings-panel .sp-order-name{font-size:13px;font-weight:700;color:#1e293b}#jav-settings-panel .sp-dot{width:9px;height:9px;border-radius:50%}#jav-settings-panel .sp-order-actions{display:flex;gap:5px}#jav-settings-panel .sp-order-btn{width:28px;height:28px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;cursor:pointer;font-size:14px;line-height:1}#jav-settings-panel .sp-order-btn:hover:not(:disabled){border-color:#2563eb;color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-order-btn:disabled{opacity:.36;cursor:not-allowed}#jav-settings-panel .sp-footer{padding:14px 22px;background:rgba(255,255,255,.92);border-top:1px solid rgba(203,213,225,.86);display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:0 0 auto}#jav-settings-panel .sp-btn{height:34px;padding:0 16px;border-radius:8px;border:1px solid transparent;font-size:13px;font-weight:700;cursor:pointer}#jav-settings-panel .sp-btn-cancel{background:#fff;color:#475569;border-color:#cbd5e1}#jav-settings-panel .sp-btn-clear{background:#fff7ed;color:#9a3412;border-color:#fed7aa}#jav-settings-panel .sp-btn-clear:hover{background:#ffedd5}#jav-settings-panel .sp-btn-save{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;box-shadow:0 8px 20px rgba(79,70,229,.25)}@media (max-width:640px){#jav-settings-panel .sp-grid,#jav-settings-panel .sp-engine-row,#jav-settings-panel .sp-feature-grid,#jav-settings-panel .sp-feature-order-row{grid-template-columns:1fr}#jav-settings-panel .sp-feature-item{grid-column:auto!important}#jav-settings-panel .sp-cache-actions{margin-right:0}#jav-settings-panel .sp-footer{flex-wrap:wrap}}#jav-settings-panel .sp-chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}#jav-settings-panel .sp-chip input{display:none}#jav-settings-panel .sp-chip-label{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:999px;border:.5px solid var(--color-border-secondary,#cbd5e1);background:var(--color-background-secondary,#f8fafc);color:var(--color-text-secondary,#64748b);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;user-select:none}#jav-settings-panel .sp-chip input:checked+.sp-chip-label{border-color:#6366f1;background:#eef2ff;color:#4338ca}#jav-settings-panel .sp-chip-label:hover{border-color:#a5b4fc;background:#f0f4ff;color:#4338ca}#jav-settings-panel .sp-chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex:0 0 auto}@media (max-width:720px){#jav-settings-overlay{align-items:flex-start;padding:6px}#jav-settings-panel{width:100%;max-height:calc(100dvh - 12px);border-radius:12px}#jav-settings-panel .sp-header{padding:14px 16px}#jav-settings-panel .sp-body{padding:12px;gap:10px}#jav-settings-panel .sp-card{padding:12px}#jav-settings-panel .sp-footer{padding:10px 12px;gap:8px}#jav-settings-panel .sp-btn{min-height:40px}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{min-height:40px;height:40px}#jav-settings-panel .sp-chip-label{min-height:36px;padding:7px 10px}}html[data-laosiji-mobile] #jav-settings-overlay{align-items:center;padding:6px}html[data-laosiji-mobile] #jav-settings-panel{width:min(800px,calc(100vw - 12px));height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);min-height:0;box-sizing:border-box}html[data-laosiji-mobile] #jav-settings-panel .sp-body{display:flex;flex-direction:column;align-items:stretch;scroll-padding-block:12px;-webkit-overflow-scrolling:touch}html[data-laosiji-mobile] #jav-settings-panel .sp-grid,html[data-laosiji-mobile] #jav-settings-panel .sp-engine-row,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-grid,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-order-row{grid-template-columns:minmax(0,1fr)}html[data-laosiji-mobile] #jav-settings-panel .sp-feature-item,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-magnet-display,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-restore-toggle,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-item:has(#sp-javdb-native-pages){grid-column:auto!important}html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-magnet-display,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select:has(#sp-pan115-player){grid-template-columns:minmax(0,1fr) 108px}html[data-laosiji-mobile] #jav-settings-panel .sp-card,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-order-row{flex:0 0 auto}html[data-laosiji-mobile] #jav-settings-panel .sp-footer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}html[data-laosiji-mobile] #jav-settings-panel .sp-cache-actions{display:grid;grid-column:1 / -1;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;width:100%;margin:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer-links{min-width:0;gap:2px;margin:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer-link{padding:6px 5px;white-space:nowrap}html[data-laosiji-mobile] #jav-settings-panel .sp-cache-feedback{grid-column:1 / -1;min-width:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer>.sp-btn{width:100%}#jav-settings-panel{width:min(1040px,calc(100vw - 32px));height:min(780px,calc(100dvh - 32px));min-height:0;max-height:none;background:#f8fafc}#jav-settings-panel .sp-body{padding:0;display:block;background:#f8fafc}#jav-settings-panel .sp-layout{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:0;height:100%}#jav-settings-panel .sp-nav{display:flex;flex-direction:column;gap:4px;padding:16px 10px;border-right:1px solid #e2e8f0;background:#f1f5f9}#jav-settings-panel .sp-nav-item{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:11px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:#475569;text-align:left;cursor:pointer}#jav-settings-panel .sp-nav-item:hover{background:#e2e8f0;color:#1e3a8a}#jav-settings-panel .sp-nav-item.is-active{border-color:#bfdbfe;background:#fff;color:#1d4ed8;box-shadow:0 2px 5px rgba(15,23,42,.06)}#jav-settings-panel .sp-nav-label{font-size:13px;font-weight:800}#jav-settings-panel .sp-nav-item small{color:#64748b;font-size:10px;line-height:1.35}#jav-settings-panel .sp-nav-item.is-active small{color:#64748b}#jav-settings-panel .sp-content{min-width:0;min-height:0;overflow:auto;padding:20px 22px;overscroll-behavior:contain;scrollbar-gutter:stable}#jav-settings-panel .sp-section{display:block}#jav-settings-panel .sp-section[hidden]{display:none!important}#jav-settings-panel .sp-section-head{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-section-title{color:#0f172a;font-size:17px;font-weight:850}#jav-settings-panel .sp-section-desc{margin-top:4px;color:#64748b;font-size:12px}#jav-settings-panel .sp-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px}#jav-settings-panel .sp-setting-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.8fr);align-items:center;gap:14px;min-width:0;min-height:58px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-setting-row:focus-within{border-color:#93c5fd;box-shadow:0 0 0 2px rgba(59,130,246,.1)}#jav-settings-panel .sp-setting-copy{display:flex;flex-direction:column;gap:3px;min-width:0}#jav-settings-panel .sp-setting-copy strong{color:#1e293b;font-size:13px;font-weight:750}#jav-settings-panel .sp-setting-copy small{color:#64748b;font-size:11px;line-height:1.35}#jav-settings-panel .sp-setting-row>.sp-select,#jav-settings-panel .sp-setting-row>.sp-input{height:32px}#jav-settings-panel .sp-range{width:100%;min-width:0;accent-color:#2563eb}#jav-settings-panel output{min-width:42px;color:#1d4ed8;font-size:12px;font-weight:800;text-align:right}#jav-settings-panel .sp-setting-row:has(.sp-range){grid-template-columns:minmax(0,1fr) minmax(90px,1fr) 42px}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;justify-self:end;width:42px;height:24px}#jav-settings-panel .sp-toggle input{position:absolute;inset:0;z-index:2;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#cbd5e1;transition:background .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform .18s}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#2563eb}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-engine-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1.3fr)}#jav-settings-panel .sp-engine-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:7px;min-width:0}#jav-settings-panel .sp-button-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#jav-settings-panel .sp-subsection-title{grid-column:1 / -1;margin-top:4px;padding:3px 2px 1px;color:#334155;font-size:12px;font-weight:800;letter-spacing:.02em}#jav-settings-panel .sp-button-grid .sp-chip{position:relative;margin:0;width:auto;min-height:58px;padding:10px 12px;cursor:pointer}#jav-settings-panel .sp-button-grid .sp-chip input{display:block;position:absolute;inset:0;z-index:2;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}#jav-settings-panel .sp-button-grid .sp-chip input:checked~.sp-toggle .sp-toggle-track{background:#2563eb}#jav-settings-panel .sp-button-grid .sp-chip input:checked~.sp-toggle .sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-order-block{grid-column:1 / -1;padding:12px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-cache-panel{grid-column:1 / -1;padding:12px;border:1px solid #dbeafe;border-radius:8px;background:linear-gradient(180deg,#f8fbff 0%,#fff 100%)}#jav-settings-panel .sp-cache-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-cache-panel-head strong,#jav-settings-panel .sp-cache-copy strong{display:block;color:#1e293b;font-size:13px;font-weight:750}#jav-settings-panel .sp-cache-panel-head small,#jav-settings-panel .sp-cache-copy small{display:block;margin-top:3px;color:#64748b;font-size:11px;line-height:1.4}#jav-settings-panel .sp-cache-all-btn,#jav-settings-panel .sp-cache-clear-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;padding:0 10px;border:1px solid #bae6fd;border-radius:7px;background:#f0f9ff;color:#0369a1;font-size:12px;font-weight:700;cursor:pointer;transition:background .16s,border-color .16s,color .16s,transform .16s}#jav-settings-panel .sp-cache-clear-btn{width:auto;height:32px;flex:0 0 auto;overflow:visible}#jav-settings-panel .sp-cache-clear-btn::after{display:none}#jav-settings-panel .sp-cache-all-btn{border-color:#93c5fd;background:#dbeafe;color:#1d4ed8;white-space:nowrap}#jav-settings-panel .sp-cache-all-btn:hover,#jav-settings-panel .sp-cache-clear-btn:hover{border-color:#38bdf8;background:#e0f2fe;color:#075985;transform:translateY(-1px)}#jav-settings-panel .sp-cache-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}#jav-settings-panel .sp-cache-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:9px 10px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-cache-copy{min-width:0}#jav-settings-panel .sp-cache-clear-btn span:last-child{white-space:nowrap}#jav-settings-panel .sp-cache-feedback{min-height:18px;margin-top:8px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-order-block .sp-order-list{margin-top:10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#jav-settings-panel .sp-order-block .sp-order-item{min-width:0;padding:8px 9px;border-radius:6px;background:#f8fafc}@media (max-width:720px){#jav-settings-panel{width:calc(100vw - 12px);height:calc(100dvh - 12px);min-height:0;max-height:none}#jav-settings-panel .sp-layout{display:flex;flex-direction:column}#jav-settings-panel .sp-nav{flex-direction:row;overflow-x:auto;padding:8px;border-right:0;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-nav-item{flex:0 0 112px;min-height:52px;padding:8px 9px}#jav-settings-panel .sp-nav-item small{display:none}#jav-settings-panel .sp-content{padding:14px 12px}#jav-settings-panel .sp-settings-grid,#jav-settings-panel .sp-button-grid{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-setting-row,#jav-settings-panel .sp-setting-row:has(.sp-range),#jav-settings-panel .sp-engine-editor{grid-template-columns:minmax(0,1fr) minmax(105px,.8fr)}#jav-settings-panel .sp-setting-row:has(.sp-range){grid-template-columns:minmax(0,1fr) minmax(90px,1fr) 42px}#jav-settings-panel .sp-engine-editor{display:grid}#jav-settings-panel .sp-engine-controls{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-cache-list{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-cache-panel-head{align-items:flex-start;flex-direction:column}#jav-settings-panel .sp-order-block .sp-order-list{grid-template-columns:minmax(0,1fr)}}`);
  }
  const SettingsPanel = (() => {
   const MAGNET_ENGINES = [
@@ -667,13 +715,32 @@
    { key: 'search', cfgKey: 'btnShowSearch', label: '搜索组' },
    { key: 'subtitle', cfgKey: 'btnShowSubtitle', label: '字幕' },
    { key: 'trailer', cfgKey: 'btnShowTrailer', label: '预告片' },
-   { key: 'preview', cfgKey: 'btnShowPreview', label: '预览图' }, ];
+   { key: 'preview', cfgKey: 'btnShowPreview', label: '预览图' },
+   { key: 'pan115', cfgKey: 'btnShowPan115', label: '115匹配' }, ];
+  const PANEL_SECTIONS = [
+   { id: 'common', label: '常用' },
+   { id: 'layout', label: '界面相关' },
+   { id: 'search', label: '搜索与播放' },
+   { id: 'sites', label: '站点与按钮' },
+   { id: 'advanced', label: '缓存与高级' }, ];
   const THUMB_META = {
    javfree:    { label: 'javfree.me',     color: '#16a34a' },
    projectjav: { label: 'projectjav.com', color: '#ca8a04' },
    javstore:   { label: 'javstore.net',   color: '#dc2626' }, };
+  const CACHE_CATEGORIES = typeof Ui?.getCacheCategories === 'function' ? Ui.getCacheCategories() : [];
   function renderButtonToggles() {
-   return BUTTON_TOGGLE_META.map(({ key, label }) =>`<label class="sp-chip"><input id="sp-btn-${key}" type="checkbox"><span class="sp-chip-label"><span class="sp-chip-dot"></span>${label}</span></label>`).join('');
+   return BUTTON_TOGGLE_META.map(({ key, label }) =>`<label class="sp-chip sp-setting-row"><input id="sp-btn-${key}" type="checkbox"><span class="sp-setting-copy"><strong>${label}</strong><small>在支持的页面显示此入口</small></span><span class="sp-toggle"><span class="sp-toggle-track"></span></span></label>`).join('');
+  }
+  function renderSectionNav() {
+   return PANEL_SECTIONS.map((section, index) =>`<button class="sp-nav-item${index === 0 ? ' is-active' : ''}" type="button" role="tab" aria-selected="${index === 0 ? 'true' : 'false'}" data-sp-section="${section.id}"><span class="sp-nav-label">${section.label}</span></button>`).join('');
+  }
+  function renderCacheControls() {
+   return`<div class="sp-cache-panel"><div class="sp-cache-panel-head"><div><strong>按类别清理</strong><small>仅清理脚本运行缓存，不影响设置和资源管理数据</small></div><button class="sp-cache-all-btn" id="sp-clear-all-cache" type="button" title="清理全部脚本缓存"><span aria-hidden="true">↻</span>全部清理</button></div><div class="sp-cache-list"> ${CACHE_CATEGORIES.map(category => `
+                            <div class="sp-cache-item">
+                                <div class="sp-cache-copy"><strong>${category.label}</strong><small>${category.description}</small></div>
+                                <button class="sp-cache-clear-btn" data-cache-category="${category.id}" type="button" title="清理${category.label}"><span aria-hidden="true">↻</span><span>清理</span></button>
+                            </div>
+                        `).join('')} </div><div class="sp-cache-feedback" id="sp-cache-feedback" role="status" aria-live="polite"></div></div>`;
   }
   const stripProtocol = value => String(value || '').trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
   function open() {
@@ -683,20 +750,40 @@
    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
    const panel = document.createElement('div');
    panel.id = 'jav-settings-panel';
-   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><section class="sp-card sp-card-magnet"><div class="sp-card-title">磁力搜索</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认磁力引擎</span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-engine-row"><label class="sp-field"><span class="sp-label">编辑引擎</span><select class="sp-select" id="sp-engine-picker"></select></label><label class="sp-field"><span class="sp-label">域名</span><input class="sp-input" id="sp-engine-domain"></label></div></div></section><div class="sp-feature-order-row"><section class="sp-card sp-card-features"><div class="sp-card-title">功能项开关</div><div class="sp-feature-grid"><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预览图缓存</div><div class="sp-desc">清理本页会话缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-preview-cache" type="button" title="清理预览图缓存"><span class="sp-cache-clear-icon">↻</span></button></div><div class="sp-feature-item sp-cache-clean"><div><div class="sp-label">预告片缓存</div><div class="sp-desc">清理解析结果缓存</div></div><button class="sp-cache-clear-btn" id="sp-clear-trailer-cache" type="button" title="清理预告片缓存"><span class="sp-cache-clear-icon">↻</span></button></div><label class="sp-feature-select sp-feature-magnet-display"><div><div class="sp-label">聚合搜索</div></div><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-feature-select"><div><div class="sp-label">115播放器</div></div><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><label class="sp-feature-item sp-feature-restore-toggle"><div><div class="sp-label">自动恢复瀑布流历史</div><div class="sp-desc">刷新或返回时恢复已加载内容；低配置电脑可关闭</div></div><input class="sp-feature-checkbox" id="sp-infinite-scroll-restore" type="checkbox"></label><label class="sp-feature-item"><div><div class="sp-label">JavDB原生页面</div><div class="sp-desc">JavDB会员可开启此功能</div></div><input class="sp-feature-checkbox" id="sp-javdb-native-pages" type="checkbox"></label></div></section><section class="sp-card sp-card-order"><div class="sp-card-title">预览图来源顺序</div><div class="sp-order-list" id="sp-thumb-order"></div></section></div><section class="sp-card sp-card-jump" style="--card-color:#6366f1;"><div class="sp-card-title">跳转入口与按钮控制</div><div class="sp-grid"><label class="sp-field"><span class="sp-label">默认搜索入口</span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-field"><span class="sp-label">默认视频入口</span><select class="sp-select" id="sp-video-engine"></select></label></div><div class="sp-chip-group"> ${renderButtonToggles()} </div></section></div><div class="sp-footer"><div class="sp-cache-actions"><div class="sp-footer-links"><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-clear" id="sp-clear-cache" type="button">清空缓存</button><span class="sp-cache-feedback" id="sp-cache-feedback"></span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片动画</strong><small>启用卡片悬停动效</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 原生页面</strong><small>JavDB 会员可开启此功能</small></span><span class="sp-toggle"><input id="sp-javdb-native-pages" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
    overlay.appendChild(panel); document.body.appendChild(overlay);
+   const navItems = [...panel.querySelectorAll('[data-sp-section]')]; const sectionPanels = [...panel.querySelectorAll('[data-sp-panel]')];
+   navItems.forEach(item => item.addEventListener('click', () => {
+    const section = item.dataset.spSection;
+    navItems.forEach(nav => {
+     const active = nav === item;
+     nav.classList.toggle('is-active', active); nav.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    sectionPanels.forEach(panelSection => {
+     const active = panelSection.dataset.spPanel === section;
+     panelSection.classList.toggle('is-active', active);
+     panelSection.hidden = !active;
+    });
+   }));
    const defaultSelect = panel.querySelector('#sp-default-engine'); const picker = panel.querySelector('#sp-engine-picker');
    const domainInput = panel.querySelector('#sp-engine-domain'); const jumpEngineSelect = panel.querySelector('#sp-jump-engine');
    const videoEngineSelect = panel.querySelector('#sp-video-engine'); const magnetDisplaySelect = panel.querySelector('#sp-magnet-display');
-   const clearPreviewCacheBtn = panel.querySelector('#sp-clear-preview-cache'); const clearTrailerCacheBtn = panel.querySelector('#sp-clear-trailer-cache');
    const pan115PlayerSelect = panel.querySelector('#sp-pan115-player');
    const infiniteScrollRestoreCheckbox = panel.querySelector('#sp-infinite-scroll-restore');
-   const javdbNativePagesCheckbox = panel.querySelector('#sp-javdb-native-pages');
+   const infiniteScrollCheckbox = panel.querySelector('#sp-infinite-scroll'); const javdbNativePagesCheckbox = panel.querySelector('#sp-javdb-native-pages');
+   const listPreviewCheckbox = panel.querySelector('#sp-list-preview'); const titleTranslateCheckbox = panel.querySelector('#sp-title-translate');
+   const listNewTabCheckbox = panel.querySelector('#sp-list-new-tab'); const portraitCardsCheckbox = panel.querySelector('#sp-portrait-cards');
+   const cardFxCheckbox = panel.querySelector('#sp-card-fx'); const coverHoverPreviewCheckbox = panel.querySelector('#sp-cover-hover-preview');
+   const detailPreviewCheckbox = panel.querySelector('#sp-detail-preview'); const reviewsExpandedCheckbox = panel.querySelector('#sp-reviews-expanded');
+   const actorHighlightCheckbox = panel.querySelector('#sp-actor-highlight'); const reviewFontSelect = panel.querySelector('#sp-review-font');
+   const apiTabSelect = panel.querySelector('#sp-api-tab'); const nativeMagnetTabSelect = panel.querySelector('#sp-native-magnet-tab');
+   const magnetSortSelect = panel.querySelector('#sp-magnet-sort');
    const btnToggles = Object.fromEntries(BUTTON_TOGGLE_META.map(({ key }) => (
     [key, panel.querySelector(`#sp-btn-${key}`)]
    )));
-   const clearCacheBtn = panel.querySelector('#sp-clear-cache'); const cacheFeedback = panel.querySelector('#sp-cache-feedback');
-   const orderList = panel.querySelector('#sp-thumb-order'); const domainDraft = Object.fromEntries(MAGNET_ENGINES.map(item => [item.key, CFG[item.key]]));
+   const cacheFeedback = panel.querySelector('#sp-cache-feedback'); const clearAllCacheBtn = panel.querySelector('#sp-clear-all-cache');
+   const cacheClearButtons = [...panel.querySelectorAll('[data-cache-category]')]; const orderList = panel.querySelector('#sp-thumb-order');
+   const domainDraft = Object.fromEntries(MAGNET_ENGINES.map(item => [item.key, CFG[item.key]]));
    let currentOrder = GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']);
    Object.keys(THUMB_META).forEach(src => { if (!currentOrder.includes(src)) currentOrder.push(src); });
    currentOrder = currentOrder.filter(src => THUMB_META[src]);
@@ -726,7 +813,19 @@
    if (pan115PlayerSelect) {
     pan115PlayerSelect.value = ['official', '115master', 'potplayer'].includes(CFG.pan115Player) ? CFG.pan115Player : 'official'; }
    if (infiniteScrollRestoreCheckbox) infiniteScrollRestoreCheckbox.checked = CFG.infiniteScrollRestore;
+   if (infiniteScrollCheckbox) infiniteScrollCheckbox.checked = CFG.infiniteScroll;
    if (javdbNativePagesCheckbox) javdbNativePagesCheckbox.checked = CFG.javdbUseNativePages;
+   if (listPreviewCheckbox) listPreviewCheckbox.checked = CFG.listPreviewQuick;
+   if (titleTranslateCheckbox) titleTranslateCheckbox.checked = CFG.titleTranslate;
+   if (listNewTabCheckbox) listNewTabCheckbox.checked = CFG.listOpenNewTab;
+   if (portraitCardsCheckbox) portraitCardsCheckbox.checked = CFG.portraitCards;
+   if (cardFxCheckbox) cardFxCheckbox.checked = CFG.cardFx;
+   if (coverHoverPreviewCheckbox) coverHoverPreviewCheckbox.checked = CFG.coverHoverPreview;
+   if (detailPreviewCheckbox) detailPreviewCheckbox.checked = CFG.detailPreviewInline;
+   if (reviewsExpandedCheckbox) reviewsExpandedCheckbox.checked = CFG.reviewsDefaultExpanded;
+   if (actorHighlightCheckbox) actorHighlightCheckbox.checked = CFG.javdbFavoriteActorHighlight;
+   Ui.setSelectValue(reviewFontSelect, CFG.reviewFontSize, 'medium'); Ui.setSelectValue(apiTabSelect, CFG.apiMovieDefaultTab, 'reviews');
+   Ui.setSelectValue(nativeMagnetTabSelect, CFG.nativeMagnetDefaultTab, 'native'); Ui.setSelectValue(magnetSortSelect, CFG.magnetSort, 'size');
    Ui.setSelectValue(magnetDisplaySelect, CFG.magnetDisplayMode, 'sidebar');
    BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { btnToggles[key].checked = CFG[cfgKey]; });
    const renderOrder = () => {
@@ -734,7 +833,7 @@
     currentOrder.forEach((src, index) => {
      const meta = THUMB_META[src]; const item = document.createElement('div');
      item.className = 'sp-order-item'; item.dataset.src = src;
-     item.innerHTML =`<div><div class="sp-order-name"> ${meta.label} </div></div><span class="sp-dot" style="background: ${meta.color} "></span><div class="sp-order-actions"><button class="sp-order-btn" type="button" data-dir="-1" title="上移" ${index === 0 ? 'disabled' : ''} >↑</button><button class="sp-order-btn" type="button" data-dir="1" title="下移" ${index === currentOrder.length - 1 ? 'disabled' : ''} >↓</button></div>`;
+     item.innerHTML =`<div><div class="sp-order-name"> ${meta.label} </div></div><span class="sp-dot" style="background: ${meta.color} "></span><div class="sp-order-actions"><button class="sp-order-btn" type="button" data-dir="-1" title="左移" ${index === 0 ? 'disabled' : ''} >←</button><button class="sp-order-btn" type="button" data-dir="1" title="右移" ${index === currentOrder.length - 1 ? 'disabled' : ''} >→</button></div>`;
      orderList.appendChild(item);
     }); };
    orderList.addEventListener('click', e => {
@@ -746,7 +845,7 @@
     renderOrder();
    });
    const flashCacheButton = (btn, label, count) => {
-    if (!btn) return;
+    if (!btn || !cacheFeedback) return;
     btn.classList.remove('is-done'); btn.classList.add('is-clearing');
     setTimeout(() => {
      btn.classList.remove('is-clearing'); btn.classList.add('is-done');
@@ -754,18 +853,13 @@
      setTimeout(() => btn.classList.remove('is-done'), 900);
      setTimeout(() => { cacheFeedback.textContent = ''; }, 1800);
     }, 260); };
-   clearPreviewCacheBtn.addEventListener('click', () => {
-    const count = Ui.clearSessionByPrefixes(['thumb_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_']);
-    flashCacheButton(clearPreviewCacheBtn, '预览图已清理', count);
-   });
-   clearTrailerCacheBtn.addEventListener('click', () => {
-    const count = Ui.clearSessionByPrefixes(['trailer_cache_']);
-    flashCacheButton(clearTrailerCacheBtn, '预告片已清理', count);
-   });
-   clearCacheBtn.addEventListener('click', () => {
-    const count = Ui.clearSessionByPrefixes(['thumb_cache_', 'trailer_cache_', 'pan115_cache_', 'pan115_list_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_']);
-    cacheFeedback.textContent = count ?`已清空 ${count} 项` : '无缓存';
-    setTimeout(() => { cacheFeedback.textContent = ''; }, 1800);
+   cacheClearButtons.forEach(btn => btn.addEventListener('click', () => {
+    const category = CACHE_CATEGORIES.find(item => item.id === btn.dataset.cacheCategory); const count = Ui.clearCacheCategory(btn.dataset.cacheCategory);
+    flashCacheButton(btn,`${category?.label || '缓存'}已清理`, count);
+   }));
+   clearAllCacheBtn?.addEventListener('click', () => {
+    const count = typeof Ui.clearAllCacheCategories === 'function' ? Ui.clearAllCacheCategories() : 0;
+    flashCacheButton(clearAllCacheBtn, '全部缓存已清理', count);
    });
    picker.value = 'javdbSearchUrl';
    loadPickedDomain(); syncDefaultOptions(); renderOrder();
@@ -777,11 +871,22 @@
      defaultEngine: CFG.defaultEngine,
      defaultSearchEngine: GM_getValue('default_search_engine', 2),
      defaultVideoEngine: CFG.defaultVideoEngine,
-     columns: {
-      javbus: CFG.javbusCardColumns,
-      javdb: CFG.javdbCardColumns,
-      javlib: CFG.javlibCardColumns, },
+     common: {
+      listPreviewQuick: CFG.listPreviewQuick,
+      titleTranslate: CFG.titleTranslate,
+      listOpenNewTab: CFG.listOpenNewTab,
+      portraitCards: CFG.portraitCards,
+      cardFx: CFG.cardFx,
+      coverHoverPreview: CFG.coverHoverPreview,
+      detailPreviewInline: CFG.detailPreviewInline, },
+     reviews: {
+      defaultExpanded: CFG.reviewsDefaultExpanded,
+      fontSize: CFG.reviewFontSize,
+      apiMovieDefaultTab: CFG.apiMovieDefaultTab,
+      favoriteActorHighlight: CFG.javdbFavoriteActorHighlight, },
      magnetDisplayMode: CFG.magnetDisplayMode,
+     nativeMagnetDefaultTab: CFG.nativeMagnetDefaultTab,
+     magnetSort: CFG.magnetSort,
      infiniteScroll: CFG.infiniteScroll,
      infiniteScrollRestore: CFG.infiniteScrollRestore,
      javdbUseNativePages: CFG.javdbUseNativePages,
@@ -793,9 +898,15 @@
     MAGNET_ENGINES.forEach(item => { CFG[item.key] = stripProtocol(domainDraft[item.key]); });
     CFG.defaultEngine = defaultSelect.value;
     GM_setValue('default_search_engine', parseInt(jumpEngineSelect.value, 10) || 0);
-    CFG.defaultVideoEngine = videoEngineSelect.value || 'missav'; CFG.pan115Player = nextPan115Player; CFG.magnetDisplayMode = magnetDisplaySelect.value;
-    CFG.magnetTable = CFG.magnetDisplayMode === 'sidebar'; CFG.infiniteScrollRestore = !!infiniteScrollRestoreCheckbox?.checked;
-    CFG.javdbUseNativePages = !!javdbNativePagesCheckbox?.checked;
+    CFG.defaultVideoEngine = videoEngineSelect.value || 'missav'; CFG.pan115Player = nextPan115Player; CFG.listPreviewQuick = !!listPreviewCheckbox?.checked;
+    CFG.titleTranslate = !!titleTranslateCheckbox?.checked; CFG.listOpenNewTab = !!listNewTabCheckbox?.checked;
+    CFG.portraitCards = !!portraitCardsCheckbox?.checked; CFG.cardFx = !!cardFxCheckbox?.checked; CFG.coverHoverPreview = !!coverHoverPreviewCheckbox?.checked;
+    CFG.detailPreviewInline = !!detailPreviewCheckbox?.checked; CFG.reviewsDefaultExpanded = !!reviewsExpandedCheckbox?.checked;
+    CFG.reviewFontSize = reviewFontSelect?.value || 'medium'; CFG.apiMovieDefaultTab = apiTabSelect?.value || 'reviews';
+    CFG.javdbFavoriteActorHighlight = !!actorHighlightCheckbox?.checked; CFG.magnetDisplayMode = magnetDisplaySelect.value;
+    CFG.magnetTable = CFG.magnetDisplayMode === 'sidebar'; CFG.nativeMagnetDefaultTab = nativeMagnetTabSelect?.value || 'native';
+    CFG.magnetSort = magnetSortSelect?.value || 'size'; CFG.infiniteScroll = !!infiniteScrollCheckbox?.checked;
+    CFG.infiniteScrollRestore = !!infiniteScrollRestoreCheckbox?.checked; CFG.javdbUseNativePages = !!javdbNativePagesCheckbox?.checked;
     BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { CFG[cfgKey] = btnToggles[key].checked; });
     GM_setValue('thumb_source_order', currentOrder);
     const pan115Changed = beforePan115Player !== nextPan115Player; const nonPan115Changed = beforeNonPan115 !== snapshotNonPan115();
@@ -5873,7 +5984,31 @@
   return { create };
  })();
  const StillsGallery = (() => {
-  let activeViewerClose = null;
+  let activeViewerClose = null; let observer = null; let syncTimer = null; let retryIndex = 0; const retryDelays = [0, 120, 350, 800, 1500, 3000];
+  function isPotentialDetailPage() {
+   if (typeof SiteManager !== 'undefined' && typeof SiteManager.isDetailPage === 'function') { return SiteManager.isDetailPage(); }
+   return SiteJavBus.match() && !!document.querySelector('.row.movie') && !document.querySelector('#waterfall div.item'); }
+  function isOwnMutationNode(node) {
+   if (!node || node.nodeType !== 1) return true;
+   return node.matches?.('.jav-stills-shell, .jav-stills-shell *') || !!node.closest?.('.jav-stills-shell'); }
+  function ensureObserver() {
+   if (observer || !document.documentElement || typeof MutationObserver === 'undefined') return;
+   observer = new MutationObserver(records => {
+    if (!isPotentialDetailPage()) return;
+    const meaningful = records.some(record => [...record.addedNodes, ...record.removedNodes].some(node => !isOwnMutationNode(node)));
+    if (meaningful) scheduleSync(0, true);
+   });
+   observer.observe(document.documentElement, { childList: true, subtree: true }); }
+  function scheduleSync(delay = 0, resetRetries = false) {
+   if (!isPotentialDetailPage()) return;
+   if (resetRetries) retryIndex = 0;
+   clearTimeout(syncTimer);
+   syncTimer = setTimeout(() => {
+    syncTimer = null;
+    if (sync()) return;
+    const nextDelay = retryDelays[retryIndex++];
+    if (nextDelay !== undefined) scheduleSync(nextDelay);
+   }, Math.max(0, Number(delay) || 0)); }
   function scrollRail(rail, dir) {
    const maxLeft = Math.max(0, rail.scrollWidth - rail.clientWidth);
    if (maxLeft <= 1) return;
@@ -6062,11 +6197,12 @@
    if (!submitHeading?.parentNode || shell.nextElementSibling === submitHeading) return;
    submitHeading.parentNode.insertBefore(shell, submitHeading); }
   function sync() {
+   ensureObserver();
    const config = findConfig();
-   if (!config?.container) return;
+   if (!config?.container) return false;
    ensureStillsGalleryStyles(); cleanSiteShell(config); bindViewer(config.container);
    const existingShell = config.container.closest('.jav-stills-shell');
-   if (existingShell) { reorderJavbusStills(config, existingShell); return; }
+   if (existingShell) { reorderJavbusStills(config, existingShell); return true; }
    const shell = document.createElement('div');
    shell.className =`jav-stills-shell jav-stills-${config.site}`;
    shell.dataset.laosijiStills = '1';
@@ -6078,8 +6214,11 @@
    ref.parentNode?.insertBefore(shell, ref);
    if (config.heading) { config.heading.dataset.laosijiStillsHidden = '1'; config.heading.style.display = 'none'; }
    stage.append( button('‹', 'jav-stills-arrow-prev', config.container, -1), config.container, button('›', 'jav-stills-arrow-next', config.container, 1) );
-   shell.append(stage); reorderJavbusStills(config, shell); }
-  return { sync };
+   shell.append(stage); reorderJavbusStills(config, shell);
+   return true; }
+  function start() {
+   ensureObserver(); scheduleSync(0, true); }
+  return { start, sync };
  })();
  Core.expose('__LAOSIJI_SITE_MANAGER__', SiteManager); Core.expose('__LAOSIJI_SITE_JAVBUS__', SiteJavBus); Core.expose('__LAOSIJI_SITE_JAVDB__', SiteJavDB);
  Core.expose('__LAOSIJI_SITE_JAVLIB__', SiteJavLib); Core.expose('__LAOSIJI_STILLS_GALLERY__', StillsGallery);
@@ -11676,6 +11815,7 @@
   _start() {
    MobilePolicy.start(); MobileSettingsEntry.install(); Pan115SettingsEntry.install(); CardFx.apply(MobilePolicy.featureEnabled('cardFx', CFG.cardFx));
    Trailer.installFallbackDebugHelper(); this.initRuntimeObserver(); this.initNavigationHooks(); SiteManager.setupJavDbGuards();
+   StillsGallery.start?.();
    if (location.hostname.includes('javdb') && location.pathname.startsWith('/v/')) {
     setTimeout(mainRun, 600);
    } else { mainRun(); }
