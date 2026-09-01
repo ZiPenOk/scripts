@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.0
+// @version      2.8.0.1
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.8.0'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.8.0.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -11091,7 +11091,7 @@
   const btnGroup = document.createElement('div');
   btnGroup.className = 'jav-jump-btn-group'; btnGroup.dataset.laosijiJump = '1'; btnGroup.dataset.code = code;
   if (site.id === 'fc2cmadb') { btnGroup.classList.add('fc2cmadb-jump-group'); insertAvidCopyBtn(titleElem, code, null, true); }
-  addNyaaBtn(code, btnGroup); addJavbusBtn(code, btnGroup); addJavdbBtn(code, btnGroup); addMissAVBtn(code, btnGroup);
+  addNyaaBtn(code, btnGroup); addJavbusBtn(code, btnGroup); addJavdbBtn(code, btnGroup); addMissAVBtn(code, btnGroup); addDmmBtn(code, btnGroup);
   if (site.id === 'missav') {
    const availableEngines = getAvailableSearchEngines(code); const defaultEngine = Settings.getDefaultSearchEngine(code);
    const mainSearchBtn = Utils.createLinkBtn(`🔍 ${defaultEngine.name}`, defaultEngine.color, defaultEngine.url(code));
@@ -11105,7 +11105,7 @@
     stretchSubButtons: false,
    }));
   } else {
-   addDmmBtn(code, btnGroup); addSearchMenu(code, btnGroup);
+   addSearchMenu(code, btnGroup);
    if (site.id === 'javlibrary' || ['javbus', 'javdb', 'supjav', 'jable'].includes(site.id)) { addJumpLineBreak(btnGroup); }
   }
   addPan115PlayBtn(Pan115.extractCode(site.id === 'fc2cmadb' ? code : titleText, code), btnGroup); addSubtitleBtn(code, btnGroup);
