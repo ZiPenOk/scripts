@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.1.1
+// @version      2.8.2
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // ==/UserScript==
 (function () {
  'use strict';
- const SCRIPT_VERSION = '2.8.1.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
+ const SCRIPT_VERSION = '2.8.2'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
  const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
@@ -1864,10 +1864,10 @@
    return /\d[-_\s]U(?:$|[\s._-])/i.test(text); }
   function stripPromotionalSuffix(text) { return String(text || '').replace(/【[^】]*(?:APP|夸克|UC搜|(?:[a-z0-9-]+\.)+(?:com|net|org|cc|sbs|top))[^】]*】/gi, ' '); }
   function classifyQuality(title) {
-   const text = stripPromotionalSuffix(title); const hasCJK = /[\u4e00-\u9fff]/.test(text); const hasJP = /[\u3040-\u309f\u30a0-\u30ff]/.test(text);
+   const text = stripPromotionalSuffix(title);
    const isChinese = /(?:[^A-Za-z]|^)FHDC(?:[^A-Za-z]|$)/i.test(text) || /[-_](?:UC|CH?)(?:[^A-Za-z]|$)/.test(text)
     || /(?:\u4e2d\u5b57|\u4e2d\u6587|\u5b57\u5e55|\u4e2d\u6587\u5b57\u5e55|\u7e41\u9ad4\u4e2d\u5b57|\u7e41\u4f53\u4e2d\u5b57|\u7e41\u9ad4\u4e2d\u6587|\u7e41\u4f53\u4e2d\u6587|\u7e41\u9ad4\u5b57\u5e55|\u7e41\u4f53\u5b57\u5e55|\u7e41\u4e2d|\u7e41\u5b57|\u81ea\u63d0|\u5f81\u7528|\u5fb5\u7528|\u6f22\u5316|\u6c49\u5316|\u5167\u5d4c|\u5185\u5d4c|\u5167\u5c01|\u5185\u5c01|\u96d9\u8a9e|\u53cc\u8bed)/.test(text)
-    || (hasCJK && !hasJP);
+    ;
    const is4K = /(?:[^A-Za-z0-9]|^)(?:4K(?:UHD)?|2160P)(?:[^A-Za-z0-9]|$)/i.test(text);
    const isCracked = /(?:\u7834\u89e3|\u7834\u574f|\u7834\u58de|\u7834\u58ca|\u65e0\u7801|\u7121\u78bc)/.test(text)
     || /\b(?:uncensored|mosaic)\b/i.test(text) || hasCrackedCode(text);
@@ -5914,7 +5914,7 @@
  })();
  Core.expose('__LAOSIJI_LIST_OPEN_NEW_TAB__', ListOpenNewTab);
  function ensureStillsGalleryStyles() {
-  injectStyle('jav-stills-gallery-style',`.jav-stills-shell{position:relative!important;width:100%!important;inline-size:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:16px 0 18px!important;padding:6px 4px!important;border:1px solid #d9e2ec!important;border-radius:8px!important;background:#ffffff!important;box-shadow:0 8px 18px rgba(15,23,42,.06)!important;overflow:hidden!important}.jav-stills-stage{position:relative!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important}.jav-stills-rail{display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;gap:10px!important;width:100%!important;inline-size:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;padding:0 0 6px!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-behavior:smooth!important;overscroll-behavior-inline:contain!important;scrollbar-width:thin!important;scrollbar-color:rgba(100,116,139,.44) transparent!important}.jav-stills-rail::-webkit-scrollbar{height:8px!important}.jav-stills-rail::-webkit-scrollbar-thumb{border-radius:999px!important;background:rgba(100,116,139,.36)!important}.jav-stills-rail::-webkit-scrollbar-track{background:transparent!important}.jav-stills-arrow{position:absolute!important;top:calc(50% - 7px)!important;z-index:3!important;display:grid!important;place-items:center!important;width:44px!important;height:72px!important;border:1px solid rgba(226,232,240,.55)!important;border-radius:22px!important;background:rgba(15,23,42,.12)!important;-webkit-backdrop-filter:blur(12px) saturate(135%)!important;backdrop-filter:blur(12px) saturate(135%)!important;color:#f8fafc!important;font-size:30px!important;line-height:1!important;font-weight:800!important;cursor:pointer!important;transform:translateY(-50%)!important;box-shadow:0 8px 22px rgba(0,0,0,.34)!important;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease!important;touch-action:manipulation!important}.jav-stills-arrow:hover{background:rgba(15,23,42,.26)!important;border-color:rgba(125,211,252,.86)!important;box-shadow:0 10px 24px rgba(0,0,0,.42)!important;transform:translateY(-50%) scale(1.04)!important}.jav-stills-arrow:focus-visible{outline:2px solid rgba(37,99,235,.78)!important;outline-offset:2px!important}.jav-stills-arrow-prev{left:8px!important}.jav-stills-arrow-next{right:8px!important}.jav-stills-rail>a,.jav-stills-rail>.tile-item,.jav-stills-rail>.preview-video-container{flex:0 0 auto!important;display:block!important;position:relative!important;width:172px!important;height:104px!important;margin:0!important;padding:0!important;border:1px solid rgba(148,163,184,.28)!important;border-radius:8px!important;background:#e2e8f0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.45)!important;overflow:hidden!important;box-sizing:border-box!important;text-decoration:none!important}.jav-stills-rail img{display:block!important;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover!important;object-position:center!important;border:0!important}.jav-stills-rail .photo-frame{width:100%!important;height:100%!important;margin:0!important;padding:0!important;box-sizing:border-box!important;overflow:hidden!important}.jav-stills-rail>video,.jav-stills-rail video[style*="display:none"],.jav-stills-rail video[style*="display:none"]{display:none!important;flex:0 0 auto!important}.jav-stills-javdb .preview-video-container span{position:absolute!important;left:8px!important;bottom:7px!important;z-index:2!important;padding:3px 7px!important;border-radius:6px!important;background:rgba(15,23,42,.68)!important;color:#ffffff!important;font-size:11px!important;line-height:1!important;font-weight:800!important}.jav-stills-javlib .jav-stills-rail>a{width:150px!important;height:100px!important}.javdb-stills-column-clean,.javdb-stills-panel-clean,.javdb-stills-panel-clean>.message-body,.javdb-stills-body-clean{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}.javdb-stills-column-clean{flex:1 1 0!important;overflow:hidden!important;padding-left:.75rem!important;padding-right:.75rem!important}.javdb-stills-panel-clean{margin:16px 0 18px!important}.jav-stills-javdb{width:auto!important;max-width:min(100%,calc(100vw - 34px))!important;max-inline-size:min(100%,calc(100vw - 34px))!important}.javdb-stills-panel-clean .jav-stills-shell{margin:0!important}.jav-stills-viewer{position:fixed!important;inset:0!important;z-index:2147483647!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;background:rgba(8,13,25,.9)!important;backdrop-filter:blur(5px)!important;color:#ffffff!important;cursor:zoom-out!important}.jav-stills-viewer-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;min-height:54px!important;padding:12px 16px!important;box-sizing:border-box!important;pointer-events:none!important}.jav-stills-viewer-count{min-width:64px!important;padding:6px 10px!important;border-radius:8px!important;background:rgba(15,23,42,.72)!important;color:#e5edf8!important;font-size:13px!important;font-weight:800!important;text-align:center!important;pointer-events:auto!important}.jav-stills-viewer-close,.jav-stills-viewer-nav{display:grid!important;place-items:center!important;border:1px solid rgba(226,232,240,.22)!important;background:rgba(15,23,42,.72)!important;color:#ffffff!important;cursor:pointer!important;box-shadow:0 12px 26px rgba(0,0,0,.24)!important;touch-action:manipulation!important}.jav-stills-viewer-close{width:38px!important;height:38px!important;border-radius:10px!important;font-size:24px!important;line-height:1!important;pointer-events:auto!important}.jav-stills-viewer-close:hover,.jav-stills-viewer-nav:hover{background:rgba(30,41,59,.88)!important;border-color:rgba(255,255,255,.36)!important}.jav-stills-viewer-body{position:relative!important;display:grid!important;place-items:center!important;min-width:0!important;min-height:0!important;padding:0 68px!important;box-sizing:border-box!important;overflow:auto!important}.jav-stills-viewer-img{display:block!important;max-width:100%!important;max-height:calc(100vh - 118px)!important;width:auto!important;height:auto!important;object-fit:contain!important;border-radius:6px!important;background:#111827!important;box-shadow:0 18px 46px rgba(0,0,0,.45)!important;cursor:zoom-in!important}.jav-stills-viewer-img.is-zoomed{max-width:none!important;max-height:none!important;cursor:zoom-out!important}.jav-stills-viewer.is-zoomed .jav-stills-viewer-body,.jav-stills-viewer.is-zoomed .jav-stills-viewer-img{touch-action:pan-x pan-y pinch-zoom!important}.jav-stills-viewer-nav{position:fixed!important;top:50%!important;z-index:2147483647!important;width:44px!important;height:58px!important;border-radius:12px!important;font-size:30px!important;line-height:1!important;transform:translateY(-50%)!important}.jav-stills-viewer-prev{left:18px!important}.jav-stills-viewer-next{right:18px!important}.jav-stills-viewer-caption{min-height:42px!important;padding:9px 18px 16px!important;box-sizing:border-box!important;color:rgba(226,232,240,.86)!important;font-size:13px!important;line-height:1.45!important;text-align:center!important;pointer-events:none!important}@media (max-width:720px){.jav-stills-shell{padding:6px 4px!important}.jav-stills-arrow{width:34px!important;height:54px!important;border-radius:18px!important;font-size:26px!important}.jav-stills-rail>a,.jav-stills-rail>.tile-item,.jav-stills-rail>.preview-video-container{width:150px!important;height:92px!important}.jav-stills-javlib .jav-stills-rail>a{width:138px!important;height:92px!important}.jav-stills-viewer-body{padding:0 52px!important;touch-action:pan-y pinch-zoom!important}.jav-stills-viewer-img{touch-action:pan-y pinch-zoom!important}.jav-stills-viewer-nav{width:38px!important;height:52px!important}.jav-stills-viewer-prev{left:8px!important}.jav-stills-viewer-next{right:8px!important}}`);
+  injectStyle('jav-stills-gallery-style',`.jav-stills-shell{position:relative!important;width:100%!important;inline-size:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:16px 0 18px!important;padding:6px 4px!important;border:1px solid #d9e2ec!important;border-radius:8px!important;background:#ffffff!important;box-shadow:0 8px 18px rgba(15,23,42,.06)!important;overflow:hidden!important}.jav-stills-stage{position:relative!important;width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;overflow:hidden!important}.jav-stills-rail{display:flex!important;flex-wrap:nowrap!important;align-items:stretch!important;gap:10px!important;width:100%!important;inline-size:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;padding:0 0 6px!important;overflow-x:auto!important;overflow-y:hidden!important;scroll-behavior:smooth!important;overscroll-behavior-inline:contain!important;scrollbar-width:thin!important;scrollbar-color:rgba(100,116,139,.44) transparent!important}.jav-stills-rail::-webkit-scrollbar{height:8px!important}.jav-stills-rail::-webkit-scrollbar-thumb{border-radius:999px!important;background:rgba(100,116,139,.36)!important}.jav-stills-rail::-webkit-scrollbar-track{background:transparent!important}.jav-stills-arrow{position:absolute!important;top:calc(50% - 7px)!important;z-index:3!important;display:grid!important;place-items:center!important;width:44px!important;height:72px!important;border:1px solid rgba(226,232,240,.55)!important;border-radius:22px!important;background:rgba(15,23,42,.12)!important;-webkit-backdrop-filter:blur(12px) saturate(135%)!important;backdrop-filter:blur(12px) saturate(135%)!important;color:#f8fafc!important;font-size:30px!important;line-height:1!important;font-weight:800!important;cursor:pointer!important;transform:translateY(-50%)!important;box-shadow:0 8px 22px rgba(0,0,0,.34)!important;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease!important;touch-action:manipulation!important}.jav-stills-arrow:hover{background:rgba(15,23,42,.26)!important;border-color:rgba(125,211,252,.86)!important;box-shadow:0 10px 24px rgba(0,0,0,.42)!important;transform:translateY(-50%) scale(1.04)!important}.jav-stills-arrow:focus-visible{outline:2px solid rgba(37,99,235,.78)!important;outline-offset:2px!important}.jav-stills-arrow-prev{left:8px!important}.jav-stills-arrow-next{right:8px!important}.jav-stills-rail>a,.jav-stills-rail>.tile-item,.jav-stills-rail>.preview-video-container,.jav-stills-rail>.jav-stills-trailer-tile{flex:0 0 auto!important;display:block!important;position:relative!important;width:172px!important;height:104px!important;margin:0!important;padding:0!important;border:1px solid rgba(148,163,184,.28)!important;border-radius:8px!important;background:#e2e8f0!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.45)!important;overflow:hidden!important;box-sizing:border-box!important;text-decoration:none!important}.jav-stills-trailer-tile{appearance:none!important;-webkit-appearance:none!important;cursor:pointer!important}.jav-stills-trailer-tile img{position:absolute!important;inset:0!important;z-index:0!important;object-fit:cover!important;filter:saturate(.82) brightness(.64)!important;transition:filter .18s ease,transform .18s ease!important}.jav-stills-trailer-overlay{position:absolute!important;inset:0!important;z-index:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:5px!important;background:linear-gradient(180deg,rgba(15,23,42,.08),rgba(15,23,42,.66))!important;color:#fff!important;font-size:12px!important;font-weight:800!important;text-shadow:0 1px 3px rgba(0,0,0,.8)!important}.jav-stills-trailer-icon{display:grid!important;place-items:center!important;width:34px!important;height:34px!important;padding-left:2px!important;border:1px solid rgba(255,255,255,.78)!important;border-radius:50%!important;background:rgba(15,23,42,.52)!important;color:#fff!important;font-size:15px!important;line-height:1!important}.jav-stills-trailer-tile:hover img{filter:saturate(1) brightness(.8)!important;transform:scale(1.04)!important}.jav-stills-rail img{display:block!important;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover!important;object-position:center!important;border:0!important}.jav-stills-rail .photo-frame{width:100%!important;height:100%!important;margin:0!important;padding:0!important;box-sizing:border-box!important;overflow:hidden!important}.jav-stills-rail>video,.jav-stills-rail video[style*="display:none"],.jav-stills-rail video[style*="display:none"]{display:none!important;flex:0 0 auto!important}.jav-stills-javdb .preview-video-container span{position:absolute!important;left:8px!important;bottom:7px!important;z-index:2!important;padding:3px 7px!important;border-radius:6px!important;background:rgba(15,23,42,.68)!important;color:#ffffff!important;font-size:11px!important;line-height:1!important;font-weight:800!important}.jav-stills-javlib .jav-stills-rail>a{width:150px!important;height:100px!important}.jav-stills-javlib .jav-stills-rail>.jav-stills-trailer-tile{width:150px!important;height:100px!important}.javdb-stills-column-clean,.javdb-stills-panel-clean,.javdb-stills-panel-clean>.message-body,.javdb-stills-body-clean{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}.javdb-stills-column-clean{flex:1 1 0!important;overflow:hidden!important;padding-left:.75rem!important;padding-right:.75rem!important}.javdb-stills-panel-clean{margin:16px 0 18px!important}.jav-stills-javdb{width:auto!important;max-width:min(100%,calc(100vw - 34px))!important;max-inline-size:min(100%,calc(100vw - 34px))!important}.javdb-stills-panel-clean .jav-stills-shell{margin:0!important}.jav-stills-viewer{position:fixed!important;inset:0!important;z-index:2147483647!important;display:grid!important;grid-template-rows:auto minmax(0,1fr) auto!important;background:rgba(8,13,25,.9)!important;backdrop-filter:blur(5px)!important;color:#ffffff!important;cursor:zoom-out!important}.jav-stills-viewer-top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;min-height:54px!important;padding:12px 16px!important;box-sizing:border-box!important;pointer-events:none!important}.jav-stills-viewer-count{min-width:64px!important;padding:6px 10px!important;border-radius:8px!important;background:rgba(15,23,42,.72)!important;color:#e5edf8!important;font-size:13px!important;font-weight:800!important;text-align:center!important;pointer-events:auto!important}.jav-stills-viewer-close,.jav-stills-viewer-nav{display:grid!important;place-items:center!important;border:1px solid rgba(226,232,240,.22)!important;background:rgba(15,23,42,.72)!important;color:#ffffff!important;cursor:pointer!important;box-shadow:0 12px 26px rgba(0,0,0,.24)!important;touch-action:manipulation!important}.jav-stills-viewer-close{width:38px!important;height:38px!important;border-radius:10px!important;font-size:24px!important;line-height:1!important;pointer-events:auto!important}.jav-stills-viewer-close:hover,.jav-stills-viewer-nav:hover{background:rgba(30,41,59,.88)!important;border-color:rgba(255,255,255,.36)!important}.jav-stills-viewer-body{position:relative!important;display:grid!important;place-items:center!important;min-width:0!important;min-height:0!important;padding:0 68px!important;box-sizing:border-box!important;overflow:auto!important}.jav-stills-viewer-img{display:block!important;max-width:100%!important;max-height:calc(100vh - 118px)!important;width:auto!important;height:auto!important;object-fit:contain!important;border-radius:6px!important;background:#111827!important;box-shadow:0 18px 46px rgba(0,0,0,.45)!important;cursor:zoom-in!important}.jav-stills-viewer-img.is-zoomed{max-width:none!important;max-height:none!important;cursor:zoom-out!important}.jav-stills-viewer.is-zoomed .jav-stills-viewer-body,.jav-stills-viewer.is-zoomed .jav-stills-viewer-img{touch-action:pan-x pan-y pinch-zoom!important}.jav-stills-viewer-nav{position:fixed!important;top:50%!important;z-index:2147483647!important;width:44px!important;height:58px!important;border-radius:12px!important;font-size:30px!important;line-height:1!important;transform:translateY(-50%)!important}.jav-stills-viewer-prev{left:18px!important}.jav-stills-viewer-next{right:18px!important}.jav-stills-viewer-caption{min-height:42px!important;padding:9px 18px 16px!important;box-sizing:border-box!important;color:rgba(226,232,240,.86)!important;font-size:13px!important;line-height:1.45!important;text-align:center!important;pointer-events:none!important}@media (max-width:720px){.jav-stills-shell{padding:6px 4px!important}.jav-stills-arrow{width:34px!important;height:54px!important;border-radius:18px!important;font-size:26px!important}.jav-stills-rail>a,.jav-stills-rail>.tile-item,.jav-stills-rail>.preview-video-container,.jav-stills-rail>.jav-stills-trailer-tile{width:150px!important;height:92px!important}.jav-stills-javlib .jav-stills-rail>a{width:138px!important;height:92px!important}.jav-stills-javlib .jav-stills-rail>.jav-stills-trailer-tile{width:138px!important;height:92px!important}.jav-stills-viewer-body{padding:0 52px!important;touch-action:pan-y pinch-zoom!important}.jav-stills-viewer-img{touch-action:pan-y pinch-zoom!important}.jav-stills-viewer-nav{width:38px!important;height:52px!important}.jav-stills-viewer-prev{left:8px!important}.jav-stills-viewer-next{right:8px!important}}`);
  }
  const ViewerNavigation = (() => {
   const noNavigation = consume => ({ consume, navigate: null });
@@ -5938,12 +5938,14 @@
    const wheel = ({ deltaX = 0, deltaY = 0, deltaMode = 0, ctrlKey = false, viewportHeight = 800, now = Date.now() } = {}) => {
     if (destroyed || ctrlKey || size < 2 || zoomed) return noNavigation(false);
     const rawDelta = Math.abs(deltaY) >= Math.abs(deltaX) ? deltaY : deltaX;
-    if (!rawDelta || now < wheelLockedUntil) return noNavigation(true);
+    if (!rawDelta) return noNavigation(true);
     const deltaUnit = deltaMode === 1 ? 16 : (deltaMode === 2 ? Math.max(viewportHeight, 800) : 1);
     wheelDelta += rawDelta * deltaUnit;
+    if (now < wheelLockedUntil) return noNavigation(true);
     if (Math.abs(wheelDelta) < 36) return noNavigation(true);
-    const result = step(wheelDelta > 0 ? 1 : -1);
-    wheelDelta = 0; wheelLockedUntil = now + 220;
+    const direction = wheelDelta > 0 ? 1 : -1; const steps = Math.min(6, Math.max(1, Math.floor(Math.abs(wheelDelta) / 36)));
+    const result = navigate(currentIndex + direction * steps);
+    wheelDelta -= direction * steps * 36; wheelLockedUntil = now + 70;
     return result; };
    const startTouch = ({ x, y, points = 1 } = {}) => {
     touchStart = !destroyed && size >= 2 && !zoomed && points === 1 ? { x, y } : null;
@@ -6074,13 +6076,30 @@
    next.setAttribute('aria-label', '下一张剧照');
    const caption = document.createElement('div');
    caption.className = 'jav-stills-viewer-caption';
+   const highResCache = new Map();
+   const preloadImage = url => {
+    const source = String(url || '').trim();
+    if (!source) return Promise.resolve(false);
+    const existing = highResCache.get(source);
+    if (existing) return existing.promise;
+    const image = new Image();
+    const promise = new Promise(resolve => {
+     image.onload = () => {
+      const decode = typeof image.decode === 'function' ? image.decode() : Promise.resolve();
+      decode.catch(() => {}).finally(() => resolve(true)); };
+     image.onerror = () => resolve(false);
+    });
+    highResCache.set(source, { image, promise });
+    image.src = source;
+    return promise; };
    const show = () => {
     const index = navigation.index; const item = items[index];
     img.classList.remove('is-zoomed'); overlay.classList.remove('is-zoomed');
     img.src = item.url;
     img.alt = item.title ||`剧照 ${index + 1}`;
     count.textContent =`${index + 1} / ${items.length}`;
-    caption.textContent = item.title || ''; };
+    caption.textContent = item.title || '';
+    preloadImage(items[(index + items.length - 1) % items.length]?.url); preloadImage(items[(index + 1) % items.length]?.url); };
    const closeViewer = (event = null) => {
     if (event) { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); }
     navigation.destroy(); overlay.remove();
@@ -6165,6 +6184,40 @@
     e.stopImmediatePropagation?.();
     openViewer(items, index);
    }, true); }
+  function getDetailTrailerTileData(config) {
+   if (!config || !['javbus', 'javlib'].includes(config.site)) return null;
+   const cover = config.site === 'javbus' ? document.querySelector('.movie-box img[src], a.bigImage img[src], .bigImage img[src], .cover img[src]')
+    : document.querySelector('#video_jacket_img[src], #video_jacket img[src]');
+   const code = config.site === 'javbus' ? SiteJavBus.getVid?.() : SiteJavLib.getVid?.();
+   const imageUrl = toAbsUrl(cover?.currentSrc || cover?.src || cover?.getAttribute('src') || '');
+   if (!code || !imageUrl) return null;
+   return { code, imageUrl }; }
+  function syncTrailerTile(config) {
+   const tile = config.container.querySelector(':scope > .jav-stills-trailer-tile');
+   if (GM_getValue('btn_show_trailer', true) === false) { tile?.remove(); return; }
+   const data = getDetailTrailerTileData(config);
+   if (!data) { tile?.remove(); return; }
+   if (tile) {
+    tile.dataset.code = data.code;
+    const image = tile.querySelector('img');
+    if (image && image.src !== data.imageUrl) image.src = data.imageUrl;
+    return; }
+   const button = document.createElement('button');
+   button.type = 'button'; button.className = 'jav-stills-trailer-tile'; button.dataset.code = data.code;
+   button.setAttribute('aria-label',`播放 ${data.code} 预告片`);
+   button.title =`播放 ${data.code} 预告片`;
+   button.innerHTML = '<img alt=""><span class="jav-stills-trailer-overlay"><span class="jav-stills-trailer-icon" aria-hidden="true">▶</span><span>预告片</span></span>';
+   button.querySelector('img').src = data.imageUrl;
+   button.addEventListener('click', async event => {
+    event.preventDefault(); event.stopPropagation();
+    if (button.dataset.loading === '1') return;
+    button.dataset.loading = '1';
+    try {
+     if (typeof Trailer !== 'undefined' && typeof Trailer.show === 'function') await Trailer.show(button.dataset.code);
+    } finally {
+     delete button.dataset.loading; }
+   });
+   config.container.insertBefore(button, config.container.firstElementChild); }
   function findConfig() {
    const customContainer = document.querySelector('[data-123av-detail-stills="1"] .tile-images.preview-images');
    if (customContainer?.querySelector('a[href], img')) { return { site: 'javdb', container: customContainer, heading: null }; }
@@ -6200,7 +6253,7 @@
    ensureObserver();
    const config = findConfig();
    if (!config?.container) return false;
-   ensureStillsGalleryStyles(); cleanSiteShell(config); bindViewer(config.container);
+   ensureStillsGalleryStyles(); cleanSiteShell(config); syncTrailerTile(config); bindViewer(config.container);
    const existingShell = config.container.closest('.jav-stills-shell');
    if (existingShell) { reorderJavbusStills(config, existingShell); return true; }
    const shell = document.createElement('div');
@@ -6791,7 +6844,7 @@
     volumeIndicator, currentTimeText, durationText, progress,
    });
    let fallbackUrls = Array.isArray(urls) ? [...new Set(urls.filter(Boolean))] : [url].filter(Boolean);
-   let fallbackIndex = Math.max(0, fallbackUrls.indexOf(url));
+   let fallbackIndex = Math.max(0, fallbackUrls.indexOf(url)); let sourceLoadGeneration = 0;
    const sourceLink = { href: activeUrl };
    const playbackKey = (value = activeUrl) =>`trailer_playback_${String(code || '').trim().toUpperCase()}_${String(value || '').slice(0, 160)}`;
    let playbackKeyBase = playbackKey(activeUrl);
@@ -6860,7 +6913,8 @@
     return String(value || activeSource || '').replace(/^Javxy\s*\|\s*/i, '').trim(); };
    const schedulePlaybackGuard = (reason = 'timeout') => {
     clearTimeout(playbackReadyTimer);
-    const timeout = /\.m3u8(?:[?#].*)?$/i.test(activeUrl) || activeType === 'hls' ? 8000 : 4000;
+    const isJavTrailers = normalizedSourceName() === 'JavTrailers';
+    const timeout = isJavTrailers ? 4000 : (/\.m3u8(?:[?#].*)?$/i.test(activeUrl) || activeType === 'hls' ? 8000 : 4000);
     playbackReadyTimer = setTimeout(() => {
      if (overlayClosed || playbackStarted || !video || !video.isConnected) return;
      handlePlaybackFailure(reason);
@@ -6875,7 +6929,8 @@
    const handlePlaybackFailure = async (reason = 'error') => {
     if (overlayClosed || !video || sourceFallbackInProgress) return;
     if (playbackStarted && reason !== 'timeout') return;
-    if (fallbackIndex < fallbackUrls.length - 1) {
+    // JavTrailers 的多个地址只是同一来源的清晰度，不再逐级等待，失败后直接请求下一个来源。
+    if (normalizedSourceName() !== 'JavTrailers' && fallbackIndex < fallbackUrls.length - 1) {
      fallbackIndex += 1; activeUrl = fallbackUrls[fallbackIndex]; sourceLink.href = activeUrl;
      destroyActiveHls(); setFallbackStatus('当前画质加载失败，正在切换备用画质...'); attachVideoSrc(activeUrl);
      video.load?.();
@@ -6953,18 +7008,27 @@
     video._hls = hls; };
    const attachVideoSrc = (src) => {
     if (!src) return;
+    sourceLoadGeneration += 1;
     setFallbackStatus(`正在加载 ${normalizedSourceName() || '预告片'}...`);
     if (/\.m3u8(?:[?#].*)?$/i.test(src)) attachM3u8Src(src);
     else attachMp4Src(src);
     schedulePlaybackGuard('timeout'); };
    const initTrailerVideo = (src) => {
+    if (!src) return;
+    const generation = ++sourceLoadGeneration;
+    setFallbackStatus(`正在加载 ${normalizedSourceName() || '预告片'}...`);
+    schedulePlaybackGuard('timeout');
     if (isM3U8 && !getHlsClass()) {
      loadHlsLibrary().then(HlsClass => {
-      if (!video || !video.isConnected) return;
+      if (generation !== sourceLoadGeneration || !video || !video.isConnected) return;
       if (HlsClass) attachM3u8Src(src);
       else attachMp4Src(src);
      });
-    } else { attachVideoSrc(src); } };
+    } else {
+     if (generation !== sourceLoadGeneration) return;
+     if (/\.m3u8(?:[?#].*)?$/i.test(src)) attachM3u8Src(src);
+     else attachMp4Src(src);
+    } };
    if (isIframe) {
     const iframe = document.createElement('iframe');
     iframe.src = url; iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media'; iframe.allowFullscreen = true;
@@ -7550,6 +7614,7 @@
    return menu; }
   function createDetailActions(code, host = null) {
    if (!code) return null;
+   ensureStyle();
    const actions = document.createElement('span');
    actions.className = 'jav-detail-quick-actions'; actions.dataset.code = code;
    QUICK_MENU_ITEMS.forEach(item => {
@@ -7563,6 +7628,7 @@
     }, true);
     actions.appendChild(button);
    });
+   if (/(?:^|\.)javdb\.com$/i.test(location.hostname)) addResourceMenu(null, actions, code);
    return actions; }
   if (window.__LAOSIJI_QUICK_MENU_EVENTS__) window.removeEventListener('click', window.__LAOSIJI_QUICK_MENU_EVENTS__, true);
   window.__LAOSIJI_QUICK_MENU_EVENTS__ = event => {
@@ -7587,11 +7653,12 @@
    card.hidden = blocked; card.dataset.javdbBlacklistHidden = blocked ? '1' : '0';
    return blocked; }
   function resourceMetadata(card, code) {
-   const titleNode = card?.querySelector('.javdb-card-headline, .javdb-card-title, .video-title, .title');
-   const image = card?.querySelector('img[src], img[data-src]'); const anchor = card?.querySelector('a[href]'); let url = ''; let cover = '';
+   const root = card || document;
+   const titleNode = root.querySelector('.javdb-card-headline, .javdb-card-title, .video-title, .movie-panel-info .title, .movie-panel-info h1, .movie-panel-info h2, .title');
+   const image = root.querySelector('img[src], img[data-src]'); const anchor = card?.querySelector('a[href]'); let url = ''; let cover = '';
    try { url = anchor ? new URL(anchor.getAttribute('href') || '', location.href).href : ''; } catch (_) { }
    try { cover = image ? new URL(image.getAttribute('src') || image.getAttribute('data-src') || '', location.href).href : ''; } catch (_) { }
-   return { code, title: String(titleNode?.textContent || '').replace(code, '').trim(), cover, url, source: 'javdb', type: 'unknown', tags: [], actorNames: [] };
+   return { code, title: String(titleNode?.textContent || '').replace(code, '').trim(), cover, url: url || location.href, source: 'javdb', type: 'unknown', tags: [], actorNames: [] };
   }
   function closeResourceMenu(menu) {
    if (!menu) return;
@@ -7604,6 +7671,8 @@
   function toggleResourceMenu(menu) {
    const trigger = menu?.querySelector('.jav-card-resource-menu-trigger'); const popover = menu?.__resourcePopover;
    if (!trigger || !popover) return;
+   const currentCode = String(menu.dataset.code || '').trim();
+   if (currentCode) syncResourceMenu(null, currentCode, menu.parentElement || menu);
    document.querySelectorAll('.jav-card-resource-menu.is-open').forEach(item => { if (item !== menu) closeResourceMenu(item); });
    if (menu.classList.contains('is-open')) return closeResourceMenu(menu);
    menu.classList.add('is-open'); trigger.setAttribute('aria-expanded', 'true');
@@ -7614,7 +7683,7 @@
    popover.style.top =`${Math.max(6, rect.top >= height + 8 ? rect.top - height - 6 : Math.min(window.innerHeight - height - 6, rect.bottom + 6))}px`;
    popover.style.visibility = 'visible'; }
   function syncResourceMarkers(card, code) {
-   if (cardSite(card) !== 'javdb') return;
+   if (!card || cardSite(card) !== 'javdb') return;
    const cover = card.querySelector('.jav-card-cover, .cover');
    if (!cover) return;
    const flags = resourceFlags(code); const active = RESOURCE_MARKERS.filter(([flag]) => flags[flag]);
@@ -7624,8 +7693,8 @@
    const html = active.map(([flag, labels]) =>`<span class="jav-card-resource-marker jav-card-resource-marker-${flag}">${labels[1]}</span>`).join('');
    if (markers.innerHTML !== html) markers.innerHTML = html;
   }
-  function syncResourceMenu(card, code) {
-   const menu = card?.querySelector('.jav-card-resource-menu');
+  function syncResourceMenu(card, code, scope = card) {
+   const menu = scope?.querySelector('.jav-card-resource-menu');
    if (!menu) return;
    const flags = resourceFlags(code);
    menu.querySelectorAll('[data-resource-work-flag]').forEach(button => {
@@ -7633,13 +7702,23 @@
     button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
     if (labels && button.textContent !== labels[active ? 1 : 0]) button.textContent = labels[active ? 1 : 0];
    }); }
+  function syncAllResourceMenus() {
+   document.querySelectorAll('.javdb-grid-card').forEach(card => {
+    const code = SiteManager.getCardCode(card);
+    if (code && !syncBlacklistCard(card, code)) { attachToCard(card); syncResourceMenu(card, code); syncResourceMarkers(card, code); }
+   });
+   document.querySelectorAll('.jav-detail-quick-actions').forEach(actions => {
+    const code = String(actions.dataset.code || '').trim();
+    if (code) syncResourceMenu(null, code, actions);
+   }); }
   function addResourceMenu(card, actions, code) {
-   if (cardSite(card) !== 'javdb' || !actions || !code) return;
-   let menu = card.querySelector('.jav-card-resource-menu');
+   const isJavdbDetail = !card && /(?:^|\.)javdb\.com$/i.test(location.hostname);
+   if ((!isJavdbDetail && cardSite(card) !== 'javdb') || !actions || !code) return;
+   let menu = actions.querySelector('.jav-card-resource-menu') || card?.querySelector('.jav-card-resource-menu');
    if (!menu || menu.dataset.resourceMenuVersion !== '3') {
     if (menu) { closeResourceMenu(menu); menu.remove(); }
     menu = document.createElement('span'); menu.className = 'jav-card-resource-menu'; menu.dataset.resourceMenuVersion = '3';
-    menu.innerHTML = '<button type="button" class="jav-card-quick-btn jav-card-resource-menu-trigger" title="鉴定处理" aria-label="鉴定处理" aria-haspopup="menu" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="4em" height="4em" class="resource-menu-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M42.238 6.426c4.8 0 7.238 2.34 7.333 6.979l.003.286V42.31c0 4.731-2.34 7.167-7.045 7.262l-.29.003H13.784c-4.777 0-7.259-2.318-7.356-6.977l-.003-.288V13.69c0-4.754 2.386-7.168 7.07-7.262l.29-.003zm-.07 3.773H13.855c-2.268 0-3.57 1.164-3.652 3.448l-.004.232V42.12c0 2.359 1.23 3.598 3.433 3.676l.223.004h28.313c2.245 0 3.547-1.164 3.629-3.448l.004-.232V13.88c0-2.359-1.23-3.676-3.412-3.676zM33 38a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zm8-7a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zM14.1 14.239c1.465-1.645 3.856-1.652 5.31-.02l.24.277l.198.248l.162.216l.18.259l.156.262l.073-.13l.127-.2l.126-.18l.077-.103l.182-.234l.107-.13l.246-.285c1.448-1.627 3.844-1.625 5.31.02s1.42 4.202.017 5.961l-.304.367l-.376.43l-.432.477l-.716.77l-.75.787l-.958.985l-.677.679l-.512.497l-.125.114c-1.043.921-1.761.897-2.72.096l-.18-.158l-.237-.225l-.808-.799l-.891-.904l-.962-1l-.378-.403l-.535-.581l-.475-.534l-.27-.319q-.124-.15-.223-.279c-1.444-1.875-1.447-4.316.018-5.961"/></svg></button><span class="jav-card-resource-menu-popover" role="menu"></span>';
+    menu.innerHTML = '<button type="button" class="jav-card-quick-btn jav-card-resource-menu-trigger" title="鉴定处理" aria-label="鉴定处理" aria-haspopup="menu" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="resource-menu-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M42.238 6.426c4.8 0 7.238 2.34 7.333 6.979l.003.286V42.31c0 4.731-2.34 7.167-7.045 7.262l-.29.003H13.784c-4.777 0-7.259-2.318-7.356-6.977l-.003-.288V13.69c0-4.754 2.386-7.168 7.07-7.262l.29-.003zm-.07 3.773H13.855c-2.268 0-3.57 1.164-3.652 3.448l-.004.232V42.12c0 2.359 1.23 3.598 3.433 3.676l.223.004h28.313c2.245 0 3.547-1.164 3.629-3.448l.004-.232V13.88c0-2.359-1.23-3.676-3.412-3.676zM33 38a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zm8-7a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zM14.1 14.239c1.465-1.645 3.856-1.652 5.31-.02l.24.277l.198.248l.162.216l.18.259l.156.262l.073-.13l.127-.2l.126-.18l.077-.103l.182-.234l.107-.13l.246-.285c1.448-1.627 3.844-1.625 5.31.02s1.42 4.202.017 5.961l-.304.367l-.376.43l-.432.477l-.716.77l-.75.787l-.958.985l-.677.679l-.512.497l-.125.114c-1.043.921-1.761.897-2.72.096l-.18-.158l-.237-.225l-.808-.799l-.891-.904l-.962-1l-.378-.403l-.535-.581l-.475-.534l-.27-.319q-.124-.15-.223-.279c-1.444-1.875-1.447-4.316.018-5.961"/></svg></button><span class="jav-card-resource-menu-popover" role="menu"></span>';
     const popover = menu.querySelector('.jav-card-resource-menu-popover');
     menu.__resourcePopover = popover;
     Object.entries(RESOURCE_FLAG_LABELS).forEach(([flag, labels]) => { const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-card-resource-menu-item'; button.dataset.resourceWorkFlag = flag; button.textContent = labels[0]; popover.appendChild(button); });
@@ -7657,18 +7736,18 @@
       button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
       const labels = RESOURCE_FLAG_LABELS[flag];
       if (labels) button.textContent = labels[active ? 1 : 0];
-      syncResourceMenu(card, currentCode); syncResourceMarkers(card, currentCode); closeResourceMenu(menu);
+      syncAllResourceMenus(); closeResourceMenu(menu);
      }).catch(() => closeResourceMenu(menu)).finally(() => { button.disabled = false; });
     }, true); }
    menu.dataset.code = code;
-   syncResourceMenu(card, code); syncResourceMarkers(card, code); actions.appendChild(menu); }
+   syncResourceMenu(card, code, actions); syncResourceMarkers(card, code); actions.appendChild(menu); }
   if (window.__LAOSIJI_RESOURCE_MENU_EVENTS__) window.removeEventListener('click', window.__LAOSIJI_RESOURCE_MENU_EVENTS__, true);
   if (window.__LAOSIJI_RESOURCE_STATE_EVENTS__) {
    window.removeEventListener('laosiji-resource-state-changed', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
    window.removeEventListener('laosiji-resource-state-ready', window.__LAOSIJI_RESOURCE_STATE_EVENTS__); }
   window.__LAOSIJI_RESOURCE_MENU_EVENTS__ = event => { if (!event.target.closest?.('.jav-card-resource-menu, .jav-card-resource-menu-popover')) document.querySelectorAll('.jav-card-resource-menu.is-open').forEach(closeResourceMenu); };
   window.addEventListener('click', window.__LAOSIJI_RESOURCE_MENU_EVENTS__, true);
-  window.__LAOSIJI_RESOURCE_STATE_EVENTS__ = () => document.querySelectorAll('.javdb-grid-card').forEach(card => { const code = SiteManager.getCardCode(card); if (code && !syncBlacklistCard(card, code)) { attachToCard(card); syncResourceMenu(card, code); syncResourceMarkers(card, code); } });
+  window.__LAOSIJI_RESOURCE_STATE_EVENTS__ = syncAllResourceMenus;
   window.addEventListener('laosiji-resource-state-changed', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
   window.addEventListener('laosiji-resource-state-ready', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
   function attachToCard(card) {
@@ -7701,7 +7780,8 @@
    visibleActions().forEach(meta => actions.appendChild(createButton(meta, code, card))); addQuickMenu(card, actions, code);
    addResourceMenu(card, actions, code); insertActions(slot, actions, site, card); }
   function removeAll() {
-   document.querySelectorAll('.jav-card-quick-actions, .jav-card-quick-menu, .jav-card-quick-menu-popover, .jav-card-resource-menu, .jav-card-resource-menu-popover, .jav-card-resource-markers, .jav-list-preview-btn, .jav-sukebei-offline-115').forEach(el => el.remove());
+   document.querySelectorAll('.jav-card-quick-actions .jav-card-resource-menu').forEach(closeResourceMenu);
+   document.querySelectorAll('.jav-card-quick-actions, .jav-card-quick-menu, .jav-card-quick-menu-popover, .jav-card-quick-actions .jav-card-resource-menu, .jav-card-quick-actions .jav-card-resource-menu-popover, .jav-card-resource-markers, .jav-list-preview-btn, .jav-sukebei-offline-115').forEach(el => el.remove());
    closeMagnetPopup(); }
   function sync() {
    if (!isListPage()) { removeAll(); return; }
@@ -8059,7 +8139,7 @@
  Core.expose('__LAOSIJI_DETAIL_PREVIEW_INLINE__', DetailPreviewInline);
  const DetailCoverDownload = (() => {
   function ensureStyle() {
-   injectStyle('jav-detail-quick-actions-style',`.jav-detail-quick-actions{display:inline-flex!important;align-items:center!important;gap:5px!important;margin-left:8px!important;vertical-align:middle!important;line-height:0!important;white-space:nowrap!important}.jav-detail-quick-actions .jav-detail-quick-btn{width:26px!important;height:26px!important;padding:0!important;flex:0 0 26px!important;appearance:none!important;border:0!important;vertical-align:middle!important;border-radius:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;outline:0!important;text-shadow:none!important}.jav-detail-quick-actions .quick-menu-item-icon{width:18px!important;height:18px!important;display:block!important;background:transparent!important;background-image:none!important;border:0!important}.jav-detail-quick-actions .jav-detail-quick-btn:hover,.jav-detail-quick-actions .jav-detail-quick-btn:active,.jav-detail-quick-actions .jav-detail-quick-btn:focus{border:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;outline:0!important}`);
+   injectStyle('jav-detail-quick-actions-style',`.jav-detail-quick-actions{display:inline-flex!important;align-items:center!important;gap:5px!important;margin-left:8px!important;vertical-align:middle!important;line-height:0!important;white-space:nowrap!important}.jav-detail-quick-actions .jav-detail-quick-btn{width:26px!important;height:26px!important;padding:0!important;flex:0 0 26px!important;appearance:none!important;border:0!important;vertical-align:middle!important;border-radius:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;outline:0!important;text-shadow:none!important}.jav-detail-quick-actions .quick-menu-item-icon{width:24px!important;height:24px!important;display:block!important;background:transparent!important;background-image:none!important;border:0!important}.jav-detail-quick-actions .resource-menu-icon{width:24px!important;height:24px!important;display:block!important;background:transparent!important;border:0!important}.jav-detail-quick-actions .jav-detail-quick-btn:hover,.jav-detail-quick-actions .jav-detail-quick-btn:active,.jav-detail-quick-actions .jav-detail-quick-btn:focus{border:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;outline:0!important}`);
   }
   function removeLegacyCopyButtons() {
    document.querySelectorAll('.jav-avid-copy').forEach(button => button.remove());
@@ -9728,7 +9808,25 @@
    const doc = parseHTML(html);
    const name = String(doc.querySelector('.actor-section-name, .avatar-box .photo-info .pb10, h1.title')?.textContent || '').replace(/\s+/g, ' ').trim();
    const aliases = normalizeActorNames(name.split(/[,，、]/));
-   return { name: aliases[0] || name, aliases }; }
+   const avatarNode = doc.querySelector('.actor-avatar .avatar, .actor-avatar [style*="background-image"], .avatar-box .avatar, .avatar-box [style*="background-image"]');
+   const style = String(avatarNode?.getAttribute('style') || ''); const match = style.match(/background-image\s*:\s*url\(\s*["']?([^"')]+)["']?\s*\)/i);
+   let avatar = '';
+   try { avatar = match?.[1] ? absoluteUrl(match[1], location.href) : ''; } catch (_) { }
+   return { name: aliases[0] || name, aliases, avatar }; }
+  function getActorAvatarUrl(actorId) {
+   const id = String(actorId || '').trim();
+   if (id.length < 2) return '';
+   return `https://c0.jdbstatic.com/avatars/${encodeURIComponent(id.slice(0, 2))}/${encodeURIComponent(id)}.jpg`;
+  }
+  function resolveActorAvatar(actor) {
+   const fallback = 'https://c0.jdbstatic.com/images/actor_unknow.jpg';
+   const value = String(actor?.avatar || '').trim();
+   if (!value || /actor_unknow\.jpg/i.test(value)) return getActorAvatarUrl(actor?.starId) || fallback;
+   try {
+    const url = new URL(value, location.href);
+    if (/(?:^|\.)javdb\.com$/i.test(url.hostname) && /^\/avatars\//i.test(url.pathname)) return getActorAvatarUrl(actor?.starId) || fallback;
+   } catch (_) { }
+   return value; }
   function createResourceOperation() { return { cancelled: false, request: null, cancel() { this.cancelled = true; this.request?.abort?.(); } }; }
   function throwIfResourceOperationCancelled(operation) {
    if (operation?.cancelled) throw new Error('RESOURCE_OPERATION_CANCELLED');
@@ -9768,6 +9866,7 @@
    const firstPageHtml = await fetchResourcePage(pageUrl, operation); const profile = parseActorProfile(firstPageHtml);
    if (profile.name && (!actor.name || actor.name === actorId)) actor.name = profile.name;
    if (profile.aliases.length) actor.aliases = [...new Set([...(actor.aliases || []), ...profile.aliases])];
+   if (profile.avatar) actor.avatar = profile.avatar;
    const result = parseWorkPage(firstPageHtml, pageUrl);
    if (result.isChallenge) throw new Error('JavDB 返回了 Cloudflare 验证页面');
    const now = Date.now(); let added = 0; const allWorks = result.works.slice(); let nextUrl = result.nextUrl || ''; const seenPages = new Set([pageUrl]);
@@ -9994,9 +10093,8 @@
     actorsPage = Math.min(Math.max(1, actorsPage), totalPages);
     const pageActors = actors.slice((actorsPage - 1) * actorsPageSize, actorsPage * actorsPageSize);
     const cards = pageActors.map(actor => {
-     const newCount = actorNewCount(actor.starId);
-     const avatar = actor.avatar || 'https://c0.jdbstatic.com/images/actor_unknow.jpg';
-     const type = actorType(actor); const aliases = Array.isArray(actor.aliases) ? actor.aliases : Array.isArray(actor.allName) ? actor.allName : [];
+     const newCount = actorNewCount(actor.starId); const avatar = resolveActorAvatar(actor); const type = actorType(actor);
+     const aliases = Array.isArray(actor.aliases) ? actor.aliases : Array.isArray(actor.allName) ? actor.allName : [];
      const blacklisted = !!getBlacklist().actors[actor.starId];
      return `<article class="jav-resource-card actress-card" data-star-id="${escape(actor.starId)}"><div class="actress-card__badges"><span class="jav-resource-badge jav-resource-badge-count">${newCount} 新</span><span class="jav-resource-badge jav-resource-badge-type ${escape(type)}">${typeLabel(type)}</span>${blacklisted ? '<span class="jav-resource-badge jav-resource-badge-blocked">已屏蔽作品</span>' : ''}</div><a class="actress-card__profile" href="${escape(actor.url ||`/actors/${encodeURIComponent(actor.starId)}`)}" target="_blank" rel="noopener"><img class="actress-card-avatar" loading="lazy" src="${escape(avatar)}" alt="${escape(actor.name)}"><span><span class="actress-card-name">${escape(actor.name)}</span><span class="actress-card-allname">${escape(aliases.slice(1).join('、') || '暂无别名')}</span></span></a><dl class="actress-card__meta"><div class="actress-card__meta-row"><dt>作品</dt><dd>${actorWorkCount(actor.starId)} 部 · 待处理 ${newCount}</dd></div><div class="actress-card__meta-row"><dt>上次检测</dt><dd>${escape(formatDate(actor.lastCheckAt || actor.lastCheckTime))}</dd></div></dl><p class="actress-card__note">${escape(newCount ? `待处理 ${newCount} 部最新作品` : '暂无待处理作品')}</p><div class="actress-card__actions"><button type="button" class="primary btn-check-actress" data-resource-check-actor="${escape(actor.starId)}">检测最新作品</button></div></article>`;
     }).join('');
