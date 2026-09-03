@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.2
+// @version      2.8.3
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -47,21 +47,16 @@
 // @updateURL    https://github.com/ZiPenOk/scripts/raw/refs/heads/main/laosiji-new.js
 // ==/UserScript==
 (function () {
- 'use strict';
- const SCRIPT_VERSION = '2.8.2'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100;
- const PAGE_ZOOM_2K_WIDTH = 2560;
+ 'use strict'; const SCRIPT_VERSION = '2.8.3'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
-  const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
-  return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
+  const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const getDetailPreviewInlineDefault = () => {
-  const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0);
-  return screenLongSide >= PAGE_ZOOM_2K_WIDTH; };
+  const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide >= PAGE_ZOOM_2K_WIDTH; };
  const JAVDB_REVIEW_INITIAL_LIMIT = 6; const JAVDB_REVIEW_MORE_LIMIT = 20;
  const CFG = {};
  const resolveCfgDefault = meta => typeof meta.def === 'function' ? meta.def() : meta.def;
  const clampCfgNumber = (value, meta) => {
-  const fallback = resolveCfgDefault(meta); const parsed = parseInt(value, 10); const next = Number.isFinite(parsed) ? parsed : fallback;
-  return Math.min(meta.max, Math.max(meta.min, next)); };
+  const fallback = resolveCfgDefault(meta); const parsed = parseInt(value, 10); const next = Number.isFinite(parsed) ? parsed : fallback; return Math.min(meta.max, Math.max(meta.min, next)); };
  const normalizeCfgValue = (value, meta) => {
   if (meta.normalize) return meta.normalize(value);
   if (meta.bool) return !!value;
@@ -108,6 +103,7 @@
   btnShowSearch: { key: 'btn_show_search', def: true, bool: true },
   btnShowSubtitle: { key: 'btn_show_subtitle', def: true, bool: true },
   btnShowTrailer: { key: 'btn_show_trailer', def: true, bool: true },
+  trailerProxyPlayback: { key: 'trailer_proxy_playback_enabled', def: false, bool: true },
   btnShowPreview: { key: 'btn_show_preview', def: true, bool: true },
   btnShowPan115: { key: 'btn_show_pan115', def: false, bool: true },
   magnetTable: { key: 'magnet_table_enabled', def: true, bool: true },
@@ -138,8 +134,7 @@
   if (style) {
    if (update && style.textContent !== css) style.textContent = css;
    return style; }
-  style = document.createElement('style'); style.id = id; style.textContent = css;
-  (document.head || document.documentElement).appendChild(style); return style; }
+  style = document.createElement('style'); style.id = id; style.textContent = css; (document.head || document.documentElement).appendChild(style); return style; }
  function isPortraitCardsPageAllowed(siteId, href = location.href) {
   let url;
   try {
@@ -148,8 +143,7 @@
   const path = url.pathname.replace(/\/+$/, '') || '/'; const params = url.searchParams;
   if (siteId === 'javbus') { return !/^\/(?:[a-z]{2}\/)?uncensored(?:\/|$)/i.test(path); }
   if (siteId === 'javdb') {
-   const rankType = (params.get('t') || '').toLowerCase(); const tagName = (path.match(/^\/tags\/([^/]+)$/i)?.[1] || '').toLowerCase();
-   const isC10 = params.get('c10') === '1';
+   const rankType = (params.get('t') || '').toLowerCase(); const tagName = (path.match(/^\/tags\/([^/]+)$/i)?.[1] || '').toLowerCase(); const isC10 = params.get('c10') === '1';
    if (params.get('laosiji_detail') === 'fc2' || params.get('laosiji_rank') === 'fc2' || params.get('laosiji_fc2') === '1') return false;
    if (path === '/fc2') return false;
    if (path === '/uncensored' || path === '/western') return false;
@@ -183,17 +177,14 @@
    const meta = SITE_META[siteId];
    if (!meta) return;
    (usePortraitCardsOnPage(siteId) ? meta.portraitSetter : meta.setter)(clamp(value)); }
-  function setMobilePortrait(value) {
-   mobilePortraitValue = clampMobilePortrait(value); CFG.mobilePortraitCardColumns = mobilePortraitValue;
-   return mobilePortraitValue; }
+  function setMobilePortrait(value) { mobilePortraitValue = clampMobilePortrait(value); CFG.mobilePortraitCardColumns = mobilePortraitValue; return mobilePortraitValue; }
   function apply(siteId, value = get(siteId)) {
    const meta = SITE_META[siteId];
    if (!meta) return;
    const columns = usesMobileColumns() ? clampMobilePortrait(value) : clamp(value);
    document.querySelectorAll(meta.selector).forEach(el => { el.style.setProperty('--jav-card-columns', String(columns)); }); }
   function detectCurrentSite() {
-   const host = location.hostname;
-   return Object.entries(SITE_META).find(([, meta]) => meta.host.test(host))?.[0] || ''; }
+   const host = location.hostname; return Object.entries(SITE_META).find(([, meta]) => meta.host.test(host))?.[0] || ''; }
   return { LIMITS, MOBILE_PORTRAIT_LIMITS, clamp, clampMobilePortrait, get, getMobilePortrait, set, setMobilePortrait, apply, detectCurrentSite };
  })();
  const PortraitCards = (() => {
@@ -216,8 +207,7 @@
   function syncJavlibImage(img, on) {
    if (!img) return;
    const current = img.getAttribute('src') || '';
-   if (!img.dataset.laosijiLandscapeSrc && /ps\.jpg(?:[?#].*)?$/i.test(current)) {
-    img.dataset.laosijiLandscapeSrc = current.replace(/ps\.jpg((?:[?#].*)?)$/i, 'pl.jpg$1'); }
+   if (!img.dataset.laosijiLandscapeSrc && /ps\.jpg(?:[?#].*)?$/i.test(current)) { img.dataset.laosijiLandscapeSrc = current.replace(/ps\.jpg((?:[?#].*)?)$/i, 'pl.jpg$1'); }
    if (!img.dataset.laosijiLandscapeSrc && /pl\.jpg(?:[?#].*)?$/i.test(current)) { img.dataset.laosijiLandscapeSrc = current; }
    const next = img.dataset.laosijiLandscapeSrc;
    if (next && img.getAttribute('src') !== next) { img.src = next; img.setAttribute('src', next); }
@@ -234,18 +224,14 @@
   }
   function effective(siteId = CardColumns.detectCurrentSite()) { return usePortraitCardsOnPage(siteId); }
   function syncImages(on = effective()) {
-   document.querySelectorAll('.javbus-card-image').forEach(img => syncJavbusImage(img, on));
-   document.querySelectorAll('.javdb-card-image').forEach(img => syncJavdbImage(img, on));
+   document.querySelectorAll('.javbus-card-image').forEach(img => syncJavbusImage(img, on)); document.querySelectorAll('.javdb-card-image').forEach(img => syncJavdbImage(img, on));
    document.querySelectorAll('.javlib-card-image').forEach(img => syncJavlibImage(img, on)); }
   function apply(on = enabled()) {
-   ensureStyle();
-   const site = CardColumns.detectCurrentSite(); const active = !!on && isPortraitCardsPageAllowed(site);
-   document.documentElement.classList.toggle('jav-card-portrait-mode', active); syncImages(active);
+   ensureStyle(); const site = CardColumns.detectCurrentSite(); const active = !!on && isPortraitCardsPageAllowed(site); document.documentElement.classList.toggle('jav-card-portrait-mode', active); syncImages(active);
    if (site) CardColumns.apply(site);
   }
   function set(value) {
-   CFG.portraitCards = !!value;
-   apply(!!value); }
+   CFG.portraitCards = !!value; apply(!!value); }
   return { enabled, effective, apply, set, syncImages };
  })();
  const PageZoom = (() => {
@@ -253,8 +239,7 @@
   const SITE_META = {
    javbus: { getter: () => CFG.javbusPageZoom, setter: v => { CFG.javbusPageZoom = v; }, selector: 'body > div.container-fluid, body > div.container', host: /(?:^|\.)javbus\.com$/i },
    javdb:  { getter: () => CFG.javdbPageZoom,  setter: v => { CFG.javdbPageZoom = v; },  selector: 'body > section > div',     host: /javdb/i },
-   javlib: { getter: () => CFG.javlibPageZoom, setter: v => { CFG.javlibPageZoom = v; }, selector: '#content',                 host: /(javlibrary|javlib|r86m|s87n)/i },
-  };
+   javlib: { getter: () => CFG.javlibPageZoom, setter: v => { CFG.javlibPageZoom = v; }, selector: '#content',                 host: /(javlibrary|javlib|r86m|s87n)/i }, };
   function clamp(value) { return Math.min(LIMITS.max, Math.max(LIMITS.min, parseInt(value, 10) || 100)); }
   function get(siteId) { return SITE_META[siteId] ? clamp(SITE_META[siteId].getter()) : 100; }
   function set(siteId, value) {
@@ -268,8 +253,7 @@
   function reflowJavbusActorWaterfall() {
    const waterfall = document.querySelector('#waterfall');
    if (!waterfall || !waterfall.querySelector('.avatar-box')) return;
-   waterfall.style.removeProperty('width'); waterfall.style.setProperty('max-width', '100%', 'important');
-   waterfall.style.setProperty('margin-left', 'auto', 'important'); waterfall.style.setProperty('margin-right', 'auto', 'important');
+   waterfall.style.removeProperty('width'); waterfall.style.setProperty('max-width', '100%', 'important'); waterfall.style.setProperty('margin-left', 'auto', 'important'); waterfall.style.setProperty('margin-right', 'auto', 'important');
    const run = () => {
     const jq = window.jQuery || window.$;
     try {
@@ -291,15 +275,12 @@
    if (siteId === 'javlib') {
     const content = document.querySelector('#content');
     if (content) {
-     content.style.setProperty('zoom', '1'); content.style.setProperty('width', widthValue, 'important');
-     content.style.setProperty('max-width', 'none', 'important'); content.style.setProperty('margin-left', 'auto', 'important');
-     content.style.setProperty('margin-right', 'auto', 'important'); content.style.setProperty('box-sizing', 'border-box', 'important');
-     content.style.setProperty('padding-left', '12px', 'important'); content.style.setProperty('padding-right', '12px', 'important');
-     content.style.setProperty('min-width', '0', 'important'); content.style.setProperty('overflow', 'visible', 'important'); }
+     content.style.setProperty('zoom', '1'); content.style.setProperty('width', widthValue, 'important'); content.style.setProperty('max-width', 'none', 'important'); content.style.setProperty('margin-left', 'auto', 'important');
+     content.style.setProperty('margin-right', 'auto', 'important'); content.style.setProperty('box-sizing', 'border-box', 'important'); content.style.setProperty('padding-left', '12px', 'important');
+     content.style.setProperty('padding-right', '12px', 'important'); content.style.setProperty('min-width', '0', 'important'); content.style.setProperty('overflow', 'visible', 'important'); }
     document.documentElement?.style.setProperty('background', '#fff', 'important'); document.body?.style.setProperty('background', '#fff', 'important');
     document.querySelectorAll('#page, #content, #rightcolumn').forEach(el => {
-     el?.style.setProperty('background', '#fff', 'important'); el?.style.setProperty('box-sizing', 'border-box', 'important');
-     el?.style.setProperty('max-width', '100%', 'important'); el?.style.setProperty('overflow', 'visible', 'important');
+     el?.style.setProperty('background', '#fff', 'important'); el?.style.setProperty('box-sizing', 'border-box', 'important'); el?.style.setProperty('max-width', '100%', 'important'); el?.style.setProperty('overflow', 'visible', 'important');
     });
     document.querySelectorAll('#rightcolumn > .videothumblist, #rightcolumn > .videothumblist .videos').forEach(el => {
      el.style.setProperty('box-sizing', 'border-box', 'important'); el.style.setProperty('max-width', '100%', 'important');
@@ -307,28 +288,20 @@
     return; }
    document.querySelectorAll(meta.selector).forEach(el => {
     if (!el) return;
-    el.style.setProperty('zoom', '1'); el.style.setProperty('width', widthValue, 'important'); el.style.setProperty('max-width', 'none', 'important');
-    el.style.setProperty('margin-left', 'auto', 'important'); el.style.setProperty('margin-right', 'auto', 'important');
-    el.style.setProperty('box-sizing', 'border-box', 'important');
+    el.style.setProperty('zoom', '1'); el.style.setProperty('width', widthValue, 'important'); el.style.setProperty('max-width', 'none', 'important'); el.style.setProperty('margin-left', 'auto', 'important');
+    el.style.setProperty('margin-right', 'auto', 'important'); el.style.setProperty('box-sizing', 'border-box', 'important');
    });
    if (siteId === 'javbus' && isJavbusActorIndexPage()) { reflowJavbusActorWaterfall(); }
   }
   function reset(siteId) {
    const meta = SITE_META[siteId];
    if (!meta) return;
-   document.querySelectorAll(meta.selector).forEach(el => {
-    ['zoom', 'width', 'max-width', 'margin-left', 'margin-right', 'box-sizing', 'padding-left', 'padding-right', 'min-width', 'overflow'].forEach(name => el.style.removeProperty(name));
-   });
+   document.querySelectorAll(meta.selector).forEach(el => { ['zoom', 'width', 'max-width', 'margin-left', 'margin-right', 'box-sizing', 'padding-left', 'padding-right', 'min-width', 'overflow'].forEach(name => el.style.removeProperty(name)); });
    if (siteId === 'javlib') {
-    document.querySelectorAll('#page, #content, #rightcolumn').forEach(el => {
-     ['box-sizing', 'max-width', 'overflow'].forEach(name => el.style.removeProperty(name));
-    });
-    document.querySelectorAll('#rightcolumn > .videothumblist, #rightcolumn > .videothumblist .videos').forEach(el => {
-     ['box-sizing', 'max-width'].forEach(name => el.style.removeProperty(name));
-    }); } }
+    document.querySelectorAll('#page, #content, #rightcolumn').forEach(el => { ['box-sizing', 'max-width', 'overflow'].forEach(name => el.style.removeProperty(name)); });
+    document.querySelectorAll('#rightcolumn > .videothumblist, #rightcolumn > .videothumblist .videos').forEach(el => { ['box-sizing', 'max-width'].forEach(name => el.style.removeProperty(name)); }); } }
   function detectCurrentSite() {
-   const host = location.hostname;
-   return Object.entries(SITE_META).find(([, meta]) => meta.host.test(host))?.[0] || ''; }
+   const host = location.hostname; return Object.entries(SITE_META).find(([, meta]) => meta.host.test(host))?.[0] || ''; }
   function applyCurrent() {
    const current = detectCurrentSite();
    if (current) apply(current);
@@ -337,10 +310,7 @@
  })();
  const DetailFlex = (() => {
   const LIMITS = { min: 50, max: 200 };
-  const DEFAULTS = {
-   javbus: { cover: 95, info: 80, magnet: 100 },
-   javdb: { cover: 135, info: 105, magnet: 125 },
-   javlib: { cover: 100, info: 85, magnet: 100 }, };
+  const DEFAULTS = { javbus: { cover: 95, info: 80, magnet: 100 }, javdb: { cover: 135, info: 105, magnet: 125 }, javlib: { cover: 100, info: 85, magnet: 100 } };
   const META = {
    javbus: {
     host: /(?:^|\.)javbus\.com$/i,
@@ -393,8 +363,7 @@
    if (!MobilePolicy.usesDesktopMagnetTable()) return false;
    return !!document.querySelector('.jav-nong-slot'); }
   function hasLayout(siteId = detectCurrentSite()) {
-   const meta = META[siteId];
-   return !!meta?.root?.(); }
+   const meta = META[siteId]; return !!meta?.root?.(); }
   function applyStandaloneMagnet(siteId) {
    const defaults = DEFAULTS[siteId];
    if (!defaults) return;
@@ -404,12 +373,9 @@
    document.querySelectorAll('[data-javdb-standalone-magnet]').forEach(section => {
     const sectionSite = section.getAttribute('data-javdb-standalone-magnet-site') || 'javdb';
     if (sectionSite !== siteId) return;
-    section.style.setProperty('width', '100%', 'important');
-    section.style.setProperty('--javdb-standalone-magnet-scale', String(values.magnet / defaults.magnet));
-    const body = section.querySelector('.javdb-fc2-detail-magnet-body');
-    const wrapper = body?.firstElementChild?.classList?.contains('jav-nong-wrapper') ? body.firstElementChild : body?.querySelector('.jav-nong-wrapper');
-    body?.style.setProperty('width', '100%', 'important'); wrapper?.style.setProperty('width', width, 'important');
-    wrapper?.style.setProperty('max-width', '100%', 'important');
+    section.style.setProperty('width', '100%', 'important'); section.style.setProperty('--javdb-standalone-magnet-scale', String(values.magnet / defaults.magnet)); const body = section.querySelector('.javdb-fc2-detail-magnet-body');
+    const wrapper = body?.firstElementChild?.classList?.contains('jav-nong-wrapper') ? body.firstElementChild : body?.querySelector('.jav-nong-wrapper'); body?.style.setProperty('width', '100%', 'important');
+    wrapper?.style.setProperty('width', width, 'important'); wrapper?.style.setProperty('max-width', '100%', 'important');
    }); }
   function apply(siteId = detectCurrentSite()) {
    const meta = META[siteId];
@@ -446,8 +412,7 @@
   gmFetch,
   injectStyle,
   expose(name, value) {
-   window[name] = value;
-   return value; }, };
+   window[name] = value; return value; }, };
  Core.expose('__LAOSIJI_CORE__', Core);
  const VIDEO_ENGINES = [
   { key: 'missav', label: 'MissAV', host: /(?:missav\.(com|ai|ws)|njavtv\.com)/i, color: '#ec4899' },
@@ -455,8 +420,8 @@
   { key: '123av',  label: '123AV',  host: /123av\.com/i, color: '#10b981' },
   { key: 'javday', label: 'JavDay', host: /javday\.app/i, color: '#0ea5e9' },
   { key: 'supjav', label: 'SupJav', host: /supjav\.com/i, color: '#ef4444' },
-  { key: 'javrate', label: 'JavRate', host: /javrate\.com/i, color: '#8b5cf6' }, ];
- Core.expose('__LAOSIJI_VIDEO_ENGINES__', VIDEO_ENGINES);
+  { key: 'javrate', label: 'JavRate', host: /javrate\.com/i, color: '#8b5cf6' },
+ ]; Core.expose('__LAOSIJI_VIDEO_ENGINES__', VIDEO_ENGINES);
  const CACHE_CATEGORY_META = [
   {
    id: 'media',
@@ -487,18 +452,14 @@
  const Ui = {
   on(el, event, handler, options) {
    if (!el || typeof handler !== 'function') return null;
-   el.addEventListener(event, handler, options);
-   return el; },
+   el.addEventListener(event, handler, options); return el; },
   click(el, handler, options) { return this.on(el, 'click', handler, options); },
   bindCheckbox(el, checked, onChange) {
    if (!el) return null;
-   el.checked = !!checked;
-   this.on(el, 'change', () => onChange?.(el.checked, el));
-   return el; },
+   el.checked = !!checked; this.on(el, 'change', () => onChange?.(el.checked, el)); return el; },
   bindRange(el, valueEl, value, format, onInput) {
    if (!el) return null;
-   const toText = typeof format === 'function' ? format : v => String(v);
-   el.value = String(value);
+   const toText = typeof format === 'function' ? format : v => String(v); el.value = String(value);
    if (valueEl) valueEl.textContent = toText(value);
    this.on(el, 'input', () => {
     const next = el.value;
@@ -551,18 +512,13 @@
   const parent = document.body || document.documentElement;
   if (!parent) return;
   injectStyle('jav-page-notify-style',`.jav-page-notify{position:fixed;top:76px;right:22px;z-index:2147483647;width:min(360px,calc(100vw - 28px));padding:12px 14px;color:#f8fafc;background:rgba(15,23,42,.94);border:1px solid rgba(148,163,184,.28);border-left:4px solid #38bdf8;border-radius:10px;box-shadow:0 16px 42px rgba(0,0,0,.32),0 0 0 1px rgba(255,255,255,.04) inset;backdrop-filter:blur(14px) saturate(1.1);font-family:Arial,"Microsoft YaHei",sans-serif;transform:translateY(-10px);opacity:0;pointer-events:auto;transition:opacity .18s ease,transform .18s ease;cursor:default}.jav-page-notify.is-clickable{cursor:pointer}.jav-page-notify.is-success{border-left-color:#22c55e}.jav-page-notify.is-error{border-left-color:#ef4444}.jav-page-notify.show{opacity:1;transform:translateY(0)}.jav-page-notify.hide{opacity:0;transform:translateY(-10px)}.jav-page-notify-title{margin:0 0 4px;font-size:14px;font-weight:800;line-height:1.35}.jav-page-notify-text{margin:0;color:#dbeafe;font-size:13px;line-height:1.45}@media (max-width:720px){.jav-page-notify{top:14px;right:14px;width:calc(100vw - 28px)}}`);
-  document.querySelector('.jav-page-notify')?.remove();
-  const toast = document.createElement('div');
+  document.querySelector('.jav-page-notify')?.remove(); const toast = document.createElement('div');
   toast.className =`jav-page-notify is-${getNotifyTone(title, text)}${url ? ' is-clickable' : ''}`;
   toast.setAttribute('role', 'status');
   if (url) { toast.title = '点击打开相关页面'; toast.addEventListener('click', () => window.open(url, '_blank', 'noopener,noreferrer')); }
-  const titleEl = document.createElement('p');
-  titleEl.className = 'jav-page-notify-title'; titleEl.textContent = title || 'JAV 老司机';
-  toast.appendChild(titleEl);
+  const titleEl = document.createElement('p'); titleEl.className = 'jav-page-notify-title'; titleEl.textContent = title || 'JAV 老司机'; toast.appendChild(titleEl);
   if (text) {
-   const textEl = document.createElement('p');
-   textEl.className = 'jav-page-notify-text'; textEl.textContent = text;
-   toast.appendChild(textEl); }
+   const textEl = document.createElement('p'); textEl.className = 'jav-page-notify-text'; textEl.textContent = text; toast.appendChild(textEl); }
   parent.appendChild(toast); requestAnimationFrame(() => toast.classList.add('show'));
   setTimeout(() => {
    toast.classList.remove('show'); toast.classList.add('hide'); setTimeout(() => toast.remove(), 240);
@@ -571,8 +527,7 @@
   showPageNotify(title, text, url); }
  function addJavdbApiLoginStyles() {
   if (document.getElementById('javdb-api-login-style')) return;
-  const style = document.createElement('style');
-  style.id = 'javdb-api-login-style';
+  const style = document.createElement('style'); style.id = 'javdb-api-login-style';
   style.textContent =`#javdb-api-login-overlay{position:fixed;inset:0;z-index:10000030;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.48);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#javdb-api-login-overlay .javdb-api-login-panel{width:min(360px,92vw);padding:22px;border-radius:12px;background:#fff;color:#111827;box-shadow:0 22px 60px rgba(15,23,42,.26);border:1px solid rgba(148,163,184,.38)}#javdb-api-login-overlay .javdb-api-login-title{margin-bottom:16px;font-size:18px;font-weight:800}#javdb-api-login-overlay .javdb-api-login-input{width:100%;height:40px;margin-bottom:12px;padding:0 12px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#111827;font-size:14px;outline:none;box-sizing:border-box}#javdb-api-login-overlay .javdb-api-login-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}#javdb-api-login-overlay .javdb-api-login-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}#javdb-api-login-overlay button,.javdb-api-login-inline{min-height:34px;padding:0 14px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#111827;font-size:13px;font-weight:800;cursor:pointer}#javdb-api-login-overlay .javdb-api-login-submit,.javdb-api-login-inline{border-color:#2563eb;background:#2563eb;color:#fff}#javdb-api-login-overlay button:disabled{cursor:wait;opacity:.72}#javdb-api-login-overlay .javdb-api-login-tip{margin-top:12px;color:#64748b;font-size:12px;line-height:1.6}`;
   document.head.appendChild(style); }
  function parseHTML(str) { return new DOMParser().parseFromString(str, 'text/html'); }
@@ -584,8 +539,7 @@
     if (settled) return;
     settled = true;
     const result = response || {};
-    const status = Number(result.status) || 0; const resolvedKind = kind || (status >= 200 && status < 400 ? '' : 'http'); const ok = resolvedKind === '';
-    result.ok = ok; result.loadstuts = ok;
+    const status = Number(result.status) || 0; const resolvedKind = kind || (status >= 200 && status < 400 ? '' : 'http'); const ok = resolvedKind === ''; result.ok = ok; result.loadstuts = ok;
     result.error = resolvedKind ? { kind: resolvedKind, url, status } : null;
     if (resolvedKind === 'timeout' && !result.finalUrl) result.finalUrl = url;
     resolve(result); };
@@ -610,8 +564,7 @@
     loadstuts: false,
     error: { kind: 'abort', url },
    });
-   settled = true;
-   return true; };
+   settled = true; return true; };
   return promise; }
  function normalizeAvid(raw) {
   if (!raw) return '';
@@ -623,30 +576,24 @@
   return raw; }
  function insertAvidCopyBtn(anchor, avid, nativeCopyBtn = null, append = false) {
   if (!anchor || !avid) return;
-  const code = normalizeAvid(avid); const parent = anchor.parentElement || anchor;
-  parent.querySelectorAll('.jav-avid-copy').forEach(btn => btn.remove()); nativeCopyBtn?.style.setProperty('display', 'none', 'important');
-  const btn = document.createElement('button');
-  btn.type = 'button'; btn.className = 'jav-avid-copy'; btn.textContent = '复制番号';
+  const code = normalizeAvid(avid); const parent = anchor.parentElement || anchor; parent.querySelectorAll('.jav-avid-copy').forEach(btn => btn.remove()); nativeCopyBtn?.style.setProperty('display', 'none', 'important');
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'jav-avid-copy'; btn.textContent = '复制番号';
   btn.title =`复制番号：${code}`;
   btn.style.cssText = 'display:inline-block;min-width:62px;margin-left:8px;padding:2px 8px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Segoe UI",sans-serif;font-weight:600;text-align:center;background:#e8f4fd;border:1px solid #90c5e8;border-radius:4px;cursor:pointer;color:#1a6fa8;vertical-align:middle;white-space:nowrap;box-sizing:border-box;';
   btn.addEventListener('click', e => {
-   e.preventDefault(); e.stopPropagation(); GM_setClipboard(code);
-   btn.textContent = '已复制';
+   e.preventDefault(); e.stopPropagation(); GM_setClipboard(code); btn.textContent = '已复制';
    setTimeout(() => { btn.textContent = '复制番号'; }, 900);
   });
   if (append) anchor.appendChild(btn);
   else anchor.after(btn);
  }
  const MobilePolicy = (() => {
-  const NARROW_VIEWPORT_QUERY = '(max-width:720px)'; const LANDSCAPE_VIEWPORT_QUERY = '(orientation:landscape) and (max-height:720px)';
-  const COARSE_POINTER_QUERY = '(pointer:coarse)';
-  const DISABLED_FEATURES = new Set(['pageZoom', 'portraitCards', 'detailFlex', 'cardFx', 'coverHoverPreview', 'pan115CoverHoverPreview', 'detailPreviewInline']);
-  const listeners = new Set(); let mediaQueries = []; let mobile = false; let started = false;
+  const NARROW_VIEWPORT_QUERY = '(max-width:720px)'; const LANDSCAPE_VIEWPORT_QUERY = '(orientation:landscape) and (max-height:720px)'; const COARSE_POINTER_QUERY = '(pointer:coarse)';
+  const DISABLED_FEATURES = new Set(['pageZoom', 'portraitCards', 'detailFlex', 'cardFx', 'coverHoverPreview', 'pan115CoverHoverPreview', 'detailPreviewInline']); const listeners = new Set(); let mediaQueries = []; let mobile = false; let started = false;
   function isMobile() { return mobile; }
   function matches(query) { return !!window.matchMedia?.(query).matches; }
   function isMobileClient() {
-   const userAgent = navigator.userAgent || '';
-   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) || matches(COARSE_POINTER_QUERY); }
+   const userAgent = navigator.userAgent || ''; return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent) || matches(COARSE_POINTER_QUERY); }
   function matchesMobileViewport() { return matches(NARROW_VIEWPORT_QUERY) || (matches(LANDSCAPE_VIEWPORT_QUERY) && isMobileClient()); }
   function featureEnabled(name, configured = true) { return !mobile || !DISABLED_FEATURES.has(name) ? configured : false; }
   function effectiveMagnetDisplayMode() {
@@ -668,9 +615,7 @@
    if (typeof MobileSettingsEntry !== 'undefined') MobileSettingsEntry.sync();
   }
   function update(next, notify = true) {
-   const changed = mobile !== next;
-   mobile = next;
-   applyRootState();
+   const changed = mobile !== next; mobile = next; applyRootState();
    if (changed && notify) {
     listeners.forEach(listener => {
      try { listener(mobile); } catch (err) { errorLog('移动端策略监听失败:', err); }
@@ -678,9 +623,7 @@
     syncConsumers(); } }
   function start() {
    if (started) return;
-   started = true;
-   mediaQueries = [NARROW_VIEWPORT_QUERY, LANDSCAPE_VIEWPORT_QUERY, COARSE_POINTER_QUERY] .map(query => window.matchMedia?.(query)) .filter(Boolean);
-   update(matchesMobileViewport(), false);
+   started = true; mediaQueries = [NARROW_VIEWPORT_QUERY, LANDSCAPE_VIEWPORT_QUERY, COARSE_POINTER_QUERY] .map(query => window.matchMedia?.(query)) .filter(Boolean); update(matchesMobileViewport(), false);
    mediaQueries.forEach(mediaQuery => {
     if (mediaQuery.addEventListener) {
      mediaQuery.addEventListener('change', () => update(matchesMobileViewport()));
@@ -704,8 +647,8 @@
    { key: 'btsearchUrl',     label: 'BTSearch',     placeholder: 'btsearch.love' },
    { key: 'sukebeiUrl',      label: 'Sukebei',      placeholder: 'sukebei.nyaa.si' },
    { key: 'u9a9Url',         label: 'U9A9',         placeholder: 'u9a9.com' },
-   { key: 'sokittyUrl',      label: 'SoKitty',      placeholder: 'w1.sokitty.me' }, ];
-  const JUMP_SEARCH_ENGINES = ['BTDigg', 'Taocili', 'Google', 'Bing', 'DuckGo', 'AVBase'];
+   { key: 'sokittyUrl',      label: 'SoKitty',      placeholder: 'w1.sokitty.me' },
+  ]; const JUMP_SEARCH_ENGINES = ['BTDigg', 'Taocili', 'Google', 'Bing', 'DuckGo', 'AVBase'];
   const BUTTON_TOGGLE_META = [
    { key: 'nyaa', cfgKey: 'btnShowNyaa', label: 'Sukebei' },
    { key: 'javbus', cfgKey: 'btnShowJavbus', label: 'JavBus' },
@@ -717,16 +660,8 @@
    { key: 'trailer', cfgKey: 'btnShowTrailer', label: '预告片' },
    { key: 'preview', cfgKey: 'btnShowPreview', label: '预览图' },
    { key: 'pan115', cfgKey: 'btnShowPan115', label: '115匹配' }, ];
-  const PANEL_SECTIONS = [
-   { id: 'common', label: '常用' },
-   { id: 'layout', label: '界面相关' },
-   { id: 'search', label: '搜索与播放' },
-   { id: 'sites', label: '站点与按钮' },
-   { id: 'advanced', label: '缓存与高级' }, ];
-  const THUMB_META = {
-   javfree:    { label: 'javfree.me',     color: '#16a34a' },
-   projectjav: { label: 'projectjav.com', color: '#ca8a04' },
-   javstore:   { label: 'javstore.net',   color: '#dc2626' }, };
+  const PANEL_SECTIONS = [ { id: 'common', label: '常用' }, { id: 'layout', label: '界面相关' }, { id: 'search', label: '搜索与播放' }, { id: 'sites', label: '站点与按钮' }, { id: 'advanced', label: '缓存与高级' } ];
+  const THUMB_META = { javfree:    { label: 'javfree.me',     color: '#16a34a' }, projectjav: { label: 'projectjav.com', color: '#ca8a04' }, javstore:   { label: 'javstore.net',   color: '#dc2626' } };
   const CACHE_CATEGORIES = typeof Ui?.getCacheCategories === 'function' ? Ui.getCacheCategories() : [];
   function renderButtonToggles() {
    return BUTTON_TOGGLE_META.map(({ key, label }) =>`<label class="sp-chip sp-setting-row"><input id="sp-btn-${key}" type="checkbox"><span class="sp-setting-copy"><strong>${label}</strong><small>在支持的页面显示此入口</small></span><span class="sp-toggle"><span class="sp-toggle-track"></span></span></label>`).join('');
@@ -744,52 +679,44 @@
   }
   const stripProtocol = value => String(value || '').trim().replace(/^https?:\/\//, '').replace(/\/+$/, '');
   function open() {
-   document.getElementById('jav-settings-overlay')?.remove(); injectSettingsPanelStyles();
-   const overlay = document.createElement('div');
-   overlay.id = 'jav-settings-overlay';
+   document.getElementById('jav-settings-overlay')?.remove(); injectSettingsPanelStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-settings-overlay';
    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-   const panel = document.createElement('div');
-   panel.id = 'jav-settings-panel';
-   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片动画</strong><small>启用卡片悬停动效</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 原生页面</strong><small>JavDB 会员可开启此功能</small></span><span class="sp-toggle"><input id="sp-javdb-native-pages" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
-   overlay.appendChild(panel); document.body.appendChild(overlay);
-   const navItems = [...panel.querySelectorAll('[data-sp-section]')]; const sectionPanels = [...panel.querySelectorAll('[data-sp-panel]')];
+   const panel = document.createElement('div'); panel.id = 'jav-settings-panel';
+   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片动画</strong><small>启用卡片悬停动效</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 原生页面</strong><small>JavDB 会员可开启此功能</small></span><span class="sp-toggle"><input id="sp-javdb-native-pages" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片使用代理播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+   overlay.appendChild(panel); document.body.appendChild(overlay); const navItems = [...panel.querySelectorAll('[data-sp-section]')]; const sectionPanels = [...panel.querySelectorAll('[data-sp-panel]')];
    navItems.forEach(item => item.addEventListener('click', () => {
     const section = item.dataset.spSection;
-    navItems.forEach(nav => {
-     const active = nav === item;
-     nav.classList.toggle('is-active', active); nav.setAttribute('aria-selected', active ? 'true' : 'false');
-    });
-    sectionPanels.forEach(panelSection => {
-     const active = panelSection.dataset.spPanel === section;
-     panelSection.classList.toggle('is-active', active);
-     panelSection.hidden = !active;
-    });
+    navItems.forEach(nav => { const active = nav === item; nav.classList.toggle('is-active', active); nav.setAttribute('aria-selected', active ? 'true' : 'false'); });
+    sectionPanels.forEach(panelSection => { const active = panelSection.dataset.spPanel === section; panelSection.classList.toggle('is-active', active); panelSection.hidden = !active; });
    }));
-   const defaultSelect = panel.querySelector('#sp-default-engine'); const picker = panel.querySelector('#sp-engine-picker');
-   const domainInput = panel.querySelector('#sp-engine-domain'); const jumpEngineSelect = panel.querySelector('#sp-jump-engine');
-   const videoEngineSelect = panel.querySelector('#sp-video-engine'); const magnetDisplaySelect = panel.querySelector('#sp-magnet-display');
-   const pan115PlayerSelect = panel.querySelector('#sp-pan115-player');
-   const infiniteScrollRestoreCheckbox = panel.querySelector('#sp-infinite-scroll-restore');
-   const infiniteScrollCheckbox = panel.querySelector('#sp-infinite-scroll'); const javdbNativePagesCheckbox = panel.querySelector('#sp-javdb-native-pages');
-   const listPreviewCheckbox = panel.querySelector('#sp-list-preview'); const titleTranslateCheckbox = panel.querySelector('#sp-title-translate');
-   const listNewTabCheckbox = panel.querySelector('#sp-list-new-tab'); const portraitCardsCheckbox = panel.querySelector('#sp-portrait-cards');
-   const cardFxCheckbox = panel.querySelector('#sp-card-fx'); const coverHoverPreviewCheckbox = panel.querySelector('#sp-cover-hover-preview');
-   const detailPreviewCheckbox = panel.querySelector('#sp-detail-preview'); const reviewsExpandedCheckbox = panel.querySelector('#sp-reviews-expanded');
-   const actorHighlightCheckbox = panel.querySelector('#sp-actor-highlight'); const reviewFontSelect = panel.querySelector('#sp-review-font');
-   const apiTabSelect = panel.querySelector('#sp-api-tab'); const nativeMagnetTabSelect = panel.querySelector('#sp-native-magnet-tab');
-   const magnetSortSelect = panel.querySelector('#sp-magnet-sort');
+   const defaultSelect = panel.querySelector('#sp-default-engine'); const picker = panel.querySelector('#sp-engine-picker'); const domainInput = panel.querySelector('#sp-engine-domain'); const jumpEngineSelect = panel.querySelector('#sp-jump-engine');
+   const videoEngineSelect = panel.querySelector('#sp-video-engine'); const magnetDisplaySelect = panel.querySelector('#sp-magnet-display'); const pan115PlayerSelect = panel.querySelector('#sp-pan115-player');
+   const trailerProxyPlaybackCheckbox = panel.querySelector('#sp-trailer-proxy-playback'); const infiniteScrollRestoreCheckbox = panel.querySelector('#sp-infinite-scroll-restore'); const infiniteScrollCheckbox = panel.querySelector('#sp-infinite-scroll');
+   const javdbNativePagesCheckbox = panel.querySelector('#sp-javdb-native-pages'); const listPreviewCheckbox = panel.querySelector('#sp-list-preview'); const titleTranslateCheckbox = panel.querySelector('#sp-title-translate');
+   const listNewTabCheckbox = panel.querySelector('#sp-list-new-tab'); const portraitCardsCheckbox = panel.querySelector('#sp-portrait-cards'); const cardFxCheckbox = panel.querySelector('#sp-card-fx');
+   const coverHoverPreviewCheckbox = panel.querySelector('#sp-cover-hover-preview'); const detailPreviewCheckbox = panel.querySelector('#sp-detail-preview'); const reviewsExpandedCheckbox = panel.querySelector('#sp-reviews-expanded');
+   const actorHighlightCheckbox = panel.querySelector('#sp-actor-highlight'); const reviewFontSelect = panel.querySelector('#sp-review-font'); const apiTabSelect = panel.querySelector('#sp-api-tab');
+   const nativeMagnetTabSelect = panel.querySelector('#sp-native-magnet-tab'); const magnetSortSelect = panel.querySelector('#sp-magnet-sort');
    const btnToggles = Object.fromEntries(BUTTON_TOGGLE_META.map(({ key }) => (
     [key, panel.querySelector(`#sp-btn-${key}`)]
-   )));
-   const cacheFeedback = panel.querySelector('#sp-cache-feedback'); const clearAllCacheBtn = panel.querySelector('#sp-clear-all-cache');
-   const cacheClearButtons = [...panel.querySelectorAll('[data-cache-category]')]; const orderList = panel.querySelector('#sp-thumb-order');
-   const domainDraft = Object.fromEntries(MAGNET_ENGINES.map(item => [item.key, CFG[item.key]]));
-   let currentOrder = GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']);
+   ))); let proxyPlaybackValidation = null;
+   const validateTrailerProxyPlayback = async () => {
+    if (!trailerProxyPlaybackCheckbox?.checked) return true;
+    trailerProxyPlaybackCheckbox.disabled = true;
+    let status = { available: false, closed: false };
+    try {
+     status = await Trailer.getProxyPlaybackStatus();
+    } catch {
+    } finally {
+     trailerProxyPlaybackCheckbox.disabled = false; }
+    if (status.available) return true;
+    trailerProxyPlaybackCheckbox.checked = false; CFG.trailerProxyPlayback = false; Utils.showToast( status.closed ? '服务器已关闭' : '服务器不可用', status.closed ? '预告片中转播放已关闭' : '无法验证预告片中转播放服务', 2800 ); return false; };
+   const cacheFeedback = panel.querySelector('#sp-cache-feedback'); const clearAllCacheBtn = panel.querySelector('#sp-clear-all-cache'); const cacheClearButtons = [...panel.querySelectorAll('[data-cache-category]')];
+   const orderList = panel.querySelector('#sp-thumb-order'); const domainDraft = Object.fromEntries(MAGNET_ENGINES.map(item => [item.key, CFG[item.key]])); let currentOrder = GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']);
    Object.keys(THUMB_META).forEach(src => { if (!currentOrder.includes(src)) currentOrder.push(src); });
    currentOrder = currentOrder.filter(src => THUMB_META[src]);
    const syncDefaultOptions = () => {
-    const current = defaultSelect.value || CFG.defaultEngine;
-    defaultSelect.innerHTML = '';
+    const current = defaultSelect.value || CFG.defaultEngine; defaultSelect.innerHTML = '';
     MAGNET_ENGINES.forEach(item => {
      const value = domainDraft[item.key];
      defaultSelect.add(new Option(`${item.label} (${value})`, value));
@@ -799,19 +726,20 @@
    };
    MAGNET_ENGINES.forEach(item => { picker.add(new Option(item.label, item.key)); });
    const loadPickedDomain = () => {
-    const meta = MAGNET_ENGINES.find(item => item.key === picker.value);
-    domainInput.value = domainDraft[picker.value] || ''; domainInput.placeholder = meta?.placeholder || ''; };
+    const meta = MAGNET_ENGINES.find(item => item.key === picker.value); domainInput.value = domainDraft[picker.value] || ''; domainInput.placeholder = meta?.placeholder || ''; };
    picker.addEventListener('change', loadPickedDomain);
    domainInput.addEventListener('input', () => {
-    domainDraft[picker.value] = stripProtocol(domainInput.value);
-    syncDefaultOptions();
+    domainDraft[picker.value] = stripProtocol(domainInput.value); syncDefaultOptions();
    });
    JUMP_SEARCH_ENGINES.forEach((name, index) => { jumpEngineSelect.add(new Option(name, String(index))); });
    VIDEO_ENGINES.forEach(item => { videoEngineSelect.add(new Option(item.label, item.key)); });
-   jumpEngineSelect.value = String(GM_getValue('default_search_engine', JUMP_SEARCH_ENGINES.length - 1));
-   Ui.setSelectValue(videoEngineSelect, CFG.defaultVideoEngine, 'missav');
+   jumpEngineSelect.value = String(GM_getValue('default_search_engine', JUMP_SEARCH_ENGINES.length - 1)); Ui.setSelectValue(videoEngineSelect, CFG.defaultVideoEngine, 'missav');
    if (pan115PlayerSelect) {
     pan115PlayerSelect.value = ['official', '115master', 'potplayer'].includes(CFG.pan115Player) ? CFG.pan115Player : 'official'; }
+   if (trailerProxyPlaybackCheckbox) trailerProxyPlaybackCheckbox.checked = CFG.trailerProxyPlayback;
+   trailerProxyPlaybackCheckbox?.addEventListener('change', () => {
+    proxyPlaybackValidation = trailerProxyPlaybackCheckbox.checked ? validateTrailerProxyPlayback() : null;
+   });
    if (infiniteScrollRestoreCheckbox) infiniteScrollRestoreCheckbox.checked = CFG.infiniteScrollRestore;
    if (infiniteScrollCheckbox) infiniteScrollCheckbox.checked = CFG.infiniteScroll;
    if (javdbNativePagesCheckbox) javdbNativePagesCheckbox.checked = CFG.javdbUseNativePages;
@@ -824,15 +752,13 @@
    if (detailPreviewCheckbox) detailPreviewCheckbox.checked = CFG.detailPreviewInline;
    if (reviewsExpandedCheckbox) reviewsExpandedCheckbox.checked = CFG.reviewsDefaultExpanded;
    if (actorHighlightCheckbox) actorHighlightCheckbox.checked = CFG.javdbFavoriteActorHighlight;
-   Ui.setSelectValue(reviewFontSelect, CFG.reviewFontSize, 'medium'); Ui.setSelectValue(apiTabSelect, CFG.apiMovieDefaultTab, 'reviews');
-   Ui.setSelectValue(nativeMagnetTabSelect, CFG.nativeMagnetDefaultTab, 'native'); Ui.setSelectValue(magnetSortSelect, CFG.magnetSort, 'size');
-   Ui.setSelectValue(magnetDisplaySelect, CFG.magnetDisplayMode, 'sidebar');
+   Ui.setSelectValue(reviewFontSelect, CFG.reviewFontSize, 'medium'); Ui.setSelectValue(apiTabSelect, CFG.apiMovieDefaultTab, 'reviews'); Ui.setSelectValue(nativeMagnetTabSelect, CFG.nativeMagnetDefaultTab, 'native');
+   Ui.setSelectValue(magnetSortSelect, CFG.magnetSort, 'size'); Ui.setSelectValue(magnetDisplaySelect, CFG.magnetDisplayMode, 'sidebar');
    BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { btnToggles[key].checked = CFG[cfgKey]; });
    const renderOrder = () => {
     orderList.innerHTML = '';
     currentOrder.forEach((src, index) => {
-     const meta = THUMB_META[src]; const item = document.createElement('div');
-     item.className = 'sp-order-item'; item.dataset.src = src;
+     const meta = THUMB_META[src]; const item = document.createElement('div'); item.className = 'sp-order-item'; item.dataset.src = src;
      item.innerHTML =`<div><div class="sp-order-name"> ${meta.label} </div></div><span class="sp-dot" style="background: ${meta.color} "></span><div class="sp-order-actions"><button class="sp-order-btn" type="button" data-dir="-1" title="左移" ${index === 0 ? 'disabled' : ''} >←</button><button class="sp-order-btn" type="button" data-dir="1" title="右移" ${index === currentOrder.length - 1 ? 'disabled' : ''} >→</button></div>`;
      orderList.appendChild(item);
     }); };
@@ -841,8 +767,7 @@
     if (!btn) return;
     const item = btn.closest('.sp-order-item'); const from = currentOrder.indexOf(item?.dataset.src); const to = from + parseInt(btn.dataset.dir, 10);
     if (from < 0 || to < 0 || to >= currentOrder.length) return;
-    [currentOrder[from], currentOrder[to]] = [currentOrder[to], currentOrder[from]];
-    renderOrder();
+    [currentOrder[from], currentOrder[to]] = [currentOrder[to], currentOrder[from]]; renderOrder();
    });
    const flashCacheButton = (btn, label, count) => {
     if (!btn || !cacheFeedback) return;
@@ -858,19 +783,21 @@
     flashCacheButton(btn,`${category?.label || '缓存'}已清理`, count);
    }));
    clearAllCacheBtn?.addEventListener('click', () => {
-    const count = typeof Ui.clearAllCacheCategories === 'function' ? Ui.clearAllCacheCategories() : 0;
-    flashCacheButton(clearAllCacheBtn, '全部缓存已清理', count);
+    const count = typeof Ui.clearAllCacheCategories === 'function' ? Ui.clearAllCacheCategories() : 0; flashCacheButton(clearAllCacheBtn, '全部缓存已清理', count);
    });
-   picker.value = 'javdbSearchUrl';
-   loadPickedDomain(); syncDefaultOptions(); renderOrder();
-   const closePanel = () => overlay.remove();
-   panel.querySelector('.sp-close').addEventListener('click', closePanel); panel.querySelector('.sp-btn-cancel').addEventListener('click', closePanel);
-   panel.querySelector('.sp-btn-save').addEventListener('click', () => {
+   picker.value = 'javdbSearchUrl'; loadPickedDomain(); syncDefaultOptions(); renderOrder(); const closePanel = () => overlay.remove(); panel.querySelector('.sp-close').addEventListener('click', closePanel);
+   panel.querySelector('.sp-btn-cancel').addEventListener('click', closePanel);
+   panel.querySelector('.sp-btn-save').addEventListener('click', async () => {
+    if (trailerProxyPlaybackCheckbox?.checked) {
+     const enabled = await (proxyPlaybackValidation || validateTrailerProxyPlayback());
+     if (!enabled) return;
+    }
     const snapshotNonPan115 = () => JSON.stringify({
      domains: MAGNET_ENGINES.map(item => CFG[item.key]),
      defaultEngine: CFG.defaultEngine,
      defaultSearchEngine: GM_getValue('default_search_engine', 2),
      defaultVideoEngine: CFG.defaultVideoEngine,
+     trailerProxyPlayback: CFG.trailerProxyPlayback,
      common: {
       listPreviewQuick: CFG.listPreviewQuick,
       titleTranslate: CFG.titleTranslate,
@@ -893,24 +820,16 @@
      buttons: Object.fromEntries(BUTTON_TOGGLE_META.map(({ key, cfgKey }) => [key, CFG[cfgKey]])),
      thumbOrder: GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']),
     });
-    const beforeNonPan115 = snapshotNonPan115(); const beforePan115Player = CFG.pan115Player;
-    const nextPan115Player = ['official', '115master', 'potplayer'].includes(pan115PlayerSelect?.value) ? pan115PlayerSelect.value : 'official';
+    const beforeNonPan115 = snapshotNonPan115(); const beforePan115Player = CFG.pan115Player; const nextPan115Player = ['official', '115master', 'potplayer'].includes(pan115PlayerSelect?.value) ? pan115PlayerSelect.value : 'official';
     MAGNET_ENGINES.forEach(item => { CFG[item.key] = stripProtocol(domainDraft[item.key]); });
-    CFG.defaultEngine = defaultSelect.value;
-    GM_setValue('default_search_engine', parseInt(jumpEngineSelect.value, 10) || 0);
-    CFG.defaultVideoEngine = videoEngineSelect.value || 'missav'; CFG.pan115Player = nextPan115Player; CFG.listPreviewQuick = !!listPreviewCheckbox?.checked;
-    CFG.titleTranslate = !!titleTranslateCheckbox?.checked; CFG.listOpenNewTab = !!listNewTabCheckbox?.checked;
-    CFG.portraitCards = !!portraitCardsCheckbox?.checked; CFG.cardFx = !!cardFxCheckbox?.checked; CFG.coverHoverPreview = !!coverHoverPreviewCheckbox?.checked;
-    CFG.detailPreviewInline = !!detailPreviewCheckbox?.checked; CFG.reviewsDefaultExpanded = !!reviewsExpandedCheckbox?.checked;
-    CFG.reviewFontSize = reviewFontSelect?.value || 'medium'; CFG.apiMovieDefaultTab = apiTabSelect?.value || 'reviews';
-    CFG.javdbFavoriteActorHighlight = !!actorHighlightCheckbox?.checked; CFG.magnetDisplayMode = magnetDisplaySelect.value;
-    CFG.magnetTable = CFG.magnetDisplayMode === 'sidebar'; CFG.nativeMagnetDefaultTab = nativeMagnetTabSelect?.value || 'native';
-    CFG.magnetSort = magnetSortSelect?.value || 'size'; CFG.infiniteScroll = !!infiniteScrollCheckbox?.checked;
-    CFG.infiniteScrollRestore = !!infiniteScrollRestoreCheckbox?.checked; CFG.javdbUseNativePages = !!javdbNativePagesCheckbox?.checked;
+    CFG.defaultEngine = defaultSelect.value; GM_setValue('default_search_engine', parseInt(jumpEngineSelect.value, 10) || 0); CFG.defaultVideoEngine = videoEngineSelect.value || 'missav'; CFG.pan115Player = nextPan115Player;
+    CFG.trailerProxyPlayback = !!trailerProxyPlaybackCheckbox?.checked; CFG.listPreviewQuick = !!listPreviewCheckbox?.checked; CFG.titleTranslate = !!titleTranslateCheckbox?.checked; CFG.listOpenNewTab = !!listNewTabCheckbox?.checked;
+    CFG.portraitCards = !!portraitCardsCheckbox?.checked; CFG.cardFx = !!cardFxCheckbox?.checked; CFG.coverHoverPreview = !!coverHoverPreviewCheckbox?.checked; CFG.detailPreviewInline = !!detailPreviewCheckbox?.checked;
+    CFG.reviewsDefaultExpanded = !!reviewsExpandedCheckbox?.checked; CFG.reviewFontSize = reviewFontSelect?.value || 'medium'; CFG.apiMovieDefaultTab = apiTabSelect?.value || 'reviews'; CFG.javdbFavoriteActorHighlight = !!actorHighlightCheckbox?.checked;
+    CFG.magnetDisplayMode = magnetDisplaySelect.value; CFG.magnetTable = CFG.magnetDisplayMode === 'sidebar'; CFG.nativeMagnetDefaultTab = nativeMagnetTabSelect?.value || 'native'; CFG.magnetSort = magnetSortSelect?.value || 'size';
+    CFG.infiniteScroll = !!infiniteScrollCheckbox?.checked; CFG.infiniteScrollRestore = !!infiniteScrollRestoreCheckbox?.checked; CFG.javdbUseNativePages = !!javdbNativePagesCheckbox?.checked;
     BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { CFG[cfgKey] = btnToggles[key].checked; });
-    GM_setValue('thumb_source_order', currentOrder);
-    const pan115Changed = beforePan115Player !== nextPan115Player; const nonPan115Changed = beforeNonPan115 !== snapshotNonPan115();
-    closePanel();
+    GM_setValue('thumb_source_order', currentOrder); const pan115Changed = beforePan115Player !== nextPan115Player; const nonPan115Changed = beforeNonPan115 !== snapshotNonPan115(); closePanel();
     if (nonPan115Changed) { location.reload(); return; }
     if (pan115Changed) Runtime.syncPan115(CFG.btnShowPan115);
    }); }
@@ -932,8 +851,7 @@
    { id: 'list-open-new-tab', label: '新标签打开页面', cfgKey: 'listOpenNewTab', sync: 'syncListOpenNewTab' },
    { id: 'list-preview', label: '\u9996\u9875\u5feb\u6377\u529f\u80fd', cfgKey: 'listPreviewQuick', sync: 'syncListPreview' },
    { id: 'detail-preview-inline', label: '预览图直显', cfgKey: 'detailPreviewInline', sync: 'syncDetailPreview', mobileDisabled: true }, ];
-  const PAN115_TOGGLE_META = [
-   { id: 'pan115-cover-hover-preview', label: '115封面预览', cfgKey: 'pan115CoverHoverPreview', sync: 'syncCoverHoverPreview', mobileDisabled: true }, ];
+  const PAN115_TOGGLE_META = [ { id: 'pan115-cover-hover-preview', label: '115封面预览', cfgKey: 'pan115CoverHoverPreview', sync: 'syncCoverHoverPreview', mobileDisabled: true } ];
   function renderToggleRows(toggleMeta = TOGGLE_META) {
    return toggleMeta.map(({ id, label, mobileDisabled }) =>`<div class="qs-switch-row"${mobileDisabled ? ' data-mobile-disabled="1"' : ''}><div class="qs-name">${label}</div><label class="qs-toggle"><input id="qs-${id}" type="checkbox"><span class="qs-toggle-track"></span></label></div>`).join('');
   }
@@ -942,22 +860,16 @@
    return CardColumns.detectCurrentSite() || PageZoom.detectCurrentSite(); }
   function positionPanel(panel, anchor) {
    if (MobilePolicy.isMobile()) {
-    panel.classList.add('is-mobile'); panel.style.removeProperty('left'); panel.style.removeProperty('top');
-    return; }
-   const rect = anchor?.getBoundingClientRect?.(); const margin = 10; const width = panel.offsetWidth || 286; const height = panel.offsetHeight || 150;
-   let left = rect ? rect.right - width : window.innerWidth - width - 18; let top = rect ? rect.bottom + 8 : 64;
-   left = Math.max(margin, Math.min(left, window.innerWidth - width - margin)); top = Math.max(margin, Math.min(top, window.innerHeight - height - margin));
+    panel.classList.add('is-mobile'); panel.style.removeProperty('left'); panel.style.removeProperty('top'); return; }
+   const rect = anchor?.getBoundingClientRect?.(); const margin = 10; const width = panel.offsetWidth || 286; const height = panel.offsetHeight || 150; let left = rect ? rect.right - width : window.innerWidth - width - 18;
+   let top = rect ? rect.bottom + 8 : 64; left = Math.max(margin, Math.min(left, window.innerWidth - width - margin)); top = Math.max(margin, Math.min(top, window.innerHeight - height - margin));
    panel.style.left =`${left}px`;
    panel.style.top =`${top}px`;
   }
   function open(anchor = null) {
-   document.getElementById('jav-quick-settings-popover')?.remove(); ensureQuickSettingsPanelStyles();
-   const site = getCurrentSite();
+   document.getElementById('jav-quick-settings-popover')?.remove(); ensureQuickSettingsPanelStyles(); const site = getCurrentSite();
    if (!site) { SettingsPanel.open(); return; }
-   const panel = document.createElement('div');
-   panel.id = 'jav-quick-settings-popover';
-   panel.classList.toggle('is-mobile', MobilePolicy.isMobile());
-   const isPan115 = site === 'pan115'; const toggleMeta = isPan115 ? PAN115_TOGGLE_META : TOGGLE_META;
+   const panel = document.createElement('div'); panel.id = 'jav-quick-settings-popover'; panel.classList.toggle('is-mobile', MobilePolicy.isMobile()); const isPan115 = site === 'pan115'; const toggleMeta = isPan115 ? PAN115_TOGGLE_META : TOGGLE_META;
    const showMobilePortraitColumns = !isPan115 && MobilePolicy.isMobile() && !window.matchMedia?.('(orientation:landscape)').matches;
    panel.innerHTML =`<div class="qs-head"><div><div class="qs-title">快捷设置</div><div class="qs-site"> ${siteLabelMap[site] || '当前站点'} </div></div><button class="qs-close" type="button" title="关闭">×</button></div> ${isPan115 ? '' : `<div class="qs-row qs-columns-row">
                     <div class="qs-name">卡片列数</div>
@@ -975,19 +887,11 @@
                     <input class="qs-range" id="qs-zoom" type="range" min="60" max="100" step="1">
                     <span class="qs-value" id="qs-zoom-value">100%</span>
                 </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力</div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"> ${site === 'javdb' && window.__LAOSIJI_RESOURCE_LIBRARY__?.isSupported?.() ? '<button class="qs-resource" type="button">资源管理</button>' : ''} <button class="qs-more" type="button">更多设置</button></div>`;
-   document.body.appendChild(panel);
-   const close = () => panel.remove(); const columnsInput = panel.querySelector('#qs-columns'); const columnsValue = panel.querySelector('#qs-columns-value');
-   const mobileColumnButtons = [...panel.querySelectorAll('[data-mobile-columns]')]; const zoomInput = panel.querySelector('#qs-zoom');
-   const zoomValue = panel.querySelector('#qs-zoom-value'); const detailSite = DetailFlex.detectCurrentSite();
+   document.body.appendChild(panel); const close = () => panel.remove(); const columnsInput = panel.querySelector('#qs-columns'); const columnsValue = panel.querySelector('#qs-columns-value');
+   const mobileColumnButtons = [...panel.querySelectorAll('[data-mobile-columns]')]; const zoomInput = panel.querySelector('#qs-zoom'); const zoomValue = panel.querySelector('#qs-zoom-value'); const detailSite = DetailFlex.detectCurrentSite();
    const detailWrap = panel.querySelector('#qs-detail-flex');
-   const detailInputs = {
-    cover: panel.querySelector('#qs-detail-cover'),
-    info: panel.querySelector('#qs-detail-info'),
-    magnet: panel.querySelector('#qs-detail-magnet'), };
-   const detailValues = {
-    cover: panel.querySelector('#qs-detail-cover-value'),
-    info: panel.querySelector('#qs-detail-info-value'),
-    magnet: panel.querySelector('#qs-detail-magnet-value'), };
+   const detailInputs = { cover: panel.querySelector('#qs-detail-cover'), info: panel.querySelector('#qs-detail-info'), magnet: panel.querySelector('#qs-detail-magnet') };
+   const detailValues = { cover: panel.querySelector('#qs-detail-cover-value'), info: panel.querySelector('#qs-detail-info-value'), magnet: panel.querySelector('#qs-detail-magnet-value') };
    const syncColumnsControl = () => {
     const value = CardColumns.get(site);
     if (columnsInput) columnsInput.value = String(value);
@@ -1000,36 +904,25 @@
     if (detailInputs.magnet) detailInputs.magnet.disabled = !hasMagnet;
     if (detailValues.magnet && !hasMagnet) detailValues.magnet.textContent = MobilePolicy.usesDesktopMagnetTable() ? '未渲染' : '关闭';
     return hasMagnet; };
-   Ui.bindRange(columnsInput, columnsValue, CardColumns.get(site), v => String(CardColumns.clamp(v)), value => {
-    const next = CardColumns.clamp(value);
-    CardColumns.set(site, next); CardColumns.apply(site, next);
-   });
+   Ui.bindRange(columnsInput, columnsValue, CardColumns.get(site), v => String(CardColumns.clamp(v)), value => { const next = CardColumns.clamp(value); CardColumns.set(site, next); CardColumns.apply(site, next); });
    const syncMobileColumnsControl = () => {
-    const value = CardColumns.getMobilePortrait();
-    mobileColumnButtons.forEach(button => button.classList.toggle('is-active', Number(button.dataset.mobileColumns) === value)); };
+    const value = CardColumns.getMobilePortrait(); mobileColumnButtons.forEach(button => button.classList.toggle('is-active', Number(button.dataset.mobileColumns) === value)); };
    mobileColumnButtons.forEach(button => {
-    Ui.click(button, () => {
-     const next = CardColumns.setMobilePortrait(Number(button.dataset.mobileColumns));
-     CardColumns.apply(site, next); syncMobileColumnsControl();
-    });
+    Ui.click(button, () => { const next = CardColumns.setMobilePortrait(Number(button.dataset.mobileColumns)); CardColumns.apply(site, next); syncMobileColumnsControl(); });
    });
    syncMobileColumnsControl();
    Ui.bindRange(zoomInput, zoomValue, PageZoom.get(site), v =>`${PageZoom.clamp(v)}%`, value => {
-    const next = PageZoom.clamp(value);
-    PageZoom.set(site, next); PageZoom.apply(site, next);
+    const next = PageZoom.clamp(value); PageZoom.set(site, next); PageZoom.apply(site, next);
    });
    if (detailSite && DetailFlex.hasLayout(detailSite)) {
-    const flexValues = DetailFlex.get(detailSite);
-    detailWrap?.classList.add('is-visible');
+    const flexValues = DetailFlex.get(detailSite); detailWrap?.classList.add('is-visible');
     Object.entries(detailInputs).forEach(([key, input]) => {
      const valueEl = detailValues[key];
      if (!input || !valueEl) return;
      Ui.bindRange(input, valueEl, flexValues[key], formatFlexValue, value => {
       const hasMagnet = key !== 'magnet' || syncDetailMagnetState();
       if (!hasMagnet) return;
-      const next = DetailFlex.clamp(value);
-      valueEl.textContent = formatFlexValue(next);
-      DetailFlex.set(detailSite, key, next); DetailFlex.apply(detailSite);
+      const next = DetailFlex.clamp(value); valueEl.textContent = formatFlexValue(next); DetailFlex.set(detailSite, key, next); DetailFlex.apply(detailSite);
      });
     });
     syncDetailMagnetState(); }
@@ -1047,8 +940,7 @@
     close(); SettingsPanel.open();
    });
    Ui.click(panel.querySelector('.qs-resource'), () => {
-    close();
-    window.__LAOSIJI_RESOURCE_LIBRARY__?.open?.();
+    close(); window.__LAOSIJI_RESOURCE_LIBRARY__?.open?.();
    });
    panel.addEventListener('click', e => e.stopPropagation());
    setTimeout(() => {
@@ -1070,12 +962,10 @@
    if (pending) return;
    pending = true;
    requestAnimationFrame(() => {
-    pending = false;
-    sync();
+    pending = false; sync();
    }); }
   function createButton() {
-   const button = document.createElement('button');
-   button.id = BUTTON_ID; button.type = 'button'; button.textContent = '\u2699'; button.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
+   const button = document.createElement('button'); button.id = BUTTON_ID; button.type = 'button'; button.textContent = '\u2699'; button.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
    button.setAttribute('aria-label', '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e');
    button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); QuickSettingsPanel.open(button); });
    return button; }
@@ -1104,8 +994,7 @@
    if (pending) return;
    pending = true;
    requestAnimationFrame(() => {
-    pending = false;
-    sync();
+    pending = false; sync();
    }); }
   function isDisplayed(element) {
    if (!element) return false;
@@ -1113,27 +1002,22 @@
    if (style && (style.display === 'none' || style.visibility === 'hidden')) return false;
    return !!(element.getClientRects?.().length || element.offsetWidth || element.offsetHeight); }
   function createEntry(modern = false) {
-   const entry = document.createElement(modern ? 'button' : 'a');
-   entry.id = ENTRY_ID; entry.className = modern ? 'is-modern flex items-center gap-1' : 'button btn-line';
+   const entry = document.createElement(modern ? 'button' : 'a'); entry.id = ENTRY_ID; entry.className = modern ? 'is-modern flex items-center gap-1' : 'button btn-line';
    if (modern) entry.type = 'button';
    else entry.href = 'javascript:void(0)';
-   entry.title = '打开老司机快捷设置';
-   entry.setAttribute('aria-label', '打开老司机快捷设置');
+   entry.title = '打开老司机快捷设置'; entry.setAttribute('aria-label', '打开老司机快捷设置');
    entry.innerHTML =`<span class="entry-icon" aria-hidden="true">⚙</span><span>老司机设置</span>`;
    entry.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); QuickSettingsPanel.open(event.currentTarget); });
    return entry; }
   function sync() {
    const existing = document.getElementById(ENTRY_ID);
    if (!is115Page()) { existing?.remove(); return; }
-   const modernHeader = [...document.querySelectorAll('.justify-between.w-full.pl-6.pr-5')]
-    .find(root => isDisplayed(root) && root.querySelector('button[title="更多操作"]'));
-   const modernMoreButton = modernHeader?.querySelector('button[title="更多操作"]'); const modernActionGroup = modernMoreButton?.parentElement;
+   const modernHeader = [...document.querySelectorAll('.justify-between.w-full.pl-6.pr-5')] .find(root => isDisplayed(root) && root.querySelector('button[title="更多操作"]')); const modernMoreButton = modernHeader?.querySelector('button[title="更多操作"]');
+   const modernActionGroup = modernMoreButton?.parentElement;
    if (modernActionGroup) {
     if (existing && existing.parentElement !== modernActionGroup) existing.remove();
     if (existing) return;
-    const viewModeGroup = modernActionGroup.querySelector('button[title="列表视图"]')?.parentElement; const entry = createEntry(true);
-    modernActionGroup.insertBefore(entry, viewModeGroup || modernMoreButton);
-    return; }
+    const viewModeGroup = modernActionGroup.querySelector('button[title="列表视图"]')?.parentElement; const entry = createEntry(true); modernActionGroup.insertBefore(entry, viewModeGroup || modernMoreButton); return; }
    const topBar = document.querySelector('#js_top_panel_box .left-tvf[rel="left_tvf"]');
    if (topBar) {
     if (existing && existing.parentElement !== topBar) existing.remove();
@@ -1144,8 +1028,7 @@
     return; } }
   function install() {
    if (observer) return;
-   ensureStyle(); sync();
-   const root = document.body || document.documentElement;
+   ensureStyle(); sync(); const root = document.body || document.documentElement;
    if (!root || typeof MutationObserver === 'undefined') return;
    observer = new MutationObserver(scheduleSync);
    observer.observe(root, { childList: true, subtree: true }); }
@@ -1157,23 +1040,17 @@
   const JAVDB_SIGN_SALT = '71cf27bb3c0bcdf207b64abecddc970098c7421ee7203b9cdae54478478a199e7d5a6e1a57691123c1a931c057842fb73ba3b3c83bcd69c17ccf174081e3d8aa';
   let javdbSignCache = { ts: 0, sign: '' };
   function javdbMd5(str) {
-   const b = new TextEncoder().encode(str); const l = b.length; const n = ((l + 8) >> 6) + 1; const m = new Uint32Array(n * 16); const k = [];
-   const s = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
+   const b = new TextEncoder().encode(str); const l = b.length; const n = ((l + 8) >> 6) + 1; const m = new Uint32Array(n * 16); const k = []; const s = [7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21];
    for (let i = 0; i < 64; i++) k[i] = Math.floor(2 ** 32 * Math.abs(Math.sin(i + 1)));
    for (let i = 0; i < l; i++) m[i >> 2] |= b[i] << ((i % 4) << 3);
-   m[l >> 2] |= 0x80 << ((l % 4) << 3);
-   m[n * 16 - 2] = l * 8;
-   let [a0, b0, c0, d0] = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476];
+   m[l >> 2] |= 0x80 << ((l % 4) << 3); m[n * 16 - 2] = l * 8; let [a0, b0, c0, d0] = [0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476];
    for (let i = 0; i < n; i++) {
     const g = m.slice(i * 16, (i + 1) * 16); let [a, b, c, d] = [a0, b0, c0, d0];
     for (let j = 0; j < 64; j++) {
-     const q = Math.floor(j / 16); const f = [(b & c) | (~b & d), (d & b) | (~d & c), b ^ c ^ d, c ^ (b | ~d)][q];
-     const p = [j, (5 * j + 1) % 16, (3 * j + 5) % 16, (7 * j) % 16][q]; const sum = (a + f + k[j] + g[p]) | 0; const shift = s[(q << 2) | (j % 4)];
-     const nextA = d;
-     d = c; c = b; b = (b + ((sum << shift) | (sum >>> (32 - shift)))) | 0; a = nextA; }
+     const q = Math.floor(j / 16); const f = [(b & c) | (~b & d), (d & b) | (~d & c), b ^ c ^ d, c ^ (b | ~d)][q]; const p = [j, (5 * j + 1) % 16, (3 * j + 5) % 16, (7 * j) % 16][q]; const sum = (a + f + k[j] + g[p]) | 0; const shift = s[(q << 2) | (j % 4)];
+     const nextA = d; d = c; c = b; b = (b + ((sum << shift) | (sum >>> (32 - shift)))) | 0; a = nextA; }
     a0 = (a0 + a) | 0; b0 = (b0 + b) | 0; c0 = (c0 + c) | 0; d0 = (d0 + d) | 0; }
-   return [a0, b0, c0, d0] .map(v => new Uint32Array([v])) .map(v => new Uint8Array(v.buffer))
-    .map(v => Array.from(v, b => b.toString(16).padStart(2, '0')).join('')) .join(''); }
+   return [a0, b0, c0, d0] .map(v => new Uint32Array([v])) .map(v => new Uint8Array(v.buffer)) .map(v => Array.from(v, b => b.toString(16).padStart(2, '0')).join('')) .join(''); }
   function buildJavdbSignature() {
    const curr = Math.floor(Date.now() / 1000);
    if (javdbSignCache.sign && curr - javdbSignCache.ts <= 20) return javdbSignCache.sign;
@@ -1226,8 +1103,7 @@
    if (!/^FC2-PPV-\d{6,9}$/i.test(normalizedKeyword)) return title;
    return title.replace(/FC2(?:[-_\s]?PPV)?[-_\s]?(\d{6,9})/ig, normalizedKeyword); }
   async function findJavdbMovieByNumber(kw, { limit = 5, fallbackFirst = false } = {}) {
-   kw = normalizeMagnetSearchKeyword(kw);
-   const searchKeyword = normalizeJavdbSearchKeyword(kw);
+   kw = normalizeMagnetSearchKeyword(kw); const searchKeyword = normalizeJavdbSearchKeyword(kw);
    const headers = { accept: 'application/json', jdSignature: buildJavdbSignature() };
    const params = new URLSearchParams({
     q: searchKeyword,
@@ -1241,9 +1117,7 @@
    });
    const r = await gmFetch(`${JAVDB_API_BASE}/v2/search?${params.toString()}`, { headers, timeout: 20000 });
    if (!r.loadstuts || r.status < 200 || r.status >= 400) return null;
-   const json = parseJson(r.responseText); const movies = Array.isArray(json?.data?.movies) ? json.data.movies : [];
-   const exact = movies.find(item => javdbNumberMatches(item?.number, kw));
-   return exact || (fallbackFirst ? movies[0] : null) || null; }
+   const json = parseJson(r.responseText); const movies = Array.isArray(json?.data?.movies) ? json.data.movies : []; const exact = movies.find(item => javdbNumberMatches(item?.number, kw)); return exact || (fallbackFirst ? movies[0] : null) || null; }
   async function _searchJavDB(kw) {
    kw = normalizeMagnetSearchKeyword(kw);
    const webBase = 'https://' + CFG.javdbSearchUrl;
@@ -1257,8 +1131,7 @@
    const data = magnets.map(item => {
     const hash = String(item?.hash || '').trim();
     if (!hash) return null;
-    const name = normalizeMagnetResultTitle(item?.name || movie.number || kw, kw);
-    const files = normalizeMagnetFileCount(item?.files_count, item?.file_count, item?.fileCount, item?.files);
+    const name = normalizeMagnetResultTitle(item?.name || movie.number || kw, kw); const files = normalizeMagnetFileCount(item?.files_count, item?.file_count, item?.fileCount, item?.files);
     const title = [
      name,
      item?.cnsub ? '-CH' : '',
@@ -1277,8 +1150,7 @@
    return { url: detailUrl, data }; }
   function normalizeJavdbApiToken(value) { return String(value || '').trim().replace(/^Bearer\s+/i, ''); }
   function javdbApiToken() {
-   const candidates = [ GM_getValue('laosiji_javdb_app_authorization', ''), localStorage.getItem('laosiji_javdb_app_authorization') ];
-   const token = normalizeJavdbApiToken(candidates.find(Boolean));
+   const candidates = [ GM_getValue('laosiji_javdb_app_authorization', ''), localStorage.getItem('laosiji_javdb_app_authorization') ]; const token = normalizeJavdbApiToken(candidates.find(Boolean));
    if (token) {
     GM_setValue('laosiji_javdb_app_authorization', token);
     try {
@@ -1335,9 +1207,7 @@
    }
    const json = lastJson || parseJson(r.responseText);
    if (!json) throw new Error('JavDB App API 登录返回异常');
-   if (json.success !== 1 || !json?.data?.token) {
-    debugLog('JavDB App API 登录失败返回:', json);
-    throw new Error(json?.message || json?.action || 'JavDB App API 登录失败'); }
+   if (json.success !== 1 || !json?.data?.token) { debugLog('JavDB App API 登录失败返回:', json); throw new Error(json?.message || json?.action || 'JavDB App API 登录失败'); }
    return setJavdbApiToken(json.data.token); }
   function javdbAuthHeader() {
    const token = javdbApiToken();
@@ -1361,6 +1231,34 @@
    const json = parseJson(r.responseText);
    if (!json) throw new Error('JavDB API 返回异常');
    return json; }
+  // The mobile app uses the first article image from jdbstatic as the cover.
+  function javdbArticleImageURL(value) {
+   try {
+    const imageURL = new URL(String(value || ''));
+    if (imageURL.hostname === 'tp.spfcas.com') { imageURL.hostname = 'c0.jdbstatic.com'; imageURL.pathname = imageURL.pathname.replace(/^\/[^/]+(\/articles\/images\/)/, '$1'); }
+    return imageURL.href;
+   } catch (_) { return value || ''; } }
+  function normalizeJavdbArticles(json) {
+   const articles = json?.data?.articles;
+   if (!Array.isArray(articles)) return json;
+   return { ...json,
+    data: { ...json.data,
+     articles: articles.map(article => ({ ...article,
+      cover_url: javdbArticleImageURL(article?.cover_url),
+     })), }, }; }
+  function javdbMovieThumbURL(movie) {
+   const id = String(movie?.id || '');
+   return id.length >= 2
+    ?`https://c0.jdbstatic.com/thumbs/${id.slice(0, 2).toLowerCase()}/${encodeURIComponent(id)}.jpg`                : '';
+  }
+  function normalizeJavdbReviews(json) {
+   const reviews = json?.data?.reviews;
+   if (!Array.isArray(reviews)) return json;
+   return { ...json,
+    data: { ...json.data,
+     reviews: reviews.map(review => ({ ...review,
+      movie: review.movie ? { ...review.movie, thumb_url: javdbMovieThumbURL(review.movie) } : review.movie,
+     })), }, }; }
   const javdbApi = {
    token: javdbApiToken,
    setToken: setJavdbApiToken,
@@ -1381,8 +1279,7 @@
      type: '3',
     });
     if (json.success !== 1) return json;
-    const movies = Array.isArray(json?.data?.movies) ? json.data.movies : []; const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit;
-    const items = movies.slice(start, start + limit);
+    const movies = Array.isArray(json?.data?.movies) ? json.data.movies : []; const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit; const items = movies.slice(start, start + limit);
     return {
      success: 1,
      data: {
@@ -1394,8 +1291,7 @@
      filter_by: filterBy,
     });
     if (json.success !== 1) return json;
-    const movies = Array.isArray(json?.data?.movies) ? json.data.movies : []; const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit;
-    const items = movies.slice(start, start + limit);
+    const movies = Array.isArray(json?.data?.movies) ? json.data.movies : []; const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit; const items = movies.slice(start, start + limit);
     return {
      success: 1,
      data: {
@@ -1415,21 +1311,20 @@
      limit,
      sort_by: sortBy,
     }); },
+   async articles({ page = 1, limit = 20 } = {}) {
+    return normalizeJavdbArticles(await javdbApiRequest('/v1/articles', { page, limit })); },
+   async articleDetail(articleId) {
+    return javdbApiRequest(`/v1/articles/${encodeURIComponent(articleId)}`);
+   },
+   async hotReviews({ period = 'weekly', page = 1, limit = JAVDB_REVIEW_MORE_LIMIT } = {}) {
+    return normalizeJavdbReviews(await javdbApiRequest('/v1/reviews/hotly', { period, page, limit })); },
    async relatedLists(movieId, { page = 1, limit = 20 } = {}) {
     return javdbApiRequest('/v1/lists/related', {
      movie_id: movieId,
      page,
      limit,
     }); }, };
-  return {
-   client: javdbApi,
-   searchJavDB: _searchJavDB,
-   parseJson,
-   javdbMd5,
-   normalizeMagnetFileCount,
-   normalizeMagnetSearchKeyword,
-   normalizeJavdbSearchKeyword,
-   normalizeMagnetResultTitle, };
+  return { client: javdbApi, searchJavDB: _searchJavDB, parseJson, javdbMd5, normalizeMagnetFileCount, normalizeMagnetSearchKeyword, normalizeJavdbSearchKeyword, normalizeMagnetResultTitle };
  })();
  const MagnetActions = (() => {
   const { parseJson } = MagnetApi;
@@ -1463,15 +1358,13 @@
      onload(r) {
       if (r.status < 200 || r.status >= 400) {
        notify('115 离线失败',`请求失败：HTTP ${r.status || 0}`, offlineUrl);
-       done();
-       return; }
+       done(); return; }
       const res = parseJson(r.responseText);
       if (!res) { notify('115 离线失败', '115返回异常，可能是登录失效或跨源权限未完整允许', offlineUrl); done(); return; }
       if (res.state) {
        notify('115 离线成功', '任务已添加', offlineUrl);
       } else {
-       const msg = res.errcode === '911' ? '账号使用异常，请手工验证' : (res.error_msg || res.msg || res.error || '未知错误');
-       notify('115 离线失败', msg, offlineUrl); }
+       const msg = res.errcode === '911' ? '账号使用异常，请手工验证' : (res.error_msg || res.msg || res.error || '未知错误'); notify('115 离线失败', msg, offlineUrl); }
       done(); },
      onerror() {
       notify('115 离线失败', '推送请求失败，请检查跨源权限或网络状态', offlineUrl); done(); },
@@ -1494,35 +1387,28 @@
    if (raw.includes('FILE')) return '文件';
    return '-'; }
   function showWhatslinkModal(payload, magnet) {
-   document.querySelector('.whatslink-overlay')?.remove();
-   const shots = Array.isArray(payload?.screenshots) ? payload.screenshots.map(item => item?.screenshot).filter(Boolean) : []; let index = 0;
-   const resourceName = payload?.name || '未知资源'; const resourceCount = payload?.count ?? '-';
-   const resourceSize = formatBytes(payload?.size ?? payload?.file_size ?? payload?.fileSize ?? 0); const overlay = document.createElement('div');
-   overlay.className = 'whatslink-overlay';
+   document.querySelector('.whatslink-overlay')?.remove(); const shots = Array.isArray(payload?.screenshots) ? payload.screenshots.map(item => item?.screenshot).filter(Boolean) : []; let index = 0; const resourceName = payload?.name || '未知资源';
+   const resourceCount = payload?.count ?? '-'; const resourceSize = formatBytes(payload?.size ?? payload?.file_size ?? payload?.fileSize ?? 0); const overlay = document.createElement('div'); overlay.className = 'whatslink-overlay';
    const modal = document.createElement('section');
    modal.className =`whatslink-modal${shots.length ? '' : ' no-shots'}`;
    modal.innerHTML =`<div class="whatslink-gallery-scene"><div class="whatslink-gallery-visual"><button class="whatslink-gallery-close" type="button" aria-label="关闭">×</button><button class="whatslink-gallery-arrow whatslink-gallery-prev" type="button" aria-label="上一张">‹</button><img class="whatslink-gallery-hero" alt="截图预览"><button class="whatslink-gallery-arrow whatslink-gallery-next" type="button" aria-label="下一张">›</button><div class="whatslink-gallery-empty"><div class="whatslink-gallery-empty-icon">?</div><div class="whatslink-gallery-empty-title">暂无截图</div><p class="whatslink-gallery-empty-text">当前资源没有可展示的截图，可以结合资源名称和文件数量判断。</p></div></div><div class="whatslink-gallery-info"><span class="whatslink-gallery-name"></span><span class="whatslink-gallery-count"></span><span class="whatslink-gallery-size"></span><span class="whatslink-gallery-index"></span></div><div class="whatslink-gallery-thumbs"></div></div>`;
    overlay.appendChild(modal); document.body.appendChild(overlay); modal.querySelector('.whatslink-gallery-name').textContent = resourceName;
    modal.querySelector('.whatslink-gallery-count').textContent =`${resourceCount} 个文件`;
    modal.querySelector('.whatslink-gallery-size').textContent =`大小 ${resourceSize}`;
-   const visual = modal.querySelector('.whatslink-gallery-visual'); const hero = modal.querySelector('.whatslink-gallery-hero');
-   const thumbs = modal.querySelector('.whatslink-gallery-thumbs'); const currentIndex = modal.querySelector('.whatslink-gallery-index');
-   const closeButton = modal.querySelector('.whatslink-gallery-close'); const prevButton = modal.querySelector('.whatslink-gallery-prev');
+   const visual = modal.querySelector('.whatslink-gallery-visual'); const hero = modal.querySelector('.whatslink-gallery-hero'); const thumbs = modal.querySelector('.whatslink-gallery-thumbs');
+   const currentIndex = modal.querySelector('.whatslink-gallery-index'); const closeButton = modal.querySelector('.whatslink-gallery-close'); const prevButton = modal.querySelector('.whatslink-gallery-prev');
    const nextButton = modal.querySelector('.whatslink-gallery-next');
    const sizeGallery = () => {
     if (!shots.length || !hero.naturalWidth || !hero.naturalHeight) return;
-    const infoHeight = modal.querySelector('.whatslink-gallery-info').offsetHeight || 23; const thumbsHeight = thumbs.offsetHeight || 58;
-    const maxHeight = Math.max(180, window.innerHeight - 36 - infoHeight - thumbsHeight - 6); const maxWidth = modal.clientWidth;
-    const ratio = hero.naturalWidth / hero.naturalHeight; const height = Math.min(maxHeight, maxWidth / ratio); const width = height * ratio;
+    const infoHeight = modal.querySelector('.whatslink-gallery-info').offsetHeight || 23; const thumbsHeight = thumbs.offsetHeight || 58; const maxHeight = Math.max(180, window.innerHeight - 36 - infoHeight - thumbsHeight - 6);
+    const maxWidth = modal.clientWidth; const ratio = hero.naturalWidth / hero.naturalHeight; const height = Math.min(maxHeight, maxWidth / ratio); const width = height * ratio;
     visual.style.width =`${width}px`;
     visual.style.height =`${height}px`;
    };
    const positionControls = () => {
     if (!shots.length || !hero.naturalWidth || !hero.naturalHeight) return;
-    const width = visual.clientWidth; const height = visual.clientHeight; const scale = Math.min(width / hero.naturalWidth, height / hero.naturalHeight);
-    const imageWidth = hero.naturalWidth * scale; const imageHeight = hero.naturalHeight * scale; const imageLeft = (width - imageWidth) / 2;
-    const imageTop = (height - imageHeight) / 2; const closeSize = closeButton.offsetWidth || 32; const arrowSize = prevButton.offsetWidth || 34;
-    const sideGap = 12;
+    const width = visual.clientWidth; const height = visual.clientHeight; const scale = Math.min(width / hero.naturalWidth, height / hero.naturalHeight); const imageWidth = hero.naturalWidth * scale; const imageHeight = hero.naturalHeight * scale;
+    const imageLeft = (width - imageWidth) / 2; const imageTop = (height - imageHeight) / 2; const closeSize = closeButton.offsetWidth || 32; const arrowSize = prevButton.offsetWidth || 34; const sideGap = 12;
     closeButton.style.left =`${imageLeft + imageWidth - closeSize - sideGap}px`;
     closeButton.style.right = 'auto';
     closeButton.style.top =`${imageTop + sideGap}px`;
@@ -1538,13 +1424,11 @@
     if (!shots.length) { currentIndex.textContent = 'NO PREVIEW'; return; }
     hero.src = shots[index];
     const frame =`${index + 1} / ${shots.length}`;
-    currentIndex.textContent = frame;
-    [...thumbs.children].forEach((btn, i) => btn.classList.toggle('active', i === index));
+    currentIndex.textContent = frame; [...thumbs.children].forEach((btn, i) => btn.classList.toggle('active', i === index));
     if (hero.complete) { sizeGallery(); positionControls(); }
    };
    shots.forEach((url, i) => {
-    const btn = document.createElement('button');
-    btn.type = 'button'; btn.className = 'whatslink-gallery-thumb';
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'whatslink-gallery-thumb';
     btn.innerHTML =`<img src="${url}" alt="截图${i + 1}">`;
     btn.addEventListener('click', () => { index = i; render(); });
     thumbs.appendChild(btn);
@@ -1569,23 +1453,19 @@
    visual.addEventListener('wheel', e => {
     e.preventDefault(); e.stopPropagation();
     if (!shots.length || !e.deltaY) return;
-    index = (index + (e.deltaY > 0 ? 1 : -1) + shots.length) % shots.length;
-    render();
+    index = (index + (e.deltaY > 0 ? 1 : -1) + shots.length) % shots.length; render();
    }, { passive: false });
    hero.addEventListener('load', () => { sizeGallery(); positionControls(); });
    window.addEventListener('resize', onResize); document.addEventListener('keydown', onKeydown); render(); }
   async function checkWhatslink(magnet) {
-   document.querySelector('.whatslink-overlay')?.remove();
-   const overlay = document.createElement('div');
-   overlay.className = 'whatslink-overlay'; overlay.innerHTML = '<div class="whatslink-modal no-shots"><div class="whatslink-loading">正在验车...</div></div>';
+   document.querySelector('.whatslink-overlay')?.remove(); const overlay = document.createElement('div'); overlay.className = 'whatslink-overlay'; overlay.innerHTML = '<div class="whatslink-modal no-shots"><div class="whatslink-loading">正在验车...</div></div>';
    document.body.appendChild(overlay);
    try {
     const url =`https://whatslink.info/api/v1/link?url=${encodeURIComponent(magnet)}`;
     const r = await gmFetch(url, { timeout: 20000 });
     if (!r.loadstuts) throw new Error('WhatsLink 请求失败');
     const data = JSON.parse(r.responseText || '{}');
-    overlay.remove();
-    const shots = Array.isArray(data?.screenshots) ? data.screenshots.filter(item => item?.screenshot) : [];
+    overlay.remove(); const shots = Array.isArray(data?.screenshots) ? data.screenshots.filter(item => item?.screenshot) : [];
     if (!shots.length) {
      notify('暂无截图', data?.name ?`${data.name} 未找到可显示的截图` : '未找到可显示的截图');
      return; }
@@ -1629,10 +1509,8 @@
      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', },
    });
    if (!r.loadstuts) return { maglink: '', files: '' };
-   const doc = parseHTML(r.responseText); const magnetInput = doc.querySelector('#input-magnet'); const magnetA = doc.querySelector('a[href^="magnet:"]');
-   const fileHeader = doc.querySelector('table.table-hover.file-list thead th:first-child');
-   const files = fileHeader?.textContent?.match(/Files\s*\(\s*(\d+)\s*\)/i)?.[1] || '';
-   const maglink = normalizeMagnet(magnetInput?.getAttribute('value') || magnetA?.getAttribute('href') || magnetA?.href);
+   const doc = parseHTML(r.responseText); const magnetInput = doc.querySelector('#input-magnet'); const magnetA = doc.querySelector('a[href^="magnet:"]'); const fileHeader = doc.querySelector('table.table-hover.file-list thead th:first-child');
+   const files = fileHeader?.textContent?.match(/Files\s*\(\s*(\d+)\s*\)/i)?.[1] || ''; const maglink = normalizeMagnet(magnetInput?.getAttribute('value') || magnetA?.getAttribute('href') || magnetA?.href);
    return { maglink, files: normalizeMagnetFileCount(files) }; }
   async function _searchOmag(kw) {
    const base = 'https://' + CFG.omagUrl;
@@ -1667,8 +1545,7 @@
     headers: { Referer: base + '/' },
    });
    if (!home.loadstuts) return { url: base, data: [] };
-   const homeDoc = parseHTML(home.responseText);
-   const searchScript = [...homeDoc.scripts] .map(script => script.textContent || '') .find(text => text.includes('function search21')) || '';
+   const homeDoc = parseHTML(home.responseText); const searchScript = [...homeDoc.scripts] .map(script => script.textContent || '') .find(text => text.includes('function search21')) || '';
    const token = searchScript.match(/^\s*var\s+nmefafej\s*=\s*["']([^"']+)["'];?/m)?.[1] || '';
    if (!token) return { url: base, data: [] };
    const searchUrl =`${base}/?search2=${encodeURIComponent(token)}&search=${encodeURIComponent(kw)}`;
@@ -1678,17 +1555,11 @@
    if (!r.loadstuts) return { url: searchUrl, data: [] };
    const doc = parseHTML(r.responseText); const normalizedKeyword = String(kw || '').toUpperCase().replace(/[-_\s]/g, '');
    const data = [...doc.querySelectorAll('table.torrent-list tbody tr.default, table.torrent-list tbody tr.success')] .map(row => {
-     const titleA = row.querySelector('td:nth-child(2) a[href*="/view?id="]'); const magnetA = row.querySelector('td:nth-child(3) a[href^="magnet:"]');
-     const title = titleA?.getAttribute('title')?.trim() || titleA?.textContent?.trim() || '';
+     const titleA = row.querySelector('td:nth-child(2) a[href*="/view?id="]'); const magnetA = row.querySelector('td:nth-child(3) a[href^="magnet:"]'); const title = titleA?.getAttribute('title')?.trim() || titleA?.textContent?.trim() || '';
      if (!title || !magnetA?.href) return null;
      if (normalizedKeyword && !title.toUpperCase().replace(/[-_\s]/g, '').includes(normalizedKeyword)) return null;
      const href = titleA.getAttribute('href') || '';
-     return {
-      title,
-      maglink: magnetA.href,
-      size: row.querySelector('td:nth-child(4)')?.textContent?.trim() || '',
-      date: row.querySelector('td:nth-child(5)')?.textContent?.trim() || '',
-      src: href ? new URL(href, base).href : searchUrl, };
+     return { title, maglink: magnetA.href, size: row.querySelector('td:nth-child(4)')?.textContent?.trim() || '', date: row.querySelector('td:nth-child(5)')?.textContent?.trim() || '', src: href ? new URL(href, base).href : searchUrl };
     }) .filter(Boolean);
    return { url: r.finalUrl || searchUrl, data }; }
   function pickBTSearchItems(json) {
@@ -1705,19 +1576,7 @@
    const title = cleanBTSearchText(item?.name); const hash = String(item?.hash || '').replace(/^magnet:\?xt=urn:btih:/i, '').replace(/[^a-z0-9]/gi, '');
    if (!/^[a-f0-9]{32,40}$/i.test(hash)) return null;
    const maglink =`magnet:?xt=urn:btih:${hash}`;
-   const size = formatBytes(item?.size);
-   const files = normalizeMagnetFileCount(
-    item?.files_count,
-    item?.file_count,
-    item?.fileCount,
-    item?.filesCount,
-    item?.files_num,
-    item?.file_num,
-    item?.num_files,
-    item?.count,
-    item?.files,
-    item?.fileList
-   );
+   const size = formatBytes(item?.size); const files = normalizeMagnetFileCount( item?.files_count, item?.file_count, item?.fileCount, item?.filesCount, item?.files_num, item?.file_num, item?.num_files, item?.count, item?.files, item?.fileList );
    const src = item?.id
     ?`${base}/torrent/${encodeURIComponent(item.id)}?keyword=${encodeURIComponent(keyword)}`                : searchUrl;
    const date = item?.created_at || item?.created_time || item?.create_time || item?.createTime || item?.date || item?.added_at || item?.add_time || '';
@@ -1731,12 +1590,7 @@
    const parts = [`timestamp=${timestamp}`,`nonce=${nonce}`];
    Object.keys(params).forEach(key => parts.push(`${key}=${params[key]}`));
    const signText =`${parts.sort().join('&')}&key=long2ice`;
-   return {
-    Accept: 'application/json, text/plain, */*',
-    Referer: referer,
-    'x-timestamp': timestamp,
-    'x-nonce': nonce,
-    'x-sign': javdbMd5(signText).toUpperCase() }; }
+   return { Accept: 'application/json, text/plain, */*', Referer: referer, 'x-timestamp': timestamp, 'x-nonce': nonce, 'x-sign': javdbMd5(signText).toUpperCase() }; }
   async function _searchBTSearch(kw) {
    const base = 'https://' + CFG.btsearchUrl;
    const searchUrl =`${base}/search?keyword=${encodeURIComponent(kw)}`;
@@ -1772,8 +1626,7 @@
     const number = code[2].replace(/^0+(?=\d)/, '');
     const pattern = new RegExp(`(?:^|[^A-Z0-9])${code[1]}[\\s._-]*0*${number}(?!\\d)`, 'i');
     return pattern.test(rawTitle); }
-   const compactTitle = rawTitle.replace(/[^A-Z0-9]/g, '');
-   return compactTitle.includes(compactKeyword); }
+   const compactTitle = rawTitle.replace(/[^A-Z0-9]/g, ''); return compactTitle.includes(compactKeyword); }
   async function _searchU9A9(kw) {
    const base = 'https://' + CFG.u9a9Url;
    const searchUrl =`${base}/?type=2&search=${encodeURIComponent(kw)}`;
@@ -1785,8 +1638,8 @@
    if (!r.loadstuts) return { url: searchUrl, data: [] };
    const doc = parseHTML(r.responseText); const rows = doc.querySelectorAll('table.torrent-list tbody tr.default, table.torrent-list tbody tr.success');
    const data = [...rows].map(el => {
-    const titleA = el.querySelector('td:nth-child(2)>a:nth-child(1)'); const magnetA = el.querySelector('td:nth-child(3)>a[href^="magnet:"]');
-    const href = titleA?.getAttribute('href') || ''; const src = href ? href.startsWith('http') ? href : new URL(href, base).href : searchUrl;
+    const titleA = el.querySelector('td:nth-child(2)>a:nth-child(1)'); const magnetA = el.querySelector('td:nth-child(3)>a[href^="magnet:"]'); const href = titleA?.getAttribute('href') || '';
+    const src = href ? href.startsWith('http') ? href : new URL(href, base).href : searchUrl;
     return {
      title: titleA?.getAttribute('title') || titleA?.textContent?.trim() || '',
      maglink: magnetA?.href || '',
@@ -1813,8 +1666,7 @@
     const title = titleA.textContent.trim();
     if (!normalize(title).includes(kwNorm)) return;
     const maglink =`magnet:?xt=urn:btih:${hash}`;
-    const src = base + href; const infoItems = [...panel.querySelectorAll('.panel-footer .info-item')]; const size = infoItems[0]?.textContent?.trim() || '';
-    const date = infoItems[2]?.textContent?.trim() || '';
+    const src = base + href; const infoItems = [...panel.querySelectorAll('.panel-footer .info-item')]; const size = infoItems[0]?.textContent?.trim() || ''; const date = infoItems[2]?.textContent?.trim() || '';
     data.push({ title, maglink, size, date, src });
    });
    return { url: searchUrl, data }; }
@@ -1829,8 +1681,7 @@
   function supportsFileCountColumn(engineKey) { return engineKey === CFG.javdbSearchUrl || engineKey === CFG.btsearchUrl || engineKey === CFG.omagUrl; }
   function magnetTableColSpan(table) { return table?.dataset?.fileCountEnabled === '1' ? 5 : 4; }
   function syncFileCountColumn(table, engineKey) {
-   const enabled = supportsFileCountColumn(engineKey);
-   table.dataset.fileCountEnabled = enabled ? '1' : '0';
+   const enabled = supportsFileCountColumn(engineKey); table.dataset.fileCountEnabled = enabled ? '1' : '0';
    table.querySelectorAll('.nong-file-count-head,.nong-file-count-cell').forEach(cell => { cell.style.display = enabled ? '' : 'none'; }); }
   function parseMagnetSize(value) {
    const match = String(value || '').replace(/,/g, '').match(/([\d.]+)\s*(TiB|GiB|MiB|KiB|TB|GB|MB|KB|B)?/i);
@@ -1845,20 +1696,17 @@
    const normalized = text
     .replace(/\//g, '-')
     .replace(/(\d)\s+(\d{1,2}:\d{2})/, '$1T$2');
-   const timestamp = Date.parse(normalized);
-   return Number.isFinite(timestamp) ? timestamp : 0; }
+   const timestamp = Date.parse(normalized); return Number.isFinite(timestamp) ? timestamp : 0; }
   function magnetItemTimestamp(item) { return parseMagnetTimestamp(item?.timestamp) || parseMagnetTimestamp(item?.date); }
   function formatMagnetDate(item) {
    const raw = String(item?.date || '').trim();
    const match = raw.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
    if (match) return`${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}`;
-   const timestamp = magnetItemTimestamp(item);
-   return timestamp ? new Date(timestamp).toISOString().slice(0, 10) : ''; }
+   const timestamp = magnetItemTimestamp(item); return timestamp ? new Date(timestamp).toISOString().slice(0, 10) : ''; }
   function hasCrackedCode(text) {
    const codePattern = /\b(?:UN|UC)\b/g; let match;
    while ((match = codePattern.exec(text))) {
-    const before = text.slice(0, match.index); const after = text.slice(match.index + match[0].length);
-    const adjacentNumber = /\d$/.test(before) || /^\d/.test(after); const adjacentSubtitle = /\u5b57\u5e55$/.test(before) || /^\u5b57\u5e55/.test(after);
+    const before = text.slice(0, match.index); const after = text.slice(match.index + match[0].length); const adjacentNumber = /\d$/.test(before) || /^\d/.test(after); const adjacentSubtitle = /\u5b57\u5e55$/.test(before) || /^\u5b57\u5e55/.test(after);
     if (!adjacentNumber && !adjacentSubtitle) return true;
    }
    return /\d[-_\s]U(?:$|[\s._-])/i.test(text); }
@@ -1869,8 +1717,7 @@
     || /(?:\u4e2d\u5b57|\u4e2d\u6587|\u5b57\u5e55|\u4e2d\u6587\u5b57\u5e55|\u7e41\u9ad4\u4e2d\u5b57|\u7e41\u4f53\u4e2d\u5b57|\u7e41\u9ad4\u4e2d\u6587|\u7e41\u4f53\u4e2d\u6587|\u7e41\u9ad4\u5b57\u5e55|\u7e41\u4f53\u5b57\u5e55|\u7e41\u4e2d|\u7e41\u5b57|\u81ea\u63d0|\u5f81\u7528|\u5fb5\u7528|\u6f22\u5316|\u6c49\u5316|\u5167\u5d4c|\u5185\u5d4c|\u5167\u5c01|\u5185\u5c01|\u96d9\u8a9e|\u53cc\u8bed)/.test(text)
     ;
    const is4K = /(?:[^A-Za-z0-9]|^)(?:4K(?:UHD)?|2160P)(?:[^A-Za-z0-9]|$)/i.test(text);
-   const isCracked = /(?:\u7834\u89e3|\u7834\u574f|\u7834\u58de|\u7834\u58ca|\u65e0\u7801|\u7121\u78bc)/.test(text)
-    || /\b(?:uncensored|mosaic)\b/i.test(text) || hasCrackedCode(text);
+   const isCracked = /(?:\u7834\u89e3|\u7834\u574f|\u7834\u58de|\u7834\u58ca|\u65e0\u7801|\u7121\u78bc)/.test(text) || /\b(?:uncensored|mosaic)\b/i.test(text) || hasCrackedCode(text);
    return { isChinese, is4K, isCracked }; }
   function sortMagnetData(data, mode) {
    return [...data] .map((item, index) => ({ item, index })) .sort((a, b) => {
@@ -1880,138 +1727,87 @@
      if (!aTime && !bTime) return sizeDelta || a.index - b.index;
      if (!aTime) return 1;
      if (!bTime) return -1;
-     const timeDelta = mode === 'oldest' ? aTime - bTime : bTime - aTime;
-     return timeDelta || sizeDelta || a.index - b.index;
+     const timeDelta = mode === 'oldest' ? aTime - bTime : bTime - aTime; return timeDelta || sizeDelta || a.index - b.index;
     }) .map(entry => entry.item); }
   function buildTable(avid) {
-   const table = document.createElement('table');
-   table.id = 'jav-nong-table'; table.dataset.avid = avid;
+   const table = document.createElement('table'); table.id = 'jav-nong-table'; table.dataset.avid = avid;
    const syncAssistantState = () => {
     table.classList.toggle('has-mag-assistant', !!table.querySelector('td.mag-laosiji-ready-cell, .mag-btn-group')); };
    const assistantObserver = new MutationObserver(syncAssistantState);
    assistantObserver.observe(table, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-   table.dataset.magAssistantObserver = '1';
-   const headRow = document.createElement('tr');
-   headRow.className = 'nong-head-row';
-   const thEngine = document.createElement('th');
-   thEngine.style.textAlign = 'left';
-   const allEngines = MagnetEngines.getAll(); const curKey = CFG.defaultEngine; const controls = document.createElement('div');
-   controls.className = 'nong-head-controls';
-   const sel = document.createElement('select');
-   sel.className = 'nong-engine-select'; sel.dataset.magnetEngine = '1';
-   sel.setAttribute('aria-label', '磁力引擎');
-   const labels = MagnetEngines.labels();
+   table.dataset.magAssistantObserver = '1'; const headRow = document.createElement('tr'); headRow.className = 'nong-head-row'; const thEngine = document.createElement('th'); thEngine.style.textAlign = 'left'; const allEngines = MagnetEngines.getAll();
+   const curKey = CFG.defaultEngine; const controls = document.createElement('div'); controls.className = 'nong-head-controls'; const sel = document.createElement('select'); sel.className = 'nong-engine-select'; sel.dataset.magnetEngine = '1';
+   sel.setAttribute('aria-label', '磁力引擎'); const labels = MagnetEngines.labels();
    Object.keys(allEngines).forEach(k => { sel.add(new Option(labels[k] || k, k, false, k === curKey)); });
    const fitSelWidth = () => {
-    sel.style.width = '';
-    const natural = sel.offsetWidth;
-    sel.style.width = Math.max(natural, 90) + 'px'; };
+    sel.style.width = ''; const natural = sel.offsetWidth; sel.style.width = Math.max(natural, 90) + 'px'; };
    requestAnimationFrame(fitSelWidth);
    sel.addEventListener('change', () => {
     runSearch(table, avid, sel.value); requestAnimationFrame(fitSelWidth);
    });
-   const sortSel = document.createElement('select');
-   sortSel.className = 'nong-sort-select'; sortSel.dataset.magnetSort = '1';
-   sortSel.setAttribute('aria-label', '排序方式');
-   sortSel.title = '排序方式';
+   const sortSel = document.createElement('select'); sortSel.className = 'nong-sort-select'; sortSel.dataset.magnetSort = '1'; sortSel.setAttribute('aria-label', '排序方式'); sortSel.title = '排序方式';
    [
     ['size', '大小'],
     ['newest', '最新'],
     ['oldest', '最旧'],
-   ].forEach(([value, label]) => sortSel.add(new Option(label, value)));
-   sortSel.value = CFG.magnetSort; sortSel.disabled = true; table.dataset.sortMode = CFG.magnetSort;
+   ].forEach(([value, label]) => sortSel.add(new Option(label, value))); sortSel.value = CFG.magnetSort; sortSel.disabled = true; table.dataset.sortMode = CFG.magnetSort;
    sortSel.addEventListener('change', () => {
     table.dataset.sortMode = sortSel.value; CFG.magnetSort = sortSel.value;
     if (Array.isArray(table._laosijiMagnetData)) { fillTable(table, table._laosijiMagnetData, table._laosijiMagnetEngineUrl || ''); }
    });
    controls.appendChild(sel); controls.appendChild(sortSel); thEngine.appendChild(controls); headRow.appendChild(thEngine);
    ['大小', '文件', '操作', '115'].forEach(txt => {
-    const th = document.createElement('th');
-    th.textContent = txt;
+    const th = document.createElement('th'); th.textContent = txt;
     if (txt === '大小') th.className = 'nong-size-head';
     if (txt === '文件') th.className = 'nong-file-count-head';
     if (txt === '操作') th.className = 'nong-op-head';
     if (txt === '115') th.className = 'nong-115-head';
     headRow.appendChild(th);
    });
-   syncFileCountColumn(table, curKey); table.appendChild(headRow);
-   const loadRow = document.createElement('tr'); const loadTd = document.createElement('td');
-   loadTd.colSpan = magnetTableColSpan(table); loadTd.id = 'jav-nong-notice';
-   const loadText = document.createTextNode('Loading…'); const refreshBtn = document.createElement('a');
-   refreshBtn.id = 'jav-nong-refresh'; refreshBtn.href = '#'; refreshBtn.textContent = '🔄 刷新'; refreshBtn.title = '网络加载失败，点击重试';
+   syncFileCountColumn(table, curKey); table.appendChild(headRow); const loadRow = document.createElement('tr'); const loadTd = document.createElement('td'); loadTd.colSpan = magnetTableColSpan(table); loadTd.id = 'jav-nong-notice';
+   const loadText = document.createTextNode('Loading…'); const refreshBtn = document.createElement('a'); refreshBtn.id = 'jav-nong-refresh'; refreshBtn.href = '#'; refreshBtn.textContent = '🔄 刷新'; refreshBtn.title = '网络加载失败，点击重试';
    refreshBtn.addEventListener('click', e => {
     e.preventDefault(); runSearch(table, avid, sel.value);
    });
-   loadTd.appendChild(loadText); loadTd.appendChild(refreshBtn); loadRow.appendChild(loadTd); table.appendChild(loadRow);
-   return table; }
+   loadTd.appendChild(loadText); loadTd.appendChild(refreshBtn); loadRow.appendChild(loadTd); table.appendChild(loadRow); return table; }
   function fillTable(table, data, engineUrl) {
-   table._laosijiMagnetData = [...data]; table._laosijiMagnetEngineUrl = engineUrl;
-   data = sortMagnetData(table._laosijiMagnetData, table.dataset.sortMode || CFG.magnetSort);
-   const showFileCount = table.dataset.fileCountEnabled === '1'; const sortSelect = table.querySelector('[data-magnet-sort]');
-   [...table.querySelectorAll('tr:not(.nong-head-row)')].forEach(row => row.remove());
+   table._laosijiMagnetData = [...data]; table._laosijiMagnetEngineUrl = engineUrl; data = sortMagnetData(table._laosijiMagnetData, table.dataset.sortMode || CFG.magnetSort); const showFileCount = table.dataset.fileCountEnabled === '1';
+   const sortSelect = table.querySelector('[data-magnet-sort]'); [...table.querySelectorAll('tr:not(.nong-head-row)')].forEach(row => row.remove());
    if (sortSelect) sortSelect.disabled = !data.length;
    if (!data.length) {
-    const emptyRow = document.createElement('tr'); const td = document.createElement('td');
-    td.colSpan = magnetTableColSpan(table);
+    const emptyRow = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = magnetTableColSpan(table);
     td.innerHTML =`无搜索结果 <a href="${engineUrl}" target="_blank" style="color:red">前往查看</a>`;
-    const refresh = document.createElement('a');
-    refresh.href = '#'; refresh.textContent = ' 🔄 刷新'; refresh.style.cssText = 'margin-left:8px;color:#e74c3c;font-weight:bold;cursor:pointer;';
-    refresh.addEventListener('click', e => {
-     e.preventDefault();
-     const engineKey = table.querySelector('[data-magnet-engine]')?.value || CFG.defaultEngine;
-     runSearch(table, table.dataset.avid || '', engineKey);
-    });
-    td.appendChild(refresh); emptyRow.appendChild(td); table.appendChild(emptyRow);
-    return; }
+    const refresh = document.createElement('a'); refresh.href = '#'; refresh.textContent = ' 🔄 刷新'; refresh.style.cssText = 'margin-left:8px;color:#e74c3c;font-weight:bold;cursor:pointer;';
+    refresh.addEventListener('click', e => { e.preventDefault(); const engineKey = table.querySelector('[data-magnet-engine]')?.value || CFG.defaultEngine; runSearch(table, table.dataset.avid || '', engineKey); });
+    td.appendChild(refresh); emptyRow.appendChild(td); table.appendChild(emptyRow); return; }
    data.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.setAttribute('data-maglink', item.maglink);
-    const tdTitle = document.createElement('td'); const nameSpan = document.createElement('span');
-    nameSpan.className = 'nong-magnet-name'; nameSpan.title = item.title;
+    const tr = document.createElement('tr'); tr.setAttribute('data-maglink', item.maglink); const tdTitle = document.createElement('td'); const nameSpan = document.createElement('span'); nameSpan.className = 'nong-magnet-name'; nameSpan.title = item.title;
     const { isChinese, is4K, isCracked } = classifyQuality(item.title);
     if (isChinese) {
-     const badge = document.createElement('span');
-     badge.textContent = '[中字]';
+     const badge = document.createElement('span'); badge.textContent = '[中字]';
      badge.style.cssText = 'display:inline-block;margin-right:5px;padding:1px 5px;font-size:11px;font-weight:800;color:#fff;background:#16a34a;border-radius:4px;vertical-align:middle;flex-shrink:0;box-shadow:0 0 0 1px rgba(22,163,74,.18);';
-     nameSpan.appendChild(badge);
-     nameSpan.style.background = 'linear-gradient(90deg,#dcfce7 0%,#f0fdf4 55%,#fff 100%)'; nameSpan.style.borderLeft = '4px solid #16a34a';
-     nameSpan.style.paddingLeft = '5px'; }
+     nameSpan.appendChild(badge); nameSpan.style.background = 'linear-gradient(90deg,#dcfce7 0%,#f0fdf4 55%,#fff 100%)'; nameSpan.style.borderLeft = '4px solid #16a34a'; nameSpan.style.paddingLeft = '5px'; }
     if (isCracked) {
-     const crackedBadge = document.createElement('span');
-     crackedBadge.textContent = '[\u7834\u89e3]';
+     const crackedBadge = document.createElement('span'); crackedBadge.textContent = '[\u7834\u89e3]';
      crackedBadge.style.cssText = 'display:inline-block;margin-right:5px;padding:1px 5px;font-size:11px;font-weight:800;color:#fff;background:#be123c;border-radius:4px;vertical-align:middle;flex-shrink:0;box-shadow:0 0 0 1px rgba(190,18,60,.18);';
      nameSpan.appendChild(crackedBadge);
-     if (!isChinese && !is4K) {
-      nameSpan.style.background = 'linear-gradient(90deg,#ffe4e6 0%,#fff1f2 55%,#fff 100%)'; nameSpan.style.borderLeft = '4px solid #be123c';
-      nameSpan.style.paddingLeft = '5px'; } }
+     if (!isChinese && !is4K) { nameSpan.style.background = 'linear-gradient(90deg,#ffe4e6 0%,#fff1f2 55%,#fff 100%)'; nameSpan.style.borderLeft = '4px solid #be123c'; nameSpan.style.paddingLeft = '5px'; }
+    }
     if (is4K) {
-     const badge4k = document.createElement('span');
-     badge4k.textContent = '[4K]';
+     const badge4k = document.createElement('span'); badge4k.textContent = '[4K]';
      badge4k.style.cssText = 'display:inline-block;margin-right:5px;padding:1px 5px;font-size:11px;font-weight:800;color:#fff;background:#2563eb;border-radius:4px;vertical-align:middle;flex-shrink:0;box-shadow:0 0 0 1px rgba(37,99,235,.18);';
      nameSpan.insertBefore(badge4k, nameSpan.firstChild);
-     if (!isChinese) {
-      nameSpan.style.background = 'linear-gradient(90deg,#dbeafe 0%,#eff6ff 55%,#fff 100%)'; nameSpan.style.borderLeft = '4px solid #2563eb';
-      nameSpan.style.paddingLeft = '5px'; } }
-    const titleLink = document.createElement('a');
-    titleLink.href = item.maglink; titleLink.target = '_self'; titleLink.textContent = item.title;
-    nameSpan.appendChild(titleLink);
-    const displayDate = formatMagnetDate(item);
+     if (!isChinese) { nameSpan.style.background = 'linear-gradient(90deg,#dbeafe 0%,#eff6ff 55%,#fff 100%)'; nameSpan.style.borderLeft = '4px solid #2563eb'; nameSpan.style.paddingLeft = '5px'; }
+    }
+    const titleLink = document.createElement('a'); titleLink.href = item.maglink; titleLink.target = '_self'; titleLink.textContent = item.title; nameSpan.appendChild(titleLink); const displayDate = formatMagnetDate(item);
     if (displayDate) {
-     const dateSpan = document.createElement('span');
-     dateSpan.className = 'nong-magnet-date'; dateSpan.textContent = displayDate;
+     const dateSpan = document.createElement('span'); dateSpan.className = 'nong-magnet-date'; dateSpan.textContent = displayDate;
      dateSpan.title = item.date ?`收录时间：${item.date}` : '收录时间';
      nameSpan.appendChild(dateSpan); }
-    tdTitle.appendChild(nameSpan); tr.appendChild(tdTitle);
-    const tdSize = document.createElement('td');
-    tdSize.className = 'nong-size-cell'; tdSize.style.whiteSpace = 'nowrap'; tdSize.textContent = item.size;
-    tr.appendChild(tdSize);
+    tdTitle.appendChild(nameSpan); tr.appendChild(tdTitle); const tdSize = document.createElement('td'); tdSize.className = 'nong-size-cell'; tdSize.style.whiteSpace = 'nowrap'; tdSize.textContent = item.size; tr.appendChild(tdSize);
     if (showFileCount) {
-     const tdFiles = document.createElement('td');
-     tdFiles.className = 'nong-file-count-cell'; tdFiles.style.cssText = 'white-space:nowrap;text-align:center;'; tdFiles.textContent = item.files || '-';
-     tr.appendChild(tdFiles); }
-    const tdOp = document.createElement('td');
-    tdOp.className = 'nong-op-cell'; tdOp.style.cssText = 'white-space:nowrap;padding-left:3px;padding-right:3px;';
-    const copyBtn = document.createElement('a'); const magShort = item.maglink.substring(0, 60);
+     const tdFiles = document.createElement('td'); tdFiles.className = 'nong-file-count-cell'; tdFiles.style.cssText = 'white-space:nowrap;text-align:center;'; tdFiles.textContent = item.files || '-'; tr.appendChild(tdFiles); }
+    const tdOp = document.createElement('td'); tdOp.className = 'nong-op-cell'; tdOp.style.cssText = 'white-space:nowrap;padding-left:3px;padding-right:3px;'; const copyBtn = document.createElement('a'); const magShort = item.maglink.substring(0, 60);
     const _extractCode = (text) => {
      if (!text) return null;
      const patterns = [
@@ -2031,46 +1827,33 @@
     const magWithDn = magShort + (dnCode ?`&dn=${encodeURIComponent(dnCode)}` : '');
     copyBtn.href = magShort; copyBtn.title = magShort; copyBtn.className = 'nong-copy'; copyBtn.textContent = '复制';
     copyBtn.addEventListener('click', e => {
-     e.preventDefault(); GM_setClipboard(magWithDn);
-     copyBtn.textContent = '✓';
+     e.preventDefault(); GM_setClipboard(magWithDn); copyBtn.textContent = '✓';
      setTimeout(() => { copyBtn.textContent = '复制'; }, 1000);
     });
-    tdOp.appendChild(copyBtn);
-    const checkBtn = document.createElement('a');
-    checkBtn.href = '#'; checkBtn.className = 'nong-check'; checkBtn.textContent = '验车';
+    tdOp.appendChild(copyBtn); const checkBtn = document.createElement('a'); checkBtn.href = '#'; checkBtn.className = 'nong-check'; checkBtn.textContent = '验车';
     checkBtn.addEventListener('click', e => {
      e.preventDefault(); MagnetActions.checkWhatslink(item.maglink);
     });
-    tdOp.appendChild(checkBtn); tr.appendChild(tdOp);
-    const tdOffline = document.createElement('td');
-    tdOffline.className = 'nong-115-cell';
-    const offBtn = document.createElement('a');
-    offBtn.href = '#'; offBtn.className = 'nong-offline-115'; offBtn.textContent = '115';
+    tdOp.appendChild(checkBtn); tr.appendChild(tdOp); const tdOffline = document.createElement('td'); tdOffline.className = 'nong-115-cell'; const offBtn = document.createElement('a'); offBtn.href = '#'; offBtn.className = 'nong-offline-115';
+    offBtn.textContent = '115';
     offBtn.addEventListener('click', e => {
      e.preventDefault(); MagnetActions.offline115(item.maglink);
     });
     tdOffline.appendChild(offBtn); tr.appendChild(tdOffline); table.appendChild(tr);
    }); }
   async function runSearch(table, avid, engineKey) {
-   [...table.querySelectorAll('tr:not(.nong-head-row)')].forEach(r => r.remove());
-   table._laosijiMagnetData = null; table._laosijiMagnetEngineUrl = '';
-   const sortSelect = table.querySelector('[data-magnet-sort]');
+   [...table.querySelectorAll('tr:not(.nong-head-row)')].forEach(r => r.remove()); table._laosijiMagnetData = null; table._laosijiMagnetEngineUrl = ''; const sortSelect = table.querySelector('[data-magnet-sort]');
    if (sortSelect) sortSelect.disabled = true;
-   syncFileCountColumn(table, engineKey);
-   const loadRow = document.createElement('tr'); const loadTd = document.createElement('td');
-   loadTd.colSpan = magnetTableColSpan(table); loadTd.id = 'jav-nong-notice';
-   const loadText = document.createTextNode('Loading…'); const refreshBtn = table.querySelector('#jav-nong-refresh') || document.createElement('a');
-   refreshBtn.id = 'jav-nong-refresh'; refreshBtn.href = '#'; refreshBtn.textContent = '🔄 刷新';
+   syncFileCountColumn(table, engineKey); const loadRow = document.createElement('tr'); const loadTd = document.createElement('td'); loadTd.colSpan = magnetTableColSpan(table); loadTd.id = 'jav-nong-notice';
+   const loadText = document.createTextNode('Loading…'); const refreshBtn = table.querySelector('#jav-nong-refresh') || document.createElement('a'); refreshBtn.id = 'jav-nong-refresh'; refreshBtn.href = '#'; refreshBtn.textContent = '🔄 刷新';
    refreshBtn.style.cssText = 'display:none;margin-left:8px;color:#e74c3c;font-weight:bold;cursor:pointer;';
    refreshBtn.onclick = e => { e.preventDefault(); runSearch(table, avid, engineKey); };
-   loadTd.appendChild(loadText); loadTd.appendChild(refreshBtn); loadRow.appendChild(loadTd); table.appendChild(loadRow);
-   let timedOut = false;
+   loadTd.appendChild(loadText); loadTd.appendChild(refreshBtn); loadRow.appendChild(loadTd); table.appendChild(loadRow); let timedOut = false;
    const timer = setTimeout(() => {
     timedOut = true; loadText.textContent = '加载超时 '; refreshBtn.style.display = 'inline';
    }, 8000);
    try {
-    const allEngines = MagnetEngines.getAll(); const fn = allEngines[engineKey] || Object.values(allEngines)[0];
-    const keyword = MagnetApi.normalizeMagnetSearchKeyword(avid); const result = await fn(keyword);
+    const allEngines = MagnetEngines.getAll(); const fn = allEngines[engineKey] || Object.values(allEngines)[0]; const keyword = MagnetApi.normalizeMagnetSearchKeyword(avid); const result = await fn(keyword);
     const data = (result.data || []).map(item => ({ ...item,
      title: MagnetApi.normalizeMagnetResultTitle(item.title, keyword),
     }));
@@ -2078,22 +1861,13 @@
     if (timedOut) return;
     fillTable(table, data, result.url);
    } catch(e) {
-    clearTimeout(timer); errorLog('磁力搜索出错:', e);
-    loadText.textContent = '搜索出错 '; refreshBtn.style.display = 'inline'; } }
+    clearTimeout(timer); errorLog('磁力搜索出错:', e); loadText.textContent = '搜索出错 '; refreshBtn.style.display = 'inline'; } }
   function createMagnetWidget(avid) {
-   const wrapper = document.createElement('div');
-   wrapper.className = 'jav-nong-wrapper';
+   const wrapper = document.createElement('div'); wrapper.className = 'jav-nong-wrapper';
    wrapper.style.cssText =`display:inline-block;width:min(560px,100%);max-width:100%;box-sizing:border-box;padding:12px 12px 10px;background:#fafafa;border:1px solid #ebebeb;border-radius:6px;overflow:hidden;`;
-   const header = document.createElement('div');
-   header.style.cssText = 'margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
-   const title = document.createElement('span');
-   title.style.cssText = 'color:#0066cc;font-size:14px;font-weight:600;'; title.textContent = '🔥 磁力搜索';
-   header.appendChild(title); wrapper.appendChild(header);
-   const table = buildTable(avid);
-   wrapper.appendChild(table);
-   const engineKey = table.querySelector('[data-magnet-engine]')?.value || CFG.defaultEngine;
-   runSearch(table, avid, engineKey);
-   return wrapper; }
+   const header = document.createElement('div'); header.style.cssText = 'margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;'; const title = document.createElement('span');
+   title.style.cssText = 'color:#0066cc;font-size:14px;font-weight:600;'; title.textContent = '🔥 磁力搜索'; header.appendChild(title); wrapper.appendChild(header); const table = buildTable(avid); wrapper.appendChild(table);
+   const engineKey = table.querySelector('[data-magnet-engine]')?.value || CFG.defaultEngine; runSearch(table, avid, engineKey); return wrapper; }
   return { createMagnetWidget, formatDate: formatMagnetDate, sortData: sortMagnetData, classifyQuality, javdbApi: MagnetApi.client };
  })();
  Core.expose('__LAOSIJI_MAGNET__', Magnet);
@@ -2102,8 +1876,7 @@
    GM_addStyle(`.laosiji-native-magnet-panel{width:100%;box-sizing:border-box;margin:14px 0;color:#172033;background:#fffdfa;border:1px solid #e6ddd3;border-radius:7px;box-shadow:0 8px 24px rgba(68,49,31,.07)}.laosiji-native-magnet-head,.laosiji-native-magnet-controls,.laosiji-native-magnet-tabs,.laosiji-native-magnet-tab-tools,.laosiji-native-magnet-actions,.laosiji-native-magnet-metadata,.laosiji-native-magnet-title-line{display:flex;align-items:center}.laosiji-native-magnet-controls[hidden]{display:none!important}.laosiji-native-magnet-head{justify-content:space-between;gap:14px;min-height:55px;padding:10px 14px;border-bottom:1px solid #e6ddd3}.laosiji-native-magnet-title{color:#172033;font-size:16px;font-weight:720}.laosiji-native-magnet-count{margin-left:9px;color:#667085;font-size:12px;font-weight:500}.laosiji-native-magnet-tabs{flex-wrap:wrap;gap:5px}.laosiji-native-magnet-tab-tools{flex-wrap:wrap;justify-content:flex-end;gap:8px}.laosiji-native-magnet-tab,.laosiji-native-magnet-refresh,.laosiji-native-magnet-action{min-height:30px;padding:3px 8px;border:1px solid #cdd6e2;border-radius:4px;color:#475467;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease}.laosiji-native-magnet-tab{border-color:transparent}.laosiji-native-magnet-tab[aria-selected="true"]{color:#1d4ed8;background:#e8f0ff;border-color:#c9d9ff}.laosiji-native-magnet-refresh{color:#1d4ed8;border-color:#bdd0ff;background:#f6f9ff}.laosiji-native-magnet-refresh:hover,.laosiji-native-magnet-action:hover,.laosiji-native-magnet-tab:not([aria-selected="true"]):hover{color:#1d4ed8;background:#f5f8fc;border-color:#a8c2ff}.laosiji-native-magnet-refresh:active,.laosiji-native-magnet-action:active,.laosiji-native-magnet-tab:active{background:#e8f0ff}.laosiji-native-magnet-tab:focus-visible,.laosiji-native-magnet-refresh:focus-visible,.laosiji-native-magnet-action:focus-visible,.laosiji-native-magnet-select:focus-visible{outline:2px solid #1d4ed8;outline-offset:2px}.laosiji-native-magnet-controls{gap:8px;min-height:48px;padding:9px 14px;background:#fffbf6;border-bottom:1px solid #e6ddd3}.laosiji-native-magnet-select{height:30px;max-width:150px;padding:2px 24px 2px 8px;border:1px solid #cdd6e2;border-radius:4px;color:#344054;background:#fff;font-size:12px}.laosiji-native-magnet-default-tab{height:30px;padding:2px 24px 2px 8px;border:1px solid #ddd2c4;border-radius:4px;color:#77543b;background:#fffbf6;font-size:11px;cursor:pointer}.laosiji-native-magnet-default-tab:focus-visible{outline:2px solid #a85b2d;outline-offset:2px}.laosiji-native-magnet-rows{display:grid}.laosiji-native-magnet-row{display:grid;grid-template-columns:20px minmax(0,1fr) auto;grid-template-areas:"index name actions" "index metadata actions";align-items:center;column-gap:6px;row-gap:6px;min-height:64px;padding:10px 12px;border-bottom:1px solid #eee7df;transition:background .16s ease}.laosiji-native-magnet-row:last-child{border-bottom:0}.laosiji-native-magnet-row:hover{background:#fff9f1}.laosiji-native-magnet-index{grid-area:index;color:#8a98a9;font-size:12px;font-variant-numeric:tabular-nums;text-align:right}.laosiji-native-magnet-name,.laosiji-native-magnet-title-line{min-width:0}.laosiji-native-magnet-name{grid-area:name}.laosiji-native-magnet-title-line{gap:7px}.laosiji-native-magnet-title-line>a{flex:0 1 auto;max-width:100%;min-width:0;overflow:hidden;color:#243b67;font-size:13px;font-weight:650;line-height:1.45;text-decoration:none;text-overflow:ellipsis;white-space:nowrap}.laosiji-native-magnet-title-line>a:hover{color:#1d4ed8;text-decoration:underline}.laosiji-native-magnet-assistant-trigger{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important}.laosiji-native-magnet-tags{display:flex;flex:0 0 auto;flex-wrap:wrap;gap:5px}.laosiji-native-magnet-tag{display:inline-flex;align-items:center;min-height:20px;padding:1px 6px;border:1px solid #dfe5eb;border-radius:3px;color:#58677a;background:#f3f5f7;font-size:11px;font-weight:700;line-height:1;white-space:nowrap}.laosiji-native-magnet-tag[data-kind="four-k"]{color:#1d4ed8;background:#e8f0ff;border-color:#c9d9ff}.laosiji-native-magnet-tag[data-kind="subtitle"]{color:#a85b00;background:#fff2d9;border-color:#ffe0a5}.laosiji-native-magnet-tag[data-kind="cracked"]{color:#9f1239;background:#ffe4e6;border-color:#fecdd3}.laosiji-native-magnet-metadata{grid-area:metadata;display:flex;flex-wrap:wrap;gap:5px 15px}.laosiji-native-magnet-meta{display:inline-flex;align-items:baseline;gap:4px;color:#344054;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}.laosiji-native-magnet-meta::before{content:attr(data-label);color:#7b8796;font-size:11px;font-weight:500}.laosiji-native-magnet-actions{grid-area:actions;align-self:center;justify-content:flex-end;gap:6px;min-width:max-content}.laosiji-native-magnet-action-copy{color:#4b3d87;border-color:#d0c7ee;background:#f6f4ff}.laosiji-native-magnet-action-check{color:#176b9e;border-color:#b8d9ed;background:#f0f9ff}.laosiji-native-magnet-action-offline{color:#137553;border-color:#b7ddce;background:#effaf5}.laosiji-native-magnet-action-copy:hover{color:#3d3075;border-color:#b9aae5;background:#eeebff}.laosiji-native-magnet-action-check:hover{color:#115b89;border-color:#91c5e4;background:#e5f5ff}.laosiji-native-magnet-action-offline:hover{color:#0f6548;border-color:#8ac9b3;background:#e3f6ed}.laosiji-native-magnet-actions .mag-btn-group{display:inline-flex!important;align-items:center;gap:4px;margin:0!important;white-space:nowrap}.laosiji-native-magnet-actions .mag-btn-group .mag-btn{margin:0!important}.laosiji-native-magnet-empty{padding:22px 14px;color:#64748b;text-align:center;font-size:13px}.laosiji-native-magnet-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 14px;color:#667085;background:#fffbf6;border-top:1px solid #eee7df;font-size:11px}html[data-theme="dark"] .laosiji-native-magnet-panel{color:#e5e7eb;background:#222b38;border-color:#435062;box-shadow:none}html[data-theme="dark"] .laosiji-native-magnet-head,html[data-theme="dark"] .laosiji-native-magnet-controls{border-color:#435062}html[data-theme="dark"] .laosiji-native-magnet-controls,html[data-theme="dark"] .laosiji-native-magnet-foot{background:#1d2632}html[data-theme="dark"] .laosiji-native-magnet-title,html[data-theme="dark"] .laosiji-native-magnet-meta,html[data-theme="dark"] .laosiji-native-magnet-title-line>a{color:#e5e7eb}html[data-theme="dark"] .laosiji-native-magnet-row{border-color:#374454}html[data-theme="dark"] .laosiji-native-magnet-row:hover{background:#293545}html[data-theme="dark"] .laosiji-native-magnet-count,html[data-theme="dark"] .laosiji-native-magnet-foot,html[data-theme="dark"] .laosiji-native-magnet-empty,html[data-theme="dark"] .laosiji-native-magnet-meta::before,html[data-theme="dark"] .laosiji-native-magnet-index{color:#aeb9c7}html[data-theme="dark"] .laosiji-native-magnet-tab,html[data-theme="dark"] .laosiji-native-magnet-action,html[data-theme="dark"] .laosiji-native-magnet-select,html[data-theme="dark"] .laosiji-native-magnet-default-tab{color:#d9e1ea;background:#253141;border-color:#536276}html[data-theme="dark"] .laosiji-native-magnet-refresh{color:#c8dbff;background:#1f3658;border-color:#4775bc}html[data-theme="dark"] .laosiji-native-magnet-tab[aria-selected="true"]{color:#dce9ff;background:#244b89;border-color:#4e82d5}@media (max-width:760px){.laosiji-native-magnet-head{align-items:flex-start;flex-direction:column;gap:8px;padding:11px 12px}.laosiji-native-magnet-controls{width:100%;align-items:flex-start;flex-wrap:wrap;min-height:0;padding:9px 12px}.laosiji-native-magnet-tab,.laosiji-native-magnet-refresh,.laosiji-native-magnet-action,.laosiji-native-magnet-select,.laosiji-native-magnet-default-tab{min-height:44px}.laosiji-native-magnet-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name index" "metadata metadata" "actions actions";gap:8px;min-height:0;padding:11px 12px}.laosiji-native-magnet-name{grid-area:name}.laosiji-native-magnet-index{grid-area:index;align-self:start;padding-top:2px}.laosiji-native-magnet-title-line{align-items:flex-start;flex-wrap:wrap}.laosiji-native-magnet-title-line>a{flex:1 1 100%;overflow:visible;white-space:normal}.laosiji-native-magnet-metadata{grid-area:metadata;gap:10px}.laosiji-native-magnet-meta{text-align:left}.laosiji-native-magnet-actions{grid-area:actions;justify-content:flex-start;flex-wrap:wrap}.laosiji-native-magnet-foot{padding:10px 12px}}`);
   }, };
  const NativeMagnetPanel = (() => {
-  NativeMagnetPanelStyles.install();
-  const PANEL_CLASS = 'laosiji-native-magnet-panel'; const mountObservers = new Map();
+  NativeMagnetPanelStyles.install(); const PANEL_CLASS = 'laosiji-native-magnet-panel'; const mountObservers = new Map();
   function assistantGroups(root) { return [...(root?.querySelectorAll?.('.mag-btn-group[data-mag-assistant="1"]') || [])]; }
   function syncAssistantGroups(root) {
    root?.querySelectorAll?.('.laosiji-native-magnet-row').forEach(row => {
@@ -2111,8 +1884,7 @@
     if (!groups.length) return;
     const actions = row.querySelector('.laosiji-native-magnet-actions');
     if (!actions) return;
-    const actionGroup = actions.querySelector('.mag-btn-group[data-mag-assistant="1"]'); const keep = actionGroup || groups[0];
-    actions.querySelectorAll('.laosiji-native-magnet-action').forEach(button => button.remove());
+    const actionGroup = actions.querySelector('.mag-btn-group[data-mag-assistant="1"]'); const keep = actionGroup || groups[0]; actions.querySelectorAll('.laosiji-native-magnet-action').forEach(button => button.remove());
     if (keep.parentNode !== actions) actions.appendChild(keep);
     groups.forEach(group => {
      if (group !== keep) group.remove();
@@ -2120,12 +1892,9 @@
    }); }
   function cleanText(node, removeSelectors = []) {
    if (!node) return '';
-   const copy = node.cloneNode(true);
-   removeSelectors.forEach(selector => copy.querySelectorAll(selector).forEach(el => el.remove())); return (copy.textContent || '').replace(/\s+/g, ' ').trim();
-  }
+   const copy = node.cloneNode(true); removeSelectors.forEach(selector => copy.querySelectorAll(selector).forEach(el => el.remove())); return (copy.textContent || '').replace(/\s+/g, ' ').trim(); }
   function addText(el, text) {
-   el.textContent = String(text || '').trim();
-   return el; }
+   el.textContent = String(text || '').trim(); return el; }
   function toAbsoluteUrl(url) {
    if (!url) return '';
    try {
@@ -2138,8 +1907,7 @@
   function parseNativeTags(node) {
    return [...node.querySelectorAll('.tags .tag, .btn-mini-new')] .map(tag => cleanText(tag)) .filter(Boolean); }
   function magnetHash(maglink) {
-   const match = String(maglink || '').match(/[?&]xt=urn:btih:([^&]+)/i);
-   return match ? match[1].toLowerCase() : ''; }
+   const match = String(maglink || '').match(/[?&]xt=urn:btih:([^&]+)/i); return match ? match[1].toLowerCase() : ''; }
   function qualityTags(title) {
    const { isChinese, is4K, isCracked } = Magnet.classifyQuality(title);
    return [
@@ -2157,31 +1925,14 @@
      const cells = [...row.querySelectorAll(':scope > td')]; const magnetLink = row.querySelector('a[href^="magnet:"]');
      if (!magnetLink || cells.length < 2) return null;
      const title = cleanText(cells[0], ['.mag-btn-group', '.btn-mini-new']) || cleanText(magnetLink);
-     return {
-      title,
-      maglink: magnetLink.href,
-      size: cleanText(cells[1]),
-      files: '',
-      date: cleanText(cells[2]),
-      qualityTags: qualityTags(title),
-      nativeTags: parseNativeTags(cells[0]),
-      assistant: getAssistantGroup(cells[0]), };
+     return { title, maglink: magnetLink.href, size: cleanText(cells[1]), files: '', date: cleanText(cells[2]), qualityTags: qualityTags(title), nativeTags: parseNativeTags(cells[0]), assistant: getAssistantGroup(cells[0]) };
     }) .filter(Boolean); }
   function parseJavdbItems(container) {
    return [...container.querySelectorAll('.item')] .map(row => {
      const magnetLink = row.querySelector('.magnet-name a[href^="magnet:"]');
      if (!magnetLink) return null;
-     const metaText = cleanText(row.querySelector('.magnet-name .meta')); const [size = '', files = ''] = metaText.split(/[,，]/).map(part => part.trim());
-     const title = cleanText(row.querySelector('.magnet-name .name')) || cleanText(magnetLink);
-     return {
-      title,
-      maglink: magnetLink.href,
-      size,
-      files,
-      date: cleanText(row.querySelector('.date .time, .date')),
-      qualityTags: qualityTags(title),
-      nativeTags: parseNativeTags(row),
-      assistant: getAssistantGroup(row.querySelector('.magnet-name')), };
+     const metaText = cleanText(row.querySelector('.magnet-name .meta')); const [size = '', files = ''] = metaText.split(/[,，]/).map(part => part.trim()); const title = cleanText(row.querySelector('.magnet-name .name')) || cleanText(magnetLink);
+     return { title, maglink: magnetLink.href, size, files, date: cleanText(row.querySelector('.date .time, .date')), qualityTags: qualityTags(title), nativeTags: parseNativeTags(row), assistant: getAssistantGroup(row.querySelector('.magnet-name')) };
     }) .filter(Boolean); }
   function buildNativeItems(site, container) {
    if (site === 'javbus') return parseJavbusItems(container);
@@ -2202,41 +1953,27 @@
     nativeTags: nativeTagMap.get(magnetHash(item?.maglink)) || [],
    })).filter(item => item.title && item.maglink); }
   function createButton(label, className, onClick) {
-   const button = document.createElement('button');
-   button.type = 'button'; button.className = className; button.textContent = label;
-   button.addEventListener('click', onClick);
-   return button; }
+   const button = document.createElement('button'); button.type = 'button'; button.className = className; button.textContent = label; button.addEventListener('click', onClick); return button; }
   function appendAssistantTrigger(titleLine, item) {
    if (!item?.src || !item.maglink) return;
-   const trigger = document.createElement('a');
-   trigger.className = 'laosiji-native-magnet-assistant-trigger'; trigger.href = item.maglink; trigger.textContent = item.title; trigger.title = item.title;
-   trigger.setAttribute('aria-hidden', 'true');
-   trigger.tabIndex = -1;
-   titleLine.appendChild(trigger); }
+   const trigger = document.createElement('a'); trigger.className = 'laosiji-native-magnet-assistant-trigger'; trigger.href = item.maglink; trigger.textContent = item.title; trigger.title = item.title; trigger.setAttribute('aria-hidden', 'true');
+   trigger.tabIndex = -1; titleLine.appendChild(trigger); }
   function createTagGroup(values, withKinds = false) {
    if (!values?.length) return null;
-   const tags = document.createElement('div');
-   tags.className = 'laosiji-native-magnet-tags';
+   const tags = document.createElement('div'); tags.className = 'laosiji-native-magnet-tags';
    values.forEach(value => {
-    const tag = document.createElement('span');
-    tag.className = 'laosiji-native-magnet-tag';
-    const kind = withKinds ? tagKind(value) : '';
+    const tag = document.createElement('span'); tag.className = 'laosiji-native-magnet-tag'; const kind = withKinds ? tagKind(value) : '';
     if (kind) tag.dataset.kind = kind;
     addText(tag, value); tags.appendChild(tag);
    });
    return tags; }
   function appendFallbackActions(actions, item) {
    const copyButton = createButton('复制', 'laosiji-native-magnet-action laosiji-native-magnet-action-copy', () => {
-    GM_setClipboard(item.maglink);
-    copyButton.textContent = '已复制';
+    GM_setClipboard(item.maglink); copyButton.textContent = '已复制';
     setTimeout(() => { copyButton.textContent = '复制'; }, 900);
    });
-   const checkButton = createButton('验车', 'laosiji-native-magnet-action laosiji-native-magnet-action-check', () => {
-    MagnetActions.checkWhatslink(item.maglink);
-   });
-   const offlineButton = createButton('115离线', 'laosiji-native-magnet-action laosiji-native-magnet-action-offline', () => {
-    MagnetActions.offline115(item.maglink);
-   });
+   const checkButton = createButton('验车', 'laosiji-native-magnet-action laosiji-native-magnet-action-check', () => { MagnetActions.checkWhatslink(item.maglink); });
+   const offlineButton = createButton('115离线', 'laosiji-native-magnet-action laosiji-native-magnet-action-offline', () => { MagnetActions.offline115(item.maglink); });
    actions.append(copyButton, checkButton, offlineButton); }
   function appendActions(actions, item) {
    if (item.assistant?.group) { item.assistant.group._laosijiNativeOrigin = item.assistant; actions.appendChild(item.assistant.group); return; }
@@ -2245,81 +1982,49 @@
    panel.querySelectorAll('.mag-btn-group').forEach(group => {
     const origin = group._laosijiNativeOrigin;
     if (!origin?.parent?.isConnected) return;
-    origin.parent.insertBefore(group, origin.next || null);
-    delete group._laosijiNativeOrigin;
+    origin.parent.insertBefore(group, origin.next || null); delete group._laosijiNativeOrigin;
    }); }
   function createMeta(value, label) {
-   const meta = document.createElement('span');
-   meta.className = 'laosiji-native-magnet-meta'; meta.title = label; meta.dataset.label = label; meta.textContent = value || '—';
-   return meta; }
+   const meta = document.createElement('span'); meta.className = 'laosiji-native-magnet-meta'; meta.title = label; meta.dataset.label = label; meta.textContent = value || '—'; return meta; }
   function renderRows(state) {
-   const rows = state.panel.querySelector('.laosiji-native-magnet-rows'); const count = state.panel.querySelector('.laosiji-native-magnet-count');
-   const source = state.panel.querySelector('.laosiji-native-magnet-source');
-   const items = state.activeTab === 'aggregate' ? Magnet.sortData(state.aggregateItems, CFG.magnetSort) : state.nativeItems;
-   restoreAssistantGroups(rows); rows.replaceChildren();
+   const rows = state.panel.querySelector('.laosiji-native-magnet-rows'); const count = state.panel.querySelector('.laosiji-native-magnet-count'); const source = state.panel.querySelector('.laosiji-native-magnet-source');
+   const items = state.activeTab === 'aggregate' ? Magnet.sortData(state.aggregateItems, CFG.magnetSort) : state.nativeItems; restoreAssistantGroups(rows); rows.replaceChildren();
    count.textContent =`${items.length} 条`;
    source.textContent = state.activeTab === 'aggregate'
     ?`聚合：${MagnetEngines.labels()[state.engineKey] || state.engineKey}`                : '站内原始条目';
    if (!items.length) {
-    const empty = document.createElement('div');
-    empty.className = 'laosiji-native-magnet-empty'; empty.textContent = state.activeTab === 'aggregate' ? '没有搜索到可用磁力' : '站内暂时没有可用磁力';
-    rows.appendChild(empty);
-    return; }
+    const empty = document.createElement('div'); empty.className = 'laosiji-native-magnet-empty'; empty.textContent = state.activeTab === 'aggregate' ? '没有搜索到可用磁力' : '站内暂时没有可用磁力'; rows.appendChild(empty); return; }
    items.forEach((item, index) => {
-    const row = document.createElement('article');
-    row.className = 'laosiji-native-magnet-row';
-    const rowIndex = document.createElement('span');
-    rowIndex.className = 'laosiji-native-magnet-index'; rowIndex.textContent = String(index + 1).padStart(2, '0');
-    const name = document.createElement('div');
-    name.className = 'laosiji-native-magnet-name';
-    const titleLine = document.createElement('div');
-    titleLine.className = 'laosiji-native-magnet-title-line';
-    const title = document.createElement('a');
-    title.href = item.maglink; title.target = '_self'; title.rel = ''; title.title = item.title;
-    addText(title, item.title);
-    const qualityTags = createTagGroup(item.qualityTags, true);
+    const row = document.createElement('article'); row.className = 'laosiji-native-magnet-row'; const rowIndex = document.createElement('span'); rowIndex.className = 'laosiji-native-magnet-index'; rowIndex.textContent = String(index + 1).padStart(2, '0');
+    const name = document.createElement('div'); name.className = 'laosiji-native-magnet-name'; const titleLine = document.createElement('div'); titleLine.className = 'laosiji-native-magnet-title-line'; const title = document.createElement('a');
+    title.href = item.maglink; title.target = '_self'; title.rel = ''; title.title = item.title; addText(title, item.title); const qualityTags = createTagGroup(item.qualityTags, true);
     if (qualityTags) titleLine.appendChild(qualityTags);
-    titleLine.appendChild(title); appendAssistantTrigger(titleLine, item);
-    const nativeTags = createTagGroup(item.nativeTags);
+    titleLine.appendChild(title); appendAssistantTrigger(titleLine, item); const nativeTags = createTagGroup(item.nativeTags);
     if (nativeTags) titleLine.appendChild(nativeTags);
-    name.appendChild(titleLine);
-    const metadata = document.createElement('div');
-    metadata.className = 'laosiji-native-magnet-metadata';
-    metadata.append( createMeta(item.size, '大小'), createMeta(item.files, '文件'), createMeta(item.date, '日期') );
-    const actions = document.createElement('div');
-    actions.className = 'laosiji-native-magnet-actions';
-    appendActions(actions, item); row.append(rowIndex, name, metadata, actions); rows.appendChild(row);
+    name.appendChild(titleLine); const metadata = document.createElement('div'); metadata.className = 'laosiji-native-magnet-metadata'; metadata.append( createMeta(item.size, '大小'), createMeta(item.files, '文件'), createMeta(item.date, '日期') );
+    const actions = document.createElement('div'); actions.className = 'laosiji-native-magnet-actions'; appendActions(actions, item); row.append(rowIndex, name, metadata, actions); rows.appendChild(row);
    }); }
   function syncTabControls(state) {
-   const nativeButton = state.panel.querySelector('[data-native-magnet-tab="native"]');
-   const aggregateButton = state.panel.querySelector('[data-native-magnet-tab="aggregate"]');
-   const aggregateControls = state.panel.querySelector('.laosiji-native-magnet-controls'); const isAggregate = state.activeTab === 'aggregate';
-   nativeButton?.setAttribute('aria-selected', String(!isAggregate)); aggregateButton?.setAttribute('aria-selected', String(isAggregate));
-   aggregateControls.hidden = !isAggregate; }
+   const nativeButton = state.panel.querySelector('[data-native-magnet-tab="native"]'); const aggregateButton = state.panel.querySelector('[data-native-magnet-tab="aggregate"]');
+   const aggregateControls = state.panel.querySelector('.laosiji-native-magnet-controls'); const isAggregate = state.activeTab === 'aggregate'; nativeButton?.setAttribute('aria-selected', String(!isAggregate));
+   aggregateButton?.setAttribute('aria-selected', String(isAggregate)); aggregateControls.hidden = !isAggregate; }
   async function loadAggregate(state) {
-   const rows = state.panel.querySelector('.laosiji-native-magnet-rows'); const select = state.panel.querySelector('[data-native-magnet-engine]');
-   const refresh = state.panel.querySelector('.laosiji-native-magnet-refresh'); const empty = document.createElement('div');
-   empty.className = 'laosiji-native-magnet-empty'; empty.textContent = '正在搜索聚合磁力…';
-   rows.replaceChildren(empty);
-   select.disabled = true; refresh.disabled = true;
+   const rows = state.panel.querySelector('.laosiji-native-magnet-rows'); const select = state.panel.querySelector('[data-native-magnet-engine]'); const refresh = state.panel.querySelector('.laosiji-native-magnet-refresh');
+   const empty = document.createElement('div'); empty.className = 'laosiji-native-magnet-empty'; empty.textContent = '正在搜索聚合磁力…'; rows.replaceChildren(empty); select.disabled = true; refresh.disabled = true;
    try {
-    const engines = MagnetEngines.getAll(); const search = engines[state.engineKey] || Object.values(engines)[0];
-    const keyword = MagnetApi.normalizeMagnetSearchKeyword(state.avid); const result = await search(keyword);
+    const engines = MagnetEngines.getAll(); const search = engines[state.engineKey] || Object.values(engines)[0]; const keyword = MagnetApi.normalizeMagnetSearchKeyword(state.avid); const result = await search(keyword);
     state.aggregateItems = normalizeAggregateItems(result?.data || [], {
      titleAsMagnet: state.engineKey === CFG.javdbSearchUrl,
      nativeItems: state.nativeItems,
      keyword,
     });
-    state.aggregateUrl = result?.url || '';
-    renderRows(state);
+    state.aggregateUrl = result?.url || ''; renderRows(state);
    } catch (error) {
-    errorLog('磁力聚合搜索出错:', error);
-    empty.textContent = '聚合搜索失败，请刷新重试';
+    errorLog('磁力聚合搜索出错:', error); empty.textContent = '聚合搜索失败，请刷新重试';
    } finally {
     select.disabled = false; refresh.disabled = false; } }
   function activateTab(state, tab) {
-   state.activeTab = tab;
-   syncTabControls(state);
+   state.activeTab = tab; syncTabControls(state);
    if (tab === 'aggregate') {
     if (state.aggregateItems === null) loadAggregate(state);
     else renderRows(state);
@@ -2329,107 +2034,56 @@
    const panel = document.createElement('section');
    panel.className =`${PANEL_CLASS} laosiji-native-magnet-${site}`;
    panel.dataset.site = site;
-   const state = {
-    panel,
-    site,
-    avid,
-    nativeItems,
-    aggregateItems: null,
-    aggregateUrl: '',
-    engineKey: CFG.defaultEngine,
-    activeTab: nativeItems.length ? CFG.nativeMagnetDefaultTab : 'aggregate', };
-   const head = document.createElement('header');
-   head.className = 'laosiji-native-magnet-head';
-   const heading = document.createElement('div'); const title = document.createElement('span');
-   title.className = 'laosiji-native-magnet-title'; title.textContent = '磁力资源';
-   const count = document.createElement('span');
-   count.className = 'laosiji-native-magnet-count';
-   heading.append(title, count);
-   const tabs = document.createElement('div');
-   tabs.className = 'laosiji-native-magnet-tabs';
+   const state = { panel, site, avid, nativeItems, aggregateItems: null, aggregateUrl: '', engineKey: CFG.defaultEngine, activeTab: nativeItems.length ? CFG.nativeMagnetDefaultTab : 'aggregate' };
+   const head = document.createElement('header'); head.className = 'laosiji-native-magnet-head'; const heading = document.createElement('div'); const title = document.createElement('span'); title.className = 'laosiji-native-magnet-title';
+   title.textContent = '磁力资源'; const count = document.createElement('span'); count.className = 'laosiji-native-magnet-count'; heading.append(title, count); const tabs = document.createElement('div'); tabs.className = 'laosiji-native-magnet-tabs';
+   if (nativeItems.length) { const nativeButton = createButton('站内磁力', 'laosiji-native-magnet-tab', () => activateTab(state, 'native')); nativeButton.dataset.nativeMagnetTab = 'native'; tabs.appendChild(nativeButton); }
+   const aggregateButton = createButton('聚合搜索', 'laosiji-native-magnet-tab', () => activateTab(state, 'aggregate')); aggregateButton.dataset.nativeMagnetTab = 'aggregate'; tabs.appendChild(aggregateButton); const tabTools = document.createElement('div');
+   tabTools.className = 'laosiji-native-magnet-tab-tools'; tabTools.appendChild(tabs);
    if (nativeItems.length) {
-    const nativeButton = createButton('站内磁力', 'laosiji-native-magnet-tab', () => activateTab(state, 'native'));
-    nativeButton.dataset.nativeMagnetTab = 'native';
-    tabs.appendChild(nativeButton); }
-   const aggregateButton = createButton('聚合搜索', 'laosiji-native-magnet-tab', () => activateTab(state, 'aggregate'));
-   aggregateButton.dataset.nativeMagnetTab = 'aggregate';
-   tabs.appendChild(aggregateButton);
-   const tabTools = document.createElement('div');
-   tabTools.className = 'laosiji-native-magnet-tab-tools';
-   tabTools.appendChild(tabs);
-   if (nativeItems.length) {
-    const defaultTabSelect = document.createElement('select');
-    defaultTabSelect.className = 'laosiji-native-magnet-default-tab';
-    defaultTabSelect.setAttribute('aria-label', '默认显示的磁力页签');
-    defaultTabSelect.title = '设置以后进入详情页时默认显示的页签';
-    defaultTabSelect.add(new Option('默认：站内磁力', 'native')); defaultTabSelect.add(new Option('默认：聚合搜索', 'aggregate'));
-    defaultTabSelect.value = CFG.nativeMagnetDefaultTab;
+    const defaultTabSelect = document.createElement('select'); defaultTabSelect.className = 'laosiji-native-magnet-default-tab'; defaultTabSelect.setAttribute('aria-label', '默认显示的磁力页签'); defaultTabSelect.title = '设置以后进入详情页时默认显示的页签';
+    defaultTabSelect.add(new Option('默认：站内磁力', 'native')); defaultTabSelect.add(new Option('默认：聚合搜索', 'aggregate')); defaultTabSelect.value = CFG.nativeMagnetDefaultTab;
     defaultTabSelect.addEventListener('change', () => {
-     CFG.nativeMagnetDefaultTab = defaultTabSelect.value;
-     activateTab(state, defaultTabSelect.value);
+     CFG.nativeMagnetDefaultTab = defaultTabSelect.value; activateTab(state, defaultTabSelect.value);
     });
     tabTools.appendChild(defaultTabSelect); }
-   head.append(heading, tabTools);
-   const controls = document.createElement('div');
-   controls.className = 'laosiji-native-magnet-controls';
-   const engineSelect = document.createElement('select');
-   engineSelect.className = 'laosiji-native-magnet-select'; engineSelect.dataset.nativeMagnetEngine = '1';
-   engineSelect.setAttribute('aria-label', '磁力引擎');
-   const engines = MagnetEngines.getAll(); const labels = MagnetEngines.labels();
+   head.append(heading, tabTools); const controls = document.createElement('div'); controls.className = 'laosiji-native-magnet-controls'; const engineSelect = document.createElement('select'); engineSelect.className = 'laosiji-native-magnet-select';
+   engineSelect.dataset.nativeMagnetEngine = '1'; engineSelect.setAttribute('aria-label', '磁力引擎'); const engines = MagnetEngines.getAll(); const labels = MagnetEngines.labels();
    Object.keys(engines).forEach(key => { engineSelect.add(new Option(labels[key] || key, key, false, key === state.engineKey)); });
    engineSelect.addEventListener('change', () => { state.engineKey = engineSelect.value; state.aggregateItems = null; loadAggregate(state); });
-   const sortSelect = document.createElement('select');
-   sortSelect.className = 'laosiji-native-magnet-select';
-   sortSelect.setAttribute('aria-label', '聚合结果排序');
-   [['size', '大小优先'], ['newest', '最新收录'], ['oldest', '最早收录']] .forEach(([value, label]) => sortSelect.add(new Option(label, value)));
-   sortSelect.value = CFG.magnetSort;
+   const sortSelect = document.createElement('select'); sortSelect.className = 'laosiji-native-magnet-select'; sortSelect.setAttribute('aria-label', '聚合结果排序');
+   [['size', '大小优先'], ['newest', '最新收录'], ['oldest', '最早收录']] .forEach(([value, label]) => sortSelect.add(new Option(label, value))); sortSelect.value = CFG.magnetSort;
    sortSelect.addEventListener('change', () => {
     CFG.magnetSort = sortSelect.value;
     if (state.aggregateItems) renderRows(state);
    });
    const refresh = createButton('刷新', 'laosiji-native-magnet-refresh', () => {
     if (state.activeTab === 'aggregate') {
-     state.aggregateItems = null;
-     loadAggregate(state);
+     state.aggregateItems = null; loadAggregate(state);
     } else { renderRows(state); }
    });
-   controls.append(engineSelect, sortSelect, refresh);
-   const rows = document.createElement('div');
-   rows.className = 'laosiji-native-magnet-rows';
-   const foot = document.createElement('footer');
-   foot.className = 'laosiji-native-magnet-foot';
-   const source = document.createElement('span');
-   source.className = 'laosiji-native-magnet-source';
-   const hint = document.createElement('span');
-   hint.textContent = nativeItems.length ? '聚合结果不会覆盖站内磁力' : '聚合搜索沿用已配置的磁力引擎';
-   foot.append(source, hint); panel.append(head, controls, rows, foot);
-   panel._laosijiNativeMagnetState = state;
-   let assistantSyncPending = false;
+   controls.append(engineSelect, sortSelect, refresh); const rows = document.createElement('div'); rows.className = 'laosiji-native-magnet-rows'; const foot = document.createElement('footer'); foot.className = 'laosiji-native-magnet-foot';
+   const source = document.createElement('span'); source.className = 'laosiji-native-magnet-source'; const hint = document.createElement('span'); hint.textContent = nativeItems.length ? '聚合结果不会覆盖站内磁力' : '聚合搜索沿用已配置的磁力引擎'; foot.append(source, hint);
+   panel.append(head, controls, rows, foot); panel._laosijiNativeMagnetState = state; let assistantSyncPending = false;
    const assistantObserver = new MutationObserver(() => {
     if (assistantSyncPending) return;
     assistantSyncPending = true;
     queueMicrotask(() => {
-     assistantSyncPending = false;
-     syncAssistantGroups(panel);
+     assistantSyncPending = false; syncAssistantGroups(panel);
     });
    });
    assistantObserver.observe(panel, { childList: true, subtree: true });
-   panel._laosijiNativeAssistantObserver = assistantObserver;
-   activateTab(state, state.activeTab);
-   return panel; }
-  function hideNativeSource(source) {
-   source.dataset.laosijiNativeDisplay = source.style.display || ''; source.dataset.laosijiNativeHidden = '1'; source.style.display = 'none'; }
+   panel._laosijiNativeAssistantObserver = assistantObserver; activateTab(state, state.activeTab); return panel; }
+  function hideNativeSource(source) { source.dataset.laosijiNativeDisplay = source.style.display || ''; source.dataset.laosijiNativeHidden = '1'; source.style.display = 'none'; }
   function restoreNativeSource(source) {
    if (source.dataset.laosijiNativeHidden !== '1') return;
-   source.style.display = source.dataset.laosijiNativeDisplay || '';
-   delete source.dataset.laosijiNativeDisplay; delete source.dataset.laosijiNativeHidden; }
+   source.style.display = source.dataset.laosijiNativeDisplay || ''; delete source.dataset.laosijiNativeDisplay; delete source.dataset.laosijiNativeHidden; }
   function hideNativeParent(parent) {
    if (!parent || parent.dataset.laosijiNativeParentHidden === '1') return;
    parent.dataset.laosijiNativeParentDisplay = parent.style.display || ''; parent.dataset.laosijiNativeParentHidden = '1'; parent.style.display = 'none'; }
   function restoreNativeParent(parent) {
    if (parent.dataset.laosijiNativeParentHidden !== '1') return;
-   parent.style.display = parent.dataset.laosijiNativeParentDisplay || '';
-   delete parent.dataset.laosijiNativeParentDisplay; delete parent.dataset.laosijiNativeParentHidden; }
+   parent.style.display = parent.dataset.laosijiNativeParentDisplay || ''; delete parent.dataset.laosijiNativeParentDisplay; delete parent.dataset.laosijiNativeParentHidden; }
   function remove(site) {
    if (site) {
     mountObservers.get(site)?.disconnect(); mountObservers.delete(site);
@@ -2438,8 +2092,7 @@
    document.querySelectorAll(`.${PANEL_CLASS}${site ? `[data-site="${site}"]` : ''}`).forEach(panel => {
     panel._laosijiNativeAssistantObserver?.disconnect(); restoreAssistantGroups(panel); panel.remove();
    });
-   document.querySelectorAll('[data-laosiji-native-hidden="1"]').forEach(restoreNativeSource);
-   document.querySelectorAll('[data-laosiji-native-parent-hidden="1"]').forEach(restoreNativeParent);
+   document.querySelectorAll('[data-laosiji-native-hidden="1"]').forEach(restoreNativeSource); document.querySelectorAll('[data-laosiji-native-parent-hidden="1"]').forEach(restoreNativeParent);
    document.querySelectorAll('.laosiji-native-magnet-divider').forEach(divider => divider.remove()); }
   function mount(site, avid) {
    if (MobilePolicy.effectiveMagnetDisplayMode() !== 'native-replace') return false;
@@ -2447,16 +2100,13 @@
    if (site === 'javlib') {
     const reviews = document.querySelector('#video_reviews');
     if (!reviews) return false;
-    const panel = createPanel(site, avid, []); const divider = document.createElement('hr');
-    divider.className = 'grey laosiji-native-magnet-divider';
-    reviews.insertAdjacentElement('beforebegin', panel); panel.insertAdjacentElement('afterend', divider);
+    const panel = createPanel(site, avid, []); const divider = document.createElement('hr'); divider.className = 'grey laosiji-native-magnet-divider'; reviews.insertAdjacentElement('beforebegin', panel); panel.insertAdjacentElement('afterend', divider);
     return true; }
    const source = site === 'javbus' ? document.querySelector('#magnet-table') : document.querySelector('#magnets-content');
    if (!source) return false;
    const nativeItems = buildNativeItems(site, source);
    if (!nativeItems.length) return false;
-   const panel = createPanel(site, avid, nativeItems);
-   const nativeParent = site === 'javbus' ? source.closest('.movie') : source.closest('article.message.video-panel');
+   const panel = createPanel(site, avid, nativeItems); const nativeParent = site === 'javbus' ? source.closest('.movie') : source.closest('article.message.video-panel');
    if (nativeParent?.parentNode) nativeParent.insertAdjacentElement('afterend', panel);
    else source.insertAdjacentElement('afterend', panel);
    hideNativeSource(source);
@@ -2465,20 +2115,16 @@
   function scheduleMount(site, avid) {
    mountObservers.get(site)?.disconnect(); mountObservers.delete(site);
    const tryMount = () => {
-    if (MobilePolicy.effectiveMagnetDisplayMode() !== 'native-replace' || mount(site, avid)) {
-     mountObservers.get(site)?.disconnect(); mountObservers.delete(site);
-     return true; }
+    if (MobilePolicy.effectiveMagnetDisplayMode() !== 'native-replace' || mount(site, avid)) { mountObservers.get(site)?.disconnect(); mountObservers.delete(site); return true; }
     return false; };
    if (tryMount()) return;
-   if (typeof MutationObserver === 'undefined' || !document.documentElement) {
-    [300, 800, 1600, 3000, 6000, 10000].forEach(delay => setTimeout(tryMount, delay)); return; }
+   if (typeof MutationObserver === 'undefined' || !document.documentElement) { [300, 800, 1600, 3000, 6000, 10000].forEach(delay => setTimeout(tryMount, delay)); return; }
    let pending = false;
    const observer = new MutationObserver(() => {
     if (pending) return;
     pending = true;
     queueMicrotask(() => {
-     pending = false;
-     tryMount();
+     pending = false; tryMount();
     });
    });
    mountObservers.set(site, observer);
@@ -2489,13 +2135,10 @@
  Core.expose('__LAOSIJI_NATIVE_MAGNET_PANEL__', NativeMagnetPanel);
  function openJavdbApiLoginDialog(nextUrl = '') {
   if (!document.body) { setTimeout(() => openJavdbApiLoginDialog(nextUrl), 50); return; }
-  addJavdbApiLoginStyles(); document.querySelector('#javdb-api-login-overlay')?.remove();
-  const overlay = document.createElement('div');
-  overlay.id = 'javdb-api-login-overlay';
+  addJavdbApiLoginStyles(); document.querySelector('#javdb-api-login-overlay')?.remove(); const overlay = document.createElement('div'); overlay.id = 'javdb-api-login-overlay';
   overlay.innerHTML =`<div class="javdb-api-login-panel"><div class="javdb-api-login-title">登录 JavDB</div><input class="javdb-api-login-input" id="javdb-api-login-account" type="text" autocomplete="username" placeholder="用户名 / 邮箱"><input class="javdb-api-login-input" id="javdb-api-login-password" type="password" autocomplete="current-password" placeholder="密码"><div class="javdb-api-login-actions"><button class="javdb-api-login-cancel" type="button">取消</button><button class="javdb-api-login-submit" type="button">登录</button></div></div>`;
-  document.body.appendChild(overlay);
-  const close = () => overlay.remove(); const submit = overlay.querySelector('.javdb-api-login-submit');
-  const accountInput = overlay.querySelector('#javdb-api-login-account'); const passwordInput = overlay.querySelector('#javdb-api-login-password');
+  document.body.appendChild(overlay); const close = () => overlay.remove(); const submit = overlay.querySelector('.javdb-api-login-submit'); const accountInput = overlay.querySelector('#javdb-api-login-account');
+  const passwordInput = overlay.querySelector('#javdb-api-login-password');
   overlay.addEventListener('click', event => {
    if (event.target === overlay || event.target.closest('.javdb-api-login-cancel')) close();
   });
@@ -2527,8 +2170,7 @@
    if (!Magnet.javdbApi.token() && !document.querySelector('#javdb-api-login-overlay')) { openJavdbApiLoginDialog(nextUrl); }
   }, 0); }
  function isJavdbApiAuthError(err) {
-  const text = String(err?.message || err || '');
-  return /JWT|token|authorization|unauthorized|login required|請登錄|請登入|请登录|请登入|登錄帳號|登录账号|未登錄|未登录/i.test(text); }
+  const text = String(err?.message || err || ''); return /JWT|token|authorization|unauthorized|login required|請登錄|請登入|请登录|请登入|登錄帳號|登录账号|未登錄|未登录/i.test(text); }
  const SiteJavBus = {
   match() { return location.hostname.includes('javbus'); },
   isActorIndexPage(url = location.href) {
@@ -2537,29 +2179,24 @@
     return /^\/(?:[a-z]{2}\/)?(?:uncensored\/)?actresses(?:\/\d+)?$/i.test(path);
    } catch (err) { return false; } },
   getVid() {
-   const kw = document.querySelector('meta[name="keywords"]')?.content || '';
-   return normalizeAvid(kw.split(',')[0].trim()); },
+   const kw = document.querySelector('meta[name="keywords"]')?.content || ''; return normalizeAvid(kw.split(',')[0].trim()); },
   isDetailPage() {
    return (
     !!document.querySelector('.row.movie') && !document.querySelector('#waterfall div.item')
    ); },
   initPage(avid) {
-   document.querySelector('.ad-box')?.remove(); this._insert123AvFc2NavLink(); this._insert123AvFc2MobileLink();
-   setTimeout(() => this._insert123AvFc2NavLink(), 500); setTimeout(() => this._insert123AvFc2MobileLink(), 500); this._insertTopSettingsButton();
+   document.querySelector('.ad-box')?.remove(); this._insert123AvFc2NavLink(); this._insert123AvFc2MobileLink(); setTimeout(() => this._insert123AvFc2NavLink(), 500); setTimeout(() => this._insert123AvFc2MobileLink(), 500); this._insertTopSettingsButton();
    setTimeout(() => this._insertTopSettingsButton(), 500);
    if (Javdb123AvFc2.init()) return;
    if (this.isActorIndexPage()) return;
    if (document.querySelector('#waterfall div.item')) { this._initListPage(); return; }
    const detailDefaults = DetailFlex.defaultCss('javbus');
    GM_addStyle(`.container{max-width:100%!important;width:100%!important;padding-left:20px!important;padding-right:20px!important}.row.movie{display:flex!important;gap:20px!important;align-items:flex-start!important;flex-wrap:nowrap!important;margin:0!important}.row.movie{--javbus-cover-flex:${detailDefaults.cover};--javbus-info-flex:${detailDefaults.info};--javbus-magnet-flex:${detailDefaults.magnet}}.col-md-9.screencap{flex:var(--javbus-cover-flex) 1 0!important;min-width:0!important;width:auto!important;float:none!important;padding:0!important}.col-md-3.info{flex:var(--javbus-info-flex) 1 0!important;min-width:0!important;width:auto!important;float:none!important;overflow:hidden!important;word-break:break-word!important}.jav-nong-slot{flex:var(--javbus-magnet-flex) 1 0!important;min-width:0!important;align-self:flex-start!important;overflow:hidden!important}.jav-nong-wrapper{width:560px;max-width:100%}.screencap img{width:100%;max-width:100%}.footer{padding:20px 0}`);
-   this._insertMagnet(avid); this._replaceRecommendWithJavdbReviews(avid); setTimeout(() => this._replaceRecommendWithJavdbReviews(avid), 900);
-   this._scheduleNativeMagnetAssistantFix(); },
+   this._insertMagnet(avid); this._replaceRecommendWithJavdbReviews(avid); setTimeout(() => this._replaceRecommendWithJavdbReviews(avid), 900); this._scheduleNativeMagnetAssistantFix(); },
   _insert123AvFc2NavLink() {
    const navbar = document.querySelector('#navbar');
    if (!navbar) return;
-   const navLists = [...navbar.querySelectorAll('ul.nav.navbar-nav')].filter(ul => {
-    return !ul.classList.contains('navbar-right') && !ul.classList.contains('javbus-top-settings-nav');
-   });
+   const navLists = [...navbar.querySelectorAll('ul.nav.navbar-nav')].filter(ul => { return !ul.classList.contains('navbar-right') && !ul.classList.contains('javbus-top-settings-nav'); });
    navLists.forEach(navList => {
     const uncensoredLink = [...navList.querySelectorAll(':scope > li > a[href]')].find(link => {
      try {
@@ -2568,14 +2205,11 @@
     });
     const parent = uncensoredLink?.parentElement;
     if (!parent || parent.parentElement !== navList) return;
-    const existingItems = [...navList.querySelectorAll(':scope > li.javbus-123av-fc2-nav')];
-    existingItems.slice(1).forEach(item => item.remove());
-    const existingItem = existingItems[0];
+    const existingItems = [...navList.querySelectorAll(':scope > li.javbus-123av-fc2-nav')]; existingItems.slice(1).forEach(item => item.remove()); const existingItem = existingItems[0];
     if (existingItem) {
      if (existingItem.previousElementSibling !== parent) parent.insertAdjacentElement('afterend', existingItem);
      return; }
-    const item = document.createElement('li');
-    item.className = 'javbus-123av-fc2-nav';
+    const item = document.createElement('li'); item.className = 'javbus-123av-fc2-nav';
     item.innerHTML =`<a href="/?laosiji_123av_fc2=1" title="打开 123AV-FC2"><span>123AV-FC2</span></a>`;
     parent.insertAdjacentElement('afterend', item);
    }); },
@@ -2589,39 +2223,29 @@
     });
     const anchor = forumLink?.closest('.col-xs-6') || overlay.querySelector('.overlay-close');
     if (!anchor) return;
-    const item = document.createElement('div');
-    item.className = 'col-xs-6 text-center javbus-123av-fc2-mobile'; item.innerHTML = '<a href="/?laosiji_123av_fc2=1" title="打开 123AV-FC2">123AV-FC2</a>';
+    const item = document.createElement('div'); item.className = 'col-xs-6 text-center javbus-123av-fc2-mobile'; item.innerHTML = '<a href="/?laosiji_123av_fc2=1" title="打开 123AV-FC2">123AV-FC2</a>';
     anchor.insertAdjacentElement(forumLink ? 'afterend' : 'beforebegin', item);
    }); },
   _insertTopSettingsButton() {
    const navbar = document.querySelector('#navbar');
    if (!navbar || navbar.querySelector('.javbus-top-settings-nav')) return;
-   const magnetNav = [...navbar.querySelectorAll(':scope > ul.nav.navbar-nav.navbar-right')].find(ul => {
-    return ul.querySelector('.glyphicon-magnet') || /\u5df2\u6709\u78c1\u529b/.test(ul.textContent || '');
-   });
-   const settingsNav = document.createElement('ul');
-   settingsNav.className = 'nav navbar-nav navbar-right javbus-top-settings-nav';
+   const magnetNav = [...navbar.querySelectorAll(':scope > ul.nav.navbar-nav.navbar-right')].find(ul => { return ul.querySelector('.glyphicon-magnet') || /\u5df2\u6709\u78c1\u529b/.test(ul.textContent || ''); });
+   const settingsNav = document.createElement('ul'); settingsNav.className = 'nav navbar-nav navbar-right javbus-top-settings-nav';
    settingsNav.innerHTML =`<li><a href="javascript:void(0)" class="javbus-top-settings-btn" title="\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e"><span class="glyphicon glyphicon-cog" style="font-size:12px;"></span><span class="hidden-md hidden-sm">\u8001\u53f8\u673a\u8bbe\u7f6e</span></a></li>`;
-   settingsNav.querySelector('.javbus-top-settings-btn')?.addEventListener('click', e => {
-    e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget);
-   });
+   settingsNav.querySelector('.javbus-top-settings-btn')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget); });
    if (magnetNav) {
     magnetNav.insertAdjacentElement('afterend', settingsNav);
    } else { navbar.appendChild(settingsNav); }
    injectStyle('javbus-top-settings-style',`#navbar .javbus-top-settings-btn{color:#2563eb!important;font-weight:700!important}#navbar .javbus-top-settings-btn:hover{color:#1d4ed8!important;background:rgba(37,99,235,.08)!important}`);
   },
   _insertMagnet(avid) {
-   if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') {
-    document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.scheduleMount('javbus', avid);
-    return; }
+   if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') { document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.scheduleMount('javbus', avid); return; }
    NativeMagnetPanel.remove('javbus');
    if (!MobilePolicy.usesDesktopMagnetTable()) return;
    const infoCol = document.querySelector("div[class='col-md-3 info']");
    if (!infoCol) return;
-   document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
-   const widget = Magnet.createMagnetWidget(avid); const slot = document.createElement('div');
-   slot.className = 'jav-nong-slot'; slot.style.overflow = 'hidden';
-   slot.appendChild(widget); infoCol.after(slot); },
+   document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); const widget = Magnet.createMagnetWidget(avid); const slot = document.createElement('div'); slot.className = 'jav-nong-slot'; slot.style.overflow = 'hidden'; slot.appendChild(widget);
+   infoCol.after(slot); },
   _scheduleNativeMagnetAssistantFix() {
    this._dedupeNativeMagnetAssistantButtons();
    [300, 900, 1800, 3500, 6500].forEach(delay => { setTimeout(() => this._dedupeNativeMagnetAssistantButtons(), delay); }); },
@@ -2636,8 +2260,7 @@
   _dedupeNativeMagnetAssistantRow(row, cells) {
    const groups = [...row.querySelectorAll('.mag-btn-group')];
    if (groups.length < 2) return;
-   const nameCell = cells.find(cell => cell.querySelector('a[href^="magnet:"]')) || cells[0];
-   const keepGroup = groups.find(group => group.closest('td') === nameCell) || groups[0];
+   const nameCell = cells.find(cell => cell.querySelector('a[href^="magnet:"]')) || cells[0]; const keepGroup = groups.find(group => group.closest('td') === nameCell) || groups[0];
    groups.forEach(group => {
     if (group !== keepGroup) group.remove();
    }); }, };
@@ -2659,9 +2282,8 @@
    if (direct) return direct;
    return [...document.querySelectorAll('h4')].find(h4 => /磁力(?:連結|链接)投稿/.test(h4.textContent || '')); },
   _placeJavbusReviewsPanel(panel) {
-   const magnetSubmit = this._findMagnetSubmitHeading();
-   const stillsShell = document.querySelector('.jav-stills-javbus[data-laosiji-stills="1"], .jav-stills-javbus');
-   const anchor = stillsShell?.parentNode ? stillsShell.nextSibling : magnetSubmit; const parent = stillsShell?.parentNode || magnetSubmit?.parentNode;
+   const magnetSubmit = this._findMagnetSubmitHeading(); const stillsShell = document.querySelector('.jav-stills-javbus[data-laosiji-stills="1"], .jav-stills-javbus'); const anchor = stillsShell?.parentNode ? stillsShell.nextSibling : magnetSubmit;
+   const parent = stillsShell?.parentNode || magnetSubmit?.parentNode;
    if (!panel || !parent) return false;
    if (stillsShell?.parentNode) {
     if (stillsShell.nextElementSibling !== panel) { parent.insertBefore(panel, anchor); }
@@ -2669,11 +2291,9 @@
     parent.insertBefore(panel, magnetSubmit); }
    return true; },
   _removeRecommendBlock() {
-   const heading = this._findRecommendHeading()
-    || [...document.querySelectorAll('h4')].find(h4 => /^(?:\u63a8\u85a6|\u63a8\u8350)/.test((h4.textContent || '').trim()));
+   const heading = this._findRecommendHeading() || [...document.querySelectorAll('h4')].find(h4 => /^(?:\u63a8\u85a6|\u63a8\u8350)/.test((h4.textContent || '').trim()));
    if (!heading) return;
-   const next = heading.nextElementSibling;
-   heading.remove();
+   const next = heading.nextElementSibling; heading.remove();
    if (this._isRecommendContainer(next)) next.remove();
   },
   _isRecommendContainer(node) {
@@ -2687,19 +2307,15 @@
    if (!avid) return;
    const existing = document.querySelector('.javbus-javdb-reviews');
    if (existing) {
-    this._bindJavbusReviewLoadMore(existing); this._placeJavbusReviewsPanel(existing); this._removeRecommendBlock();
-    return; }
+    this._bindJavbusReviewLoadMore(existing); this._placeJavbusReviewsPanel(existing); this._removeRecommendBlock(); return; }
    const heading = this._findRecommendHeading();
    if (!heading && !this._findMagnetSubmitHeading()) return;
-   this._ensureJavdbReviewsStyle();
-   const panel = document.createElement('section');
-   panel.className = 'javbus-javdb-reviews'; panel.dataset.avid = avid;
+   this._ensureJavdbReviewsStyle(); const panel = document.createElement('section'); panel.className = 'javbus-javdb-reviews'; panel.dataset.avid = avid;
    panel.innerHTML =`<div class="javbus-javdb-reviews-head"><button type="button" class="javbus-javdb-reviews-toggle" aria-expanded="false">JavDB 短评<span class="javbus-javdb-reviews-badge" title="此区块已由 JAV 老司机脚本替换">老司机</span></button><div class="javbus-javdb-reviews-actions"> ${JavdbReviews.renderDefaultToggle()} <a class="javbus-javdb-reviews-link" href="https://javdb.com/search?q= ${encodeURIComponent(avid)} " target="_blank" rel="noopener noreferrer">JavDB</a></div></div><div class="javbus-javdb-reviews-body" hidden><div class="javdb-api-tab-loading">正在读取短评...</div></div>`;
    if (this._placeJavbusReviewsPanel(panel)) {
     this._removeRecommendBlock();
    } else {
-    const next = heading.nextElementSibling;
-    heading.replaceWith(panel);
+    const next = heading.nextElementSibling; heading.replaceWith(panel);
     if (this._isRecommendContainer(next)) next.remove();
    }
    this._bindJavbusReviewLoadMore(panel); this._applyJavbusReviewsDefault(panel); },
@@ -2709,17 +2325,14 @@
                                 : `<div class="javdb-api-tab-end">已加载全部短评</div>`} </div>`;
   },
   _renderJavbusReviewCollapseBar() {
-   return '<div class="javdb-api-review-collapse-bar javbus-javdb-reviews-collapse-bar"><button type="button" class="javdb-api-review-collapse javbus-javdb-reviews-collapse" data-javbus-reviews-collapse="1">收起短评</button></div>';
-  },
+   return '<div class="javdb-api-review-collapse-bar javbus-javdb-reviews-collapse-bar"><button type="button" class="javdb-api-review-collapse javbus-javdb-reviews-collapse" data-javbus-reviews-collapse="1">收起短评</button></div>'; },
   _renderJavbusReviews(reviews, offset = 0, hasMore = false) {
-   const list = Array.isArray(reviews) ? reviews.slice(0, JAVDB_REVIEW_MORE_LIMIT) : [];
-   const items = list.length ? JavdbReviews.renderItems(list, offset, JAVDB_REVIEW_MORE_LIMIT) : '<div class="javdb-api-tab-empty">暂无短评</div>';
+   const list = Array.isArray(reviews) ? reviews.slice(0, JAVDB_REVIEW_MORE_LIMIT) : []; const items = list.length ? JavdbReviews.renderItems(list, offset, JAVDB_REVIEW_MORE_LIMIT) : '<div class="javdb-api-tab-empty">暂无短评</div>';
    return`<article class="message video-panel"><div class="message-body"> ${this._renderJavbusReviewCollapseBar()} <div class="javdb-api-tab-items"> ${items} </div> ${this._renderJavbusReviewFooter(hasMore, offset + list.length)} </div></article>`;
   },
   _setJavbusReviewsExpanded(panel, expanded) {
    if (!panel) return;
-   const body = panel.querySelector('.javbus-javdb-reviews-body'); const toggle = panel.querySelector('.javbus-javdb-reviews-toggle');
-   panel.classList.toggle('is-expanded', !!expanded);
+   const body = panel.querySelector('.javbus-javdb-reviews-body'); const toggle = panel.querySelector('.javbus-javdb-reviews-toggle'); panel.classList.toggle('is-expanded', !!expanded);
    if (body) body.hidden = !expanded;
    toggle?.setAttribute('aria-expanded', expanded ? 'true' : 'false'); },
   _applyJavbusReviewsDefault(panel) {
@@ -2740,23 +2353,15 @@
    panel.addEventListener('click', e => {
     const toggle = e.target?.closest?.('.javbus-javdb-reviews-toggle');
     if (toggle && panel.contains(toggle)) {
-     e.preventDefault(); e.stopPropagation();
-     e.stopImmediatePropagation?.();
-     const expanded = panel.classList.toggle('is-expanded');
-     this._setJavbusReviewsExpanded(panel, expanded);
+     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); const expanded = panel.classList.toggle('is-expanded'); this._setJavbusReviewsExpanded(panel, expanded);
      if (expanded && panel.dataset.reviewsLoaded !== '1') { this._loadJavdbReviewsForJavbus(panel.dataset.avid || '', panel); }
      return; }
     const collapse = e.target?.closest?.('[data-javbus-reviews-collapse]');
     if (collapse && panel.contains(collapse)) {
-     e.preventDefault(); e.stopPropagation();
-     e.stopImmediatePropagation?.();
-     this._setJavbusReviewsExpanded(panel, false);
-     return; }
+     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); this._setJavbusReviewsExpanded(panel, false); return; }
     const btn = e.target?.closest?.('.javbus-javdb-reviews-load-more');
     if (!btn || !panel.contains(btn)) return;
-    e.preventDefault(); e.stopPropagation();
-    e.stopImmediatePropagation?.();
-    this._loadMoreJavdbReviewsForJavbus(panel, btn);
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); this._loadMoreJavdbReviewsForJavbus(panel, btn);
    }, true); },
   async _loadJavdbReviewsForJavbus(avid, panel) {
    const body = panel?.querySelector('.javbus-javdb-reviews-body');
@@ -2772,8 +2377,7 @@
     panel.dataset.movieId = movie.id;
     const json = await Magnet.javdbApi.movieReviews(movie.id, { page: 1, limit: JAVDB_REVIEW_INITIAL_LIMIT + 1 });
     const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : []; const reviews = allReviews.slice(0, JAVDB_REVIEW_INITIAL_LIMIT);
-    body.innerHTML = reviews.length ? this._renderJavbusReviews(reviews, 0, allReviews.length > JAVDB_REVIEW_INITIAL_LIMIT)
-     : '<div class="javdb-api-tab-empty">暂无短评</div>';
+    body.innerHTML = reviews.length ? this._renderJavbusReviews(reviews, 0, allReviews.length > JAVDB_REVIEW_INITIAL_LIMIT) : '<div class="javdb-api-tab-empty">暂无短评</div>';
    } catch (err) {
     errorLog('JavBus JavDB 短评读取失败:', err);
     body.innerHTML =`<div class="javdb-api-tab-error"> ${JavdbReviews.escapeHtml(err.message || '短评读取失败')} </div>`;
@@ -2781,23 +2385,18 @@
   async _loadMoreJavdbReviewsForJavbus(panel, btn) {
    const movieId = panel?.dataset?.movieId || ''; const body = panel?.querySelector('.javbus-javdb-reviews-body');
    if (!movieId || !body || !btn) return;
-   const shown = body.querySelectorAll('.javdb-api-review').length; const take = Math.max(1, parseInt(btn.dataset.loadLimit, 10) || JAVDB_REVIEW_MORE_LIMIT);
-   const oldText = btn.textContent;
-   btn.textContent = '加载中...'; btn.disabled = true;
+   const shown = body.querySelectorAll('.javdb-api-review').length; const take = Math.max(1, parseInt(btn.dataset.loadLimit, 10) || JAVDB_REVIEW_MORE_LIMIT); const oldText = btn.textContent; btn.textContent = '加载中...'; btn.disabled = true;
    try {
     const json = await Magnet.javdbApi.movieReviews(movieId, { page: 1, limit: shown + take + 1 });
-    const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : []; const nextReviews = allReviews.slice(shown, shown + take);
-    const items = body.querySelector('.javdb-api-tab-items'); const footer = body.querySelector('.javbus-javdb-reviews-footer');
+    const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : []; const nextReviews = allReviews.slice(shown, shown + take); const items = body.querySelector('.javdb-api-tab-items');
+    const footer = body.querySelector('.javbus-javdb-reviews-footer');
     if (!nextReviews.length) {
      if (footer) footer.outerHTML = this._renderJavbusReviewFooter(false, shown);
      return; }
-    items?.insertAdjacentHTML('beforeend', JavdbReviews.renderItems(nextReviews, shown, take));
-    const nextShown = shown + nextReviews.length; const hasMore = allReviews.length > nextShown;
+    items?.insertAdjacentHTML('beforeend', JavdbReviews.renderItems(nextReviews, shown, take)); const nextShown = shown + nextReviews.length; const hasMore = allReviews.length > nextShown;
     if (footer) footer.outerHTML = this._renderJavbusReviewFooter(hasMore, nextShown);
    } catch (err) {
-    errorLog('JavBus JavDB 更多短评读取失败:', err);
-    btn.textContent = '加载失败，点击重试'; btn.disabled = false;
-    return; }
+    errorLog('JavBus JavDB 更多短评读取失败:', err); btn.textContent = '加载失败，点击重试'; btn.disabled = false; return; }
    btn.textContent = oldText; btn.disabled = false; }, };
  Object.assign(SiteJavBus, JavbusReviews);
  const JavbusList = {
@@ -2818,39 +2417,28 @@
     img.removeEventListener('error', onErr);
     if (img.dataset.laosijiThumbSrc) img.src = img.dataset.laosijiThumbSrc;
    });
-   img.src = full;
-   img.setAttribute('src', full); },
+   img.src = full; img.setAttribute('src', full); },
   _decorateCard(item) {
    if (!item) return;
    if (item.dataset.laosijiGridCard === '1') { ListPreview.attach(item); return; }
-   item.dataset.laosijiGridCard = '1';
-   item.classList.add('jav-card', 'javbus-grid-card'); item.style.removeProperty('position'); item.style.removeProperty('top');
-   item.style.removeProperty('left'); item.style.removeProperty('width');
-   const anchor = item.querySelector(':scope > a.movie-box[href]') || item.querySelector('a.movie-box[href]');
-   anchor?.classList.add('jav-card-link', 'javbus-card-link');
-   const frame = item.querySelector('.photo-frame');
-   frame?.classList.add('jav-card-cover', 'javbus-cover-frame');
-   const img = frame?.querySelector('img[src]') || item.querySelector('img[src]');
+   item.dataset.laosijiGridCard = '1'; item.classList.add('jav-card', 'javbus-grid-card'); item.style.removeProperty('position'); item.style.removeProperty('top'); item.style.removeProperty('left'); item.style.removeProperty('width');
+   const anchor = item.querySelector(':scope > a.movie-box[href]') || item.querySelector('a.movie-box[href]'); anchor?.classList.add('jav-card-link', 'javbus-card-link'); const frame = item.querySelector('.photo-frame');
+   frame?.classList.add('jav-card-cover', 'javbus-cover-frame'); const img = frame?.querySelector('img[src]') || item.querySelector('img[src]');
    if (img) {
     img.removeAttribute('width'); img.removeAttribute('height'); img.classList.add('jav-card-image', 'javbus-card-image'); this._swapCover(img); }
-   const info = item.querySelector('.photo-info');
-   info?.classList.add('jav-card-title', 'javbus-card-title');
-   const infoBody = info?.querySelector(':scope > span') || info;
+   const info = item.querySelector('.photo-info'); info?.classList.add('jav-card-title', 'javbus-card-title'); const infoBody = info?.querySelector(':scope > span') || info;
    if (infoBody && !infoBody.querySelector(':scope > .video-title')) {
     const nodes = Array.from(infoBody.childNodes); const titleNodes = [];
     for (const node of nodes) {
      if (node.nodeType === Node.ELEMENT_NODE) {
       const el = node;
       if (el.matches('br, .item-tag, date, .jav-pan115-badge')) break;
-      titleNodes.push(node);
-      continue; }
+      titleNodes.push(node); continue; }
      if (node.nodeType === Node.TEXT_NODE) {
       if (node.textContent.trim() || titleNodes.length) titleNodes.push(node);
      } }
     if (titleNodes.some(node => (node.textContent || '').trim())) {
-     const headline = document.createElement('span');
-     headline.className = 'video-title javbus-card-headline';
-     infoBody.insertBefore(headline, titleNodes[0]); titleNodes.forEach(node => headline.appendChild(node));
+     const headline = document.createElement('span'); headline.className = 'video-title javbus-card-headline'; infoBody.insertBefore(headline, titleNodes[0]); titleNodes.forEach(node => headline.appendChild(node));
      while (headline.nextSibling?.nodeType === Node.TEXT_NODE && !headline.nextSibling.textContent.trim()) { headline.nextSibling.remove(); }
      if (headline.nextSibling?.nodeType === Node.ELEMENT_NODE && headline.nextSibling.matches('br')) { headline.nextSibling.remove(); }
     } }
@@ -2863,8 +2451,7 @@
      while (nested.firstChild) wf.insertBefore(nested.firstChild, nested);
      nested.remove();
     });
-    wf.classList.remove('masonry'); wf.style.setProperty('position', 'static', 'important'); wf.style.setProperty('height', 'auto', 'important');
-    wf.style.setProperty('width', 'auto', 'important');
+    wf.classList.remove('masonry'); wf.style.setProperty('position', 'static', 'important'); wf.style.setProperty('height', 'auto', 'important'); wf.style.setProperty('width', 'auto', 'important');
     wf.querySelectorAll(':scope > .item').forEach(item => {
      item.style.removeProperty('position'); item.style.removeProperty('top'); item.style.removeProperty('left'); item.style.removeProperty('width');
     });
@@ -2913,15 +2500,12 @@
       ? (page <= 1 ? '' :`/page/${page}`)
       : (page <= 1 ? path :`${path}/${page}`);
     }
-    u.pathname = path || '/';
-    return u.href;
+    u.pathname = path || '/'; return u.href;
    } catch (e) { return ''; } },
   _initListPage() {
-   this._flattenWaterfall();
-   const container = this._getGridContainer();
+   this._flattenWaterfall(); const container = this._getGridContainer();
    if (!container) return;
-   this._destroyMasonry(container); container.classList.remove('masonry'); container.style.setProperty('position', 'static', 'important');
-   container.style.setProperty('height', 'auto', 'important'); container.style.setProperty('width', 'auto', 'important');
+   this._destroyMasonry(container); container.classList.remove('masonry'); container.style.setProperty('position', 'static', 'important'); container.style.setProperty('height', 'auto', 'important'); container.style.setProperty('width', 'auto', 'important');
    const needStyle = container.dataset.laosijiGrid !== '1';
    if (needStyle) { container.dataset.laosijiGrid = '1'; container.classList.add('jav-card-grid', 'javbus-card-grid'); }
    CardColumns.apply('javbus'); container.querySelectorAll(':scope > .item').forEach(item => this._decorateCard(item));
@@ -2940,18 +2524,13 @@
    return String(value || '') .replace(/\s+/g, ' ') .trim() .toLowerCase(); },
   _getJavdbActorLinks(root = document) {
    const panel = root.querySelector?.('.movie-panel-info') || root;
-   return [...panel.querySelectorAll?.('a[href*="/actors/"]') || []].filter(a => {
-    const href = a.getAttribute('href') || ''; const text = (a.textContent || '').trim();
-    return text && /\/actors\/[^/?#]+/i.test(href);
-   }); },
+   return [...panel.querySelectorAll?.('a[href*="/actors/"]') || []].filter(a => { const href = a.getAttribute('href') || ''; const text = (a.textContent || '').trim(); return text && /\/actors\/[^/?#]+/i.test(href); }); },
   _getJavdbActorPath(value) {
    try {
-    const path = new URL(value || '', location.origin).pathname.toLowerCase();
-    return path.match(/^\/actors\/[^/?#]+/i)?.[0] || '';
+    const path = new URL(value || '', location.origin).pathname.toLowerCase(); return path.match(/^\/actors\/[^/?#]+/i)?.[0] || '';
    } catch { return ''; } },
   _getJavdbActorId(value) {
-   const path = this._getJavdbActorPath(value);
-   return path.match(/^\/actors\/([^/?#]+)/i)?.[1] || ''; },
+   const path = this._getJavdbActorPath(value); return path.match(/^\/actors\/([^/?#]+)/i)?.[1] || ''; },
   _readFavoriteActorsCache() {
    try {
     const raw = GM_getValue('javdb_favorite_actors_cache', null); const cache = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -2974,8 +2553,7 @@
    }));
    return ts; },
   _readFavoriteActorsCacheDirtyAt() {
-   const dirtyAt = Number(GM_getValue('javdb_favorite_actors_cache_dirty_at', 0));
-   return Number.isFinite(dirtyAt) ? dirtyAt : 0; },
+   const dirtyAt = Number(GM_getValue('javdb_favorite_actors_cache_dirty_at', 0)); return Number.isFinite(dirtyAt) ? dirtyAt : 0; },
   _markFavoriteActorsCacheDirty() {
    GM_setValue('javdb_favorite_actors_cache_dirty_at', Date.now()); },
   _clearFavoriteActorsCacheDirty(ts) {
@@ -3021,29 +2599,23 @@
    pending.removeNames.forEach(name => {
     if (!names.has(name)) pending.removeNames.delete(name);
    });
-   pending.addIds.forEach(id => ids.add(id)); pending.removeIds.forEach(id => ids.delete(id)); pending.addPaths.forEach(path => paths.add(path));
-   pending.removePaths.forEach(path => paths.delete(path)); pending.addNames.forEach(name => names.add(name));
+   pending.addIds.forEach(id => ids.add(id)); pending.removeIds.forEach(id => ids.delete(id)); pending.addPaths.forEach(path => paths.add(path)); pending.removePaths.forEach(path => paths.delete(path)); pending.addNames.forEach(name => names.add(name));
    pending.removeNames.forEach(name => names.delete(name)); this._writeFavoriteActorsPending(pending);
    return { names, paths, ids }; },
   async _fetchFavoriteActors({ force = false } = {}) {
    const cached = !force ? this._readFavoriteActorsCache() : null;
    if (cached) return cached;
-   const names = new Set(); const paths = new Set(); const ids = new Set(); const seen = new Set();
-   let url = new URL('/users/collection_actors', location.origin).href;
+   const names = new Set(); const paths = new Set(); const ids = new Set(); const seen = new Set(); let url = new URL('/users/collection_actors', location.origin).href;
    for (let page = 0; url && page < 30; page++) {
-    const currentUrl = url;
-    seen.add(currentUrl);
-    const res = await gmFetch(currentUrl);
+    const currentUrl = url; seen.add(currentUrl); const res = await gmFetch(currentUrl);
     if (!res.loadstuts || !res.responseText) throw new Error('JavDB 收藏演员读取失败');
     const doc = parseHTML(res.responseText);
     doc.querySelectorAll('a[href*="/actors/"]').forEach(a => {
-     const text = this._normalizeActorKey(a.textContent); let path = '';
-     path = this._getJavdbActorPath(a.getAttribute('href'));
+     const text = this._normalizeActorKey(a.textContent); let path = ''; path = this._getJavdbActorPath(a.getAttribute('href'));
      if (text) names.add(text);
      if (path) { paths.add(path); ids.add(this._getJavdbActorId(path)); }
     });
-    const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]');
-    url = '';
+    const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]'); url = '';
     if (next) {
      try {
       const nextUrl = new URL(next.getAttribute('href') || '', location.origin);
@@ -3055,8 +2627,7 @@
    if (!links?.length || !fav) return;
    links.forEach(a => {
     const path = this._getJavdbActorPath(a.getAttribute('href')); const id = this._getJavdbActorId(path); const name = this._normalizeActorKey(a.textContent);
-    const matched = id ? fav.ids?.has(id) : (path && fav.paths?.has(path)) || (name && fav.names?.has(name));
-    a.classList.toggle('javdb-favorite-actor', !!matched);
+    const matched = id ? fav.ids?.has(id) : (path && fav.paths?.has(path)) || (name && fav.names?.has(name)); a.classList.toggle('javdb-favorite-actor', !!matched);
     if (matched) a.title = a.title || '已收藏演员';
    }); },
   _updateFavoriteActorsCacheFromAction(action) {
@@ -3086,12 +2657,10 @@
     pending.removeIds.delete(id); pending.removePaths.delete(path); pending.removeNames.delete(name); pending.addIds.add(id); pending.addPaths.add(path);
     if (name) pending.addNames.add(name);
    }
-   this._writeFavoriteActorsPending(pending);
-   const ts = this._writeFavoriteActorsCache(cached.names, cached.paths, cached.ids);
+   this._writeFavoriteActorsPending(pending); const ts = this._writeFavoriteActorsCache(cached.names, cached.paths, cached.ids);
    return { ...cached, ts }; },
   _refreshFavoriteActorsCache({ applyCurrentPage = true, delay = 500 } = {}) {
-   const root = document.documentElement; const refreshingKey = 'laosijiJavdbFavoriteActorsRefreshing';
-   const pendingKey = 'laosijiJavdbFavoriteActorsRefreshPending'; const pendingApplyKey = 'laosijiJavdbFavoriteActorsRefreshPendingApply';
+   const root = document.documentElement; const refreshingKey = 'laosijiJavdbFavoriteActorsRefreshing'; const pendingKey = 'laosijiJavdbFavoriteActorsRefreshPending'; const pendingApplyKey = 'laosijiJavdbFavoriteActorsRefreshPendingApply';
    if (root.dataset[refreshingKey] === '1') {
     root.dataset[pendingKey] = '1';
     if (applyCurrentPage) root.dataset[pendingApplyKey] = '1';
@@ -3104,8 +2673,7 @@
      }) .catch(err => debugLog('JavDB 收藏演员缓存刷新失败:', err)) .finally(() => {
       delete root.dataset[refreshingKey];
       if (root.dataset[pendingKey] !== '1') return;
-      const pendingApply = root.dataset[pendingApplyKey] === '1';
-      delete root.dataset[pendingKey]; delete root.dataset[pendingApplyKey];
+      const pendingApply = root.dataset[pendingApplyKey] === '1'; delete root.dataset[pendingKey]; delete root.dataset[pendingApplyKey];
       this._refreshFavoriteActorsCache({
        applyCurrentPage: pendingApply,
        delay: 0,
@@ -3134,8 +2702,7 @@
      'a[href*="/actors/"][href$="/uncollect"][data-method="post"]'
     );
     if (!action) return;
-    const cached = this._updateFavoriteActorsCacheFromAction(action);
-    this._markFavoriteActorsCacheDirty();
+    const cached = this._updateFavoriteActorsCacheFromAction(action); this._markFavoriteActorsCacheDirty();
     if (cached) this._applyFavoriteActorHighlight(this._getJavdbActorLinks(), cached);
     this._refreshFavoriteActorsCache({ delay: 900 });
    }, true); },
@@ -3157,8 +2724,7 @@
    if (!CFG.javdbFavoriteActorHighlight) return;
    const links = this._getJavdbActorLinks();
    if (!links.length) return;
-   this._ensureFavoriteActorStyle();
-   const cached = this._readFavoriteActorsCache();
+   this._ensureFavoriteActorStyle(); const cached = this._readFavoriteActorsCache();
    if (cached) { this._applyFavoriteActorHighlight(links, cached); }
   }, };
  const JavdbApiTabStyles = {
@@ -3178,14 +2744,11 @@
   renderLinkedText(value) {
    const text = String(value || ''); const re = /((?:magnet:\?|ed2k:\/\/|https?:\/\/)[^\s"'<>]+)/gi; let html = ''; let last = 0;
    text.replace(re, (match, _link, offset) => {
-    html += this._escapeHtml(text.slice(last, offset));
-    const safe = this._escapeHtml(match);
+    html += this._escapeHtml(text.slice(last, offset)); const safe = this._escapeHtml(match);
     html += `<a class="a-primary" href="${safe}" target="_blank" rel="noopener noreferrer">${safe}</a>`;
-    last = offset + match.length;
-    return match;
+    last = offset + match.length; return match;
    });
-   html += this._escapeHtml(text.slice(last));
-   return html.replace(/\n/g, '<br>'); },
+   html += this._escapeHtml(text.slice(last)); return html.replace(/\n/g, '<br>'); },
   renderStars(score) {
    const value = Math.max(0, Math.min(5, parseInt(score, 10) || 0));
    return `<span class="score-stars"> ${Array.from({ length: 5 }, (_, index) => `<i class="icon-star${index < value ? '' : ' gray'}"></i>`).join('')} </span>`;
@@ -3224,8 +2787,7 @@
    return `<article class="message video-panel"><div class="message-body"><div id="magnets-content" class="magnet-links" data-laosiji-api-source="1"> ${this._renderApiMagnetRows(magnets)} </div></div></article>`;
   },
   renderReviews(reviews, page, limit) {
-   const list = Array.isArray(reviews) ? reviews.slice(0, limit) : [];
-   const items = list.length ? this._renderApiReviewItems(list, (page - 1) * limit, limit) : '<div class="javdb-api-tab-empty">暂无短评</div>';
+   const list = Array.isArray(reviews) ? reviews.slice(0, limit) : []; const items = list.length ? this._renderApiReviewItems(list, (page - 1) * limit, limit) : '<div class="javdb-api-tab-empty">暂无短评</div>';
    return `${this._renderApiReviewCollapseBar()} <div class="javdb-api-tab-items"> ${items} </div> ${this._renderApiTabFooter('reviews', page + 1, list.length >= limit, '已加载全部短评', '加载更多短评', limit, list.length, JAVDB_REVIEW_MORE_LIMIT)}`;
   },
   renderRelatedItems(lists, offset = 0) {
@@ -3235,16 +2797,14 @@
     return `<div class="javdb-api-related"><div class="javdb-api-related-head"><span><strong>#${offset + index + 1}</strong><a href="${this._escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${this._escapeHtml(item?.name || '未命名清單')}</a></span><span>${this._escapeHtml(this._formatApiDate(item?.created_at))}</span></div> ${item?.description ? `<div class="javdb-api-related-desc">${this._renderApiLinkedText(item.description)}</div>` : ''} <div class="javdb-api-related-meta"><span>影片:${this._escapeHtml(item?.movies_count ?? '-')}</span><span>收藏:${this._escapeHtml(item?.collections_count ?? '-')}</span><span>浏览:${this._escapeHtml(item?.views_count ?? '-')}</span></div></div>`;
    }).join(''); },
   renderRelatedLists(lists, page, limit) {
-   const list = Array.isArray(lists) ? lists : [];
-   const items = list.length ? this._renderApiRelatedItems(list, (page - 1) * limit) : '<div class="javdb-api-tab-empty">暂无相关清单</div>';
+   const list = Array.isArray(lists) ? lists : []; const items = list.length ? this._renderApiRelatedItems(list, (page - 1) * limit) : '<div class="javdb-api-tab-empty">暂无相关清单</div>';
    return `<div class="javdb-api-tab-items"> ${items} </div> ${this._renderApiTabFooter('lists', page + 1, list.length >= limit, '已加载全部清单', '加载更多清单')}`;
   }, };
  const JavdbApiTabs = {
   _getCurrentMovieId() {
    const pathHit = location.pathname.match(/^\/v\/([^/?#]+)/);
    if (pathHit) return decodeURIComponent(pathHit[1]);
-   const tabUrl = document.querySelector('.review-tab[data-url*="/v/"], .list-tab[data-url*="/v/"]')?.dataset?.url || '';
-   const tabHit = tabUrl.match(/\/v\/([^/]+)/);
+   const tabUrl = document.querySelector('.review-tab[data-url*="/v/"], .list-tab[data-url*="/v/"]')?.dataset?.url || ''; const tabHit = tabUrl.match(/\/v\/([^/]+)/);
    if (tabHit) return decodeURIComponent(tabHit[1]);
    return this._getApiDetailShellMode()?.movieId || ''; },
   _formatApiDate(value) { return JavdbApiTabRenderer.formatDate.call(this, value); },
@@ -3257,14 +2817,12 @@
    if (!tabs) return;
    let badge = tabs.querySelector('.javdb-api-tab-badge');
    if (!badge) { badge = document.createElement('span'); badge.className = 'javdb-api-tab-badge'; }
-   badge.textContent = '老司机'; badge.title = '此区块已由 JAV 老司机脚本替换';
-   let badgeItem = tabs.querySelector('.javdb-api-tab-badge-item');
+   badge.textContent = '老司机'; badge.title = '此区块已由 JAV 老司机脚本替换'; let badgeItem = tabs.querySelector('.javdb-api-tab-badge-item');
    if (!badgeItem) { badgeItem = document.createElement('li'); badgeItem.className = 'javdb-api-tab-badge-item'; }
    if (!badgeItem.contains(badge)) badgeItem.appendChild(badge);
    const listTab = document.querySelector('[data-movie-tab-target="listTab"]');
    if (listTab?.parentElement) {
-    if (badgeItem.parentElement !== listTab.parentElement || badgeItem.previousElementSibling !== listTab) {
-     listTab.insertAdjacentElement('afterend', badgeItem); }
+    if (badgeItem.parentElement !== listTab.parentElement || badgeItem.previousElementSibling !== listTab) { listTab.insertAdjacentElement('afterend', badgeItem); }
    } else if (!tabs.contains(badgeItem)) {
     tabs.appendChild(badgeItem); } },
   _ensureApiMovieTabDefaultControl() {
@@ -3277,15 +2835,12 @@
    }
    const badgeItem = tabs.querySelector('.javdb-api-tab-badge-item');
    if (badgeItem?.parentElement) {
-    if (controlItem.parentElement !== badgeItem.parentElement || controlItem.previousElementSibling !== badgeItem) {
-     badgeItem.insertAdjacentElement('afterend', controlItem); }
+    if (controlItem.parentElement !== badgeItem.parentElement || controlItem.previousElementSibling !== badgeItem) { badgeItem.insertAdjacentElement('afterend', controlItem); }
    } else if (!tabList.contains(controlItem)) {
     tabList.appendChild(controlItem); }
    this._syncApiMovieTabDefaultControl(tabs); },
   _syncApiMovieTabDefaultControl(root = document) {
-   root.querySelectorAll?.('[data-laosiji-api-default-tab]').forEach(btn => {
-    btn.classList.toggle('is-active', btn.dataset.laosijiApiDefaultTab === CFG.apiMovieDefaultTab);
-   }); },
+   root.querySelectorAll?.('[data-laosiji-api-default-tab]').forEach(btn => { btn.classList.toggle('is-active', btn.dataset.laosijiApiDefaultTab === CFG.apiMovieDefaultTab); }); },
   _renderApiTabLoading(text = '读取中...') { return JavdbApiTabRenderer.renderLoading.call(this, text); },
   _renderApiTabError(text) { return JavdbApiTabRenderer.renderError.call(this, text); },
   _renderApiReviewDefaultToggle() { return JavdbReviews.renderDefaultToggle(); },
@@ -3294,8 +2849,7 @@
   _syncApiReviewDefaultToggles(root = document) { return JavdbReviews.syncDefaultToggles(root); },
   _renderApiReviewCollapsed() { return JavdbReviews.renderCollapsed(); },
   _renderApiReviewCollapseBar() { return JavdbReviews.renderCollapseBar(); },
-  _renderApiTabFooter(tab, nextPage, hasNext, doneText, moreText, pageSize = 20, shownCount = 0, loadLimit = pageSize) {
-   return JavdbApiTabRenderer.renderFooter.call(this, tab, nextPage, hasNext, doneText, moreText, pageSize, shownCount, loadLimit); },
+  _renderApiTabFooter(tab, nextPage, hasNext, doneText, moreText, pageSize = 20, shownCount = 0, loadLimit = pageSize) { return JavdbApiTabRenderer.renderFooter.call(this, tab, nextPage, hasNext, doneText, moreText, pageSize, shownCount, loadLimit); },
   _renderApiMagnetRows(magnets) { return JavdbApiTabRenderer.renderMagnetRows.call(this, magnets); },
   _renderApiMagnets(magnets) { return JavdbApiTabRenderer.renderMagnets.call(this, magnets); },
   _renderApiReviewItems(reviews, offset = 0, limit = JAVDB_REVIEW_MORE_LIMIT) { return JavdbReviews.renderItems(reviews, offset, limit); },
@@ -3303,10 +2857,7 @@
   _renderApiRelatedItems(lists, offset = 0) { return JavdbApiTabRenderer.renderRelatedItems.call(this, lists, offset); },
   _renderApiRelatedLists(lists, page, limit) { return JavdbApiTabRenderer.renderRelatedLists.call(this, lists, page, limit); },
   _setApiMovieTab(active) {
-   const tabs = {
-    magnets: document.querySelector('[data-movie-tab-target="magnetTab"]'),
-    reviews: document.querySelector('[data-movie-tab-target="reviewTab"]'),
-    lists: document.querySelector('[data-movie-tab-target="listTab"]'), };
+   const tabs = { magnets: document.querySelector('[data-movie-tab-target="magnetTab"]'), reviews: document.querySelector('[data-movie-tab-target="reviewTab"]'), lists: document.querySelector('[data-movie-tab-target="listTab"]') };
    const panes = { magnets: document.getElementById('magnets'), reviews: document.getElementById('reviews'), lists: document.getElementById('lists') };
    Object.entries(tabs).forEach(([key, tab]) => tab?.classList.toggle('is-active', key === active));
    Object.entries(panes).forEach(([key, pane]) => {
@@ -3315,38 +2866,32 @@
   _updateApiTabFooter(pane, tab, nextPage, hasNext, doneText, moreText) {
    const footer = pane?.querySelector('.javdb-api-tab-footer');
    if (!footer) return;
-   const pageSize = tab === 'reviews' ? JAVDB_REVIEW_MORE_LIMIT : 20;
-   const shownCount = tab === 'reviews' ? pane.querySelectorAll('.javdb-api-review').length : 0;
+   const pageSize = tab === 'reviews' ? JAVDB_REVIEW_MORE_LIMIT : 20; const shownCount = tab === 'reviews' ? pane.querySelectorAll('.javdb-api-review').length : 0;
    footer.outerHTML = this._renderApiTabFooter(tab, nextPage, hasNext, doneText, moreText, pageSize, shownCount, pageSize); },
   async _loadApiMovieTab(movieId, tab, page = 1, append = false, pageSize = null, shownCount = null, loadLimit = null) {
    const pane = document.getElementById(tab === 'magnets' ? 'magnets' : tab);
    if (!pane || !movieId) return;
    const visibleReviewCount = tab === 'reviews' && append ? Math.max(0, parseInt(shownCount, 10) || pane.querySelectorAll('.javdb-api-review').length || 0) : 0;
-   const reviewTake = append ? Math.max(1, parseInt(loadLimit, 10) || JAVDB_REVIEW_MORE_LIMIT) : JAVDB_REVIEW_INITIAL_LIMIT;
-   const limit = tab === 'reviews' ? visibleReviewCount + reviewTake : 20;
+   const reviewTake = append ? Math.max(1, parseInt(loadLimit, 10) || JAVDB_REVIEW_MORE_LIMIT) : JAVDB_REVIEW_INITIAL_LIMIT; const limit = tab === 'reviews' ? visibleReviewCount + reviewTake : 20;
    if (!append) pane.innerHTML = this._renderApiTabLoading(tab === 'magnets' ? '正在读取磁力...' : tab === 'reviews' ? '正在读取短评...' : '正在读取相关清单...');
    try {
     if (tab === 'magnets') {
-     const json = await Magnet.javdbApi.movieMagnets(movieId); const magnets = Array.isArray(json?.data?.magnets) ? json.data.magnets : [];
-     pane.innerHTML = this._renderApiMagnets(magnets); pane.dataset.laosijiApiLoaded = '1';
+     const json = await Magnet.javdbApi.movieMagnets(movieId); const magnets = Array.isArray(json?.data?.magnets) ? json.data.magnets : []; pane.innerHTML = this._renderApiMagnets(magnets); pane.dataset.laosijiApiLoaded = '1';
      if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') { NativeMagnetPanel.scheduleMount('javdb', this.getVid()); }
      return; }
     if (tab === 'reviews') {
      const json = await Magnet.javdbApi.movieReviews(movieId, { page: 1, limit });
-     const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : [];
-     const reviews = append ? allReviews.slice(visibleReviewCount, visibleReviewCount + reviewTake) : allReviews.slice(0, JAVDB_REVIEW_INITIAL_LIMIT);
+     const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : []; const reviews = append ? allReviews.slice(visibleReviewCount, visibleReviewCount + reviewTake) : allReviews.slice(0, JAVDB_REVIEW_INITIAL_LIMIT);
      if (append) {
       pane.querySelector('.javdb-api-tab-items')?.insertAdjacentHTML('beforeend', this._renderApiReviewItems(reviews, visibleReviewCount, reviewTake));
       this._updateApiTabFooter(pane, 'reviews', page + 1, allReviews.length >= limit && reviews.length > 0, '已加载全部短评', '加载更多短评');
      } else { pane.innerHTML = this._renderApiReviews(reviews, page, JAVDB_REVIEW_INITIAL_LIMIT); }
-     pane.dataset.laosijiApiLoaded = '1';
-     return; }
+     pane.dataset.laosijiApiLoaded = '1'; return; }
     if (tab === 'lists') {
      const json = await Magnet.javdbApi.relatedLists(movieId, { page, limit });
      const lists = Array.isArray(json?.data?.lists) ? json.data.lists : [];
      if (append) {
-      pane.querySelector('.javdb-api-tab-items')?.insertAdjacentHTML('beforeend', this._renderApiRelatedItems(lists, (page - 1) * limit));
-      this._updateApiTabFooter(pane, 'lists', page + 1, lists.length >= limit, '已加载全部清单', '加载更多清单');
+      pane.querySelector('.javdb-api-tab-items')?.insertAdjacentHTML('beforeend', this._renderApiRelatedItems(lists, (page - 1) * limit)); this._updateApiTabFooter(pane, 'lists', page + 1, lists.length >= limit, '已加载全部清单', '加载更多清单');
      } else { pane.innerHTML = this._renderApiRelatedLists(lists, page, limit); }
      pane.dataset.laosijiApiLoaded = '1'; }
    } catch (err) {
@@ -3355,22 +2900,16 @@
      this._updateApiTabFooter(pane, tab, page, true, '', '加载失败，点击重试');
     } else { pane.innerHTML = this._renderApiTabError(err.message || '读取失败'); } } },
   _initApiMovieTabs() {
-   const movieId = this._getCurrentMovieId(); const tabsContainer = document.getElementById('tabs-container');
-   const magnetsPane = document.getElementById('magnets'); const reviewsPane = document.getElementById('reviews');
+   const movieId = this._getCurrentMovieId(); const tabsContainer = document.getElementById('tabs-container'); const magnetsPane = document.getElementById('magnets'); const reviewsPane = document.getElementById('reviews');
    const listsPane = document.getElementById('lists');
    if (!movieId || !tabsContainer || !magnetsPane || !reviewsPane || !listsPane) return;
    if (tabsContainer.dataset.laosijiApiMovieTabs === movieId) return;
-   tabsContainer.dataset.laosijiApiMovieTabs = movieId;
-   this._ensureApiMovieTabStyle(); this._ensureApiMovieTabBadge(); this._ensureApiMovieTabDefaultControl();
-   const tabLinks = {
-    magnets: document.querySelector('[data-movie-tab-target="magnetTab"] a'),
-    reviews: document.querySelector('[data-movie-tab-target="reviewTab"] a'),
-    lists: document.querySelector('[data-movie-tab-target="listTab"] a'), };
+   tabsContainer.dataset.laosijiApiMovieTabs = movieId; this._ensureApiMovieTabStyle(); this._ensureApiMovieTabBadge(); this._ensureApiMovieTabDefaultControl();
+   const tabLinks = { magnets: document.querySelector('[data-movie-tab-target="magnetTab"] a'), reviews: document.querySelector('[data-movie-tab-target="reviewTab"] a'), lists: document.querySelector('[data-movie-tab-target="listTab"] a') };
    const useNativeMagnets = () => MobilePolicy.effectiveMagnetDisplayMode() !== 'sidebar';
    Object.entries(tabLinks).forEach(([key, link]) => {
     if (!link) return;
-    link.dataset.laosijiApiTab = key;
-    link.removeAttribute('data-action'); link.removeAttribute('data-url');
+    link.dataset.laosijiApiTab = key; link.removeAttribute('data-action'); link.removeAttribute('data-url');
    });
    const root = tabsContainer.closest('.columns') || tabsContainer;
    root.addEventListener('change', e => {
@@ -3383,10 +2922,7 @@
     if (e.target?.closest?.('.javdb-api-tab-badge-item')) { e.preventDefault(); e.stopImmediatePropagation(); return; }
     const defaultTabBtn = e.target?.closest?.('[data-laosiji-api-default-tab]');
     if (defaultTabBtn && root.contains(defaultTabBtn)) {
-     e.preventDefault(); e.stopImmediatePropagation();
-     const tab = defaultTabBtn.dataset.laosijiApiDefaultTab === 'magnets' ? 'magnets' : 'reviews';
-     CFG.apiMovieDefaultTab = tab;
-     this._syncApiMovieTabDefaultControl(document); this._setApiMovieTab(tab);
+     e.preventDefault(); e.stopImmediatePropagation(); const tab = defaultTabBtn.dataset.laosijiApiDefaultTab === 'magnets' ? 'magnets' : 'reviews'; CFG.apiMovieDefaultTab = tab; this._syncApiMovieTabDefaultControl(document); this._setApiMovieTab(tab);
      const pane = document.getElementById(tab);
      if (tab === 'reviews') {
       if (CFG.reviewsDefaultExpanded) {
@@ -3400,36 +2936,23 @@
      return; }
     const copyBtn = e.target?.closest?.('.copy-to-clipboard[data-clipboard-text]');
     if (copyBtn && tabsContainer.contains(copyBtn)) {
-     e.preventDefault(); e.stopImmediatePropagation(); GM_setClipboard(copyBtn.dataset.clipboardText || '');
-     const oldText = copyBtn.textContent;
-     copyBtn.textContent = '已複製';
+     e.preventDefault(); e.stopImmediatePropagation(); GM_setClipboard(copyBtn.dataset.clipboardText || ''); const oldText = copyBtn.textContent; copyBtn.textContent = '已複製';
      setTimeout(() => { copyBtn.textContent = oldText; }, 900);
      return; }
     const loadMore = e.target?.closest?.('.javdb-api-tab-load-more[data-laosiji-api-load-tab]');
     if (loadMore && tabsContainer.contains(loadMore)) {
-     e.preventDefault(); e.stopImmediatePropagation();
-     const tab = loadMore.dataset.laosijiApiLoadTab; const nextPage = parseInt(loadMore.dataset.nextPage || '2', 10) || 2;
-     const pageSize = parseInt(loadMore.dataset.pageSize || '', 10) || null; const shownCount = parseInt(loadMore.dataset.shownCount || '', 10) || null;
-     const loadLimit = parseInt(loadMore.dataset.loadLimit || '', 10) || null;
-     loadMore.textContent = '加载中...'; loadMore.disabled = true;
-     this._loadApiMovieTab(movieId, tab, nextPage, true, pageSize, shownCount, loadLimit);
-     return; }
+     e.preventDefault(); e.stopImmediatePropagation(); const tab = loadMore.dataset.laosijiApiLoadTab; const nextPage = parseInt(loadMore.dataset.nextPage || '2', 10) || 2; const pageSize = parseInt(loadMore.dataset.pageSize || '', 10) || null;
+     const shownCount = parseInt(loadMore.dataset.shownCount || '', 10) || null; const loadLimit = parseInt(loadMore.dataset.loadLimit || '', 10) || null; loadMore.textContent = '加载中...'; loadMore.disabled = true;
+     this._loadApiMovieTab(movieId, tab, nextPage, true, pageSize, shownCount, loadLimit); return; }
     const expandReviews = e.target?.closest?.('[data-laosiji-api-expand-reviews]');
     if (expandReviews && tabsContainer.contains(expandReviews)) {
-     e.preventDefault(); e.stopImmediatePropagation(); this._loadApiMovieTab(movieId, 'reviews');
-     return; }
+     e.preventDefault(); e.stopImmediatePropagation(); this._loadApiMovieTab(movieId, 'reviews'); return; }
     const collapseReviews = e.target?.closest?.('[data-laosiji-api-collapse-reviews]');
     if (collapseReviews && tabsContainer.contains(collapseReviews)) {
-     e.preventDefault(); e.stopImmediatePropagation();
-     delete reviewsPane.dataset.laosijiApiLoaded;
-     reviewsPane.innerHTML = this._renderApiReviewCollapsed();
-     return; }
+     e.preventDefault(); e.stopImmediatePropagation(); delete reviewsPane.dataset.laosijiApiLoaded; reviewsPane.innerHTML = this._renderApiReviewCollapsed(); return; }
     const tabLink = e.target?.closest?.('[data-laosiji-api-tab]');
     if (!tabLink || !root.contains(tabLink)) return;
-    e.preventDefault(); e.stopImmediatePropagation();
-    const tab = tabLink.dataset.laosijiApiTab;
-    this._setApiMovieTab(tab);
-    const pane = document.getElementById(tab === 'magnets' ? 'magnets' : tab);
+    e.preventDefault(); e.stopImmediatePropagation(); const tab = tabLink.dataset.laosijiApiTab; this._setApiMovieTab(tab); const pane = document.getElementById(tab === 'magnets' ? 'magnets' : tab);
     if (tab === 'magnets' && useNativeMagnets()) {
      if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') { NativeMagnetPanel.scheduleMount('javdb', this.getVid()); }
      return; }
@@ -3441,8 +2964,7 @@
        pane.innerHTML = this._renderApiReviewCollapsed(); }
      } else { this._loadApiMovieTab(movieId, tab); } }
    }, true);
-   const defaultTab = CFG.apiMovieDefaultTab;
-   this._setApiMovieTab(defaultTab);
+   const defaultTab = CFG.apiMovieDefaultTab; this._setApiMovieTab(defaultTab);
    if (defaultTab === 'magnets') {
     if (useNativeMagnets()) {
      if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') { NativeMagnetPanel.scheduleMount('javdb', this.getVid()); }
@@ -3458,8 +2980,7 @@
   _paginationCurrentPage(nav) {
    const params = new URLSearchParams(location.search); const fromUrl = parseInt(params.get('page') || '1', 10);
    if (Number.isFinite(fromUrl) && fromUrl > 0) return fromUrl;
-   const current = parseInt(nav?.querySelector('.pagination-link.is-current')?.textContent?.trim() || '1', 10);
-   return Number.isFinite(current) && current > 0 ? current : 1; },
+   const current = parseInt(nav?.querySelector('.pagination-link.is-current')?.textContent?.trim() || '1', 10); return Number.isFinite(current) && current > 0 ? current : 1; },
   _paginationPageUrl(page) {
    const url = new URL(location.href);
    if (page <= 1) url.searchParams.delete('page');
@@ -3471,18 +2992,13 @@
    this._ensurePaginationJumpStyle();
    navs.forEach(nav => {
     if (nav.querySelector('.javdb-pagination-jump')) return;
-    const list = nav.querySelector('.pagination-list'); const host = document.createElement(list ? 'li' : 'div');
-    host.className = list ? 'javdb-pagination-jump-item' : 'javdb-pagination-jump-item pagination-link';
-    const form = document.createElement('form');
+    const list = nav.querySelector('.pagination-list'); const host = document.createElement(list ? 'li' : 'div'); host.className = list ? 'javdb-pagination-jump-item' : 'javdb-pagination-jump-item pagination-link'; const form = document.createElement('form');
     form.className = 'javdb-pagination-jump';
     form.innerHTML = `<input class="pagination-link" type="number" min="1" step="1" inputmode="numeric" aria-label="跳转页码" placeholder="页码" value="${this._escapeHtml(this._paginationCurrentPage(nav))}"><button class="pagination-link" type="submit">跳转</button>`;
     form.addEventListener('submit', e => {
-     e.preventDefault();
-     const input = form.querySelector('input'); const page = Math.max(1, parseInt(input?.value || '1', 10) || 1);
-     location.href = this._paginationPageUrl(page);
+     e.preventDefault(); const input = form.querySelector('input'); const page = Math.max(1, parseInt(input?.value || '1', 10) || 1); location.href = this._paginationPageUrl(page);
     });
-    host.appendChild(form);
-    (list || nav).appendChild(host);
+    host.appendChild(form); (list || nav).appendChild(host);
    }); }, };
  const JavdbApiShellStyles = {
   installFc2AdvancedSearch() {
@@ -3496,8 +3012,7 @@
   }, };
  const JavdbApiShell = {
   _apiRankingShellUrl(mode, next = {}) {
-   const params = new URLSearchParams();
-   params.set('laosiji_rank', mode);
+   const params = new URLSearchParams(); params.set('laosiji_rank', mode);
    if (mode === 'top') {
     params.set('lsj_category', next.category || 'all');
     if (next.year) params.set('lsj_year', next.year);
@@ -3556,32 +3071,27 @@
    return ''; },
   _isTopRankingShellUrl(href) {
    try {
-    const url = new URL(href, location.href);
-    return url.pathname.replace(/\/+$/, '') === '/advanced_search' && new URLSearchParams(url.search).get('laosiji_rank') === 'top';
+    const url = new URL(href, location.href); return url.pathname.replace(/\/+$/, '') === '/advanced_search' && new URLSearchParams(url.search).get('laosiji_rank') === 'top';
    } catch {}
    return false; },
   _movieIdFromJavdbHref(href) {
    try {
     const url = new URL(href, location.href);
     if (!/javdb/i.test(url.hostname)) return '';
-    const m = url.pathname.match(/^\/v\/([^/?#]+)/);
-    return m ? decodeURIComponent(m[1]) : '';
+    const m = url.pathname.match(/^\/v\/([^/?#]+)/); return m ? decodeURIComponent(m[1]) : '';
    } catch {}
    return ''; },
   _isFc2ListContext() {
    const path = location.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(location.search);
    if (path === '/advanced_search' && params.get('type') === '3') return true;
-   const mode = this._getApiRankingShellMode();
-   return mode?.mode === 'fc2'; },
+   const mode = this._getApiRankingShellMode(); return mode?.mode === 'fc2'; },
   _isScriptFc2AdvancedSearch() {
    const path = location.pathname.replace(/\/+$/, '');
    if (path !== '/advanced_search') return false;
-   const params = new URLSearchParams(location.search);
-   return params.get('type') === '3' && params.get('laosiji_fc2') === '1'; },
+   const params = new URLSearchParams(location.search); return params.get('type') === '3' && params.get('laosiji_fc2') === '1'; },
   _hideScriptFc2AdvancedSearchBox() {
    if (!this._isScriptFc2AdvancedSearch()) return;
-   document.documentElement.dataset.laosijiFc2AdvancedSearch = '1';
-   JavdbApiShellStyles.installFc2AdvancedSearch(); },
+   document.documentElement.dataset.laosijiFc2AdvancedSearch = '1'; JavdbApiShellStyles.installFc2AdvancedSearch(); },
   _fc2DetailShellUrlFromLink(link) {
    if (CFG.javdbUseNativePages) return '';
    const movieId = this._movieIdFromJavdbHref(link?.getAttribute?.('href') || link?.href || '');
@@ -3593,8 +3103,7 @@
    try {
     const url = new URL(href, location.href);
     if (!/javdb/i.test(url.hostname)) return '';
-    const path = url.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(url.search);
-    const page = Math.max(1, parseInt(params.get('lsj_page') || '1', 10) || 1);
+    const path = url.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(url.search); const page = Math.max(1, parseInt(params.get('lsj_page') || '1', 10) || 1);
     if (path !== '/advanced_search') return '';
     if (params.get('laosiji_detail') === 'fc2') {
      const movieId = params.get('movie_id') || '';
@@ -3610,14 +3119,12 @@
      return `${native.pathname}${native.search}`;
     }
     if (mode === 'fc2') {
-     const native = new URL('/rankings/movies', url.origin);
-     native.searchParams.set('t', 'fc2'); native.searchParams.set('p', params.get('lsj_period') || 'daily');
+     const native = new URL('/rankings/movies', url.origin); native.searchParams.set('t', 'fc2'); native.searchParams.set('p', params.get('lsj_period') || 'daily');
      if (page > 1) native.searchParams.set('page', String(page));
      return `${native.pathname}${native.search}`;
     }
     if (mode === 'playback') {
-     const native = new URL('/rankings/playback', url.origin);
-     native.searchParams.set('p', params.get('lsj_period') || 'daily'); native.searchParams.set('filter_by', params.get('lsj_filter_by') || 'high_score');
+     const native = new URL('/rankings/playback', url.origin); native.searchParams.set('p', params.get('lsj_period') || 'daily'); native.searchParams.set('filter_by', params.get('lsj_filter_by') || 'high_score');
      if (page > 1) native.searchParams.set('page', String(page));
      return `${native.pathname}${native.search}`;
     }
@@ -3634,13 +3141,11 @@
    if (!shellUrl) return false;
    const currentPath = location.pathname.replace(/\/+$/, '');
    if (currentPath === '/advanced_search') return false;
-   location.replace(shellUrl);
-   return true; },
+   location.replace(shellUrl); return true; },
   _redirectCurrentNativeEntry() {
    const nativeUrl = this._nativeUrlFromApiShellHref(location.href);
    if (!nativeUrl) return false;
-   location.replace(nativeUrl);
-   return true; },
+   location.replace(nativeUrl); return true; },
   _rewriteApiRankingLinks(root = document) {
    root.querySelectorAll?.('a[href]').forEach(link => {
     const shellUrl = this._apiRankingShellUrlFromHref(link.getAttribute('href'));
@@ -3658,9 +3163,7 @@
     if (detailShellUrl) {
      link.href = detailShellUrl;
      if (e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || link.target === '_blank') return;
-     e.preventDefault(); e.stopPropagation();
-     location.href = detailShellUrl;
-     return; }
+     e.preventDefault(); e.stopPropagation(); location.href = detailShellUrl; return; }
     const shellUrl = this._apiRankingShellUrlFromHref(link.href);
     if (!shellUrl) return;
     link.href = shellUrl;
@@ -3677,19 +3180,11 @@
    if (path !== '/advanced_search') return null;
    const params = new URLSearchParams(location.search); const mode = params.get('laosiji_rank') || '';
    if (!/^(top|fc2|playback)$/.test(mode)) return null;
-   const legacyType = params.get('lsj_type') || ''; const legacyValue = params.get('lsj_type_value') || ''; let category = params.get('lsj_category') || '';
-   let year = params.get('lsj_year') || '';
+   const legacyType = params.get('lsj_type') || ''; const legacyValue = params.get('lsj_type_value') || ''; let category = params.get('lsj_category') || ''; let year = params.get('lsj_year') || '';
    if (!category && legacyType === 'video_type') category = legacyValue;
    if (!year && legacyType === 'year') year = legacyValue;
    if (!category) category = 'all';
-   return {
-    mode,
-    params,
-    page: Math.max(1, parseInt(params.get('lsj_page') || '1', 10) || 1),
-    category,
-    year,
-    period: params.get('lsj_period') || 'daily',
-    filterBy: params.get('lsj_filter_by') || 'high_score', }; }, };
+   return { mode, params, page: Math.max(1, parseInt(params.get('lsj_page') || '1', 10) || 1), category, year, period: params.get('lsj_period') || 'daily', filterBy: params.get('lsj_filter_by') || 'high_score' }; }, };
  const JavdbApiRanking = {
   _ensureApiRankingShellStyle() { return JavdbApiShellStyles.installRankingShell(); },
   _renderApiRankingToolbar(modeInfo) {
@@ -3763,12 +3258,9 @@
    if (!modeInfo) return false;
    const container = document.querySelector('body > section > div, .section .container');
    if (!container) return false;
-   this._ensureApiRankingShellStyle();
-   const title = modeInfo.mode === 'top' ? 'Top250' : modeInfo.mode === 'playback' ? '热播' : 'FC2 排行榜';
+   this._ensureApiRankingShellStyle(); const title = modeInfo.mode === 'top' ? 'Top250' : modeInfo.mode === 'playback' ? '热播' : 'FC2 排行榜';
    container.innerHTML = `<div class="javdb-api-shell"><div class="javdb-api-shell-head"><div class="javdb-api-shell-title"> ${title} </div></div><div class="javdb-api-shell-toolbar"> ${this._renderApiRankingToolbar(modeInfo)} </div><div class="javdb-api-shell-status">正在加载 API 数据...</div><div class="movie-list h cols-4 vcols-8"></div><div class="javdb-api-shell-pagination-wrap"></div></div>`;
-   this._insertResourceNav?.();
-   const status = container.querySelector('.javdb-api-shell-status'); const list = container.querySelector('.movie-list');
-   const pagination = container.querySelector('.javdb-api-shell-pagination-wrap');
+   this._insertResourceNav?.(); const status = container.querySelector('.javdb-api-shell-status'); const list = container.querySelector('.movie-list'); const pagination = container.querySelector('.javdb-api-shell-pagination-wrap');
    try {
     let json;
     if (modeInfo.mode === 'top') {
@@ -3795,23 +3287,15 @@
     if (json.success !== 1) throw new Error(json.message || json.action || 'JavDB API 请求失败');
     const movies = Array.isArray(json?.data?.movies) ? json.data.movies : [];
     if (!movies.length) { status.textContent = '没有查询到数据。'; return true; }
-    const total = Number(json?.data?.total || 0);
-    list.innerHTML = this._renderApiRankingMovies(movies);
+    const total = Number(json?.data?.total || 0); list.innerHTML = this._renderApiRankingMovies(movies);
     status.textContent = total ? `已加载 ${movies.length} 条数据，共 ${total} 条匹配` : `已加载 ${movies.length} 条数据`;
-    const hasNext = modeInfo.mode === 'top' ? modeInfo.page < 5 : (total ? modeInfo.page * 40 < total : movies.length >= 40);
-    pagination.innerHTML = this._renderApiRankingPagination(modeInfo, hasNext);
-    this._initListPage(); PageZoom.apply('javdb'); Runtime.refreshListPage();
-    return true;
+    const hasNext = modeInfo.mode === 'top' ? modeInfo.page < 5 : (total ? modeInfo.page * 40 < total : movies.length >= 40); pagination.innerHTML = this._renderApiRankingPagination(modeInfo, hasNext); this._initListPage(); PageZoom.apply('javdb');
+    Runtime.refreshListPage(); return true;
    } catch (err) {
     errorLog('JavDB API 榜单请求失败:', err);
     if (isJavdbApiAuthError(err)) {
-     Magnet.javdbApi.setToken(''); renderJavdbApiLoginRequired(status, 'JavDB API 登录状态已失效，请重新登录一次。');
-     delete document.documentElement.dataset.laosijiJavdbApiLoginPrompted;
-     scheduleJavdbApiLoginDialog(location.href);
-     return true; }
-    status.classList.add('is-error');
-    status.textContent = err.message || 'JavDB API 请求失败';
-    return true; } }, };
+     Magnet.javdbApi.setToken(''); renderJavdbApiLoginRequired(status, 'JavDB API 登录状态已失效，请重新登录一次。'); delete document.documentElement.dataset.laosijiJavdbApiLoginPrompted; scheduleJavdbApiLoginDialog(location.href); return true; }
+    status.classList.add('is-error'); status.textContent = err.message || 'JavDB API 请求失败'; return true; } }, };
  const JavdbFc2DetailRenderer = (() => {
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
    '&': '&amp;',
@@ -3839,30 +3323,21 @@
  Core.expose('__LAOSIJI_FC2_DETAIL_RENDERER__', JavdbFc2DetailRenderer);
  const JavdbApiDetail = {
   _ensureApiDetailShellStyle() {
-   JavdbFc2DetailRenderer.installStyles();
-   return JavdbApiShellStyles.installDetailShell(); },
+   JavdbFc2DetailRenderer.installStyles(); return JavdbApiShellStyles.installDetailShell(); },
   _mountStandaloneMagnet(root, avid, siteId = 'javdb') {
    const body = root?.querySelector?.('.javdb-fc2-detail-magnet-body');
    if (!body || !avid || typeof Magnet === 'undefined') return null;
-   const useEnhancedPanel = CFG.magnetDisplayMode === 'native-replace' && typeof NativeMagnetPanel !== 'undefined'
-    && typeof NativeMagnetPanel.createAggregatePanel === 'function';
-   const widget = useEnhancedPanel ? NativeMagnetPanel.createAggregatePanel(avid) : typeof Magnet.createMagnetWidget === 'function'
-     ? Magnet.createMagnetWidget(avid) : null;
+   const useEnhancedPanel = CFG.magnetDisplayMode === 'native-replace' && typeof NativeMagnetPanel !== 'undefined' && typeof NativeMagnetPanel.createAggregatePanel === 'function';
+   const widget = useEnhancedPanel ? NativeMagnetPanel.createAggregatePanel(avid) : typeof Magnet.createMagnetWidget === 'function' ? Magnet.createMagnetWidget(avid) : null;
    if (!widget) return null;
-   body.replaceChildren(widget);
-   const section = useEnhancedPanel ? widget : body.closest('.javdb-fc2-detail-magnet');
-   section?.setAttribute('data-javdb-standalone-magnet', '1'); section?.setAttribute('data-javdb-standalone-magnet-site', siteId);
-   DetailFlex.apply?.(siteId);
-   setTimeout(() => DetailFlex.apply?.(siteId), 0);
-   return body.firstElementChild; },
+   body.replaceChildren(widget); const section = useEnhancedPanel ? widget : body.closest('.javdb-fc2-detail-magnet'); section?.setAttribute('data-javdb-standalone-magnet', '1'); section?.setAttribute('data-javdb-standalone-magnet-site', siteId);
+   DetailFlex.apply?.(siteId); setTimeout(() => DetailFlex.apply?.(siteId), 0); return body.firstElementChild; },
   _renderApiDetailImages(images) {
    const list = Array.isArray(images) ? images : Array.isArray(images?.items) ? images.items : [];
    const updateCover = value => String(value || '').replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
    const html = list.map((item, index) => {
-    const large = updateCover(typeof item === 'string' ? item
-     : item?.large_url || item?.largeUrl || item?.image_url || item?.url || item?.src || item?.thumb_url || item?.thumbUrl || '');
-    const thumb = updateCover(typeof item === 'string' ? item
-     : item?.thumb_url || item?.thumbUrl || item?.thumbnail_url || item?.thumbnailUrl || item?.large_url || item?.largeUrl || item?.image_url || item?.url || item?.src || '');
+    const large = updateCover(typeof item === 'string' ? item : item?.large_url || item?.largeUrl || item?.image_url || item?.url || item?.src || item?.thumb_url || item?.thumbUrl || '');
+    const thumb = updateCover(typeof item === 'string' ? item : item?.thumb_url || item?.thumbUrl || item?.thumbnail_url || item?.thumbnailUrl || item?.large_url || item?.largeUrl || item?.image_url || item?.url || item?.src || '');
     if (!large || !thumb) return '';
     return`<a class="tile-item" href="${JavdbFc2DetailRenderer.escapeHtml(large)}" data-fancybox="gallery" data-caption="预览图${index + 1}"><img src="${JavdbFc2DetailRenderer.escapeHtml(thumb)}" loading="lazy" alt="预览图${index + 1}"></a>`;
    }).filter(Boolean).join('');
@@ -3874,10 +3349,8 @@
   },
   _renderApiDetailPage(movie) {
    const updateCover = value => String(value || '').replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
-   const number = String(movie?.number || ''); const title = movie?.origin_title || movie?.title || '';
-   const actors = (Array.isArray(movie?.actors) ? movie.actors : []).map(item => item?.name || item).filter(Boolean);
-   const cover = updateCover(movie?.cover_url || movie?.thumb_url || '');
-   const previewImages = movie?.preview_images || movie?.previewImages || movie?.samples || movie?.images || [];
+   const number = String(movie?.number || ''); const title = movie?.origin_title || movie?.title || ''; const actors = (Array.isArray(movie?.actors) ? movie.actors : []).map(item => item?.name || item).filter(Boolean);
+   const cover = updateCover(movie?.cover_url || movie?.thumb_url || ''); const previewImages = movie?.preview_images || movie?.previewImages || movie?.samples || movie?.images || [];
    return JavdbFc2DetailRenderer.render({
     code: number,
     title,
@@ -3901,16 +3374,13 @@
    if (!modeInfo) return false;
    const container = document.querySelector('body > section > div, .section .container');
    if (!container) return false;
-   this._ensureApiDetailShellStyle();
-   container.innerHTML = '<div class="javdb-api-shell-status">正在加载 API 详情...</div>';
-   const status = container.querySelector('.javdb-api-shell-status');
+   this._ensureApiDetailShellStyle(); container.innerHTML = '<div class="javdb-api-shell-status">正在加载 API 详情...</div>'; const status = container.querySelector('.javdb-api-shell-status');
    try {
     const json = await Magnet.javdbApi.movieDetail(modeInfo.movieId);
     if (json.success !== 1) throw new Error(json.message || json.action || 'JavDB API 请求失败');
     const movie = json?.data?.movie;
     if (!movie?.number) throw new Error('没有查询到详情数据');
-    container.innerHTML = this._renderApiDetailPage(movie);
-    const avid = normalizeAvid(movie.number); const numberLabel = container.querySelector('.movie-panel-info .first-block strong');
+    container.innerHTML = this._renderApiDetailPage(movie); const avid = normalizeAvid(movie.number); const numberLabel = container.querySelector('.movie-panel-info .first-block strong');
     if (numberLabel) numberLabel.textContent = '\u756a\u53f7:';
     const magnetTitle = container.querySelector('.javdb-fc2-detail-magnet-title');
     if (magnetTitle) magnetTitle.textContent = '\u78c1\u529b\u805a\u5408';
@@ -3918,20 +3388,121 @@
     Runtime.refresh({ detailPreview: true, infiniteScroll: false });
     return true;
    } catch (err) {
-    errorLog('JavDB API 详情请求失败:', err); status.classList.add('is-error');
-    status.textContent = err.message || 'JavDB API 详情请求失败';
-    return true; } }, };
+    errorLog('JavDB API 详情请求失败:', err); status.classList.add('is-error'); status.textContent = err.message || 'JavDB API 详情请求失败'; return true; } }, };
+ const JavdbContent = {
+  _contentUrl(kind, options = {}) {
+   const params = new URLSearchParams({ laosiji_content: kind });
+   if (options.page > 1) params.set('laosiji_page', String(options.page));
+   if (options.period && options.period !== 'latest') params.set('laosiji_period', options.period);
+   if (options.articleId) params.set('laosiji_article_id', options.articleId);
+   return`/advanced_search?${params.toString()}`;
+  },
+  _getContentMode() {
+   if (location.pathname.replace(/\/+$/, '') !== '/advanced_search') return null;
+   const params = new URLSearchParams(location.search); const kind = params.get('laosiji_content') || '';
+   if (!/^(articles|article|reviews)$/.test(kind)) return null;
+   return { kind, page: Math.max(1, parseInt(params.get('laosiji_page') || '1', 10) || 1), period: params.get('laosiji_period') || 'latest', articleId: params.get('laosiji_article_id') || '' }; },
+  _imageUrl(value) {
+   try {
+    const image = new URL(String(value || ''));
+    if (image.hostname === 'tp.spfcas.com') { image.hostname = 'c0.jdbstatic.com'; image.pathname = image.pathname.replace(/^\/[^/]+(\/articles\/images\/)/, '$1'); image.pathname = image.pathname.replace(/^\/[^/]+(\/small_covers\/)/, '$1'); }
+    return image.href;
+   } catch (_) { return String(value || ''); } },
+  _movieThumbUrl(movie) {
+   const id = String(movie?.id || '').trim();
+   return id.length >= 2
+    ?`https://c0.jdbstatic.com/thumbs/${id.slice(0, 2).toLowerCase()}/${encodeURIComponent(id)}.jpg`                : this._imageUrl(movie?.thumb_url);
+  },
+  _safeArticleHtml(value) {
+   const html = String(value || '');
+   if (!html || typeof DOMParser !== 'function') return html;
+   const doc = new DOMParser().parseFromString(html, 'text/html'); doc.querySelectorAll('script,style,iframe,object,embed,form').forEach(node => node.remove());
+   doc.querySelectorAll('*').forEach(node => {
+    [...node.attributes].forEach(attribute => {
+     if (/^on/i.test(attribute.name)) node.removeAttribute(attribute.name);
+     if (/^(href|src|action)$/i.test(attribute.name) && /^\s*javascript:/i.test(attribute.value)) node.removeAttribute(attribute.name);
+    });
+   });
+   doc.querySelectorAll('img[src]').forEach(image => { image.setAttribute('src', this._imageUrl(image.getAttribute('src'))); });
+   return doc.body.innerHTML; },
+  _renderNavLinks(active = '') {
+   return`<a class="javdb-content-nav-link ${active === 'articles' ? 'is-active' : ''}" href="${this._contentUrl('articles')}">AV资讯</a><a class="javdb-content-nav-link ${active === 'reviews' ? 'is-active' : ''}" href="${this._contentUrl('reviews')}">看短评</a>`;
+  },
+  _installStyle() {
+   injectStyle('javdb-content-shell-style',`.javdb-content-nav-link{display:inline-flex!important;align-items:center!important;min-height:40px!important;padding:0 12px!important;border-bottom:2px solid transparent!important;color:#4b5563!important;text-decoration:none!important;white-space:nowrap!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#0f766e!important;color:#0f766e!important;background:rgba(13,148,136,.06)!important}#navbar-menu-user .javdb-content-nav-link{min-height:52px!important;color:#38bdf8!important;font-weight:800!important}#navbar-menu-user .javdb-content-nav-link:hover,#navbar-menu-user .javdb-content-nav-link.is-active{color:#facc15!important;background:rgba(255,255,255,.12)!important}.javdb-content-mobile-nav-link{display:none!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#eef3f4!important}html.laosiji-content-route body>section .container{max-width:1024px!important;margin:0 auto!important;padding:32px 42px 64px!important;background:#fbfcfd!important}.javdb-content-shell{--javdb-content-ink:#182230;--javdb-content-muted:#5f6b7a;--javdb-content-line:#d9e0e7;max-width:940px!important;margin:32px auto 56px!important;color:var(--javdb-content-ink)!important}.javdb-content-shell-head{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:16px!important;flex-wrap:wrap!important;margin:0 0 24px!important;padding:0 0 18px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-shell-title{color:var(--javdb-content-ink)!important;font-size:31px!important;font-weight:800!important;line-height:1.2!important;letter-spacing:0!important}.javdb-content-shell-nav,.javdb-content-toolbar{display:flex!important;align-items:center!important;gap:4px!important;flex-wrap:wrap!important}.javdb-content-toolbar{gap:8px!important;margin:-6px 0 18px!important}.javdb-content-toolbar a,.javdb-content-pagination a,.javdb-content-pagination span{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:40px!important;padding:0 13px!important;border:1px solid var(--javdb-content-line)!important;border-radius:6px!important;background:transparent!important;color:#334155!important;font-size:14px!important;font-weight:700!important;line-height:1!important;text-decoration:none!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#0f766e!important;background:#ecfdf5!important;color:#0f766e!important}.javdb-content-pagination span{border-color:transparent!important;color:var(--javdb-content-muted)!important}.javdb-content-status{margin:0 0 18px!important;color:var(--javdb-content-muted)!important;font-size:14px!important;line-height:1.5!important}.javdb-content-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:0!important}.javdb-content-card{display:grid!important;grid-template-columns:152px minmax(0,1fr)!important;gap:20px!important;min-width:0!important;padding:24px 0!important;border-bottom:1px solid var(--javdb-content-line)!important;background:transparent!important;color:var(--javdb-content-ink)!important;text-decoration:none!important}.javdb-content-card:hover{color:#0f766e!important}.javdb-content-card-cover{width:152px!important;height:188px!important;object-fit:cover!important;border-radius:4px!important;background:#dfe7e7!important}.javdb-content-card-copy{min-width:0!important;padding-top:2px!important}.javdb-content-card-kicker{display:block!important;margin:0 0 8px!important;color:#0f766e!important;font-size:12px!important;font-weight:800!important;letter-spacing:.06em!important;line-height:1.3!important;text-transform:uppercase!important}.javdb-content-card-title{display:block!important;overflow:visible!important;font-size:22px!important;line-height:1.45!important;font-weight:750!important}.javdb-content-card-meta{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important;margin-top:14px!important;color:var(--javdb-content-muted)!important;font-size:14px!important;line-height:1.65!important}.javdb-content-card-meta span+span::before{content:'·';margin-right:8px;color:#94a3ad}.javdb-content-pagination{display:flex!important;justify-content:center!important;align-items:center!important;gap:8px!important;margin:28px 0 8px!important}.javdb-content-review-list{max-width:none!important;margin:0!important}.javdb-content-review{padding:0 0 28px!important;margin:0 0 28px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-review:last-child{border-bottom:0!important}.javdb-content-review-movie{display:flex!important;align-items:flex-start!important;gap:12px!important;margin-bottom:13px!important;color:var(--javdb-content-ink)!important;text-decoration:none!important}.javdb-content-review-movie img{width:58px!important;height:76px!important;flex:0 0 58px!important;object-fit:cover!important;border-radius:4px!important;background:#dfe7e7!important}.javdb-content-review-movie-copy{min-width:0!important;padding-top:2px!important}.javdb-content-review-movie-code{display:block!important;color:#0f766e!important;font-size:12px!important;font-weight:800!important;line-height:1.3!important}.javdb-content-review-movie strong{display:block!important;margin-top:3px!important;font-size:16px!important;line-height:1.5!important;font-weight:750!important}.javdb-content-review-movie small{display:block!important;margin-top:5px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.4!important}.javdb-content-review-head{display:flex!important;align-items:center!important;gap:9px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.45!important}.javdb-content-review-user{color:#334155!important;font-weight:800!important}.javdb-content-review-stars{margin-left:auto!important;color:#a16207!important;font-size:15px!important;letter-spacing:2px!important;white-space:nowrap!important}.javdb-content-review-text{margin:13px 0 0!important;color:#273444!important;font-size:16px!important;line-height:1.85!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important}.javdb-content-article{max-width:780px!important;margin:0 auto!important}.javdb-content-back{display:inline-flex!important;min-height:40px!important;align-items:center!important;margin:0 0 18px!important;color:#0f766e!important;font-size:14px!important;font-weight:750!important;text-decoration:none!important}.javdb-content-article-head{margin:0 0 24px!important;padding:0 0 20px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-article-title{margin:0!important;color:var(--javdb-content-ink)!important;font-size:30px!important;line-height:1.35!important;font-weight:800!important;letter-spacing:0!important}.javdb-content-article-meta{margin:12px 0 0!important;color:var(--javdb-content-muted)!important;font-size:14px!important;line-height:1.55!important}.javdb-content-article-body{color:#273444!important;font-size:17px!important;line-height:1.85!important;overflow-wrap:anywhere!important}.javdb-content-article-body>*{max-width:100%!important}.javdb-content-article-body p,.javdb-content-article-body ul,.javdb-content-article-body ol{margin:0 0 1.25em!important}.javdb-content-article-body h2,.javdb-content-article-body h3{margin:1.7em 0 .65em!important;color:var(--javdb-content-ink)!important;line-height:1.35!important}.javdb-content-article-body blockquote{margin:1.5em 0!important;padding:0 0 0 18px!important;border-left:3px solid #0f766e!important;color:#425466!important}.javdb-content-article-body img{display:block!important;max-width:100%!important;height:auto!important;margin:1.5em auto!important;border-radius:4px!important}.javdb-content-related{margin-top:40px!important;padding-top:22px!important;border-top:1px solid var(--javdb-content-line)!important}.javdb-content-related-title{margin:0 0 18px!important;color:var(--javdb-content-ink)!important;font-size:19px!important;font-weight:800!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f1f5f9;--javdb-content-muted:#b0becd;--javdb-content-line:#344252}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#101820!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#17212b!important}html[data-theme="dark"] .javdb-content-toolbar a,html[data-theme="dark"] .javdb-content-pagination a,html[data-theme="dark"] .javdb-content-pagination span{color:#e2e8f0!important}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#163a36!important;color:#b9f5e7!important}html[data-theme="dark"] .javdb-content-review-user,html[data-theme="dark"] .javdb-content-review-text,html[data-theme="dark"] .javdb-content-article-body{color:#e2e8f0!important}html[data-theme="dark"] .javdb-content-article-body blockquote{color:#cbd5e1!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#f3f1ed!important}html.laosiji-content-route body>section .container{max-width:1024px!important;padding:32px 42px 64px!important;background:#faf9f6!important}.javdb-content-shell{--javdb-content-ink:#28221f;--javdb-content-muted:#736b63;--javdb-content-line:#d8d0c7;max-width:940px!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#a63b2c!important;color:#a63b2c!important;background:#f9ece8!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#a63b2c!important;background:#f9ece8!important;color:#8c3024!important}.javdb-content-card:hover,.javdb-content-card-kicker,.javdb-content-review-movie-code,.javdb-content-back{color:#a63b2c!important}.javdb-content-card-cover,.javdb-content-review-movie img{background:#ddd7cf!important}.javdb-content-article-body blockquote{border-left-color:#a63b2c!important}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#1d1a18!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#25211e!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f3eee8;--javdb-content-muted:#c3b9ae;--javdb-content-line:#4a423c}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#442720!important;color:#ffd8cf!important}@media (max-width:760px){html.laosiji-content-route body>section .container{padding:20px 18px 44px!important}.javdb-content-shell{margin:18px 0 32px!important}.javdb-content-shell-head{align-items:flex-start!important;margin-bottom:18px!important}.javdb-content-shell-title{font-size:27px!important}.javdb-content-grid{grid-template-columns:1fr!important}.javdb-content-card{grid-template-columns:100px minmax(0,1fr)!important;gap:14px!important;padding:18px 0!important}.javdb-content-card-cover{width:100px!important;height:128px!important}.javdb-content-card-kicker{margin-bottom:6px!important;font-size:11px!important}.javdb-content-card-title{font-size:17px!important;line-height:1.5!important}.javdb-content-card-meta{gap:5px!important;margin-top:8px!important;font-size:13px!important}.javdb-content-card-meta span+span::before{margin-right:5px}.javdb-content-toolbar{gap:6px!important;margin-bottom:16px!important}.javdb-content-toolbar a{min-height:40px!important;padding:0 10px!important}.javdb-content-review{padding-bottom:24px!important;margin-bottom:24px!important}.javdb-content-review-text{font-size:16px!important}.javdb-content-article-title{font-size:25px!important}.javdb-content-article-body{font-size:16px!important;line-height:1.8!important}}html[data-laosiji-mobile] #navbar-menu-user .javdb-content-nav-link{display:none!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link{display:flex!important;min-height:48px!important;padding:0 18px!important;color:#334155!important;font-weight:800!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link:hover,html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link.is-active{color:#a63b2c!important;background:#f9ece8!important}`);
+  },
+  installNavigation() {
+   this._installStyle(); const navEnd = document.querySelector('#navbar-menu-user .navbar-end'); const active = this._getContentMode()?.kind === 'article' ? 'articles' : this._getContentMode()?.kind;
+   if (navEnd && !navEnd.querySelector('[data-laosiji-content-nav="1"]')) {
+    const holder = document.createElement('div'); holder.innerHTML = this._renderNavLinks(active); const theme = navEnd.querySelector('.navbar-item.has-dropdown');
+    [...holder.children].forEach(link => { link.classList.add('navbar-item'); link.dataset.laosijiContentNav = '1'; navEnd.insertBefore(link, theme || null); }); }
+   const mobileNavStart = document.querySelector('#navbar-menu-hero .navbar-start');
+   if (!mobileNavStart || mobileNavStart.querySelector('[data-laosiji-content-mobile-nav="1"]')) return;
+   const mobileHolder = document.createElement('div'); mobileHolder.innerHTML = this._renderNavLinks(active);
+   [...mobileHolder.children].reverse().forEach(link => { link.classList.add('navbar-item', 'javdb-content-mobile-nav-link'); link.dataset.laosijiContentMobileNav = '1'; mobileNavStart.insertBefore(link, mobileNavStart.firstChild); }); },
+  _renderShell(mode, inner) {
+   const active = mode.kind === 'article' ? 'articles' : mode.kind; const title = active === 'articles' ? 'AV资讯' : '看短评';
+   return`<main class="javdb-content-shell"><header class="javdb-content-shell-head"><div class="javdb-content-shell-title">${this._escapeHtml(title)}</div><nav class="javdb-content-shell-nav" aria-label="内容导航">${this._renderNavLinks(active)}</nav></header>${inner}</main>`;
+  },
+  _formatDate(value) { return String(value || '').replace('T', ' ').replace(/\.000Z$/, '').slice(0, 16); },
+  _renderArticleCards(items) {
+   return (Array.isArray(items) ? items : []).map(item =>`<a class="javdb-content-card" href="${this._contentUrl('article', { articleId: item?.id || '' })}"><img class="javdb-content-card-cover" loading="lazy" src="${this._escapeHtml(this._imageUrl(item?.cover_url))}" alt=""><span class="javdb-content-card-copy"><span class="javdb-content-card-kicker">${this._escapeHtml(item?.category?.name || '资讯')}</span><strong class="javdb-content-card-title">${this._escapeHtml(item?.title || item?.id || '')}</strong><span class="javdb-content-card-meta"><span>${this._escapeHtml(item?.author?.name || 'JavDB')}</span><span>${this._escapeHtml(this._formatDate(item?.released_at))}</span></span></span></a>`).join('');
+  },
+  _renderReviews(items) {
+   const stars = score => { const n = Math.max(0, Math.min(5, Math.round(Number(score) || 0))); return`${'★'.repeat(n)}${'☆'.repeat(5 - n)}`; };
+   return (Array.isArray(items) ? items : []).map(item => { const movie = item?.movie || {}; return`<article class="javdb-content-review"><a class="javdb-content-review-movie" href="/v/${encodeURIComponent(movie.id || '')}" target="_blank" rel="noopener"><img loading="lazy" src="${this._escapeHtml(this._movieThumbUrl(movie))}" alt=""><span class="javdb-content-review-movie-copy"><span class="javdb-content-review-movie-code">${this._escapeHtml(movie.number || '')}</span><strong>${this._escapeHtml(movie.title || '')}</strong><small>${this._escapeHtml(movie.release_date || '')}</small></span></a><div class="javdb-content-review-head"><span class="javdb-content-review-user">${this._escapeHtml(item?.username || '匿名')}</span><span>看过 ${this._escapeHtml(item?.watched_count || 0)} 部</span><span class="javdb-content-review-stars" aria-label="${this._escapeHtml(item?.score || 0)}分">${stars(item?.score)}</span></div><p class="javdb-content-review-text">${this._escapeHtml(item?.content || '')}</p></article>`; }).join('');
+  },
+  _pagination(mode, hasNext) {
+   const previous = mode.page > 1 ?`<a href="${this._contentUrl(mode.kind, { page: mode.page - 1, period: mode.period })}">上一页</a>` : '';
+   const next = hasNext ?`<a href="${this._contentUrl(mode.kind, { page: mode.page + 1, period: mode.period })}">下一页</a>` : '';
+   return`<div class="javdb-content-pagination">${previous}<span>第 ${mode.page} 页</span>${next}</div>`;
+  },
+  async _renderArticleDetail(container, mode) {
+   const status = '正在读取资讯详情...';
+   container.innerHTML = this._renderShell(mode,`<div class="javdb-content-status">${status}</div>`);
+   try {
+    const json = await Magnet.javdbApi.articleDetail(mode.articleId);
+    if (json.success !== 1) throw new Error(json.message || json.action || '资讯详情读取失败');
+    const article = json?.data || {};
+    const movies = Array.isArray(article.related_movies) ? article.related_movies : [];
+    const related = movies.length ?`<section class="javdb-content-related"><h2 class="javdb-content-related-title">关联影片</h2>${movies.map(movie => `<a class="javdb-content-review-movie" href="/v/${encodeURIComponent(movie.id || '')}" target="_blank" rel="noopener"><img loading="lazy" src="${this._escapeHtml(this._movieThumbUrl(movie))}" alt=""><span class="javdb-content-review-movie-copy"><span class="javdb-content-review-movie-code">${this._escapeHtml(movie.number || '')}</span><strong>${this._escapeHtml(movie.title || '')}</strong><small>${this._escapeHtml(movie.release_date || '')}</small></span></a>`).join('')}</section>` : '';
+    const body =`<article class="javdb-content-article"><a class="javdb-content-back" href="${this._contentUrl('articles')}">返回资讯列表</a><header class="javdb-content-article-head"><h1 class="javdb-content-article-title">${this._escapeHtml(article.title || mode.articleId)}</h1><div class="javdb-content-article-meta">${this._escapeHtml(article.author?.name || '')} · ${this._escapeHtml(article.category?.name || '')} · ${this._escapeHtml(this._formatDate(article.released_at))}</div></header><div class="javdb-content-article-body">${this._safeArticleHtml(article.content || '<p>没有详情内容。</p>')}</div>${related}</article>`;
+    container.innerHTML = this._renderShell(mode, body);
+   } catch (error) {
+    container.innerHTML = this._renderShell(mode,`<div class="javdb-content-status">${this._escapeHtml(error.message || '资讯详情读取失败')}</div>`);
+   } },
+  async _initContentPage() {
+   const mode = this._getContentMode();
+   if (!mode) return false;
+   const container = document.querySelector('body > section > div, .section .container');
+   if (!container) return false;
+   document.documentElement.classList.add('laosiji-content-route'); this._installStyle();
+   if (mode.kind === 'article' && mode.articleId) { await this._renderArticleDetail(container, mode); return true; }
+   if (mode.kind === 'article') { location.replace(this._contentUrl('articles')); return true; }
+   const title = mode.kind === 'articles' ? 'AV资讯' : '看短评';
+   const periodLinks = mode.kind === 'reviews' ? ['latest', 'weekly', 'monthly', 'quarterly', 'yearly', 'all'].map(period =>`<a class="${mode.period === period ? 'is-active' : ''}" href="${this._contentUrl('reviews', { period })}">${period === 'latest' ? '最新' : period === 'weekly' ? '上周热评' : period === 'monthly' ? '月度热评' : period === 'quarterly' ? '季度热评' : period === 'yearly' ? '年度热评' : '全部热评'}</a>`).join('') : '';
+   const toolbar = periodLinks ?`<nav class="javdb-content-toolbar" aria-label="短评筛选">${periodLinks}</nav>` : '';
+   container.innerHTML = this._renderShell(mode,`${toolbar}<div class="javdb-content-status" aria-live="polite">正在读取${title}...</div><div class="javdb-content-grid"></div><div class="javdb-content-list"></div><div class="javdb-content-pagination"></div>`);
+   const status = container.querySelector('.javdb-content-status');
+   try {
+    const json = mode.kind === 'articles' ? await Magnet.javdbApi.articles({ page: mode.page, limit: 20 }) : await Magnet.javdbApi.hotReviews({ period: mode.period, page: mode.page, limit: 20 });
+    if (json.success !== 1) throw new Error(json.message || json.action ||`${title}读取失败`);
+    const items = json?.data?.[mode.kind === 'articles' ? 'articles' : 'reviews'] || []; const grid = container.querySelector('.javdb-content-grid'); const list = container.querySelector('.javdb-content-list');
+    if (mode.kind === 'articles') grid.innerHTML = this._renderArticleCards(items); else { grid.remove(); list.innerHTML =`<section class="javdb-content-review-list">${this._renderReviews(items)}</section>`; }
+    status.textContent = items.length ?`已加载 ${items.length} 条${title}` :`暂无${title}`;
+    container.querySelector('.javdb-content-pagination').outerHTML = this._pagination(mode, items.length >= 20);
+   } catch (error) {
+    status.textContent = error.message ||`${title}读取失败`;
+    status.classList.add('is-error'); }
+   this.installNavigation(); return true; }, };
  const JavdbList = {
   _initListPage() {
-   this._stripNativeLayoutParam();
-   const list = document.querySelector('.movie-list, .movies, .grid');
+   this._stripNativeLayoutParam(); const list = document.querySelector('.movie-list, .movies, .grid');
    if (!list) return;
-   this._neutralizeNativeListLayout(list);
-   const needStyle = list.dataset.laosijiGrid !== '1'; const cards = [...list.querySelectorAll(':scope > .item:not([data-laosiji-grid-card="1"])')];
+   this._neutralizeNativeListLayout(list); const needStyle = list.dataset.laosijiGrid !== '1'; const cards = [...list.querySelectorAll(':scope > .item:not([data-laosiji-grid-card="1"])')];
    if (!cards.length && !needStyle) { JavdbListScoreSort.sync(list); return; }
-   list.dataset.laosijiGrid = '1';
-   list.classList.add('jav-card-grid', 'javdb-card-grid'); CardColumns.apply('javdb'); cards.forEach(card => this._decorateCard(card));
-   JavdbListScoreSort.sync(list, cards); this._rewriteFc2DetailLinks(list); PortraitCards.syncImages();
+   list.dataset.laosijiGrid = '1'; list.classList.add('jav-card-grid', 'javdb-card-grid'); CardColumns.apply('javdb'); cards.forEach(card => this._decorateCard(card)); JavdbListScoreSort.sync(list, cards); this._rewriteFc2DetailLinks(list);
+   PortraitCards.syncImages();
    if (needStyle) {
     GM_addStyle(`.jav-card-link:visited .jav-card-title,.jav-card-link:visited .javdb-card-headline,.jav-card-link:visited .jav-card-title strong{color:#64748b!important}.jav-card-title{display:block!important;height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;max-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;flex:0 0 auto!important;min-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;padding:7px 8px 9px!important;overflow:hidden!important;line-height:var(--jav-card-title-line-height,1.5)!important}.javdb-card-headline{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--jav-card-title-lines,2)!important;line-clamp:var(--jav-card-title-lines,2)!important;max-height:calc(var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:normal!important;word-break:break-word!important}.jav-card-title strong{color:inherit!important;font-size:16px!important;font-weight:800!important}.javdb-card-grid{--jav-card-columns:5}.javdb-card-grid .item.javdb-grid-card{position:static!important;width:auto!important;float:none!important;margin:0!important}.javdb-card-grid .item .javdb-card-link.box{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;border-radius:0!important;overflow:hidden!important}.javdb-card-grid .item .javdb-cover-frame.cover{margin:0!important;height:auto!important}.javdb-card-grid .item .javdb-card-image{height:100%!important;margin:0!important}.javdb-card-grid .item .javdb-card-title .jav-pan115-badge{display:inline-flex!important;width:auto!important;max-width:max-content!important;float:none!important;vertical-align:middle!important;margin:0 6px 4px 0!important}.javdb-card-score,.javdb-card-meta,.javdb-card-tags{padding-left:8px!important;padding-right:8px!important}.javdb-card-score{margin-top:2px!important;color:#64748b!important;font-size:12px!important;line-height:1.45!important}.javdb-card-score .value{color:inherit!important;font-size:inherit!important}.javdb-card-meta{margin-top:4px!important;color:#94a3b8!important;font-size:12px!important;line-height:1.45!important}.javdb-card-tags{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-top:auto!important;padding-top:8px!important;padding-bottom:10px!important}.javdb-card-tags .tag{margin:0!important}@media (max-width:1100px){.javdb-card-grid{--jav-card-columns:4}}@media (max-width:820px){.javdb-card-grid{--jav-card-columns:3}}@media (max-width:560px){.javdb-card-grid{--jav-card-columns:2;gap:10px!important}}`);
    }
@@ -3951,8 +3522,7 @@
    moveSelectors.forEach(selector => {
     const node = card.querySelector(`:scope > ${selector}`);
     if (!node) return;
-    node.querySelectorAll('.emby-badge, .emby-btn, .emby-button-group').forEach(el => el.remove()); anchor.appendChild(node);
-    moved = true;
+    node.querySelectorAll('.emby-badge, .emby-btn, .emby-button-group').forEach(el => el.remove()); anchor.appendChild(node); moved = true;
    });
    if (moved) {
     anchor.querySelectorAll('a[href]').forEach(child => {
@@ -3963,32 +3533,22 @@
    if (!card) return;
    this._repairCardStructure(card);
    if (card.dataset.laosijiGridCard !== '1') { card.dataset.laosijiGridCard = '1'; card.classList.add('jav-card', 'javdb-grid-card'); }
-   const anchor = card.querySelector(':scope > a.box[href], :scope > a[href].box, a.box[href]');
-   anchor?.classList.add('jav-card-link', 'javdb-card-link');
+   const anchor = card.querySelector(':scope > a.box[href], :scope > a[href].box, a.box[href]'); anchor?.classList.add('jav-card-link', 'javdb-card-link');
    if (anchor && !anchor.querySelector('.jav-pan115-badge')) { delete anchor.dataset.pan115Checked; delete anchor.dataset.pan115HasBadge; }
-   const cover = card.querySelector('.cover');
-   cover?.classList.add('jav-card-cover', 'javdb-cover-frame');
-   const img = cover?.querySelector('img[src]') || card.querySelector('img[src]');
+   const cover = card.querySelector('.cover'); cover?.classList.add('jav-card-cover', 'javdb-cover-frame'); const img = cover?.querySelector('img[src]') || card.querySelector('img[src]');
    if (img) {
-    img.removeAttribute('width'); img.removeAttribute('height'); img.classList.add('jav-card-image', 'javdb-card-image');
-    const src = img.getAttribute('src') || '';
+    img.removeAttribute('width'); img.removeAttribute('height'); img.classList.add('jav-card-image', 'javdb-card-image'); const src = img.getAttribute('src') || '';
     if (/\/covers\//i.test(src)) {
      img.dataset.laosijiLandscapeSrc = img.dataset.laosijiLandscapeSrc || src;
     } else if (/\/thumbs\//i.test(src)) {
      img.dataset.laosijiLandscapeSrc = img.dataset.laosijiLandscapeSrc || src.replace(/\/thumbs\//i, '/covers/');
     } }
-   const titleEl = card.querySelector('.video-title');
-   titleEl?.classList.add('jav-card-title', 'javdb-card-title');
+   const titleEl = card.querySelector('.video-title'); titleEl?.classList.add('jav-card-title', 'javdb-card-title');
    if (titleEl && !titleEl.querySelector('.javdb-card-headline')) {
-    const headline = document.createElement('span');
-    headline.className = 'javdb-card-headline';
+    const headline = document.createElement('span'); headline.className = 'javdb-card-headline';
     while (titleEl.firstChild) headline.appendChild(titleEl.firstChild);
     titleEl.appendChild(headline); }
-   const scoreEl = card.querySelector('.score');
-   scoreEl?.classList.add('javdb-card-score');
-   const metaEl = card.querySelector('.meta');
-   metaEl?.classList.add('javdb-card-meta');
-   const tagsEl = card.querySelector('.tags');
+   const scoreEl = card.querySelector('.score'); scoreEl?.classList.add('javdb-card-score'); const metaEl = card.querySelector('.meta'); metaEl?.classList.add('javdb-card-meta'); const tagsEl = card.querySelector('.tags');
    tagsEl?.classList.add('javdb-card-tags'); ListPreview.attach(card); }, };
  const JavdbListScoreSort = (() => {
   const states = new WeakMap();
@@ -4005,27 +3565,22 @@
     if (!state.originalOrder.has(card)) { state.originalOrder.set(card, state.nextOrder); state.nextOrder += 1; }
    }); }
   function scoreData(card) {
-   const scoreText = card.querySelector('.javdb-card-score, .score')?.textContent || '';
-   const metaText = card.querySelector('.javdb-card-meta, .meta')?.textContent || ''; const rating = Number(scoreText.match(/(\d+(?:\.\d+)?)\s*分/)?.[1]);
+   const scoreText = card.querySelector('.javdb-card-score, .score')?.textContent || ''; const metaText = card.querySelector('.javdb-card-meta, .meta')?.textContent || ''; const rating = Number(scoreText.match(/(\d+(?:\.\d+)?)\s*分/)?.[1]);
    const votes = Number((scoreText.match(/(?:由|by\s*)([\d,]+)\s*(?:人(?:评价|評價)|ratings?)/i)?.[1] || '').replace(/,/g, ''));
    const dateText = metaText.match(/\d{4}-\d{2}-\d{2}/)?.[0] || '';
    const date = Date.parse(dateText) || 0;
    return { rating: Number.isFinite(rating) ? rating : -1, votes: Number.isFinite(votes) ? votes : 0, date }; }
   function compareScores(state, left, right) {
    const leftScore = scoreData(left); const rightScore = scoreData(right);
-   return rightScore.rating - leftScore.rating || rightScore.votes - leftScore.votes || rightScore.date - leftScore.date
-    || (state.originalOrder.get(left) || 0) - (state.originalOrder.get(right) || 0); }
+   return rightScore.rating - leftScore.rating || rightScore.votes - leftScore.votes || rightScore.date - leftScore.date || (state.originalOrder.get(left) || 0) - (state.originalOrder.get(right) || 0); }
   function compareVotes(state, left, right) {
    const leftScore = scoreData(left); const rightScore = scoreData(right);
-   return rightScore.votes - leftScore.votes || rightScore.rating - leftScore.rating || rightScore.date - leftScore.date
-    || (state.originalOrder.get(left) || 0) - (state.originalOrder.get(right) || 0); }
+   return rightScore.votes - leftScore.votes || rightScore.rating - leftScore.rating || rightScore.date - leftScore.date || (state.originalOrder.get(left) || 0) - (state.originalOrder.get(right) || 0); }
   function activeControl(mode) { return loadedReorderControls.find(control => control.key === mode) || null; }
   function reorder(list, cards, compare) {
-   const sorted = [...cards].sort(compare); const fragment = document.createDocumentFragment();
-   sorted.forEach(card => fragment.appendChild(card)); list.appendChild(fragment); }
+   const sorted = [...cards].sort(compare); const fragment = document.createDocumentFragment(); sorted.forEach(card => fragment.appendChild(card)); list.appendChild(fragment); }
   function findNativeSortButtons(list) {
-   const roots = [list.closest('main, section, body'), document].filter(Boolean);
-   const isListSortGroup = item => item.querySelector('a[href*="vst=1"], a[href*="lst="]');
+   const roots = [list.closest('main, section, body'), document].filter(Boolean); const isListSortGroup = item => item.querySelector('a[href*="vst=1"], a[href*="lst="]');
    for (const root of roots) {
     const buttons = [...root.querySelectorAll('.toolbar .button-group .buttons.has-addons')] .find(isListSortGroup);
     if (buttons) return buttons;
@@ -4045,9 +3600,7 @@
    if (!toolbar) return null;
    let group = toolbar.querySelector('[data-laosiji-score-sort-group="1"]');
    if (!group) {
-    group = document.createElement('div'); group.className = 'button-group'; group.dataset.laosijiScoreSortGroup = '1';
-    group.innerHTML = '<div class="buttons has-addons"></div>';
-    toolbar.appendChild(group); }
+    group = document.createElement('div'); group.className = 'button-group'; group.dataset.laosijiScoreSortGroup = '1'; group.innerHTML = '<div class="buttons has-addons"></div>'; toolbar.appendChild(group); }
    return group.querySelector('.buttons.has-addons'); }
   function updateButton(button, active, mode) {
    button.classList.toggle('is-selected', active); button.setAttribute('aria-pressed', String(active));
@@ -4055,24 +3608,19 @@
     ?`当前已按${mode}排序；再次点击恢复网站顺序`                :`按${mode}排序当前页；无限滚动的新内容仅在本批内排序`;
   }
   function canReorderLoaded(list, state) {
-   return !!state.mode && InfiniteScroll?.state?.site === 'javdb' && InfiniteScroll.state.container === list
-    && !!list.querySelector(':scope > .item[data-laosiji-infinite-item="1"]'); }
+   return !!state.mode && InfiniteScroll?.state?.site === 'javdb' && InfiniteScroll.state.container === list && !!list.querySelector(':scope > .item[data-laosiji-infinite-item="1"]'); }
   function syncLoadedReorderControl(list, state) {
    let button = document.querySelector('[data-laosiji-reorder-loaded]'); const floatButtons = document.querySelector('.float-buttons');
    if (!canReorderLoaded(list, state) || !floatButtons) { button?.remove(); return; }
    if (!button) {
-    button = document.createElement('button'); button.type = 'button'; button.className = 'javdb-loaded-reorder-btn'; button.dataset.laosijiReorderLoaded = '1';
-    button.textContent = '重排已加载内容';
+    button = document.createElement('button'); button.type = 'button'; button.className = 'javdb-loaded-reorder-btn'; button.dataset.laosijiReorderLoaded = '1'; button.textContent = '重排已加载内容';
     button.addEventListener('click', () => {
      const control = activeControl(state.mode);
      if (!control) return;
-     const cards = listCards(list);
-     rememberOrder(state, cards); reorder(list, cards, (left, right) => control.compare(state, left, right));
-     const top = Math.max(0, window.scrollY + list.getBoundingClientRect().top - 12);
+     const cards = listCards(list); rememberOrder(state, cards); reorder(list, cards, (left, right) => control.compare(state, left, right)); const top = Math.max(0, window.scrollY + list.getBoundingClientRect().top - 12);
      window.scrollTo({ top, behavior: 'auto' });
     }); }
-   const control = activeControl(state.mode);
-   floatButtons.insertBefore(button, floatButtons.querySelector('.material-scrolltop'));
+   const control = activeControl(state.mode); floatButtons.insertBefore(button, floatButtons.querySelector('.material-scrolltop'));
    button.title =`按${control?.text || '当前'}排序重排所有已加载内容，并返回列表顶部`;
   }
   function installControl(list, state) {
@@ -4087,13 +3635,9 @@
      button.dataset[`laosiji${control.key[0].toUpperCase()}${control.key.slice(1)}Sort`] = '1';
     button.textContent = control.text;
     button.addEventListener('click', event => {
-     event.preventDefault(); event.stopPropagation();
-     state.mode = state.mode === control.key ? '' : control.key;
-     const cards = listCards(list);
-     rememberOrder(state, cards);
+     event.preventDefault(); event.stopPropagation(); state.mode = state.mode === control.key ? '' : control.key; const cards = listCards(list); rememberOrder(state, cards);
      if (state.mode) {
-      const activeControl = controls.find(item => item.key === state.mode);
-      reorder(list, cards, (left, right) => activeControl.compare(state, left, right));
+      const activeControl = controls.find(item => item.key === state.mode); reorder(list, cards, (left, right) => activeControl.compare(state, left, right));
      } else {
       reorder(list, cards, (left, right) => { return (state.originalOrder.get(left) || 0) - (state.originalOrder.get(right) || 0); }); }
      controlButtons.forEach(({ button: item, control: itemControl }) => { updateButton(item, state.mode === itemControl.key, itemControl.text); });
@@ -4105,22 +3649,16 @@
    controlButtons.forEach(({ button, control }) => { updateButton(button, state.mode === control.key, control.text); }); }
   function sync(list, incomingCards = []) {
    if (!list?.matches('.javdb-card-grid')) return;
-   const state = stateFor(list); const incoming = [...incomingCards].filter(card => card?.parentElement === list);
-   rememberOrder(state, incoming.length ? incoming : listCards(list)); installControl(list, state); syncLoadedReorderControl(list, state);
-   if (state.mode && incoming.length) {
-    const compare = state.mode === 'score' ? compareScores : compareVotes;
-    reorder(list, incoming, (left, right) => compare(state, left, right)); } }
+   const state = stateFor(list); const incoming = [...incomingCards].filter(card => card?.parentElement === list); rememberOrder(state, incoming.length ? incoming : listCards(list)); installControl(list, state); syncLoadedReorderControl(list, state);
+   if (state.mode && incoming.length) { const compare = state.mode === 'score' ? compareScores : compareVotes; reorder(list, incoming, (left, right) => compare(state, left, right)); }
+  }
   return { sync };
  })();
  const Javdb123AvFc2 = (() => {
   const BASE_URL = 'https://123av.com';
   const ROUTE_KEY = 'laosiji_123av_fc2'; const DETAIL_KEY = 'laosiji_123av_fc2_detail';
   const LEGACY_SORTS = { recent: { label: '最近更新', source: '' }, today: { label: '今日发布', source: 'today' }, hot: { label: '热门', source: 'week' } };
-  const TYPES = [
-   { value: '', label: '\u5168\u90e8' },
-   { value: 'censored', label: '\u6709\u7801' },
-   { value: 'uncensored', label: '\u65e0\u7801' },
-   { value: 'uncensored-leaked', label: '\u65e0\u7801\u6cc4\u9732' }, ];
+  const TYPES = [ { value: '', label: '\u5168\u90e8' }, { value: 'censored', label: '\u6709\u7801' }, { value: 'uncensored', label: '\u65e0\u7801' }, { value: 'uncensored-leaked', label: '\u65e0\u7801\u6cc4\u9732' } ];
   const ACTRESS_MODES = [ { value: '', label: '\u5168\u90e8' }, { value: 'single', label: '\u5355\u4eba' }, { value: 'multi', label: '\u591a\u4eba' } ];
   const SORTS = {
    release_date: { label: '\u53d1\u5e03\u65e5\u671f' },
@@ -4137,14 +3675,11 @@
   const CACHE_PREFIX = 'javdb_123av_fc2_cache_v3_'; const CACHE_TTL = 90 * 1000; const activeRequests = new Set(); let renderGeneration = 0;
   function installEarlyJavlibMask() {
    try {
-    const url = new URL(location.href); const isJavLib = /(?:javlibrary|javlib|r86m|s87n)/i.test(url.hostname); const isJavBus = /javbus/i.test(url.hostname);
-    const isJavDb = /javdb/i.test(url.hostname); const isRoute = url.searchParams.get(ROUTE_KEY) === '1';
+    const url = new URL(location.href); const isJavLib = /(?:javlibrary|javlib|r86m|s87n)/i.test(url.hostname); const isJavBus = /javbus/i.test(url.hostname); const isJavDb = /javdb/i.test(url.hostname); const isRoute = url.searchParams.get(ROUTE_KEY) === '1';
     if ((!isJavLib && !isJavBus && !isJavDb) || (!isJavLib && !isRoute)) return;
-    const style = document.createElement('style');
-    style.id = '123av-fc2-early-mask';
-    style.textContent = isJavLib ? isRoute ? '#rightcolumn{visibility:hidden!important}#leftmenu{display:none!important;visibility:hidden!important}'
-      : '#leftmenu{display:none!important;visibility:hidden!important}' : isJavDb ? 'body > section{visibility:hidden!important}'
-      : '#waterfall{visibility:hidden!important}.pagination{visibility:hidden!important}';
+    const style = document.createElement('style'); style.id = '123av-fc2-early-mask';
+    style.textContent = isJavLib ? isRoute ? '#rightcolumn{visibility:hidden!important}#leftmenu{display:none!important;visibility:hidden!important}' : '#leftmenu{display:none!important;visibility:hidden!important}' : isJavDb
+      ? 'body > section{visibility:hidden!important}' : '#waterfall{visibility:hidden!important}.pagination{visibility:hidden!important}';
     (document.head || document.documentElement).appendChild(style);
    } catch {
    } }
@@ -4157,25 +3692,14 @@
    try {
     const url = new URL(href, location.href); const params = url.searchParams;
     if (!/(?:jav(?:db|bus|library|lib)|r86m|s87n)/i.test(url.hostname) || params.get(ROUTE_KEY) !== '1') return null;
-    const type = TYPES.some(item => item.value === params.get('laosiji_type')) ? params.get('laosiji_type') : '';
-    const year = YEARS.includes(params.get('laosiji_year')) ? params.get('laosiji_year') : '';
-    const actress = ACTRESS_MODES.some(item => item.value === params.get('laosiji_actress')) ? params.get('laosiji_actress') : '';
-    const sort = SORTS[params.get('laosiji_sort')] ? params.get('laosiji_sort') : 'release_date';
+    const type = TYPES.some(item => item.value === params.get('laosiji_type')) ? params.get('laosiji_type') : ''; const year = YEARS.includes(params.get('laosiji_year')) ? params.get('laosiji_year') : '';
+    const actress = ACTRESS_MODES.some(item => item.value === params.get('laosiji_actress')) ? params.get('laosiji_actress') : ''; const sort = SORTS[params.get('laosiji_sort')] ? params.get('laosiji_sort') : 'release_date';
     const detail = String(params.get(DETAIL_KEY) || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-    return {
-     page: Math.max(1, parseInt(params.get('laosiji_page') || '1', 10) || 1),
-     query: (params.get('laosiji_query') || '').trim(),
-     type,
-     year,
-     actress,
-     sort, ...(detail ? { detail } : {}), };
+    return { page: Math.max(1, parseInt(params.get('laosiji_page') || '1', 10) || 1), query: (params.get('laosiji_query') || '').trim(), type, year, actress, sort, ...(detail ? { detail } : {}) };
    } catch { return null; } }
   function routeUrl(next = {}) {
-   const params = new URLSearchParams();
-   params.set(ROUTE_KEY, '1');
-   const query = String(next.query ?? '').trim(); const type = TYPES.some(item => item.value === next.type) ? next.type : '';
-   const year = YEARS.includes(String(next.year || '')) ? String(next.year) : '';
-   const actress = ACTRESS_MODES.some(item => item.value === next.actress) ? next.actress : ''; const sort = SORTS[next.sort] ? next.sort : 'release_date';
+   const params = new URLSearchParams(); params.set(ROUTE_KEY, '1'); const query = String(next.query ?? '').trim(); const type = TYPES.some(item => item.value === next.type) ? next.type : '';
+   const year = YEARS.includes(String(next.year || '')) ? String(next.year) : ''; const actress = ACTRESS_MODES.some(item => item.value === next.actress) ? next.actress : ''; const sort = SORTS[next.sort] ? next.sort : 'release_date';
    const page = Math.max(1, parseInt(next.page || '1', 10) || 1); const detail = String(next.detail || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
    if (query) params.set('laosiji_query', query);
    if (type) params.set('laosiji_type', type);
@@ -4190,10 +3714,8 @@
   function sourceUrl(route, sourcePage = route.page) {
    const url = new URL(route.query ? '/cn/search' : '/cn/makers/fc2', BASE_URL);
    if (route.query) url.searchParams.set('keyword', route.query);
-   url.searchParams.set('page', String(Math.max(1, sourcePage))); url.searchParams.set('type', route.type || '');
-   url.searchParams.set('year', route.year || ''); url.searchParams.set('actress', route.actress || '');
-   url.searchParams.set('sort', route.sort || 'release_date');
-   return url.href; }
+   url.searchParams.set('page', String(Math.max(1, sourcePage))); url.searchParams.set('type', route.type || ''); url.searchParams.set('year', route.year || ''); url.searchParams.set('actress', route.actress || '');
+   url.searchParams.set('sort', route.sort || 'release_date'); return url.href; }
   function renderOptions(items, selected) {
    return items.map(item => `<option value="${escapeHtml(item.value)}"${item.value === selected ? ' selected' : ''}>${escapeHtml(item.label)}</option>`).join('');
   }
@@ -4208,17 +3730,15 @@
   }
   function detailSlug(href) {
    try {
-    const path = new URL(href, BASE_URL).pathname.replace(/\/+$/, ''); const match = path.match(/\/v\/([^/]+)$/i);
-    return match ? decodeURIComponent(match[1]).toLowerCase() : '';
+    const path = new URL(href, BASE_URL).pathname.replace(/\/+$/, ''); const match = path.match(/\/v\/([^/]+)$/i); return match ? decodeURIComponent(match[1]).toLowerCase() : '';
    } catch { return ''; } }
   function localDetailUrl(href) {
    const slug = detailSlug(href);
    return slug ? routeUrl({ detail: slug }) : href; }
   function parseCard(card, baseUrl = BASE_URL) {
    if (!card) return null;
-   const link = card.querySelector('.card__cover[href], .card__title a[href]'); const titleLink = card.querySelector('.card__title a[href]') || link;
-   const rawTitle = (titleLink?.textContent || '').replace(/\s+/g, ' ').trim(); const code = normalizeCode(rawTitle || link?.getAttribute('href'));
-   const href = link?.getAttribute('href') || titleLink?.getAttribute('href') || ''; const image = card.querySelector('.card__img[src], img[src]');
+   const link = card.querySelector('.card__cover[href], .card__title a[href]'); const titleLink = card.querySelector('.card__title a[href]') || link; const rawTitle = (titleLink?.textContent || '').replace(/\s+/g, ' ').trim();
+   const code = normalizeCode(rawTitle || link?.getAttribute('href')); const href = link?.getAttribute('href') || titleLink?.getAttribute('href') || ''; const image = card.querySelector('.card__img[src], img[src]');
    if (!code || !href) return null;
    return {
     code,
@@ -4231,28 +3751,18 @@
    const seen = new Set();
    const items = [...doc.querySelectorAll('.card')].map(card => parseCard(card, baseUrl)).filter(item => {
     if (!item || seen.has(item.code)) return false;
-    seen.add(item.code);
-    return true;
+    seen.add(item.code); return true;
    });
-   const next = doc.querySelector('.pager__nav[rel="next"][href], a[rel="next"][href]');
-   const last = doc.querySelector('.pager__pages a[rel="last"][href], a[rel="last"][href]');
-   const totalText = doc.querySelector('.pager__total')?.textContent || '';
-   const totalPages = Math.max( parseInt(totalText.replace(/[^\d]/g, ''), 10) || 0, parseInt(last?.textContent?.replace(/[^\d]/g, '') || '0', 10) || 0 );
-   const visibleBody = doc.body?.cloneNode?.(true);
-   visibleBody?.querySelectorAll?.('script,style,noscript,template').forEach(el => el.remove());
-   const visibleText = visibleBody?.textContent || doc.body?.textContent || '';
+   const next = doc.querySelector('.pager__nav[rel="next"][href], a[rel="next"][href]'); const last = doc.querySelector('.pager__pages a[rel="last"][href], a[rel="last"][href]'); const totalText = doc.querySelector('.pager__total')?.textContent || '';
+   const totalPages = Math.max( parseInt(totalText.replace(/[^\d]/g, ''), 10) || 0, parseInt(last?.textContent?.replace(/[^\d]/g, '') || '0', 10) || 0 ); const visibleBody = doc.body?.cloneNode?.(true);
+   visibleBody?.querySelectorAll?.('script,style,noscript,template').forEach(el => el.remove()); const visibleText = visibleBody?.textContent || doc.body?.textContent || '';
    const challengeText = `${doc.title || ''} ${visibleText}`;
-   return {
-    items,
-    nextUrl: next ? new URL(next.getAttribute('href'), baseUrl).href : '',
-    totalPages,
-    blocked: !items.length && /cloudflare|challenge|checking your browser|captcha|验证|驗證/i.test(challengeText), }; }
+   return { items, nextUrl: next ? new URL(next.getAttribute('href'), baseUrl).href : '', totalPages, blocked: !items.length && /cloudflare|challenge|checking your browser|captcha|验证|驗證/i.test(challengeText) }; }
   function mergePages(pages) {
    const seen = new Set();
    const items = pages.flatMap(page => page?.items || []).filter(item => {
     if (!item?.code || seen.has(item.code)) return false;
-    seen.add(item.code);
-    return true;
+    seen.add(item.code); return true;
    });
    const sourceTotalPages = Math.max(...pages.map(page => Number(page?.totalPages) || 0), 0); const hasNext = pages.some(page => !!page?.nextUrl);
    return { items, nextUrl: hasNext ? '1' : '', totalPages: Math.ceil(sourceTotalPages / 2), sourceTotalPages }; }
@@ -4284,25 +3794,19 @@
    const cached = readCache(url);
    if (cached) return cached;
    const request = gmFetch(url, { timeout: 20000, headers: { accept: 'text/html' } });
-   activeRequests.add(request);
-   const response = await request;
-   activeRequests.delete(request);
+   activeRequests.add(request); const response = await request; activeRequests.delete(request);
    if (generation !== renderGeneration) throw new Error('请求已被新页面替换。');
    const error = responseError(response);
    if (error) throw error;
    const data = parseDocument(parseHTML(response.responseText || ''), url);
    if (data.blocked) throw new Error('123AV 返回了验证页面，请稍后重试。');
-   writeCache(url, data);
-   return data; }
+   writeCache(url, data); return data; }
   async function fetchPageBundle(route, generation) {
-   activeRequests.forEach(item => item.abort?.()); activeRequests.clear();
-   const firstSourcePage = (route.page - 1) * 2 + 1; const first = await fetchPage(sourceUrl(route, firstSourcePage), generation);
-   const second = first.nextUrl ? await fetchPage(sourceUrl(route, firstSourcePage + 1), generation) : null;
-   return mergePages([first, second]); }
+   activeRequests.forEach(item => item.abort?.()); activeRequests.clear(); const firstSourcePage = (route.page - 1) * 2 + 1; const first = await fetchPage(sourceUrl(route, firstSourcePage), generation);
+   const second = first.nextUrl ? await fetchPage(sourceUrl(route, firstSourcePage + 1), generation) : null; return mergePages([first, second]); }
   function textOf(node) { return (node?.textContent || '').replace(/\s+/g, ' ').trim(); }
   function styleUrl(value) {
-   const match = String(value || '').match(/url\(['"]?([^'")]+)['"]?\)/i);
-   return match ? match[1] : ''; }
+   const match = String(value || '').match(/url\(['"]?([^'")]+)['"]?\)/i); return match ? match[1] : ''; }
   function decodePlayerJson(value) {
    const match = String(value || '').match(/player\(JSON\.parse\('([\s\S]*?)'\)/i);
    if (!match) return [];
@@ -4310,27 +3814,22 @@
     const json = match[1] .replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
      .replace(/\\\//g, '/')
      .replace(/\\\\/g, '\\') .replace(/\\'/g, "'");
-    const episodes = JSON.parse(json);
-    return Array.isArray(episodes) ? episodes : [];
+    const episodes = JSON.parse(json); return Array.isArray(episodes) ? episodes : [];
    } catch { return []; } }
   function parseDetailDocument(doc, baseUrl = BASE_URL) {
-   const titleNode = doc?.querySelector?.('.watch__title, h1'); const rawTitle = textOf(titleNode) || textOf(doc?.querySelector?.('title'));
-   const rows = [...(doc?.querySelectorAll?.('.watch__info-row') || [])];
+   const titleNode = doc?.querySelector?.('.watch__title, h1'); const rawTitle = textOf(titleNode) || textOf(doc?.querySelector?.('title')); const rows = [...(doc?.querySelectorAll?.('.watch__info-row') || [])];
    const fields = {};
    rows.forEach(row => {
-    const label = textOf(row.querySelector?.('dt')).replace(/[：:]/g, '').toLowerCase(); const valueNode = row.querySelector?.('dd');
-    const value = textOf(valueNode);
+    const label = textOf(row.querySelector?.('dt')).replace(/[：:]/g, '').toLowerCase(); const valueNode = row.querySelector?.('dd'); const value = textOf(valueNode);
     if (label) fields[label] = {
      value,
      links: [...(valueNode?.querySelectorAll?.('a') || [])].map(textOf).filter(Boolean), };
    });
-   const player = doc?.querySelector?.('.watch__main[x-data], .watch__main'); const playerConfig = decodePlayerJson(player?.getAttribute?.('x-data'));
-   const cover = styleUrl(doc?.querySelector?.('.player')?.getAttribute?.('style')); const sourceUrl = new URL(baseUrl, BASE_URL).href;
-   const code = normalizeCode(fields['代码']?.value || fields.code?.value || rawTitle);
+   const player = doc?.querySelector?.('.watch__main[x-data], .watch__main'); const playerConfig = decodePlayerJson(player?.getAttribute?.('x-data')); const cover = styleUrl(doc?.querySelector?.('.player')?.getAttribute?.('style'));
+   const sourceUrl = new URL(baseUrl, BASE_URL).href; const code = normalizeCode(fields['代码']?.value || fields.code?.value || rawTitle);
    const title = rawTitle.replace(/^FC2[-_\s]?PPV[-_\s]?\d{6,9}\s*[—-]?\s*/i, '').trim() || rawTitle;
    const field = (...labels) => labels.map(label => fields[label]) .find(Boolean) || { value: '', links: [] };
-   const type = field('类型', 'type'); const release = field('发布日期', '发行日期', 'release date', 'released'); const maker = field('制作商', 'maker', 'studio');
-   const genres = field('类别', '分类', 'genres', 'genre');
+   const type = field('类型', 'type'); const release = field('发布日期', '发行日期', 'release date', 'released'); const maker = field('制作商', 'maker', 'studio'); const genres = field('类别', '分类', 'genres', 'genre');
    const metaStats = [...(doc?.querySelectorAll?.('.watch__meta--stats .watch__metaitem') || [])].map(textOf).filter(Boolean);
    return {
     code,
@@ -4349,20 +3848,16 @@
    const cached = readCache(url);
    if (cached) return cached;
    const request = gmFetch(url, { timeout: 20000, headers: { accept: 'text/html' } });
-   activeRequests.add(request);
-   const response = await request;
-   activeRequests.delete(request);
+   activeRequests.add(request); const response = await request; activeRequests.delete(request);
    if (generation !== renderGeneration) throw new Error('request replaced');
    const error = responseError(response);
    if (error) throw error;
    const doc = parseHTML(response.responseText || ''); const detail = parseDetailDocument(doc, url);
    if (!detail.code || !detail.rawTitle) throw new Error('\u0031\u0032\u0033AV \u8fd4\u56de\u4e86\u9a8c\u8bc1\u9875\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002');
-   writeCache(url, detail);
-   return detail; }
+   writeCache(url, detail); return detail; }
   function httpUrl(value, baseUrl) {
    try {
-    const url = new URL(String(value || '').trim(), baseUrl);
-    return /^https?:$/i.test(url.protocol) ? url.href : '';
+    const url = new URL(String(value || '').trim(), baseUrl); return /^https?:$/i.test(url.protocol) ? url.href : '';
    } catch { return ''; } }
   function codeNumber(code) { return String(code || '').match(/FC2-PPV-(\d{6,9})/i)?.[1] || ''; }
   function metaContent(doc, selector) { return doc?.querySelector?.(selector)?.getAttribute?.('content') || ''; }
@@ -4370,21 +3865,16 @@
    const url = httpUrl(node?.getAttribute?.('href') || node?.getAttribute?.('src'), baseUrl); const name = textOf(node) || label;
    return url && name ? { name, url } : null; }
   function sampleRecord(anchor, image, baseUrl) {
-   const url = httpUrl(anchor?.getAttribute?.('href') || image?.getAttribute?.('src'), baseUrl);
-   const thumb = httpUrl(image?.getAttribute?.('src') || anchor?.getAttribute?.('href'), baseUrl);
+   const url = httpUrl(anchor?.getAttribute?.('href') || image?.getAttribute?.('src'), baseUrl); const thumb = httpUrl(image?.getAttribute?.('src') || anchor?.getAttribute?.('href'), baseUrl);
    return url ? { url, thumb: thumb || url } : null; }
   function parseOfficialSupplementDocument(doc, baseUrl) {
    const title = metaContent(doc, 'meta[property="og:title"]') || textOf(doc?.querySelector?.('.items_article_headerInfo h3'));
    const cover = httpUrl(
     doc?.querySelector?.('.items_article_MainitemThumb img')?.getAttribute?.('src') || metaContent(doc, 'meta[property="og:image"]'),
     baseUrl,
-   );
-   const sellerNode = doc?.querySelector?.('.items_article_writer a[href*="/users/"]'); const seller = recordLink(sellerNode, baseUrl);
-   const sellerId = doc?.querySelector?.('.items_article_writer [data-userid]')?.getAttribute?.('data-userid') || '';
-   const samples = [...(doc?.querySelectorAll?.('.items_article_SampleImagesArea a[data-image-slideshow], .items_article_SampleImagesArea a') || [])]
-    .map(anchor => sampleRecord(anchor, anchor.querySelector?.('img'), baseUrl)) .filter(Boolean);
-   const tags = [...(doc?.querySelectorAll?.('.items_article_TagArea a.tagTag, .items_article_TagArea a[data-tag]') || [])]
-    .map(node => textOf(node) || node.getAttribute?.('data-tag') || '') .filter(Boolean);
+   ); const sellerNode = doc?.querySelector?.('.items_article_writer a[href*="/users/"]'); const seller = recordLink(sellerNode, baseUrl); const sellerId = doc?.querySelector?.('.items_article_writer [data-userid]')?.getAttribute?.('data-userid') || '';
+   const samples = [...(doc?.querySelectorAll?.('.items_article_SampleImagesArea a[data-image-slideshow], .items_article_SampleImagesArea a') || [])] .map(anchor => sampleRecord(anchor, anchor.querySelector?.('img'), baseUrl)) .filter(Boolean);
+   const tags = [...(doc?.querySelectorAll?.('.items_article_TagArea a.tagTag, .items_article_TagArea a[data-tag]') || [])] .map(node => textOf(node) || node.getAttribute?.('data-tag') || '') .filter(Boolean);
    return { title, cover, seller: seller ? { ...seller, id: sellerId } : null, actresses: [], samples, tags: [...new Set(tags)] }; }
   function parsePpvCmaInertiaPage(doc) {
    const pageScript = doc?.querySelector?.('script[data-page="app"]');
@@ -4400,18 +3890,14 @@
      id: String(structuredWriter.id || ''),
     } : null;
    const structuredTags = Array.isArray(structured?.tags) ? structured.tags.map(tag => typeof tag === 'string' ? tag : tag?.name || '').filter(Boolean) : [];
-   const structuredSamples = [ ...(Array.isArray(structured?.samples) ? structured.samples : []),
-    ...(Array.isArray(structured?.sample_images) ? structured.sample_images : []),
-    ...(Array.isArray(structured?.preview_images) ? structured.preview_images : []),
+   const structuredSamples = [ ...(Array.isArray(structured?.samples) ? structured.samples : []), ...(Array.isArray(structured?.sample_images) ? structured.sample_images : []), ...(Array.isArray(structured?.preview_images) ? structured.preview_images : []),
    ].map(sample => {
-    const url = typeof sample === 'string' ? sample : sample?.url || sample?.image_url || sample?.src || '';
-    const thumb = typeof sample === 'string' ? sample : sample?.thumb || sample?.thumbnail || sample?.thumbnail_url || sample?.src || '';
+    const url = typeof sample === 'string' ? sample : sample?.url || sample?.image_url || sample?.src || ''; const thumb = typeof sample === 'string' ? sample : sample?.thumb || sample?.thumbnail || sample?.thumbnail_url || sample?.src || '';
     const safeUrl = httpUrl(url, baseUrl); const safeThumb = httpUrl(thumb, baseUrl);
     return safeUrl ? { url: safeUrl, thumb: safeThumb || safeUrl } : null;
    }).filter(Boolean);
    const structuredActresses = Array.isArray(structured?.actresses) ? structured.actresses.map(actress => {
-     const name = typeof actress === 'string' ? actress : actress?.name || '';
-     const slug = typeof actress === 'string' ? '' : actress?.slug || actress?.id || '';
+     const name = typeof actress === 'string' ? actress : actress?.name || ''; const slug = typeof actress === 'string' ? '' : actress?.slug || actress?.id || '';
      const url = httpUrl(
       typeof actress === 'object' ? actress?.url || (slug ? `/actresses/${encodeURIComponent(slug)}` : '') : '',
       baseUrl,
@@ -4420,11 +3906,9 @@
     }).filter(Boolean) : [];
    const title = structured?.title || metaContent(doc, 'meta[property="og:title"]') || textOf(doc?.querySelector?.('h1, .title, [class*="title"]'));
    const cover = httpUrl(
-    structured?.image_url || metaContent(doc, 'meta[property="og:image"]')
-     || doc?.querySelector?.('[class*="cover"] img, [class*="poster"] img, img[src*="cover"]')?.getAttribute?.('src'),
+    structured?.image_url || metaContent(doc, 'meta[property="og:image"]') || doc?.querySelector?.('[class*="cover"] img, [class*="poster"] img, img[src*="cover"]')?.getAttribute?.('src'),
     baseUrl,
-   );
-   const links = [...(doc?.querySelectorAll?.('a[href]') || [])];
+   ); const links = [...(doc?.querySelectorAll?.('a[href]') || [])];
    const collectByHint = hints => links.map(link => {
     const href = link.getAttribute?.('href') || '';
     const context = `${href} ${textOf(link)} ${textOf(link.parentElement)}`.toLowerCase();
@@ -4440,13 +3924,11 @@
    }).filter(Boolean);
    const sampleAnchors = [...(doc?.querySelectorAll?.('[class*="sample"] a, [class*="preview"] a, [class*="sample"] img, [class*="preview"] img') || [])];
    const htmlSamples = sampleAnchors.map(node => {
-    const image = node.matches?.('img') ? node : node.querySelector?.('img'); const anchor = node.matches?.('a') ? node : node.closest?.('a');
-    return sampleRecord(anchor, image, baseUrl);
+    const image = node.matches?.('img') ? node : node.querySelector?.('img'); const anchor = node.matches?.('a') ? node : node.closest?.('a'); return sampleRecord(anchor, image, baseUrl);
    }).filter(Boolean);
    const actresses = [ ...directActresses, ...structuredActresses, ...collectByHint(['actress', 'actor', 'performer', '\u5973\u512a', '\u5973\u6f14\u5458']),
     ...collectBySelector('[class*="actress"] a, [class*="actor"] a, [class*="performer"] a, [data-actress] a'), ];
-   const sellers = [ ...(structuredSeller ? [structuredSeller] : []),
-    ...collectByHint(['seller', 'maker', 'author', 'uploader', '\u8ca9\u58f2\u8005', '\u9500\u552e\u8005']),
+   const sellers = [ ...(structuredSeller ? [structuredSeller] : []), ...collectByHint(['seller', 'maker', 'author', 'uploader', '\u8ca9\u58f2\u8005', '\u9500\u552e\u8005']),
     ...collectBySelector('[class*="seller"] a, [class*="maker"] a, [class*="author"] a, [data-seller] a'), ];
    return {
     title,
@@ -4481,8 +3963,7 @@
    let request;
    try {
     request = gmFetch(source.url, { timeout: 20000, headers: { accept: 'text/html' } });
-    activeRequests.add(request);
-    const response = await request;
+    activeRequests.add(request); const response = await request;
     if (generation !== renderGeneration || !response?.ok) return null;
     const document = parseHTML(response.responseText || ''); const parsed = source.parser(document, source.url);
     if (source.deferred === 'actresses') {
@@ -4500,16 +3981,14 @@
          'X-Inertia-Version': page.version,
          'X-Requested-With': 'XMLHttpRequest', },
        });
-       activeRequests.add(deferredRequest);
-       const deferredResponse = await deferredRequest;
+       activeRequests.add(deferredRequest); const deferredResponse = await deferredRequest;
        if (deferredResponse?.ok) {
         parsed.actresses = mergeActresses( parsed.actresses || [], parsePpvDbDeferredResponse(deferredResponse.responseText, source.url) ); }
       } catch {
       } finally {
        activeRequests.delete(deferredRequest); } } }
     if (generation !== renderGeneration) return null;
-    writeCache(source.url, parsed);
-    return parsed;
+    writeCache(source.url, parsed); return parsed;
    } catch {
     return null;
    } finally {
@@ -4519,9 +3998,7 @@
    if (!number) return { actresses: [], sellers: [], samples: [], tags: [] };
    const officialUrl = `https://adult.contents.fc2.com/article/${number}/?lang=cn`;
    const dbUrl = `https://fc2cmadb.com/articles/${number}`;
-   const sources = [
-    { url: officialUrl, parser: parseOfficialSupplementDocument },
-    { url: dbUrl, parser: parsePpvDbSupplementDocument, deferred: 'actresses' }, ];
+   const sources = [ { url: officialUrl, parser: parseOfficialSupplementDocument }, { url: dbUrl, parser: parsePpvDbSupplementDocument, deferred: 'actresses' } ];
    const results = (await Promise.all(sources.map(source => fetchSupplementSource(source, generation)))).filter(Boolean);
    const unique = (items, key = item => item.url || item.name) => [...new Map(items.filter(Boolean).map(item => [key(item), item])).values()];
    return {
@@ -4549,24 +4026,19 @@
   }
   function detailContainer(site) {
    if (site === 'javlib') return document.querySelector('#rightcolumn');
-   if (site === 'javbus') {
-    const list = document.querySelector('#waterfall');
-    return list?.closest('.container-fluid, .container') || list?.parentElement || document.querySelector('.container'); }
+   if (site === 'javbus') { const list = document.querySelector('#waterfall'); return list?.closest('.container-fluid, .container') || list?.parentElement || document.querySelector('.container'); }
    const section = document.querySelector('body > section, .section');
    if (!section) return document.querySelector('.section .container');
    const existingContainer = [...section.children].find(child => child.classList?.contains('container'));
    if (existingContainer) return existingContainer;
-   const container = document.createElement('div');
-   container.className = 'container';
+   const container = document.createElement('div'); container.className = 'container';
    while (section.firstChild) container.appendChild(section.firstChild);
-   section.appendChild(container);
-   return container; }
+   section.appendChild(container); return container; }
   function renderDetailShell(route, site) {
    const container = detailContainer(site);
    if (!container) return null;
    if (site === 'javdb') PageZoom.apply?.('javdb');
-   JavdbFc2DetailRenderer.installStyles();
-   JavdbApiShellStyles.installDetailShell?.();
+   JavdbFc2DetailRenderer.installStyles(); JavdbApiShellStyles.installDetailShell?.();
    injectStyle('javdb-123av-fc2-detail-style',`.javdb-123av-fc2-detail-status{padding:12px!important;border:1px solid #e2e8f0!important;border-radius:7px!important;background:#f8fafc!important;color:#475569!important;font-size:13px!important;font-weight:700!important}.javdb-123av-fc2-detail-status.is-error{border-color:#fecaca!important;background:#fff1f2!important;color:#be123c!important}`);
    if (site === 'javlib') injectStyle('javlib-123av-fc2-detail-layout-style', '#leftmenu{display:none!important}#rightcolumn{margin:0!important;width:100%!important;float:none!important}');
    container.innerHTML = `<div class="javdb-123av-fc2-detail-shell" data-laosiji-123av-fc2-detail-site="${site}"><div class="javdb-123av-fc2-detail-head"><div class="javdb-123av-fc2-detail-kicker">123AV-FC2 统一详情</div><div class="javdb-123av-fc2-detail-actions"><a href="${escapeHtml(routeUrl({ ...route, detail: '' }))}">返回列表</a></div></div><div class="javdb-123av-fc2-detail-status">正在加载 123AV 详情...</div></div>`;
@@ -4580,9 +4052,7 @@
      ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${safeName}</a>`
      : safeName;
    }).filter(Boolean).join(' / ');
-   const actresses = names(data.actresses);
-   const seller = (Array.isArray(data.sellers) ? data.sellers : []) .find(item => String(typeof item === 'object' ? item?.name || '' : item || '').trim());
-   const sellerHtml = seller ? names([seller]) : '';
+   const actresses = names(data.actresses); const seller = (Array.isArray(data.sellers) ? data.sellers : []) .find(item => String(typeof item === 'object' ? item?.name || '' : item || '').trim()); const sellerHtml = seller ? names([seller]) : '';
    const tags = [...new Set((Array.isArray(data.tags) ? data.tags : []) .map(tag => String(tag || '').trim()) .filter(Boolean))]
     .map(tag => `<span class="javdb-123av-fc2-detail-chip">${escapeHtml(tag)}</span>`)
     .join('');
@@ -4629,8 +4099,7 @@
     const info = shell.container.querySelector('.movie-panel-info');
     fetchSupplementBundle(detail.code, generation).then(data => {
      if (generation !== renderGeneration || !info?.isConnected) return;
-     info.querySelectorAll('[data-123av-supplement-info="1"]').forEach(row => row.remove());
-     const infoHtml = renderSupplementInfoHtml(data); const jumpGroup = info.querySelector('.jav-jump-btn-group[data-laosiji-jump="1"]');
+     info.querySelectorAll('[data-123av-supplement-info="1"]').forEach(row => row.remove()); const infoHtml = renderSupplementInfoHtml(data); const jumpGroup = info.querySelector('.jav-jump-btn-group[data-laosiji-jump="1"]');
      if (infoHtml) {
       if (jumpGroup) jumpGroup.insertAdjacentHTML('beforebegin', infoHtml);
       else info.insertAdjacentHTML('beforeend', infoHtml);
@@ -4639,30 +4108,22 @@
      if (samplesHtml && magnet) magnet.insertAdjacentHTML('beforebegin', samplesHtml);
      StillsGallery.sync?.();
     }).catch(() => {});
-    document.getElementById('123av-fc2-early-mask')?.remove();
-    return true;
+    document.getElementById('123av-fc2-early-mask')?.remove(); return true;
    } catch (error) {
     if (generation !== renderGeneration) return true;
-    shell.status.classList.add('is-error');
-    shell.status.textContent = error.message || '123AV detail request failed';
-    document.getElementById('123av-fc2-early-mask')?.remove();
-    return true; } }
+    shell.status.classList.add('is-error'); shell.status.textContent = error.message || '123AV detail request failed'; document.getElementById('123av-fc2-early-mask')?.remove(); return true; } }
   function renderShell(route, site = 'javdb') {
-   const isJavBus = site === 'javbus'; const isJavLib = site === 'javlib';
-   const nativeList = isJavBus ? document.querySelector('#waterfall') : isJavLib ? document.querySelector('.videothumblist .videos') : null;
+   const isJavBus = site === 'javbus'; const isJavLib = site === 'javlib'; const nativeList = isJavBus ? document.querySelector('#waterfall') : isJavLib ? document.querySelector('.videothumblist .videos') : null;
    if (isJavBus || isJavLib) {
     document.querySelectorAll('ul.pagination, .page_selector').forEach(pagination => {
-     const wrapper = pagination.closest('.text-center');
-     (wrapper || pagination).remove();
+     const wrapper = pagination.closest('.text-center'); (wrapper || pagination).remove();
     }); }
-   const container = isJavBus ? nativeList?.closest('.container-fluid, .container') || nativeList?.parentElement : isJavLib
-     ? document.querySelector('#rightcolumn') : document.querySelector('body > section > div, .section .container, body > section');
+   const container = isJavBus ? nativeList?.closest('.container-fluid, .container') || nativeList?.parentElement : isJavLib ? document.querySelector('#rightcolumn') : document.querySelector('body > section > div, .section .container, body > section');
    if (!container) { document.getElementById('123av-fc2-early-mask')?.remove(); return null; }
    if (isJavLib) { injectStyle('javlib-123av-fc2-layout-style', '#leftmenu{display:none!important}'); }
    injectStyle('javdb-123av-fc2-style',`.javdb-123av-fc2-shell{margin-top:10px!important}.javdb-123av-fc2-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;margin:8px 0 12px!important}.javdb-123av-fc2-title{color:#1e293b!important;font-size:18px!important;font-weight:850!important}.javdb-123av-fc2-tools{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important;margin:8px 0 12px!important}.javdb-123av-fc2-tools>form,.javdb-123av-fc2-tools>a{display:none!important}.javdb-123av-fc2-filter-form{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;margin:8px 0 12px!important}.javdb-123av-fc2-filter-form input,.javdb-123av-fc2-filter-form select{min-width:0!important;min-height:32px!important;padding:5px 9px!important;border:1px solid #cbd5e1!important;border-radius:6px!important;background:#fff!important;color:#334155!important;font-size:12px!important}.javdb-123av-fc2-filter-form input{flex:1 1 220px!important}.javdb-123av-fc2-filter-form select{flex:0 1 128px!important}.javdb-123av-fc2-filter-form button{min-height:32px!important;padding:5px 12px!important;border:1px solid #dbe3ef!important;border-radius:7px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important}.javdb-123av-fc2-tools form{display:flex!important;gap:6px!important;flex:1 1 240px!important;max-width:520px!important}.javdb-123av-fc2-tools input{min-width:0!important;flex:1 1 auto!important;min-height:32px!important;padding:5px 9px!important;border:1px solid #cbd5e1!important;border-radius:6px!important;background:#fff!important}.javdb-123av-fc2-tools button,.javdb-123av-fc2-tools a,.javdb-123av-fc2-pagination a{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:30px!important;padding:5px 11px!important;border:1px solid #dbe3ef!important;border-radius:7px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;text-decoration:none!important;cursor:pointer!important}.javdb-123av-fc2-tools a.is-active,.javdb-123av-fc2-pagination a.is-active{border-color:#60a5fa!important;background:#eff6ff!important;color:#1d4ed8!important}.javdb-123av-fc2-status{margin:10px 0!important;padding:10px 12px!important;border:1px solid #e2e8f0!important;border-radius:8px!important;background:#f8fafc!important;color:#475569!important;font-size:13px!important;font-weight:700!important}.javdb-123av-fc2-status.is-error{border-color:#fecaca!important;background:#fff1f2!important;color:#be123c!important}.javdb-123av-fc2-pagination{display:flex!important;justify-content:center!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;margin:16px 0 8px!important}html[data-theme="dark"] .javdb-123av-fc2-title{color:#e5e7eb!important}html[data-theme="dark"] .javdb-123av-fc2-tools input,html[data-theme="dark"] .javdb-123av-fc2-tools button,html[data-theme="dark"] .javdb-123av-fc2-tools a,html[data-theme="dark"] .javdb-123av-fc2-pagination a{border-color:#475569!important;background:#252525!important;color:#e5e7eb!important}`);
    container.innerHTML = `<div class="javdb-123av-fc2-shell"><div class="javdb-123av-fc2-head"><div class="javdb-123av-fc2-title">123AV-FC2</div></div><div class="javdb-123av-fc2-tools"><form><input name="query" type="search" value="${escapeHtml(route.query)}" placeholder="搜索 FC2 番号或标题"><button type="submit">搜索</button></form> ${Object.entries(SORTS).map(([key, value]) => `<a class="${key === route.sort ? 'is-active' : ''}" href="${routeUrl({ ...route, sort: key, page: 1 })}">${value.label}</a>`).join('')} </div><div class="javdb-123av-fc2-status">正在加载 123AV 数据...</div><form class="javdb-123av-fc2-filter-form"><input name="query" type="search" value="${escapeHtml(route.query)}" placeholder="\u641c\u7d22 FC2 \u756a\u53f7\u6216\u6807\u9898"><select name="type" aria-label="\u7c7b\u578b">${renderOptions(TYPES, route.type)}</select><select name="year" aria-label="\u5e74\u4efd">${renderYearOptions(route.year)}</select><select name="actress" aria-label="\u5973\u6f14\u5458">${renderOptions(ACTRESS_MODES, route.actress)}</select><select name="sort" aria-label="\u6392\u5e8f">${renderOptions(Object.entries(SORTS).map(([value, item]) => ({ value, label: item.label })), route.sort)}</select><button type="submit">\u641c\u7d22</button></form> ${isJavBus
-      ? '<div id="waterfall" class="javbus-123av-fc2-list"></div>' : isJavLib
-       ? '<div class="videothumblist"><div class="videos javlib-123av-fc2-list"></div></div>'
+      ? '<div id="waterfall" class="javbus-123av-fc2-list"></div>' : isJavLib ? '<div class="videothumblist"><div class="videos javlib-123av-fc2-list"></div></div>'
        : '<div class="movie-list h cols-4 vcols-8"></div>'} <div class="javdb-123av-fc2-pagination-wrap"></div></div>`;
    SiteJavDB._insertResourceNav?.();
    if (isJavLib) {
@@ -4673,8 +4134,7 @@
    } else { document.getElementById('123av-fc2-early-mask')?.remove(); }
    const form = container.querySelector('form');
    form?.addEventListener('submit', event => {
-    event.preventDefault();
-    const query = form.querySelector('input[name="query"]')?.value?.trim() || '';
+    event.preventDefault(); const query = form.querySelector('input[name="query"]')?.value?.trim() || '';
     location.href = routeUrl({ ...route, query, page: 1 });
    });
    const filterForm = container.querySelector('.javdb-123av-fc2-filter-form');
@@ -4691,12 +4151,7 @@
     });
    });
    filterForm?.querySelectorAll('select').forEach(select => select.addEventListener('change', () => filterForm.requestSubmit()));
-   return {
-    container,
-    status: container.querySelector('.javdb-123av-fc2-status'),
-    list: container.querySelector(isJavBus ? '#waterfall' : isJavLib ? '.videos' : '.movie-list'),
-    pagination: container.querySelector('.javdb-123av-fc2-pagination-wrap'),
-    site, }; }
+   return { container, status: container.querySelector('.javdb-123av-fc2-status'), list: container.querySelector(isJavBus ? '#waterfall' : isJavLib ? '.videos' : '.movie-list'), pagination: container.querySelector('.javdb-123av-fc2-pagination-wrap'), site }; }
   function init() {
    const route = parseRoute();
    if (!route) return false;
@@ -4723,30 +4178,23 @@
      Runtime.refreshListPage();
     } catch (error) {
      if (generation !== renderGeneration || /请求已被新页面替换|请求已取消/.test(error.message)) return;
-     shell.status.classList.add('is-error');
-     shell.status.textContent = error.message || '123AV 请求失败。'; }
+     shell.status.classList.add('is-error'); shell.status.textContent = error.message || '123AV 请求失败。'; }
    })();
    return true; }
   function installLink() {
    injectStyle('javdb-123av-fc2-nav-style',`li.javdb-123av-fc2-nav-item{display:flex!important;align-items:stretch!important;gap:0!important}li.javdb-123av-fc2-nav-item>a{flex:0 0 auto!important}`);
    const links = [...document.querySelectorAll('a[href]')].filter(link => {
     try {
-     const url = new URL(link.getAttribute('href'), location.href);
-     return /javdb/i.test(url.hostname) && /(?:^|\/)fc2\/?$/i.test(url.pathname);
+     const url = new URL(link.getAttribute('href'), location.href); return /javdb/i.test(url.hostname) && /(?:^|\/)fc2\/?$/i.test(url.pathname);
     } catch { return false; }
    });
    links.forEach(link => {
     const parent = link.parentElement;
     if (!parent || parent.querySelector('[data-laosiji123av-fc2-link="1"]')) return;
-    parent.classList.add('javdb-123av-fc2-nav-item');
-    const clone = link.cloneNode(true);
-    clone.removeAttribute('data-laosiji-api-ranking-shell');
-    clone.dataset.laosiji123avFc2Link = '1';
-    const label = clone.querySelector('span') || clone;
+    parent.classList.add('javdb-123av-fc2-nav-item'); const clone = link.cloneNode(true); clone.removeAttribute('data-laosiji-api-ranking-shell'); clone.dataset.laosiji123avFc2Link = '1'; const label = clone.querySelector('span') || clone;
     label.textContent = '123AV-FC2';
     clone.href = routeUrl({ page: 1 });
-    clone.title = '使用 123AV-FC2 来源';
-    link.insertAdjacentElement('afterend', clone);
+    clone.title = '使用 123AV-FC2 来源'; link.insertAdjacentElement('afterend', clone);
    }); }
   return {
    init,
@@ -4778,14 +4226,12 @@
   _actorBlacklistRetryTimers: [],
   match() { return location.hostname.includes('javdb'); },
   getVid() {
-   const el = document.querySelector('a.button.is-white.copy-to-clipboard');
-   return normalizeAvid(el?.dataset?.clipboardText || '') || Utils.extractCode(document.querySelector('h2.title, .javdb-api-detail-title')?.textContent || '');
-  },
+   const el = document.querySelector('a.button.is-white.copy-to-clipboard'); return normalizeAvid(el?.dataset?.clipboardText || '') || Utils.extractCode(document.querySelector('h2.title, .javdb-api-detail-title')?.textContent || ''); },
   initPage(avid) {
-   document.querySelector('.app-desktop-banner')?.remove(); this._dismissOver18Modal(); this._insertTopSettingsButton(); this._ensureDarkThemeStyle();
-   this._hideNativeLayoutSwitcher(); this._stripNativeLayoutParam(); this._insertResourceNav(); this._initFavoriteActorHighlight();
-   this._insertActorBlacklistButton(); Javdb123AvFc2.installLink();
+   document.querySelector('.app-desktop-banner')?.remove(); this._dismissOver18Modal(); this._insertTopSettingsButton(); this._ensureDarkThemeStyle(); this._hideNativeLayoutSwitcher(); this._stripNativeLayoutParam(); this._insertResourceNav();
+   JavdbContent.installNavigation(); this._initFavoriteActorHighlight(); this._insertActorBlacklistButton(); Javdb123AvFc2.installLink();
    if (Javdb123AvFc2.init()) return;
+   if (this._getContentMode?.()) { this._initContentPage().catch(err => errorLog('JavDB 资讯/短评自造页渲染失败:', err)); return; }
    if (CFG.javdbUseNativePages) {
     if (this._redirectCurrentNativeEntry()) return;
    } else {
@@ -4808,17 +4254,12 @@
    if (!resourceApi?.toggleActorBlacklist) return;
    injectStyle('javdb-actor-blacklist-style',`.javdb-actor-blacklist-control{display:flex!important;align-items:center;flex-wrap:nowrap!important;gap:.5rem;white-space:nowrap}.javdb-actor-blacklist-control>.button{flex:0 0 auto;margin:0!important}.javdb-actor-blacklist-btn{border-color:#334155!important;background:#475569!important;color:#fff!important}.javdb-actor-blacklist-btn:hover,.javdb-actor-blacklist-btn:focus{border-color:#1e293b!important;background:#334155!important;color:#fff!important}.javdb-actor-blacklist-btn.is-danger{border-color:#991b1b!important;background:#b91c1c!important;color:#fff!important}.javdb-actor-blacklist-btn.is-danger:hover,.javdb-actor-blacklist-btn.is-danger:focus{border-color:#7f1d1d!important;background:#991b1b!important;color:#fff!important}`);
    const clearWaiters = () => {
-    site._actorBlacklistObserver?.disconnect();
-    site._actorBlacklistObserver = null;
-    site._actorBlacklistRetryTimers.forEach(timer => clearTimeout(timer));
-    site._actorBlacklistRetryTimers = []; };
+    site._actorBlacklistObserver?.disconnect(); site._actorBlacklistObserver = null; site._actorBlacklistRetryTimers.forEach(timer => clearTimeout(timer)); site._actorBlacklistRetryTimers = []; };
    const isVisible = element => {
     if (!element) return false;
-    const style = window.getComputedStyle?.(element);
-    return style ? style.display !== 'none' && style.visibility !== 'hidden' : element.style.display !== 'none'; };
+    const style = window.getComputedStyle?.(element); return style ? style.display !== 'none' && style.visibility !== 'hidden' : element.style.display !== 'none'; };
    const insert = () => {
-    const uncollect = document.querySelector('#button-uncollect-actor'); const collect = document.querySelector('#button-collect-actor');
-    const source = [collect, uncollect].find(isVisible) || collect || uncollect;
+    const uncollect = document.querySelector('#button-uncollect-actor'); const collect = document.querySelector('#button-collect-actor'); const source = [collect, uncollect].find(isVisible) || collect || uncollect;
     if (!source) return false;
     const actorMatch = String(source.getAttribute('href') || '').match(/\/actors\/([^/?#]+)\/(?:collect|uncollect)/i); const actorId = actorMatch?.[1] || '';
     if (!actorId) return false;
@@ -4826,33 +4267,25 @@
     if (!control) return false;
     control.classList.add('javdb-actor-blacklist-control');
     if (control.querySelector('.javdb-actor-blacklist-btn')) return true;
-    const button = document.createElement('a');
-    button.href = 'javascript:void(0)'; button.className = 'button is-warning button-blacklist-actor javdb-actor-blacklist-btn'; button.title = '屏蔽该演员的所有作品';
+    const button = document.createElement('a'); button.href = 'javascript:void(0)'; button.className = 'button is-warning button-blacklist-actor javdb-actor-blacklist-btn'; button.title = '屏蔽该演员的所有作品';
     const syncButtonState = () => {
-     const blocked = resourceApi.isActorBlacklisted?.(actorId);
-     button.textContent = blocked ? '移出黑名单' : '加入黑名单';
-     button.classList.toggle('is-danger', !!blocked); button.classList.toggle('is-warning', !blocked); };
+     const blocked = resourceApi.isActorBlacklisted?.(actorId); button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.classList.toggle('is-danger', !!blocked); button.classList.toggle('is-warning', !blocked); };
     syncButtonState();
     button.addEventListener('click', async event => {
      event.preventDefault(); event.stopPropagation();
      if (button.dataset.loading === '1') return;
-     button.dataset.loading = '1';
-     button.setAttribute('aria-busy', 'true'); button.classList.add('is-loading');
-     button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名单...' : '正在读取作品...';
+     button.dataset.loading = '1'; button.setAttribute('aria-busy', 'true'); button.classList.add('is-loading'); button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名单...' : '正在读取作品...';
      try {
       const actorName = document.querySelector('.actor-section-name, .movie-panel-info a[href*="/actors/"], .avatar-box .photo-info .pb10')?.textContent?.replace(/\s+/g, ' ').trim() || actorId;
       const blocked = await resourceApi.toggleActorBlacklist(actorId, { actorId, name: actorName, aliases: actorName ? [actorName] : [] });
-      button.textContent = blocked ? '移出黑名单' : '加入黑名单';
-      button.classList.toggle('is-danger', blocked); button.classList.toggle('is-warning', !blocked);
-      Utils.showToast(blocked ? '已加入演员黑名单' : '已移出演员黑名单', actorId); document.dispatchEvent(new CustomEvent('laosiji-resource-blacklist-changed'));
+      button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.classList.toggle('is-danger', blocked); button.classList.toggle('is-warning', !blocked); Utils.showToast(blocked ? '已加入演员黑名单' : '已移出演员黑名单', actorId);
+      document.dispatchEvent(new CustomEvent('laosiji-resource-blacklist-changed'));
      } catch (error) {
       Utils.showToast('黑名单操作失败', error?.message || '资源库写入失败', 3500);
      } finally {
-      syncButtonState(); button.removeAttribute('aria-busy'); button.classList.remove('is-loading');
-      delete button.dataset.loading; }
+      syncButtonState(); button.removeAttribute('aria-busy'); button.classList.remove('is-loading'); delete button.dataset.loading; }
     });
-    source.parentNode.insertBefore(button, source.nextSibling);
-    return true; };
+    source.parentNode.insertBefore(button, source.nextSibling); return true; };
    if (insert()) { clearWaiters(); return; }
    if (!site._actorBlacklistObserver && document.body) {
     site._actorBlacklistObserver = new MutationObserver(() => {
@@ -4867,82 +4300,65 @@
     }); } },
   _hideNativeLayoutSwitcher() {
    document.querySelectorAll('.toolbar > .button-group').forEach(group => {
-    const hrefs = [...group.querySelectorAll('a[href]')].map(a => a.getAttribute('href') || '');
-    const labels = [...group.querySelectorAll('a.button')].map(a => (a.textContent || '').replace(/\s+/g, ''));
-    const hasLayoutHref = hrefs.some(href => /[?&]lm=h\b/i.test(href)) && hrefs.some(href => /[?&]lm=v\b/i.test(href));
-    const hasLayoutLabel = labels.some(text => /大封面|大封面/i.test(text)) && labels.some(text => /小封面|小封面/i.test(text));
+    const hrefs = [...group.querySelectorAll('a[href]')].map(a => a.getAttribute('href') || ''); const labels = [...group.querySelectorAll('a.button')].map(a => (a.textContent || '').replace(/\s+/g, ''));
+    const hasLayoutHref = hrefs.some(href => /[?&]lm=h\b/i.test(href)) && hrefs.some(href => /[?&]lm=v\b/i.test(href)); const hasLayoutLabel = labels.some(text => /大封面|大封面/i.test(text)) && labels.some(text => /小封面|小封面/i.test(text));
     if (hasLayoutHref || hasLayoutLabel) { group.dataset.laosijiHiddenNativeLayout = '1'; }
    });
    injectStyle('javdb-native-layout-style',`.toolbar>.button-group[data-laosiji-hidden-native-layout="1"]{display:none!important}`);
   },
   _insertResourceNav() {
-   const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__;
-   const hasListContent = document.querySelector('.movie-list, .masonry, .items, .item.jav-card, .jav-card');
-   const mainTabs = document.querySelector('.tabs.main-tabs');
+   const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__; const hasListContent = document.querySelector('.movie-list, .masonry, .items, .item.jav-card, .jav-card'); const mainTabs = document.querySelector('.tabs.main-tabs');
    const navList = mainTabs?.querySelector('ul') || [...document.querySelectorAll('ul')].find(list => list.querySelector('a[href="/censored"]') && list.querySelector('a[href="/uncensored"]') && list.querySelector('a[href="/western"]'));
    const customShell = document.querySelector('.javdb-api-shell, .javdb-123av-fc2-shell'); const isFc2AdvancedSearch = this._isScriptFc2AdvancedSearch?.();
    if (!resourceApi?.open || (!navList && !customShell && !isFc2AdvancedSearch) || (!hasListContent && !customShell && !isFc2AdvancedSearch)) return;
-   injectStyle('javdb-resource-nav-style',`.javdb-resource-nav-item{display:flex!important;align-items:center!important;gap:6px;margin-left:auto!important;padding-left:14px;white-space:nowrap}.javdb-resource-nav-item>a{display:flex!important;align-items:center!important;min-height:36px;color:#fff!important;background:#334155!important;font-size:.9rem;font-weight:700;line-height:1;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2);border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.18)}.javdb-resource-nav-item>a:hover,.javdb-resource-nav-item>a:focus{color:#fff!important;background:#0f172a!important;box-shadow:0 2px 5px rgba(15,23,42,.26)}.javdb-resource-nav-item>a.javdb-resource-nav-main{background:#0f766e!important}.javdb-resource-nav-item>a.javdb-resource-nav-main:hover,.javdb-resource-nav-item>a.javdb-resource-nav-main:focus{background:#115e59!important}.javdb-resource-nav-item>a[data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-nav-item>a[data-resource-entry="history"]:hover,.javdb-resource-nav-item>a[data-resource-entry="history"]:focus{background:#1d4ed8!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:focus{background:#92400e!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:focus{background:#9f1239!important}.javdb-resource-work-shortcuts{display:flex;align-items:center;flex:0 0 auto;float:right}.toolbar>.javdb-resource-work-shortcuts .buttons{margin-bottom:0}.javdb-resource-custom-links,.javdb-resource-custom-shortcuts{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:8px 0 12px!important}.javdb-resource-custom-links>button,.javdb-resource-custom-shortcuts>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:32px!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font-size:.9rem!important;font-weight:700!important;line-height:1!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important}.javdb-resource-custom-links>button:hover,.javdb-resource-custom-links>button:focus,.javdb-resource-custom-shortcuts>button:hover,.javdb-resource-custom-shortcuts>button:focus{color:#fff!important;filter:brightness(.92)}.javdb-resource-custom-links [data-resource-entry="manager"]{background:#0f766e!important}.javdb-resource-custom-links [data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-custom-links [data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-custom-links [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-downloaded"]{background:#10b981!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:900px){.javdb-resource-nav-item{width:100%;margin-left:0!important;padding:8px 0 0}.javdb-resource-nav-item>a{flex:0 0 auto}}`);
+   injectStyle('javdb-resource-nav-style',`.javdb-resource-nav-item{display:flex!important;align-items:center!important;gap:6px;margin-left:auto!important;padding-left:14px;white-space:nowrap}.javdb-resource-nav-item>a{display:flex!important;align-items:center!important;min-height:36px;color:#fff!important;background:#334155!important;font-size:.9rem;font-weight:700;line-height:1;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2);border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.18)}.javdb-resource-nav-item>a:hover,.javdb-resource-nav-item>a:focus{color:#fff!important;background:#0f172a!important;box-shadow:0 2px 5px rgba(15,23,42,.26)}.javdb-resource-nav-item>a.javdb-resource-nav-main{background:#0f766e!important}.javdb-resource-nav-item>a.javdb-resource-nav-main:hover,.javdb-resource-nav-item>a.javdb-resource-nav-main:focus{background:#115e59!important}.javdb-resource-nav-item>a[data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-nav-item>a[data-resource-entry="history"]:hover,.javdb-resource-nav-item>a[data-resource-entry="history"]:focus{background:#1d4ed8!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:focus{background:#92400e!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:focus{background:#9f1239!important}.javdb-resource-work-shortcuts{display:flex;align-items:center;flex:0 0 auto;float:right}.toolbar>.javdb-resource-work-shortcuts .buttons{margin-bottom:0}.javdb-resource-custom-links,.javdb-resource-custom-shortcuts{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:8px 0 12px!important}.javdb-resource-custom-links>button,.javdb-resource-custom-shortcuts>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:auto!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font:700 .9rem/1 inherit!important;appearance:none!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important;white-space:nowrap!important}.javdb-resource-custom-links>button:hover,.javdb-resource-custom-links>button:focus,.javdb-resource-custom-shortcuts>button:hover,.javdb-resource-custom-shortcuts>button:focus{color:#fff!important;filter:brightness(.92)}.javdb-resource-custom-links [data-resource-entry="manager"]{background:#0f766e!important}.javdb-resource-custom-links [data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-custom-links [data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-custom-links [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-downloaded"]{background:#10b981!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:900px){.javdb-resource-nav-item{width:100%;margin-left:0!important;padding:8px 0 0}.javdb-resource-nav-item>a{flex:0 0 auto}}`);
    if (navList && !navList.querySelector('.javdb-resource-nav-item')) {
-    const item = document.createElement('li');
-    item.className = 'javdb-resource-nav-item';
+    const item = document.createElement('li'); item.className = 'javdb-resource-nav-item';
     item.innerHTML = `<a href="javascript:void(0)" class="javdb-resource-nav-main" data-resource-entry="manager" title="打开资源管理"><span>资源管理</span></a><a href="javascript:void(0)" data-resource-entry="history" title="打开鉴定记录"><span>鉴定记录</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-works" title="打开作品黑名单"><span>屏蔽列表</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-actors" title="打开演员黑名单"><span>演员黑名单</span></a>`;
     item.querySelector('[data-resource-entry="manager"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('actors'); });
     item.querySelector('[data-resource-entry="history"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('history'); });
     item.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('blacklist', 'works'); });
     item.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('blacklist', 'actors'); });
     navList.appendChild(item); }
-   const resourceTabs = navList?.closest('.tabs.main-tabs');
-   const toolbar = resourceTabs?.nextElementSibling?.matches('.toolbar') ? resourceTabs.nextElementSibling : null;
+   const resourceTabs = navList?.closest('.tabs.main-tabs'); const toolbar = resourceTabs?.nextElementSibling?.matches('.toolbar') ? resourceTabs.nextElementSibling : null;
    if (toolbar && !toolbar.querySelector('.javdb-resource-work-shortcuts')) {
-    const shortcuts = document.createElement('div');
-    shortcuts.className = 'button-group javdb-resource-work-shortcuts';
+    const shortcuts = document.createElement('div'); shortcuts.className = 'button-group javdb-resource-work-shortcuts';
     shortcuts.innerHTML = `<div class="buttons has-addons"><a class="button is-small is-warning" href="javascript:void(0)" data-resource-entry="works-favorite" title="查看作品库中已收藏的作品">已收藏</a><a class="button is-small is-success" href="javascript:void(0)" data-resource-entry="works-downloaded" title="查看作品库中已下载的作品">已下载</a><a class="button is-small is-info" href="javascript:void(0)" data-resource-entry="works-watched" title="查看作品库中已观看的作品">已观看</a></div>`;
     shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'favorite'); });
     shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'downloaded'); });
     shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'watched'); });
     toolbar.appendChild(shortcuts); }
    if (customShell) {
-    const customHead = customShell.querySelector('.javdb-123av-fc2-head, .javdb-api-shell-head');
-    const hasNativeResourceNav = !!navList?.querySelector('.javdb-resource-nav-item');
+    const customHead = customShell.querySelector('.javdb-123av-fc2-head, .javdb-api-shell-head'); const hasNativeResourceNav = !!navList?.querySelector('.javdb-resource-nav-item');
     if (customHead && !hasNativeResourceNav && !customShell.querySelector('.javdb-resource-custom-links')) {
      customHead.insertAdjacentHTML('afterend', `<div class="javdb-resource-custom-links"><button type="button" data-resource-entry="manager">资源管理</button><button type="button" data-resource-entry="history">鉴定记录</button><button type="button" data-resource-entry="blacklist-works">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors">演员黑名单</button></div>`);
-     const links = customHead.nextElementSibling;
-     links.querySelector('[data-resource-entry="manager"]').addEventListener('click', () => resourceApi.open('actors'));
-     links.querySelector('[data-resource-entry="history"]').addEventListener('click', () => resourceApi.open('history'));
-     links.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', () => resourceApi.open('blacklist', 'works'));
+     const links = customHead.nextElementSibling; links.querySelector('[data-resource-entry="manager"]').addEventListener('click', () => resourceApi.open('actors'));
+     links.querySelector('[data-resource-entry="history"]').addEventListener('click', () => resourceApi.open('history')); links.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', () => resourceApi.open('blacklist', 'works'));
      links.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', () => resourceApi.open('blacklist', 'actors')); }
     if (!customShell.querySelector('.javdb-resource-custom-shortcuts')) {
      const links = customShell.querySelector('.javdb-resource-custom-links');
      if (!links) return;
      links.insertAdjacentHTML('afterend', `<div class="javdb-resource-custom-shortcuts"><button type="button" data-resource-entry="works-favorite">已收藏</button><button type="button" data-resource-entry="works-downloaded">已下载</button><button type="button" data-resource-entry="works-watched">已观看</button></div>`);
-     const shortcuts = links.nextElementSibling;
-     shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'favorite'));
+     const shortcuts = links.nextElementSibling; shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'favorite'));
      shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'downloaded'));
      shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'watched')); } }
    if (!customShell && this._isScriptFc2AdvancedSearch?.()) {
     const list = document.querySelector('.movie-list'); const host = list?.parentElement || document.querySelector('body > section .container');
     if (host && !host.querySelector('.javdb-resource-advanced-search-links')) {
-     const links = document.createElement('div');
-     links.className = 'javdb-resource-advanced-search-links javdb-resource-custom-links';
+     const links = document.createElement('div'); links.className = 'javdb-resource-advanced-search-links javdb-resource-custom-links';
      links.innerHTML = '<button type="button" data-resource-entry="manager">资源管理</button><button type="button" data-resource-entry="history">鉴定记录</button><button type="button" data-resource-entry="blacklist-works">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors">演员黑名单</button>';
-     links.querySelector('[data-resource-entry="manager"]').addEventListener('click', () => resourceApi.open('actors'));
-     links.querySelector('[data-resource-entry="history"]').addEventListener('click', () => resourceApi.open('history'));
+     links.querySelector('[data-resource-entry="manager"]').addEventListener('click', () => resourceApi.open('actors')); links.querySelector('[data-resource-entry="history"]').addEventListener('click', () => resourceApi.open('history'));
      links.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', () => resourceApi.open('blacklist', 'works'));
-     links.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', () => resourceApi.open('blacklist', 'actors'));
-     host.insertBefore(links, list || null);
-     const shortcuts = document.createElement('div');
+     links.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', () => resourceApi.open('blacklist', 'actors')); host.insertBefore(links, list || null); const shortcuts = document.createElement('div');
      shortcuts.className = 'javdb-resource-advanced-search-shortcuts javdb-resource-custom-shortcuts';
      shortcuts.innerHTML = '<button type="button" data-resource-entry="works-favorite">已收藏</button><button type="button" data-resource-entry="works-downloaded">已下载</button><button type="button" data-resource-entry="works-watched">已观看</button>';
      shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'favorite'));
      shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'downloaded'));
-     shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'watched'));
-     host.insertBefore(shortcuts, list || null); } } },
+     shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'watched')); host.insertBefore(shortcuts, list || null); } } },
   _stripNativeLayoutParam(root = document) {
    try {
     const current = new URL(location.href);
-    if (current.searchParams.has('lm')) {
-     current.searchParams.delete('lm'); history.replaceState(history.state, document.title, current.pathname + current.search + current.hash); }
+    if (current.searchParams.has('lm')) { current.searchParams.delete('lm'); history.replaceState(history.state, document.title, current.pathname + current.search + current.hash); }
    } catch {}
    root.querySelectorAll?.('a[href*="lm="]').forEach(a => {
     try {
@@ -4980,83 +4396,58 @@
   _insertTopSettingsButton() {
    const navbarEnd = document.querySelector('#navbar-menu-user .navbar-end');
    if (!navbarEnd || navbarEnd.querySelector('.javdb-top-settings-btn')) return;
-   const btn = document.createElement('a');
-   btn.href = 'javascript:void(0)'; btn.className = 'navbar-item javdb-top-settings-btn'; btn.textContent = '\u8001\u53f8\u673a\u8bbe\u7f6e';
-   btn.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
+   const btn = document.createElement('a'); btn.href = 'javascript:void(0)'; btn.className = 'navbar-item javdb-top-settings-btn'; btn.textContent = '\u8001\u53f8\u673a\u8bbe\u7f6e'; btn.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget); });
-   const userMenu = navbarEnd.querySelector('a[href="/users/profile"]')?.closest('.navbar-item.has-dropdown');
-   navbarEnd.insertBefore(btn, userMenu || null);
+   const userMenu = navbarEnd.querySelector('a[href="/users/profile"]')?.closest('.navbar-item.has-dropdown'); navbarEnd.insertBefore(btn, userMenu || null);
    injectStyle('javdb-top-settings-style',`#navbar-menu-user .javdb-top-settings-btn{color:#2563eb!important;font-weight:700!important}#navbar-menu-user .javdb-top-settings-btn:hover{color:#1d4ed8!important;background:rgba(37,99,235,.08)!important}`);
   },
   _ensureDetailLayout() {
    const coverCol  = document.querySelector('.column.column-video-cover'); const infoPanel = document.querySelector('.movie-panel-info');
    if (!coverCol || !infoPanel) return null;
-   const infoCol = infoPanel.closest('.column') || infoPanel; const currentContainer = coverCol.closest('.jav-flex-container');
-   const parent = currentContainer || coverCol.parentElement;
+   const infoCol = infoPanel.closest('.column') || infoPanel; const currentContainer = coverCol.closest('.jav-flex-container'); const parent = currentContainer || coverCol.parentElement;
    if (!parent) return null;
    let flexContainer = currentContainer || parent.querySelector(':scope > .jav-flex-container');
    if (!flexContainer) {
-    flexContainer = document.createElement('div'); flexContainer.className = 'jav-flex-container';
-    flexContainer.appendChild(coverCol); flexContainer.appendChild(infoCol); parent.appendChild(flexContainer);
+    flexContainer = document.createElement('div'); flexContainer.className = 'jav-flex-container'; flexContainer.appendChild(coverCol); flexContainer.appendChild(infoCol); parent.appendChild(flexContainer);
    } else {
     if (coverCol.parentElement !== flexContainer) flexContainer.insertBefore(coverCol, flexContainer.firstChild);
-    if (infoCol.parentElement !== flexContainer) {
-     const magnetSlot = flexContainer.querySelector(':scope > .jav-nong-slot');
-     flexContainer.insertBefore(infoCol, magnetSlot || null); } }
+    if (infoCol.parentElement !== flexContainer) { const magnetSlot = flexContainer.querySelector(':scope > .jav-nong-slot'); flexContainer.insertBefore(infoCol, magnetSlot || null); }
+   }
    if (MobilePolicy.isMobile()) {
-    flexContainer.style.setProperty('display', 'block', 'important');
-    ['gap', 'align-items', 'width', 'margin-top'].forEach(name => flexContainer.style.removeProperty(name));
+    flexContainer.style.setProperty('display', 'block', 'important'); ['gap', 'align-items', 'width', 'margin-top'].forEach(name => flexContainer.style.removeProperty(name));
     ['--javdb-cover-flex', '--javdb-info-flex', '--javdb-magnet-flex'].forEach(name => flexContainer.style.removeProperty(name));
     [coverCol, infoCol].forEach(el => {
      if (!el) return;
      ['flex', 'width', 'max-width', 'min-width', 'align-self', 'overflow', 'word-break'].forEach(name => el.style.removeProperty(name));
     });
     return flexContainer; }
-   flexContainer.style.setProperty('display', 'flex', 'important'); flexContainer.style.setProperty('gap', '20px', 'important');
-   flexContainer.style.setProperty('align-items', 'flex-start', 'important'); flexContainer.style.setProperty('width', '100%', 'important');
-   flexContainer.style.setProperty('margin-top', '16px', 'important');
-   const detailDefaults = DetailFlex.defaultCss('javdb');
+   flexContainer.style.setProperty('display', 'flex', 'important'); flexContainer.style.setProperty('gap', '20px', 'important'); flexContainer.style.setProperty('align-items', 'flex-start', 'important');
+   flexContainer.style.setProperty('width', '100%', 'important'); flexContainer.style.setProperty('margin-top', '16px', 'important'); const detailDefaults = DetailFlex.defaultCss('javdb');
    flexContainer.style.setProperty('--javdb-cover-flex', flexContainer.style.getPropertyValue('--javdb-cover-flex') || detailDefaults.cover);
    flexContainer.style.setProperty('--javdb-info-flex', flexContainer.style.getPropertyValue('--javdb-info-flex') || detailDefaults.info);
-   flexContainer.style.setProperty('--javdb-magnet-flex', flexContainer.style.getPropertyValue('--javdb-magnet-flex') || detailDefaults.magnet);
-   coverCol.style.setProperty('flex', 'var(--javdb-cover-flex) 1 0', 'important'); coverCol.style.setProperty('width', 'auto', 'important');
-   coverCol.style.setProperty('max-width', 'none', 'important'); coverCol.style.setProperty('min-width', '0', 'important');
-   coverCol.style.setProperty('align-self', 'flex-start', 'important'); infoCol.style.setProperty('flex', 'var(--javdb-info-flex) 1 0', 'important');
-   infoCol.style.setProperty('width', 'auto', 'important'); infoCol.style.setProperty('max-width', 'none', 'important');
-   infoCol.style.setProperty('min-width', '0', 'important'); infoCol.style.setProperty('overflow', 'hidden', 'important');
-   infoCol.style.setProperty('word-break', 'break-word', 'important'); infoPanel.style.setProperty('width', '100%', 'important');
-   infoPanel.style.setProperty('max-width', '100%', 'important'); infoPanel.style.setProperty('box-sizing', 'border-box', 'important');
-   const coverBox = coverCol.querySelector('.cover, .box');
+   flexContainer.style.setProperty('--javdb-magnet-flex', flexContainer.style.getPropertyValue('--javdb-magnet-flex') || detailDefaults.magnet); coverCol.style.setProperty('flex', 'var(--javdb-cover-flex) 1 0', 'important');
+   coverCol.style.setProperty('width', 'auto', 'important'); coverCol.style.setProperty('max-width', 'none', 'important'); coverCol.style.setProperty('min-width', '0', 'important'); coverCol.style.setProperty('align-self', 'flex-start', 'important');
+   infoCol.style.setProperty('flex', 'var(--javdb-info-flex) 1 0', 'important'); infoCol.style.setProperty('width', 'auto', 'important'); infoCol.style.setProperty('max-width', 'none', 'important'); infoCol.style.setProperty('min-width', '0', 'important');
+   infoCol.style.setProperty('overflow', 'hidden', 'important'); infoCol.style.setProperty('word-break', 'break-word', 'important'); infoPanel.style.setProperty('width', '100%', 'important'); infoPanel.style.setProperty('max-width', '100%', 'important');
+   infoPanel.style.setProperty('box-sizing', 'border-box', 'important'); const coverBox = coverCol.querySelector('.cover, .box');
    if (coverBox) {
-    coverBox.style.setProperty('display', 'block', 'important'); coverBox.style.setProperty('width', '100%', 'important');
-    coverBox.style.setProperty('height', 'auto', 'important'); coverBox.style.setProperty('box-sizing', 'border-box', 'important'); }
+    coverBox.style.setProperty('display', 'block', 'important'); coverBox.style.setProperty('width', '100%', 'important'); coverBox.style.setProperty('height', 'auto', 'important'); coverBox.style.setProperty('box-sizing', 'border-box', 'important'); }
    const coverImg = coverCol.querySelector('img');
    if (coverImg) {
-    coverImg.removeAttribute('width'); coverImg.removeAttribute('height');
-    const coverLink = coverImg.closest('a');
-    if (coverLink) {
-     coverLink.style.setProperty('display', 'block', 'important'); coverLink.style.setProperty('width', '100%', 'important');
-     coverLink.style.setProperty('height', 'auto', 'important'); }
-    coverImg.style.setProperty('display', 'block', 'important'); coverImg.style.setProperty('width', '100%', 'important');
-    coverImg.style.setProperty('height', 'auto', 'important'); coverImg.style.setProperty('aspect-ratio', 'auto', 'important');
+    coverImg.removeAttribute('width'); coverImg.removeAttribute('height'); const coverLink = coverImg.closest('a');
+    if (coverLink) { coverLink.style.setProperty('display', 'block', 'important'); coverLink.style.setProperty('width', '100%', 'important'); coverLink.style.setProperty('height', 'auto', 'important'); }
+    coverImg.style.setProperty('display', 'block', 'important'); coverImg.style.setProperty('width', '100%', 'important'); coverImg.style.setProperty('height', 'auto', 'important'); coverImg.style.setProperty('aspect-ratio', 'auto', 'important');
     coverImg.style.setProperty('object-fit', 'contain', 'important'); }
    return flexContainer; },
   _insertMagnet(avid) {
-   if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') {
-    document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.scheduleMount('javdb', avid);
-    return; }
+   if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') { document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.scheduleMount('javdb', avid); return; }
    NativeMagnetPanel.remove('javdb');
    if (!MobilePolicy.usesDesktopMagnetTable()) return;
-   document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
-   const flexContainer = this._ensureDetailLayout();
+   document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); const flexContainer = this._ensureDetailLayout();
    if (!flexContainer) return;
-   const slot = document.createElement('div');
-   slot.className = 'jav-nong-slot';
-   slot.style.setProperty('flex', 'var(--javdb-magnet-flex) 1 0', 'important'); slot.style.setProperty('min-width', '0', 'important');
-   slot.style.setProperty('align-self', 'flex-start', 'important'); slot.style.setProperty('overflow', 'hidden', 'important');
-   const widget = Magnet.createMagnetWidget(avid);
-   slot.appendChild(widget); flexContainer.appendChild(slot); }, };
- Object.assign( SiteJavDB, JavdbFavorites, JavdbApiTabs, JavdbPagination, JavdbApiShell, JavdbApiRanking, JavdbApiDetail, JavdbList );
+   const slot = document.createElement('div'); slot.className = 'jav-nong-slot'; slot.style.setProperty('flex', 'var(--javdb-magnet-flex) 1 0', 'important'); slot.style.setProperty('min-width', '0', 'important');
+   slot.style.setProperty('align-self', 'flex-start', 'important'); slot.style.setProperty('overflow', 'hidden', 'important'); const widget = Magnet.createMagnetWidget(avid); slot.appendChild(widget); flexContainer.appendChild(slot); }, };
+ Object.assign( SiteJavDB, JavdbFavorites, JavdbApiTabs, JavdbPagination, JavdbApiShell, JavdbApiRanking, JavdbApiDetail, JavdbContent, JavdbList );
  const JavdbReviews = {
   ensureStyle() { return SiteJavDB._ensureApiMovieTabStyle(); },
   escapeHtml(value) { return SiteJavDB._escapeHtml(value); },
@@ -5096,12 +4487,9 @@
   getVid() {
    const el = document.querySelector('#video_id .text');
    if (el?.textContent?.trim()) return normalizeAvid(el.textContent.trim());
-   const m = document.title.match(/([A-Z0-9]+-\d+)/i);
-   return m ? m[1].toUpperCase() : ''; },
+   const m = document.title.match(/([A-Z0-9]+-\d+)/i); return m ? m[1].toUpperCase() : ''; },
   initPage(avid) {
-   document.body?.setAttribute('data-laosiji-javlib', '');
-   this._initMobileForum?.();
-   this._insertTopSettingsButton(); this._insertTopNavigationDropdown();
+   document.body?.setAttribute('data-laosiji-javlib', ''); this._initMobileForum?.(); this._insertTopSettingsButton(); this._insertTopNavigationDropdown();
    if (Javdb123AvFc2.init()) return;
    if (!this.isDetailPage()) {
     this._initListPage();
@@ -5114,9 +4502,7 @@
   _insertTopNavigationDropdown() {
    const source = document.querySelector('#leftmenu .menul1'); const advSearch = document.querySelector('#topmenu .advsearch');
    if (!source || !advSearch || advSearch.querySelector('.javlib-top-nav-menu')) return;
-   const lang = String(document.documentElement.lang || '').toLowerCase();
-   const label = lang.startsWith('en') ? 'Site Nav' : lang.startsWith('ja') ? 'ナビ' : /tw|zh$/.test(lang) ? '站點導航' : '站点导航';
-   const menu = document.createElement('span');
+   const lang = String(document.documentElement.lang || '').toLowerCase(); const label = lang.startsWith('en') ? 'Site Nav' : lang.startsWith('ja') ? 'ナビ' : /tw|zh$/.test(lang) ? '站點導航' : '站点导航'; const menu = document.createElement('span');
    menu.className = 'javlib-top-nav-menu';
    menu.innerHTML =`<a class="javlib-top-nav-trigger" href="javascript:void(0)"> ${label} ▾</a><div class="javlib-top-nav-dropdown" role="menu"></div>`;
    menu.addEventListener('mousedown', e => {
@@ -5126,17 +4512,9 @@
    for (let i = 0; i < nodes.length; i += 1) {
     const category = nodes[i]; const list = nodes[i + 1];
     if (!category?.classList?.contains('category') || !list?.matches?.('ul')) continue;
-    const section = document.createElement('div');
-    section.className = 'javlib-top-nav-section';
-    const title = document.createElement('div');
-    title.className = 'javlib-top-nav-title'; title.textContent = category.textContent.trim();
-    const links = document.createElement('div');
-    links.className = 'javlib-top-nav-links';
-    list.querySelectorAll('a[href]').forEach(anchor => {
-     const link = anchor.cloneNode(true);
-     link.className = 'javlib-top-nav-link';
-     links.appendChild(link);
-    });
+    const section = document.createElement('div'); section.className = 'javlib-top-nav-section'; const title = document.createElement('div'); title.className = 'javlib-top-nav-title'; title.textContent = category.textContent.trim();
+    const links = document.createElement('div'); links.className = 'javlib-top-nav-links';
+    list.querySelectorAll('a[href]').forEach(anchor => { const link = anchor.cloneNode(true); link.className = 'javlib-top-nav-link'; links.appendChild(link); });
     section.append(title, links); dropdown.appendChild(section); }
    if (!dropdown.children.length) return;
    const movieSection = [...dropdown.querySelectorAll('.javlib-top-nav-section')].find(section => {
@@ -5144,19 +4522,14 @@
    }) || dropdown.querySelector('.javlib-top-nav-section');
    const movieLinks = movieSection?.querySelector('.javlib-top-nav-links');
    if (movieLinks && !movieLinks.querySelector('.javlib-123av-fc2-link')) {
-    const link = document.createElement('a');
-    link.href = '/cn/main.php?laosiji_123av_fc2=1'; link.className = 'javlib-top-nav-link javlib-123av-fc2-link'; link.title = '打开 123AV-FC2';
-    link.textContent = '123AV-FC2';
-    movieLinks.appendChild(link); }
+    const link = document.createElement('a'); link.href = '/cn/main.php?laosiji_123av_fc2=1'; link.className = 'javlib-top-nav-link javlib-123av-fc2-link'; link.title = '打开 123AV-FC2'; link.textContent = '123AV-FC2'; movieLinks.appendChild(link); }
    advSearch.append(document.createTextNode(' '), menu);
    injectStyle('javlib-top-nav-style',`#leftmenu{display:none!important}#rightcolumn{margin:0!important;width:100%!important;float:none!important}#topmenu .advsearch{position:relative!important;white-space:nowrap!important}.javlib-top-nav-menu{position:relative!important;display:inline-block!important;vertical-align:middle!important;margin-left:8px!important;z-index:10010!important}.javlib-top-nav-trigger{display:inline-flex!important;align-items:center!important;height:24px!important;padding:0 10px!important;border:1px solid #93c5fd!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:14px!important;font-weight:800!important;line-height:24px!important;text-decoration:none!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 3px 9px rgba(37,99,235,.12)!important}.javlib-top-nav-menu:hover .javlib-top-nav-trigger,.javlib-top-nav-menu:focus-within .javlib-top-nav-trigger{background:#dbeafe!important;border-color:#60a5fa!important;color:#1e40af!important}.javlib-top-nav-dropdown{position:absolute!important;top:100%!important;left:0!important;display:none!important;min-width:280px!important;max-width:min(560px,86vw)!important;padding:18px 10px 10px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:linear-gradient(to bottom,rgba(255,255,255,0) 0,rgba(255,255,255,0) 8px,rgba(255,255,255,.98) 8px)!important;box-shadow:0 16px 36px rgba(15,23,42,.18)!important;box-sizing:border-box!important;white-space:normal!important;background-clip:padding-box!important}.javlib-top-nav-menu:hover .javlib-top-nav-dropdown,.javlib-top-nav-menu:focus-within .javlib-top-nav-dropdown{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}.javlib-top-nav-title{margin-bottom:6px!important;color:#0f172a!important;font-size:14px!important;font-weight:900!important}.javlib-top-nav-links{display:grid!important;gap:4px!important}.javlib-top-nav-link{display:block!important;min-height:22px!important;padding:3px 7px!important;border-radius:6px!important;color:#2563eb!important;font-size:14px!important;line-height:1.35!important;text-decoration:none!important}.javlib-top-nav-link:hover{background:#eff6ff!important;color:#1d4ed8!important;text-decoration:none!important}@media (max-width:720px){.javlib-top-nav-menu:hover .javlib-top-nav-dropdown,.javlib-top-nav-menu:focus-within .javlib-top-nav-dropdown{grid-template-columns:1fr!important}}`);
   },
   _insertTopSettingsButton() {
    const menu = document.querySelector('#topmenu .menutext, .menutext');
    if (!menu || menu.querySelector('.javlib-top-settings-btn')) return;
-   const btn = document.createElement('a');
-   btn.href = 'javascript:void(0)'; btn.className = 'javlib-top-settings-btn'; btn.textContent = '\u8001\u53f8\u673a\u8bbe\u7f6e';
-   btn.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
+   const btn = document.createElement('a'); btn.href = 'javascript:void(0)'; btn.className = 'javlib-top-settings-btn'; btn.textContent = '\u8001\u53f8\u673a\u8bbe\u7f6e'; btn.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget); });
    const accountLink = menu.querySelector('a[href*="myaccount.php"]'); const sep = document.createTextNode(' | ');
    if (accountLink) {
@@ -5171,56 +4544,36 @@
    if (!row) return null;
    table.style.setProperty('width', '100%', 'important'); table.style.setProperty('display', 'block', 'important');
    if (MobilePolicy.isMobile()) {
-    row.style.setProperty('display', 'block', 'important');
-    ['gap', 'align-items', 'width'].forEach(name => row.style.removeProperty(name));
-    ['--javlib-cover-flex', '--javlib-info-flex', '--javlib-magnet-flex'].forEach(name => row.style.removeProperty(name));
-    row.querySelectorAll(':scope > td').forEach(cell => {
-     ['display', 'flex', 'min-width', 'vertical-align', 'overflow', 'word-break'].forEach(name => cell.style.removeProperty(name));
-    });
+    row.style.setProperty('display', 'block', 'important'); ['gap', 'align-items', 'width'].forEach(name => row.style.removeProperty(name)); ['--javlib-cover-flex', '--javlib-info-flex', '--javlib-magnet-flex'].forEach(name => row.style.removeProperty(name));
+    row.querySelectorAll(':scope > td').forEach(cell => { ['display', 'flex', 'min-width', 'vertical-align', 'overflow', 'word-break'].forEach(name => cell.style.removeProperty(name)); });
     return row; }
-   row.style.setProperty('display', 'flex', 'important'); row.style.setProperty('gap', '20px', 'important');
-   row.style.setProperty('align-items', 'flex-start', 'important'); row.style.setProperty('width', '100%', 'important');
-   const detailDefaults = DetailFlex.defaultCss('javlib');
-   row.style.setProperty('--javlib-cover-flex', row.style.getPropertyValue('--javlib-cover-flex') || detailDefaults.cover);
-   row.style.setProperty('--javlib-info-flex', row.style.getPropertyValue('--javlib-info-flex') || detailDefaults.info);
-   row.style.setProperty('--javlib-magnet-flex', row.style.getPropertyValue('--javlib-magnet-flex') || detailDefaults.magnet);
+   row.style.setProperty('display', 'flex', 'important'); row.style.setProperty('gap', '20px', 'important'); row.style.setProperty('align-items', 'flex-start', 'important'); row.style.setProperty('width', '100%', 'important');
+   const detailDefaults = DetailFlex.defaultCss('javlib'); row.style.setProperty('--javlib-cover-flex', row.style.getPropertyValue('--javlib-cover-flex') || detailDefaults.cover);
+   row.style.setProperty('--javlib-info-flex', row.style.getPropertyValue('--javlib-info-flex') || detailDefaults.info); row.style.setProperty('--javlib-magnet-flex', row.style.getPropertyValue('--javlib-magnet-flex') || detailDefaults.magnet);
    const tds = row.querySelectorAll('td');
-   if (tds[0]) {
-    tds[0].style.setProperty('flex', 'var(--javlib-cover-flex) 1 0', 'important'); tds[0].style.setProperty('min-width', '0', 'important');
-    tds[0].style.setProperty('vertical-align', 'top', 'important'); }
+   if (tds[0]) { tds[0].style.setProperty('flex', 'var(--javlib-cover-flex) 1 0', 'important'); tds[0].style.setProperty('min-width', '0', 'important'); tds[0].style.setProperty('vertical-align', 'top', 'important'); }
    if (tds[1]) {
-    tds[1].style.setProperty('flex', 'var(--javlib-info-flex) 1 0', 'important'); tds[1].style.setProperty('min-width', '0', 'important');
-    tds[1].style.setProperty('vertical-align', 'top', 'important'); tds[1].style.setProperty('overflow', 'hidden', 'important');
-    tds[1].style.setProperty('word-break', 'break-word', 'important'); }
+    tds[1].style.setProperty('flex', 'var(--javlib-info-flex) 1 0', 'important'); tds[1].style.setProperty('min-width', '0', 'important'); tds[1].style.setProperty('vertical-align', 'top', 'important');
+    tds[1].style.setProperty('overflow', 'hidden', 'important'); tds[1].style.setProperty('word-break', 'break-word', 'important'); }
    const jacketImg = document.getElementById('video_jacket_img');
    if (jacketImg) {
-    jacketImg.removeAttribute('width'); jacketImg.removeAttribute('height'); jacketImg.style.setProperty('width', '100%', 'important');
-    jacketImg.style.setProperty('height', 'auto', 'important'); jacketImg.style.setProperty('max-width', '100%', 'important'); }
+    jacketImg.removeAttribute('width'); jacketImg.removeAttribute('height'); jacketImg.style.setProperty('width', '100%', 'important'); jacketImg.style.setProperty('height', 'auto', 'important'); jacketImg.style.setProperty('max-width', '100%', 'important'); }
    return row; },
   _insertMagnet(avid) {
-   if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') {
-    document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.mount('javlib', avid);
-    return; }
+   if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') { document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.mount('javlib', avid); return; }
    NativeMagnetPanel.remove('javlib');
    if (!MobilePolicy.usesDesktopMagnetTable()) return;
-   document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove());
-   const row = this._ensureDetailLayout();
+   document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); const row = this._ensureDetailLayout();
    if (!row) return;
-   const magnetTd = document.createElement('td');
-   magnetTd.className = 'jav-nong-slot javlib-nong-slot';
-   magnetTd.style.cssText = 'flex:var(--javlib-magnet-flex) 1 0;min-width:0;vertical-align:top;align-self:flex-start;';
-   const innerWrap = document.createElement('div');
-   innerWrap.style.cssText = 'display:inline-block;';
-   const widget = Magnet.createMagnetWidget(avid);
-   innerWrap.appendChild(widget); magnetTd.appendChild(innerWrap); row.appendChild(magnetTd); }, };
+   const magnetTd = document.createElement('td'); magnetTd.className = 'jav-nong-slot javlib-nong-slot'; magnetTd.style.cssText = 'flex:var(--javlib-magnet-flex) 1 0;min-width:0;vertical-align:top;align-self:flex-start;';
+   const innerWrap = document.createElement('div'); innerWrap.style.cssText = 'display:inline-block;'; const widget = Magnet.createMagnetWidget(avid); innerWrap.appendChild(widget); magnetTd.appendChild(innerWrap); row.appendChild(magnetTd); }, };
  const JavlibList = {
   _initListPage() {
    const list = document.querySelector('.videothumblist .videos');
    if (!list) return;
    const needStyle = list.dataset.laosijiGrid !== '1'; const cards = [...list.querySelectorAll(':scope > .video:not([data-laosiji-grid-card="1"])')];
    if (!cards.length && !needStyle) return;
-   list.dataset.laosijiGrid = '1';
-   list.classList.add('jav-card-grid', 'javlib-card-grid'); CardColumns.apply('javlib'); cards.forEach(card => this._decorateCard(card));
+   list.dataset.laosijiGrid = '1'; list.classList.add('jav-card-grid', 'javlib-card-grid'); CardColumns.apply('javlib'); cards.forEach(card => this._decorateCard(card));
    if (needStyle) {
     GM_addStyle(`.jav-card-link:visited .jav-card-title,.jav-card-link:visited .javlib-card-headline,.jav-card-link:visited .javlib-card-code{color:#64748b!important}.javlib-card-link:visited .jav-card-title{background:#f8fafc!important}.javlib-card-link:visited .javlib-card-code{background:#e2e8f0!important}.jav-card-image{transition:opacity .18s ease!important}.javlib-cover-swapping{opacity:.42!important}.jav-card-title{--javlib-title-line-height:22px;display:flex!important;flex-direction:column!important;gap:6px!important;height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+54px)!important;max-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+54px)!important;flex:0 0 auto!important;min-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+54px)!important;padding:9px 10px 10px!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:var(--javlib-title-line-height)!important}.jav-card-title:has(.javlib-card-footer>*){height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+82px)!important;max-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+82px)!important;min-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+82px)!important}.javlib-card-code-row{display:flex!important;align-items:center!important;flex:0 0 22px!important;height:22px!important;max-height:22px!important;min-height:22px!important;overflow:hidden!important}.javlib-card-headline{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--jav-card-title-lines,2)!important;line-clamp:var(--jav-card-title-lines,2)!important;height:calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;max-height:calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;min-height:calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:normal!important;word-break:break-word!important;color:inherit!important;flex:0 0 calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;line-height:var(--javlib-title-line-height)!important}.javlib-card-code{display:inline-flex!important;align-items:center!important;max-width:100%!important;padding:2px 7px!important;border-radius:999px!important;background:#eef2ff!important;color:inherit!important;font-size:14px!important;line-height:1.35!important;font-weight:800!important;letter-spacing:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.javlib-card-footer{display:none!important;align-items:center!important;gap:6px!important;min-height:0!important;margin-top:auto!important;overflow:hidden!important}.javlib-card-footer:not(:empty){display:flex!important;flex:0 0 22px!important;height:22px!important;max-height:22px!important;min-height:22px!important}.videothumblist{width:100%!important}.videothumblist .videos.javlib-card-grid{--jav-card-columns:5}.videothumblist .video.javlib-grid-card .id{display:none!important}.videothumblist .video.javlib-grid-card .toolbar{display:none!important}@media (max-width:1100px){.videothumblist .videos.javlib-card-grid{--jav-card-columns:4}}@media (max-width:820px){.videothumblist .videos.javlib-card-grid{--jav-card-columns:3}}@media (max-width:560px){.videothumblist .videos.javlib-card-grid{--jav-card-columns:2;gap:10px!important}}`);
    }
@@ -5229,60 +4582,38 @@
    }, 0); },
   _decorateCard(card) {
    if (!card) return;
-   card.dataset.laosijiGridCard = '1';
-   card.classList.add('jav-card', 'javlib-grid-card');
-   const anchor = card.querySelector(':scope > a[href]:not(.emby-javlibrary-list-badge)');
-   anchor?.classList.add('jav-card-link', 'javlib-card-link');
+   card.dataset.laosijiGridCard = '1'; card.classList.add('jav-card', 'javlib-grid-card'); const anchor = card.querySelector(':scope > a[href]:not(.emby-javlibrary-list-badge)'); anchor?.classList.add('jav-card-link', 'javlib-card-link');
    if (anchor && !anchor.querySelector('.jav-pan115-badge')) { delete anchor.dataset.pan115Checked; delete anchor.dataset.pan115HasBadge; }
-   const idEl = card.querySelector('.id'); const titleEl = card.querySelector('.title');
-   titleEl?.classList.add('jav-card-title', 'javlib-card-title');
+   const idEl = card.querySelector('.id'); const titleEl = card.querySelector('.title'); titleEl?.classList.add('jav-card-title', 'javlib-card-title');
    if (idEl && titleEl && !titleEl.querySelector('.javlib-card-headline')) {
-    const code = idEl.textContent.trim(); const titleText = titleEl.textContent.trim();
-    titleEl.textContent = '';
-    const codeRow = document.createElement('span');
-    codeRow.className = 'javlib-card-code-row';
-    const strong = document.createElement('strong');
-    strong.className = 'javlib-card-code'; strong.textContent = code;
-    codeRow.appendChild(strong);
-    const headline = document.createElement('span');
-    headline.className = 'javlib-card-headline'; headline.textContent = titleText;
-    const footer = document.createElement('span');
-    footer.className = 'javlib-card-footer';
-    titleEl.appendChild(codeRow); titleEl.appendChild(headline); titleEl.appendChild(footer);
-    titleEl.dataset.laosijiCodeMerged = '1'; }
+    const code = idEl.textContent.trim(); const titleText = titleEl.textContent.trim(); titleEl.textContent = ''; const codeRow = document.createElement('span'); codeRow.className = 'javlib-card-code-row'; const strong = document.createElement('strong');
+    strong.className = 'javlib-card-code'; strong.textContent = code; codeRow.appendChild(strong); const headline = document.createElement('span'); headline.className = 'javlib-card-headline'; headline.textContent = titleText;
+    const footer = document.createElement('span'); footer.className = 'javlib-card-footer'; titleEl.appendChild(codeRow); titleEl.appendChild(headline); titleEl.appendChild(footer); titleEl.dataset.laosijiCodeMerged = '1'; }
    const img = card.querySelector('img[src]');
    if (!img) return;
    const src = img.getAttribute('src') || ''; const fullSrc = src.replace(/ps\.jpg(?:([?#].*)?)$/i, 'pl.jpg$1');
    if (fullSrc !== src) img.dataset.laosijiLandscapeSrc = img.dataset.laosijiLandscapeSrc || fullSrc;
    if (!PortraitCards.effective('javlib') && fullSrc !== src && img.dataset.laosijiCoverPreloaded !== '1' && img.dataset.laosijiCoverLoading !== '1') {
-    img.dataset.laosijiCoverLoading = '1';
-    const preloader = new Image();
+    img.dataset.laosijiCoverLoading = '1'; const preloader = new Image();
     preloader.onload = () => {
-     img.dataset.laosijiCoverPreloaded = '1';
-     delete img.dataset.laosijiCoverLoading;
+     img.dataset.laosijiCoverPreloaded = '1'; delete img.dataset.laosijiCoverLoading;
      if (PortraitCards.effective('javlib')) return;
      img.classList.add('javlib-cover-swapping');
      setTimeout(() => {
       if (PortraitCards.effective('javlib')) return;
-      img.src = fullSrc;
-      img.setAttribute('src', fullSrc);
+      img.src = fullSrc; img.setAttribute('src', fullSrc);
       requestAnimationFrame(() => { img.classList.remove('javlib-cover-swapping'); });
      }, 90); };
     preloader.onerror = () => {
-     img.dataset.laosijiCoverPreloaded = '1';
-     delete img.dataset.laosijiCoverLoading; };
+     img.dataset.laosijiCoverPreloaded = '1'; delete img.dataset.laosijiCoverLoading; };
     preloader.src = fullSrc; }
    img.removeAttribute('width'); img.removeAttribute('height'); img.classList.add('jav-card-image', 'javlib-card-image');
    if (!img.closest('.javlib-cover-frame')) {
-    const frame = document.createElement('div');
-    frame.className = 'jav-card-cover javlib-cover-frame';
-    img.parentNode.insertBefore(frame, img); frame.appendChild(img);
+    const frame = document.createElement('div'); frame.className = 'jav-card-cover javlib-cover-frame'; img.parentNode.insertBefore(frame, img); frame.appendChild(img);
    } else { img.closest('.javlib-cover-frame')?.classList.add('jav-card-cover'); } },
   _initHomePage() {
    if (document.body.dataset.laosijiJavlibHome === '1') return;
-   document.body.dataset.laosijiJavlibHome = '1';
-   document.body.classList.add('javlib-home-page');
-   const rightColumn = document.querySelector('#rightcolumn');
+   document.body.dataset.laosijiJavlibHome = '1'; document.body.classList.add('javlib-home-page'); const rightColumn = document.querySelector('#rightcolumn');
    rightColumn?.querySelectorAll(':scope > .titlebox, :scope > table.about').forEach(el => { el.style.setProperty('display', 'none', 'important'); });
    GM_addStyle(`body.javlib-home-page #rightcolumn>.videothumblist{height:auto!important;max-height:none!important;overflow:visible!important}body.javlib-home-page #rightcolumn>br{display:none!important}`);
   }, };
@@ -5303,16 +4634,14 @@
   getContext() {
    const rightColumn = document.querySelector('#rightcolumn');
    if (!rightColumn) return null;
-   const title = rightColumn.querySelector(':scope > .boxtitle'); const table = rightColumn.querySelector(':scope > table.pubgroup');
-   const posts = rightColumn.querySelector(':scope > #publicposts');
+   const title = rightColumn.querySelector(':scope > .boxtitle'); const table = rightColumn.querySelector(':scope > table.pubgroup'); const posts = rightColumn.querySelector(':scope > #publicposts');
    const pageType = posts ? 'topic' : table?.querySelector(':scope > tbody > tr#header .pgtopic') ? 'topics' : table ? 'groups' : '';
    if (!title || !pageType) return null;
    return { rightColumn, title, table, posts, pageType }; },
   sync() {
    const context = this.getContext();
    if (!this.isMobile()) {
-    this.restore(context?.rightColumn || this.lastRightColumn); this.restoreComments(); this.restoreReviews();
-    return; }
+    this.restore(context?.rightColumn || this.lastRightColumn); this.restoreComments(); this.restoreReviews(); return; }
    if (context) this.render(context);
    else this.restore(this.lastRightColumn);
    const comments = this.getCommentsContext();
@@ -5324,12 +4653,9 @@
   },
   render(context) {
    const { rightColumn, title, table, posts, pageType } = context;
-   this.lastRightColumn = rightColumn;
-   this.restoreMovedNodes(rightColumn); this.shell?.remove();
-   this.shell = document.createElement('section');
+   this.lastRightColumn = rightColumn; this.restoreMovedNodes(rightColumn); this.shell?.remove(); this.shell = document.createElement('section');
    this.shell.className =`javlib-forum-shell javlib-forum-${pageType}`;
-   this.shell.setAttribute('aria-label', title.textContent.trim()); this.shell.appendChild(this.createHeading(title));
-   const tools = this.findDirect(rightColumn, '.right');
+   this.shell.setAttribute('aria-label', title.textContent.trim()); this.shell.appendChild(this.createHeading(title)); const tools = this.findDirect(rightColumn, '.right');
    if (tools) { this.moveNode(tools, this.shell); tools.classList.add('javlib-forum-tools'); }
    if (pageType === 'topic') this.shell.appendChild(this.createPosts(posts));
    else this.shell.appendChild(this.createTableCards(table));
@@ -5337,24 +4663,19 @@
    if (pagination) { this.moveNode(pagination, this.shell); pagination.classList.add('javlib-forum-pagination'); }
    const divider = this.findDirect(rightColumn, 'hr.grey');
    if (divider) { this.moveNode(divider, this.shell); divider.classList.add('javlib-forum-divider'); }
-   title.classList.add('javlib-forum-source-hidden'); table?.classList.add('javlib-forum-source-hidden'); posts?.classList.add('javlib-forum-source-hidden');
-   rightColumn.appendChild(this.shell); },
+   title.classList.add('javlib-forum-source-hidden'); table?.classList.add('javlib-forum-source-hidden'); posts?.classList.add('javlib-forum-source-hidden'); rightColumn.appendChild(this.shell); },
   getCommentsContext() {
    const container = document.querySelector('#video_comments');
    if (!container) return null;
-   const title = container.querySelector(':scope > .header'); const allLang = container.querySelector(':scope > #video_comments_alllang');
-   const comments = [...container.querySelectorAll(':scope > table.comment')];
+   const title = container.querySelector(':scope > .header'); const allLang = container.querySelector(':scope > #video_comments_alllang'); const comments = [...container.querySelectorAll(':scope > table.comment')];
    if (!title || !comments.length) return null;
    return { container, title, allLang, comments }; },
   renderComments(context) {
    const { container, title, allLang, comments } = context;
-   this.lastComments = container;
-   this.restoreMovedNodes(container); this.commentsShell?.remove();
-   this.commentsShell = document.createElement('section'); this.commentsShell.className = 'javlib-forum-shell javlib-comments-shell';
+   this.lastComments = container; this.restoreMovedNodes(container); this.commentsShell?.remove(); this.commentsShell = document.createElement('section'); this.commentsShell.className = 'javlib-forum-shell javlib-comments-shell';
    this.commentsShell.setAttribute('aria-label', title.textContent.trim()); this.commentsShell.appendChild(this.createHeading(title));
    if (allLang) { this.moveNode(allLang, this.commentsShell); allLang.classList.add('javlib-forum-tools', 'javlib-comments-tools'); }
-   this.commentsShell.appendChild(this.createCommentCards(comments)); title.classList.add('javlib-forum-source-hidden');
-   comments.forEach(comment => comment.classList.add('javlib-forum-source-hidden')); container.appendChild(this.commentsShell); },
+   this.commentsShell.appendChild(this.createCommentCards(comments)); title.classList.add('javlib-forum-source-hidden'); comments.forEach(comment => comment.classList.add('javlib-forum-source-hidden')); container.appendChild(this.commentsShell); },
   getReviewsContext() {
    const container = document.querySelector('#video_reviews');
    if (!container) return null;
@@ -5363,28 +4684,19 @@
    return { container, title, reviews }; },
   renderReviews(context) {
    const { container, title, reviews } = context;
-   this.lastReviews = container;
-   this.restoreMovedNodes(container); this.reviewsShell?.remove();
-   this.reviewsShell = document.createElement('section'); this.reviewsShell.className = 'javlib-forum-shell javlib-reviews-shell';
-   this.reviewsShell.setAttribute('aria-label', title.textContent.trim()); this.reviewsShell.appendChild(this.createHeading(title));
-   this.reviewsShell.appendChild(this.createCommentCards(reviews, 'review'));
+   this.lastReviews = container; this.restoreMovedNodes(container); this.reviewsShell?.remove(); this.reviewsShell = document.createElement('section'); this.reviewsShell.className = 'javlib-forum-shell javlib-reviews-shell';
+   this.reviewsShell.setAttribute('aria-label', title.textContent.trim()); this.reviewsShell.appendChild(this.createHeading(title)); this.reviewsShell.appendChild(this.createCommentCards(reviews, 'review'));
    const divider = this.findDirect(container, 'hr.grey');
    if (divider) { this.moveNode(divider, this.reviewsShell); divider.classList.add('javlib-forum-divider'); }
-   title.classList.add('javlib-forum-source-hidden'); reviews.forEach(review => review.classList.add('javlib-forum-source-hidden'));
-   container.appendChild(this.reviewsShell); },
+   title.classList.add('javlib-forum-source-hidden'); reviews.forEach(review => review.classList.add('javlib-forum-source-hidden')); container.appendChild(this.reviewsShell); },
   restore(rightColumn) {
-   this.shell?.remove();
-   this.shell = null;
-   rightColumn?.querySelector(':scope > .boxtitle')?.classList.remove('javlib-forum-source-hidden');
-   rightColumn?.querySelector(':scope > table.pubgroup')?.classList.remove('javlib-forum-source-hidden');
+   this.shell?.remove(); this.shell = null; rightColumn?.querySelector(':scope > .boxtitle')?.classList.remove('javlib-forum-source-hidden'); rightColumn?.querySelector(':scope > table.pubgroup')?.classList.remove('javlib-forum-source-hidden');
    rightColumn?.querySelector(':scope > #publicposts')?.classList.remove('javlib-forum-source-hidden'); this.restoreMovedNodes(rightColumn); },
   findDirect(parent, selector) { return [...(parent?.children || [])].find(child => child.matches(selector)) || null; },
   moveNode(node, target) {
    if (!node || !target) return;
    let placeholder = this.movable.get(node);
-   if (!placeholder) {
-    placeholder = document.createComment('javlib forum source position');
-    node.parentNode?.insertBefore(placeholder, node); this.movable.set(node, placeholder); }
+   if (!placeholder) { placeholder = document.createComment('javlib forum source position'); node.parentNode?.insertBefore(placeholder, node); this.movable.set(node, placeholder); }
    target.appendChild(node); },
   restoreMovedNodes(rightColumn) {
    [...this.movable.entries()].forEach(([node, placeholder]) => {
@@ -5404,42 +4716,25 @@
     );
    }); },
   createHeading(source) {
-   const heading = document.createElement('div');
-   heading.className = 'javlib-forum-heading';
-   const before = document.createElement('span');
-   before.className = 'javlib-forum-heading-line';
-   before.setAttribute('aria-hidden', 'true'); heading.appendChild(before);
-   const content = document.createElement('span');
-   content.className = 'javlib-forum-heading-content';
-   this.copyChildren(source, content); heading.appendChild(content);
-   const after = document.createElement('span');
-   after.className = 'javlib-forum-heading-line';
-   after.setAttribute('aria-hidden', 'true'); heading.appendChild(after);
-   return heading; },
+   const heading = document.createElement('div'); heading.className = 'javlib-forum-heading'; const before = document.createElement('span'); before.className = 'javlib-forum-heading-line'; before.setAttribute('aria-hidden', 'true');
+   heading.appendChild(before); const content = document.createElement('span'); content.className = 'javlib-forum-heading-content'; this.copyChildren(source, content); heading.appendChild(content); const after = document.createElement('span');
+   after.className = 'javlib-forum-heading-line'; after.setAttribute('aria-hidden', 'true'); heading.appendChild(after); return heading; },
   restoreComments(container = this.lastComments) {
-   this.commentsShell?.remove();
-   this.commentsShell = null;
-   container?.querySelector(':scope > .header')?.classList.remove('javlib-forum-source-hidden');
+   this.commentsShell?.remove(); this.commentsShell = null; container?.querySelector(':scope > .header')?.classList.remove('javlib-forum-source-hidden');
    container?.querySelectorAll(':scope > table.comment').forEach(comment => { comment.classList.remove('javlib-forum-source-hidden'); });
    this.restoreMovedNodes(container); },
   restoreReviews(container = this.lastReviews) {
-   this.reviewsShell?.remove();
-   this.reviewsShell = null;
-   container?.querySelector(':scope > .header')?.classList.remove('javlib-forum-source-hidden');
+   this.reviewsShell?.remove(); this.reviewsShell = null; container?.querySelector(':scope > .header')?.classList.remove('javlib-forum-source-hidden');
    container?.querySelectorAll(':scope > table.review').forEach(review => { review.classList.remove('javlib-forum-source-hidden'); });
    this.restoreMovedNodes(container); },
   createTableCards(table) {
-   const list = document.createElement('div');
-   list.className = 'javlib-forum-card-list';
-   const rows = [...(table?.querySelectorAll(':scope > tbody > tr:not(#header)') || [])];
+   const list = document.createElement('div'); list.className = 'javlib-forum-card-list'; const rows = [...(table?.querySelectorAll(':scope > tbody > tr:not(#header)') || [])];
    rows.forEach(row => {
     const cells = [...row.cells];
     if (!cells.length) return;
     const card = document.createElement('article');
     card.className =`javlib-forum-data-card${row.classList.contains('dimrow') ? ' is-dim' : ''}`;
-    const primary = document.createElement('div');
-    primary.className = 'javlib-forum-card-primary';
-    this.copyCell(cells[0], primary); card.appendChild(primary); list.appendChild(card);
+    const primary = document.createElement('div'); primary.className = 'javlib-forum-card-primary'; this.copyCell(cells[0], primary); card.appendChild(primary); list.appendChild(card);
    });
    return list; },
   createCommentCards(comments, kind = 'comment') {
@@ -5450,14 +4745,11 @@
     card.className =`javlib-forum-post-card javlib-${kind}-card`;
     const meta = document.createElement('div');
     meta.className =`javlib-forum-post-meta javlib-feedback-meta javlib-${kind}-meta`;
-    this.copyNode(source.querySelector('td.info'), meta); card.appendChild(meta);
-    const body = document.createElement('div');
+    this.copyNode(source.querySelector('td.info'), meta); card.appendChild(meta); const body = document.createElement('div');
     body.className =`javlib-forum-post-body javlib-feedback-body javlib-${kind}-body`;
-    this.copyNode(source.querySelector('td.t'), body); card.appendChild(body);
-    const footer = document.createElement('div');
+    this.copyNode(source.querySelector('td.t'), body); card.appendChild(body); const footer = document.createElement('div');
     footer.className =`javlib-forum-post-footer javlib-feedback-footer javlib-${kind}-footer`;
-    this.copyNode(source.querySelector('td.date'), footer);
-    const score = source.querySelector('tr:first-child > td.scores');
+    this.copyNode(source.querySelector('td.date'), footer); const score = source.querySelector('tr:first-child > td.scores');
     if (score) {
      this.moveNode(score, footer);
      score.classList.add('javlib-feedback-score',`javlib-${kind}-score`);
@@ -5471,21 +4763,11 @@
    });
    return list; },
   createPosts(posts) {
-   const list = document.createElement('div');
-   list.className = 'javlib-forum-post-list';
+   const list = document.createElement('div'); list.className = 'javlib-forum-post-list';
    [...(posts?.querySelectorAll(':scope > table.post') || [])].forEach(source => {
-    const card = document.createElement('article');
-    card.className = 'javlib-forum-post-card';
-    const meta = document.createElement('div');
-    meta.className = 'javlib-forum-post-meta';
-    this.copyNode(source.querySelector('.info'), meta); card.appendChild(meta);
-    const body = document.createElement('div');
-    body.className = 'javlib-forum-post-body';
-    this.copyNode(source.querySelector('.t'), body); card.appendChild(body);
-    const footer = document.createElement('div');
-    footer.className = 'javlib-forum-post-footer';
-    this.copyNode(source.querySelector('.date'), footer); this.moveNode(source.querySelector('.toolbar'), footer); card.appendChild(footer);
-    list.appendChild(card);
+    const card = document.createElement('article'); card.className = 'javlib-forum-post-card'; const meta = document.createElement('div'); meta.className = 'javlib-forum-post-meta'; this.copyNode(source.querySelector('.info'), meta); card.appendChild(meta);
+    const body = document.createElement('div'); body.className = 'javlib-forum-post-body'; this.copyNode(source.querySelector('.t'), body); card.appendChild(body); const footer = document.createElement('div'); footer.className = 'javlib-forum-post-footer';
+    this.copyNode(source.querySelector('.date'), footer); this.moveNode(source.querySelector('.toolbar'), footer); card.appendChild(footer); list.appendChild(card);
    });
    return list; },
   copyCell(source, target) {
@@ -5493,20 +4775,15 @@
   },
   copyNode(source, target) {
    if (!source) return;
-   const clone = document.createElement('div');
-   clone.className = source.className || ''; clone.innerHTML = source.innerHTML;
-   target.appendChild(clone); },
+   const clone = document.createElement('div'); clone.className = source.className || ''; clone.innerHTML = source.innerHTML; target.appendChild(clone); },
   copyChildren(source, target) {
    [...source.childNodes].forEach(node => target.appendChild(node.cloneNode(true))); }, };
- SiteJavLib._initMobileForum = () => JavlibMobileForum.init();
- Core.expose('__LAOSIJI_JAVLIB_MOBILE_FORUM__', JavlibMobileForum);
+ SiteJavLib._initMobileForum = () => JavlibMobileForum.init(); Core.expose('__LAOSIJI_JAVLIB_MOBILE_FORUM__', JavlibMobileForum);
  GM_addStyle(`html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo{display:block!important;clear:both!important;float:none!important;position:relative!important;z-index:1!important;height:auto!important;min-height:0!important;margin:0!important;padding:8px 12px!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo{display:block!important;float:none!important;position:static!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;text-align:center!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo a{display:inline-block!important;max-width:100%!important;height:auto!important;line-height:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo img{display:block!important;width:min(280px,100%)!important;height:auto!important;max-width:100%!important;margin:0 auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #content{display:block!important;clear:both!important;position:relative!important;top:auto!important;margin:0!important;padding:0 12px 16px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #rightcolumn{display:block!important;clear:both!important;float:none!important;position:relative!important;z-index:0!important;width:100%!important;min-width:0!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;overflow:visible!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-source-hidden{display:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-shell{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;margin:0!important;color:#1f2937!important;font:14px/1.5 Arial,"Microsoft YaHei",sans-serif!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-heading{display:flex!important;align-items:flex-start!important;width:100%!important;min-width:0!important;gap:10px!important;margin:0 0 12px!important;padding:7px 0!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-heading-line{flex:1 1 0!important;min-width:14px!important;height:1px!important;margin-top:11px!important;background:#cbd5e1!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-heading-content{flex:0 1 auto!important;min-width:0!important;max-width:calc(100% - 48px)!important;color:#111827!important;font-size:16px!important;font-weight:700!important;line-height:1.45!important;text-align:center!important;overflow-wrap:anywhere!important;word-break:break-word!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-heading-content a{color:inherit!important;overflow-wrap:anywhere!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-tools{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:7px!important;width:100%!important;min-width:0!important;margin:0 0 10px!important;padding:0!important;float:none!important;clear:both!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-tools>*{max-width:100%!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-card-list,html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-list{display:grid!important;gap:9px!important;width:100%!important;min-width:0!important;margin:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-data-card,html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-card{display:block!important;width:100%!important;min-width:0!important;margin:0!important;padding:0!important;border:1px solid #d7dee8!important;border-radius:4px!important;background:#fff!important;box-shadow:0 1px 3px rgba(15,23,42,.06)!important;box-sizing:border-box!important;overflow:hidden!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-data-card.is-dim{background:#f8fafc!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-card-primary{display:block!important;min-width:0!important;padding:10px 11px 9px!important;border-bottom:1px solid #e5e7eb!important;color:#111827!important;line-height:1.45!important;overflow-wrap:anywhere!important;word-break:break-word!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-card-primary a{color:inherit!important;font-weight:700!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-card-primary .desc{display:block!important;margin-top:3px!important;color:#64748b!important;font-size:12px!important;font-weight:400!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:5px 8px!important;min-width:0!important;padding:8px 10px!important;border-bottom:1px dashed #d7dee8!important;background:#f8fafc!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta .postid{color:#94a3b8!important;font-size:11px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta .userid{font-weight:700!important;overflow-wrap:anywhere!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta .nickname{display:flex!important;align-items:center!important;margin-left:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-meta .imageflag{width:22px!important;height:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-body{min-width:0!important;padding:11px 10px 13px!important;color:#1f2937!important;line-height:1.6!important;overflow-wrap:anywhere!important;word-break:break-word!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-body .posttext{display:block!important;margin:0!important;padding:0!important;white-space:normal!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-body>.t>br{display:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-comments-shell{margin-top:12px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-comments-tools{justify-content:flex-end!important;margin:-4px 0 8px!important;font-size:12px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-body .text{display:block!important;width:auto!important;max-width:100%!important;min-width:0!important;margin:0!important;box-sizing:border-box!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-body .text img{display:block!important;max-width:100%!important;height:auto!important;margin:6px 0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-body .quote{max-width:100%!important;box-sizing:border-box!important;overflow-wrap:anywhere!important;word-break:break-word!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-footer{justify-content:flex-start!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-score{display:flex!important;flex:0 0 auto!important;align-items:center!important;width:auto!important;min-width:0!important;padding:0!important;border:0!important;background:transparent!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-score>table{width:auto!important;margin:0!important;border-collapse:collapse!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-score td{width:auto!important;padding:0 3px!important;white-space:nowrap!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-feedback-toolbar{display:flex!important;flex:0 0 auto!important;align-items:center!important;flex-wrap:wrap!important;gap:6px!important;width:auto!important;min-width:0!important;margin-left:auto!important;padding:0!important;border:0!important;background:transparent!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-review-meta .rating9,html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-review-meta .rating10{flex:0 0 auto!important;margin-right:2px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;flex-wrap:wrap!important;gap:7px!important;min-width:0!important;padding:8px 10px!important;border-top:1px solid #eef2f7!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-footer .date{color:#64748b!important;font-size:11px!important;overflow-wrap:anywhere!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-footer .toolbar{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-left:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-post-footer .smallbutton{min-height:30px!important;margin:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-pagination{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:6px!important;width:100%!important;margin:12px 0 0!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-pagination a{min-height:32px!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .javlib-forum-divider{width:100%!important;margin:12px 0 0!important}@media (max-width:390px){}`);
  const SiteSukebei = {
   match() { return /(?:^|\.)sukebei\.nyaa\.si$/i.test(location.hostname); },
   isDetailPage() { return /^\/view\/\d+\/?$/i.test(location.pathname) && !!document.querySelector('#torrent-description'); },
-  getVid() {
-   const title = document.querySelector('.panel-title')?.textContent || document.title; const code = Utils.extractCode(title);
-   return code ? normalizeAvid(code) : ''; },
+  getVid() { const title = document.querySelector('.panel-title')?.textContent || document.title; const code = Utils.extractCode(title); return code ? normalizeAvid(code) : ''; },
   initPage(avid) {
    if (!this.isDetailPage() || !avid) return;
    this._insertDescriptionMagnetWhenReady(avid); },
@@ -5520,8 +4797,7 @@
    if (!description || description.dataset.laosijiMagnetLayout === '1') return;
    if (this._isDescriptionRendered(description)) { this._insertDescriptionMagnet(avid); return; }
    if (description.dataset.laosijiMagnetPending === '1') return;
-   description.dataset.laosijiMagnetPending = '1';
-   let tries = 0; let timer = 0; let observer = null;
+   description.dataset.laosijiMagnetPending = '1'; let tries = 0; let timer = 0; let observer = null;
    const finish = () => {
     if (timer) clearInterval(timer);
     observer?.disconnect?.(); delete description.dataset.laosijiMagnetPending; };
@@ -5535,24 +4811,15 @@
    if (typeof MutationObserver !== 'undefined') {
     observer = new MutationObserver(tryInsert);
     observer.observe(description, { childList: true, subtree: true, characterData: true }); }
-   timer = setInterval(tryInsert, 125);
-   tryInsert(); },
+   timer = setInterval(tryInsert, 125); tryInsert(); },
   _insertDescriptionMagnet(avid) {
    const description = document.querySelector('#torrent-description');
    if (!description || description.dataset.laosijiMagnetLayout === '1' || !this._isDescriptionRendered(description)) return;
    injectStyle('sukebei-magnet-description-style',`#torrent-description .sukebei-description-layout{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(520px,560px);grid-template-areas:"original magnet";gap:18px;align-items:start}#torrent-description .sukebei-description-original{grid-area:original;min-width:0;overflow-wrap:anywhere;word-break:break-word}#torrent-description .sukebei-description-original>:first-child{margin-top:0}#torrent-description .sukebei-description-original img{max-width:100%;height:auto}#torrent-description .sukebei-magnet-pane{grid-area:magnet;width:100%;min-width:520px;align-self:start}#torrent-description .sukebei-magnet-pane .jav-nong-wrapper{display:block!important;width:100%!important;max-width:560px!important;margin:0!important}@media (max-width:991px){#torrent-description .sukebei-description-layout{grid-template-columns:minmax(0,1fr);grid-template-areas:"original" "magnet"}#torrent-description .sukebei-magnet-pane{min-width:0}#torrent-description .sukebei-magnet-pane .jav-nong-wrapper{max-width:100%!important;margin-left:0!important}}`);
-   const original = document.createElement('div');
-   original.className = 'sukebei-description-original';
-   const divider = Array.from(description.children).find((node) => node.tagName === 'HR') || null;
+   const original = document.createElement('div'); original.className = 'sukebei-description-original'; const divider = Array.from(description.children).find((node) => node.tagName === 'HR') || null;
    while (description.firstChild && description.firstChild !== divider) { original.appendChild(description.firstChild); }
-   const magnetPane = document.createElement('div');
-   magnetPane.className = 'sukebei-magnet-pane';
-   magnetPane.appendChild(Magnet.createMagnetWidget(avid));
-   const layout = document.createElement('div');
-   layout.className = 'sukebei-description-layout';
-   layout.appendChild(original); layout.appendChild(magnetPane); description.classList.add('laosiji-sukebei-description');
-   description.dataset.laosijiMagnetLayout = '1';
-   description.insertBefore(layout, divider); }, };
+   const magnetPane = document.createElement('div'); magnetPane.className = 'sukebei-magnet-pane'; magnetPane.appendChild(Magnet.createMagnetWidget(avid)); const layout = document.createElement('div'); layout.className = 'sukebei-description-layout';
+   layout.appendChild(original); layout.appendChild(magnetPane); description.classList.add('laosiji-sukebei-description'); description.dataset.laosijiMagnetLayout = '1'; description.insertBefore(layout, divider); }, };
  const SiteAdapters = [SiteJavBus, SiteJavDB, SiteJavLib, SiteSukebei];
  const SiteManager = {
   list: SiteAdapters,
@@ -5560,9 +4827,7 @@
   current() { return this.list.find(s => s.match()) || null; },
   isDetailPage() { return isCurrentDetailPage(); },
   getListCards(doc = document) {
-   return [
-    ...doc.querySelectorAll('.javbus-card-grid > .item, .javdb-card-grid > .item, .videothumblist .videos.javlib-card-grid > .video, .torrent-list > tbody > tr')
-   ]; },
+   return [ ...doc.querySelectorAll('.javbus-card-grid > .item, .javdb-card-grid > .item, .videothumblist .videos.javlib-card-grid > .video, .torrent-list > tbody > tr') ]; },
   getCardCover(card) { return card?.querySelector('.jav-card-cover') || null; },
   getCardCode(card) {
    if (!card) return '';
@@ -5573,10 +4838,7 @@
     if (normalized) return normalized;
    }
    let fallbackCard = card;
-   if (typeof card.cloneNode === 'function') {
-    fallbackCard = card.cloneNode(true);
-    fallbackCard.querySelectorAll?.('.jav-card-quick-actions, .jav-card-quick-menu, .jav-card-quick-menu-popover, .jav-sukebei-offline-115').forEach(el => el.remove());
-   }
+   if (typeof card.cloneNode === 'function') { fallbackCard = card.cloneNode(true); fallbackCard.querySelectorAll?.('.jav-card-quick-actions, .jav-card-quick-menu, .jav-card-quick-menu-popover, .jav-sukebei-offline-115').forEach(el => el.remove()); }
    const titleText = [
     fallbackCard.querySelector('.javdb-card-headline')?.textContent,
     fallbackCard.querySelector('.javlib-card-headline')?.textContent,
@@ -5600,9 +4862,7 @@
     if (!nextUrl) return null;
     return { site: 'javbus', container, nextUrl, itemSelector: '#waterfall > .item', paginationSelector: '.pagination' }; }
    if (SiteJavDB.match()) {
-    const container = this.getInfiniteScrollContainer('javdb', doc);
-    const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"].pagination-link[href]');
-    const nextHref = next?.getAttribute('href')?.trim();
+    const container = this.getInfiniteScrollContainer('javdb', doc); const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"].pagination-link[href]'); const nextHref = next?.getAttribute('href')?.trim();
     if (!container || !nextHref) return null;
     let nextUrl;
     try {
@@ -5610,8 +4870,7 @@
     } catch { return null; }
     return { site: 'javdb', container, nextUrl, itemSelector: '.movie-list .item, .movies .item, .grid .item', paginationSelector: 'nav.pagination' }; }
    if (SiteJavLib.match()) {
-    const container = this.getInfiniteScrollContainer('javlib', doc); const next = doc.querySelector('.page_selector a.page.next[href]');
-    const nextHref = next?.getAttribute('href')?.trim();
+    const container = this.getInfiniteScrollContainer('javlib', doc); const next = doc.querySelector('.page_selector a.page.next[href]'); const nextHref = next?.getAttribute('href')?.trim();
     if (!container || !nextHref) return null;
     let nextUrl;
     try {
@@ -5625,14 +4884,8 @@
    if (site === 'javlib') SiteJavLib._decorateCard?.(item);
    ListPreview.attach(item); },
   reflowInfiniteScroll(site, container) {
-   if (site === 'javbus') {
-    const live = this.getInfiniteScrollContainer('javbus') || container;
-    live?.querySelectorAll(':scope > .item').forEach(item => SiteJavBus._decorateCard?.(item));
-    return live || container; }
-   if (site === 'javlib') {
-    const live = this.getInfiniteScrollContainer('javlib') || container;
-    live?.querySelectorAll(':scope > .video').forEach(item => SiteJavLib._decorateCard?.(item));
-    return live || container; }
+   if (site === 'javbus') { const live = this.getInfiniteScrollContainer('javbus') || container; live?.querySelectorAll(':scope > .item').forEach(item => SiteJavBus._decorateCard?.(item)); return live || container; }
+   if (site === 'javlib') { const live = this.getInfiniteScrollContainer('javlib') || container; live?.querySelectorAll(':scope > .video').forEach(item => SiteJavLib._decorateCard?.(item)); return live || container; }
    const jq = window.jQuery || window.$;
    if (jq && jq(container).masonry) { jq(container).masonry('reloadItems'); jq(container).masonry('layout'); }
    return container; },
@@ -5665,11 +4918,9 @@
     anchor.getAttribute('aria-label'),
     anchor.textContent,
     href,
-   ].filter(Boolean).join(' ');
-   const code = Utils.extractCode(text); const pan115Code = Pan115.extractCode(text, code);
+   ].filter(Boolean).join(' '); const code = Utils.extractCode(text); const pan115Code = Pan115.extractCode(text, code);
    if (!code || !pan115Code) return null;
-   const visibleTitle = (anchor.textContent || anchor.getAttribute('title') || '').trim(); const hasTitleText = visibleTitle.length > 0;
-   const visibleTitleHasCode = !!Utils.extractCode(visibleTitle);
+   const visibleTitle = (anchor.textContent || anchor.getAttribute('title') || '').trim(); const hasTitleText = visibleTitle.length > 0; const visibleTitleHasCode = !!Utils.extractCode(visibleTitle);
    if (!hasTitleText) return null;
    const card = this.getPan115ListCard(anchor);
    if (card && anchor.querySelector('img') && !visibleTitleHasCode) {
@@ -5677,8 +4928,7 @@
     if (titleAnchor && titleAnchor !== anchor) return null;
    }
    const looksLikeVideoLink =
-    /\/v\/\w+/i.test(href) || /(?:^|\/|\.)jav\w+\.html(?:[?#].*)?$/i.test(href) || /\/videos\/[a-z0-9-]+\/?/i.test(href) ||
-    /\/(?:[a-z]{2,15}-\d{2,10}|fc2[-_]?ppv[-_]?\d{6,9})\/?$/i.test(href) || /\/(?:[a-z]{2,15}\d{3,6})\/?$/i.test(href) ||
+    /\/v\/\w+/i.test(href) || /(?:^|\/|\.)jav\w+\.html(?:[?#].*)?$/i.test(href) || /\/videos\/[a-z0-9-]+\/?/i.test(href) || /\/(?:[a-z]{2,15}-\d{2,10}|fc2[-_]?ppv[-_]?\d{6,9})\/?$/i.test(href) || /\/(?:[a-z]{2,15}\d{3,6})\/?$/i.test(href) ||
     /(?:movie|video|detail|view|jav)/i.test(href);
    const inListContainer = !!anchor.closest('.movie-list, .movies, .grid, #waterfall, .movie-box, .box, .thumbnail, .video-img-box, .card, .video-list, .video-list-row, .section-container, .videothumblist');
    if (!looksLikeVideoLink && !inListContainer) return null;
@@ -5689,8 +4939,7 @@
    const isSupjavList = /supjav\.com/.test(location.hostname); const seen = new Set(); const seenCardCodes = new Map(); const targets = [];
    const pushTarget = target => {
     if (!target?.anchor || !target.code) return;
-    const card = this.getPan115ListCard(target.anchor) || target.anchor; const normalized = Pan115.normalizeKeepSeparator(target.code) || target.code;
-    let codes = seenCardCodes.get(card);
+    const card = this.getPan115ListCard(target.anchor) || target.anchor; const normalized = Pan115.normalizeKeepSeparator(target.code) || target.code; let codes = seenCardCodes.get(card);
     if (!codes) { codes = new Set(); seenCardCodes.set(card, codes); }
     if (codes.has(normalized)) return;
     codes.add(normalized); targets.push(target); };
@@ -5704,8 +4953,7 @@
       card?.querySelector('.title')?.textContent,
       anchor.getAttribute('title'),
       anchor.href,
-     ].filter(Boolean).join(' ');
-     const code = Utils.extractCode(text); const pan115Code = Pan115.extractCode(text, code);
+     ].filter(Boolean).join(' '); const code = Utils.extractCode(text); const pan115Code = Pan115.extractCode(text, code);
      if (!code || !pan115Code) return;
      seen.add(anchor);
      pushTarget({ anchor, code: pan115Code });
@@ -5727,8 +4975,7 @@
    document.querySelectorAll(selectors.join(',')).forEach(anchor => {
     if (seen.has(anchor) || anchor.dataset.pan115Checked === '1') return;
     if (isSupjavList && !anchor.matches('.post h3 a[href]')) return;
-    seen.add(anchor);
-    const target = this.findPan115TitleAnchor(anchor);
+    seen.add(anchor); const target = this.findPan115TitleAnchor(anchor);
     if (target) pushTarget(target);
    });
    return targets; },
@@ -5736,9 +4983,7 @@
    const matches = (Array.isArray(hit) ? hit : hit?.pickcode ? [hit] : []).filter(item => item?.pickcode);
    if (!Pan115.enabled() || !matches.length || !anchor || anchor.dataset.pan115HasBadge === '1') return;
    if (anchor.matches?.('.emby-javlibrary-list-badge') || anchor.closest?.('.emby-btn, .emby-badge, .emby-button-group, .emby-javlibrary-list-badge')) return;
-   const card = this.getPan115ListCard(anchor);
-   const hasSameBadge = root => !!root && [...root.querySelectorAll('.jav-pan115-badge[data-pickcode]')]
-    .some(badge => matches.some(item => badge.dataset.pickcode === item.pickcode));
+   const card = this.getPan115ListCard(anchor); const hasSameBadge = root => !!root && [...root.querySelectorAll('.jav-pan115-badge[data-pickcode]')] .some(badge => matches.some(item => badge.dataset.pickcode === item.pickcode));
    if (hasSameBadge(card) || (!card && hasSameBadge(anchor.parentElement))) { anchor.dataset.pan115HasBadge = '1'; return; }
    const title = anchor.querySelector('.title, .video-title');
    if (title) {
@@ -5748,20 +4993,15 @@
      if (footer) {
       footer.insertBefore(badge, footer.firstChild);
      } else { javlibHeadline.insertAdjacentElement('afterend', badge); }
-     anchor.dataset.pan115HasBadge = '1';
-     return; }
+     anchor.dataset.pan115HasBadge = '1'; return; }
     const javdbHeadline = title.querySelector('.javdb-card-headline');
     if (javdbHeadline) { javdbHeadline.insertBefore(badge, javdbHeadline.firstChild); anchor.dataset.pan115HasBadge = '1'; return; }
-    title.insertBefore(badge, title.firstChild);
-    anchor.dataset.pan115HasBadge = '1';
-    return; }
+    title.insertBefore(badge, title.firstChild); anchor.dataset.pan115HasBadge = '1'; return; }
    const textNode = this.findPan115TitleTextNode(anchor);
    if (textNode?.parentNode && anchor.contains(textNode.parentNode)) {
-    const badge = createPan115Badge(matches, code, false);
-    textNode.parentNode.insertBefore(badge, textNode);
+    const badge = createPan115Badge(matches, code, false); textNode.parentNode.insertBefore(badge, textNode);
    } else {
-    const badge = createPan115Badge(matches, code, true);
-    anchor.parentNode?.insertBefore(badge, anchor); }
+    const badge = createPan115Badge(matches, code, true); anchor.parentNode?.insertBefore(badge, anchor); }
    anchor.dataset.pan115HasBadge = '1'; },
   getDetailFeatureSite() { return JumpSites.find(site => site.match(window.location.href)) || null; },
   getDetailCode() {
@@ -5769,8 +5009,7 @@
    if (!site) return '';
    const titleElem = site.id === 'emby' ? resolveEmbyTitleElem() : document.querySelector(site.titleSelector || '');
    if (typeof site.getCode === 'function') return site.getCode(titleElem) || '';
-   const titleText = titleElem?.textContent || document.title || '';
-   return Utils.extractCode(titleText) || ''; },
+   const titleText = titleElem?.textContent || document.title || ''; return Utils.extractCode(titleText) || ''; },
   getDetailLayoutSite() {
    const host = location.hostname;
    if (/(?:^|\.)javbus\.com$/i.test(host) && document.querySelector('.row.movie')) return 'javbus';
@@ -5784,25 +5023,20 @@
    if (site === 'javbus') {
     const root = document.querySelector('.row.movie'); const info = root?.querySelector('.col-md-3.info');
     if (!root || !info) return null;
-    info.insertAdjacentElement('afterend', slot);
-    return slot; }
+    info.insertAdjacentElement('afterend', slot); return slot; }
    if (site === 'javdb') {
-    const root = document.querySelector('.jav-flex-container');
-    const info = root?.querySelector('.movie-panel-info')?.closest('.column') || root?.querySelector('.movie-panel-info');
+    const root = document.querySelector('.jav-flex-container'); const info = root?.querySelector('.movie-panel-info')?.closest('.column') || root?.querySelector('.movie-panel-info');
     if (!root || !info) return null;
-    info.insertAdjacentElement('afterend', slot);
-    return slot; }
+    info.insertAdjacentElement('afterend', slot); return slot; }
    if (site === 'javlib') {
     const row = document.querySelector('#video_jacket_info tr'); const info = row?.querySelector('#video_info')?.closest('td');
     if (!row || !info) return null;
-    info.insertAdjacentElement('afterend', slot);
-    return slot; }
+    info.insertAdjacentElement('afterend', slot); return slot; }
    return null; },
   getDetailPreviewTarget() {
    const slot = this.getMagnetSlot();
    if (slot) {
-    document.querySelectorAll('.jav-detail-preview-standalone').forEach(el => el.remove());
-    let anchor = slot.querySelector('.jav-nong-wrapper');
+    document.querySelectorAll('.jav-detail-preview-standalone').forEach(el => el.remove()); let anchor = slot.querySelector('.jav-nong-wrapper');
     while (anchor?.parentElement && anchor.parentElement !== slot) { anchor = anchor.parentElement; }
     return { slot, anchor }; }
    let standalone = document.querySelector('.jav-detail-preview-standalone');
@@ -5810,28 +5044,23 @@
    if (!standalone) return null;
    return { slot: standalone, anchor: null, standalone: true }; },
   clearDetailPreviewInline() {
-   document.querySelectorAll('.jav-detail-preview-wrap').forEach(el => el.remove());
-   document.querySelectorAll('.jav-detail-preview-standalone').forEach(el => el.remove());
+   document.querySelectorAll('.jav-detail-preview-wrap').forEach(el => el.remove()); document.querySelectorAll('.jav-detail-preview-standalone').forEach(el => el.remove());
    document.querySelectorAll('.jav-nong-slot.has-detail-preview-inline').forEach(el => { el.classList.remove('has-detail-preview-inline'); }); },
   getJumpSite(url = window.location.href) { return JumpSites.find(s => s.match(url)) || null; },
   getJumpTitleElement(site) {
    if (!site) return null;
-   if (typeof Javdb123AvFc2 !== 'undefined' && Javdb123AvFc2.isDetailRoute?.() && ['javbus', 'javlibrary'].includes(site.id)) {
-    return document.querySelector('.javdb-api-detail-title'); }
+   if (typeof Javdb123AvFc2 !== 'undefined' && Javdb123AvFc2.isDetailRoute?.() && ['javbus', 'javlibrary'].includes(site.id)) { return document.querySelector('.javdb-api-detail-title'); }
    if (typeof site.getTitleElement === 'function') return site.getTitleElement();
    return site.id === 'emby' ? resolveEmbyTitleElem() : document.querySelector(site.titleSelector); },
-  getEmbyInsertAnchor(titleElem) {
-   return titleElem?.closest('.itemPrimaryNameContainer, .nameContainer, .detailPageWrapperContainer .infoWrapper') || titleElem; },
+  getEmbyInsertAnchor(titleElem) { return titleElem?.closest('.itemPrimaryNameContainer, .nameContainer, .detailPageWrapperContainer .infoWrapper') || titleElem; },
   getEmbyRenderKey(titleElem) {
-   const hash = location.hash || ''; const itemId = hash.match(/item\?id=([^&]+)/i)?.[1] || new URLSearchParams(hash.split('?')[1] || '').get('id') || '';
-   const title = (titleElem?.textContent || '').trim();
+   const hash = location.hash || ''; const itemId = hash.match(/item\?id=([^&]+)/i)?.[1] || new URLSearchParams(hash.split('?')[1] || '').get('id') || ''; const title = (titleElem?.textContent || '').trim();
    return`${itemId}::${title}`;
   },
   isEmbyPage(url = window.location.href) { return !!JumpSites.find(s => s.id === 'emby')?.match(url); },
   setupJavDbGuards() {
    if (this.javdbGuardsReady || !SiteJavDB.match()) return;
-   this.javdbGuardsReady = true;
-   SiteJavDB._dismissOver18Modal(); SiteJavDB._hideDownloadCorrectionBlock();
+   this.javdbGuardsReady = true; SiteJavDB._dismissOver18Modal(); SiteJavDB._hideDownloadCorrectionBlock();
    const javdbOver18Observer = new MutationObserver(() => {
     SiteJavDB._dismissOver18Modal(); SiteJavDB._hideDownloadCorrectionBlock();
    });
@@ -5845,8 +5074,7 @@
   initCurrent() {
    const site = this.current();
    if (!site) return;
-   const avid = site.getVid();
-   log('匹配站点:', site.constructor?.name || '未知', '| 番号:', avid); site.initPage(avid); PageZoom.applyCurrent(); DetailFlex.apply(); }, };
+   const avid = site.getVid(); log('匹配站点:', site.constructor?.name || '未知', '| 番号:', avid); site.initPage(avid); PageZoom.applyCurrent(); DetailFlex.apply(); }, };
  const ListOpenNewTab = (() => {
   const MARK = 'laosijiListNewTab';
   function enabled() { return CFG.listOpenNewTab; }
@@ -5854,8 +5082,7 @@
    const href = anchor?.getAttribute?.('href') || '';
    if (!href || /^(?:javascript:|#|magnet:|mailto:|tel:)/i.test(href)) return false;
    try {
-    const url = new URL(href, location.href);
-    return /^https?:$/i.test(url.protocol);
+    const url = new URL(href, location.href); return /^https?:$/i.test(url.protocol);
    } catch (err) { return false; } }
   function collectAnchors() {
    if (SiteManager.isDetailPage()) return [];
@@ -5878,19 +5105,15 @@
    const seen = new Set();
    return selectors.flatMap(selector => [...document.querySelectorAll(selector)]) .filter(anchor => {
      if (seen.has(anchor) || !isSafeHref(anchor)) return false;
-     seen.add(anchor);
-     return true;
+     seen.add(anchor); return true;
     }); }
   function remember(anchor) {
    if (anchor.dataset[MARK] === '1') return;
-   anchor.dataset[MARK] = '1'; anchor.dataset.laosijiHadTarget = anchor.hasAttribute('target') ? '1' : '0';
-   anchor.dataset.laosijiHadRel = anchor.hasAttribute('rel') ? '1' : '0'; anchor.dataset.laosijiOriginalTarget = anchor.getAttribute('target') || '';
+   anchor.dataset[MARK] = '1'; anchor.dataset.laosijiHadTarget = anchor.hasAttribute('target') ? '1' : '0'; anchor.dataset.laosijiHadRel = anchor.hasAttribute('rel') ? '1' : '0'; anchor.dataset.laosijiOriginalTarget = anchor.getAttribute('target') || '';
    anchor.dataset.laosijiOriginalRel = anchor.getAttribute('rel') || ''; }
   function applyAnchor(anchor) {
    if (anchor.dataset.laosijiNewTabApplied === '1') return;
-   remember(anchor);
-   const rel = new Set((anchor.getAttribute('rel') || '').split(/\s+/).filter(Boolean));
-   rel.add('noopener'); rel.add('noreferrer'); anchor.setAttribute('target', '_blank'); anchor.setAttribute('rel', [...rel].join(' '));
+   remember(anchor); const rel = new Set((anchor.getAttribute('rel') || '').split(/\s+/).filter(Boolean)); rel.add('noopener'); rel.add('noreferrer'); anchor.setAttribute('target', '_blank'); anchor.setAttribute('rel', [...rel].join(' '));
    anchor.dataset.laosijiNewTabApplied = '1'; }
   function restoreAnchor(anchor) {
    if (anchor.dataset[MARK] !== '1') return;
@@ -5900,16 +5123,14 @@
    if (anchor.dataset.laosijiHadRel === '1') {
     anchor.setAttribute('rel', anchor.dataset.laosijiOriginalRel || '');
    } else { anchor.removeAttribute('rel'); }
-   delete anchor.dataset[MARK]; delete anchor.dataset.laosijiHadTarget; delete anchor.dataset.laosijiHadRel; delete anchor.dataset.laosijiOriginalTarget;
-   delete anchor.dataset.laosijiOriginalRel; delete anchor.dataset.laosijiNewTabApplied; }
+   delete anchor.dataset[MARK]; delete anchor.dataset.laosijiHadTarget; delete anchor.dataset.laosijiHadRel; delete anchor.dataset.laosijiOriginalTarget; delete anchor.dataset.laosijiOriginalRel; delete anchor.dataset.laosijiNewTabApplied; }
   function clearExcept(active = new Set()) {
    document.querySelectorAll('a[data-laosiji-list-new-tab="1"]').forEach(anchor => {
     if (!active.has(anchor)) restoreAnchor(anchor);
    }); }
   function sync() {
    if (!enabled()) { clearExcept(); return; }
-   const anchors = collectAnchors(); const active = new Set(anchors);
-   anchors.forEach(applyAnchor); clearExcept(active); }
+   const anchors = collectAnchors(); const active = new Set(anchors); anchors.forEach(applyAnchor); clearExcept(active); }
   return { sync, clear: () => clearExcept() };
  })();
  Core.expose('__LAOSIJI_LIST_OPEN_NEW_TAB__', ListOpenNewTab);
@@ -5919,8 +5140,7 @@
  const ViewerNavigation = (() => {
   const noNavigation = consume => ({ consume, navigate: null });
   function create({ length, index = 0 } = {}) {
-   const size = Math.max(0, Number(length) || 0); let currentIndex = size ? ((Number(index) || 0) % size + size) % size : 0; let zoomed = false;
-   let wheelDelta = 0; let wheelLockedUntil = 0; let touchStart = null; let ignoreClickUntil = 0; let destroyed = false;
+   const size = Math.max(0, Number(length) || 0); let currentIndex = size ? ((Number(index) || 0) % size + size) % size : 0; let zoomed = false; let wheelLockedUntil = 0; let touchStart = null; let ignoreClickUntil = 0; let destroyed = false;
    const navigate = nextIndex => {
     if (destroyed || !size) return noNavigation(false);
     currentIndex = ((nextIndex % size) + size) % size; zoomed = false;
@@ -5933,20 +5153,16 @@
     return noNavigation(false); };
    const toggleZoom = () => {
     if (destroyed) return zoomed;
-    zoomed = !zoomed;
-    return zoomed; };
+    zoomed = !zoomed; return zoomed; };
    const wheel = ({ deltaX = 0, deltaY = 0, deltaMode = 0, ctrlKey = false, viewportHeight = 800, now = Date.now() } = {}) => {
     if (destroyed || ctrlKey || size < 2 || zoomed) return noNavigation(false);
     const rawDelta = Math.abs(deltaY) >= Math.abs(deltaX) ? deltaY : deltaX;
     if (!rawDelta) return noNavigation(true);
-    const deltaUnit = deltaMode === 1 ? 16 : (deltaMode === 2 ? Math.max(viewportHeight, 800) : 1);
-    wheelDelta += rawDelta * deltaUnit;
     if (now < wheelLockedUntil) return noNavigation(true);
-    if (Math.abs(wheelDelta) < 36) return noNavigation(true);
-    const direction = wheelDelta > 0 ? 1 : -1; const steps = Math.min(6, Math.max(1, Math.floor(Math.abs(wheelDelta) / 36)));
-    const result = navigate(currentIndex + direction * steps);
-    wheelDelta -= direction * steps * 36; wheelLockedUntil = now + 70;
-    return result; };
+    const direction = rawDelta > 0 ? 1 : -1;
+    // Scroll distance does not affect navigation. One accepted
+    // wheel event advances one still, with a fixed rate limit.
+    const result = step(direction); wheelLockedUntil = now + 150; return result; };
    const startTouch = ({ x, y, points = 1 } = {}) => {
     touchStart = !destroyed && size >= 2 && !zoomed && points === 1 ? { x, y } : null;
     return !!touchStart; };
@@ -5958,16 +5174,14 @@
     const deltaX = x - touchStart.x; const deltaY = y - touchStart.y;
     return { consume: Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY) }; };
    const endTouch = ({ x, y, width = 0, now = Date.now(), remainingPoints = 0, changedPoints = 1 } = {}) => {
-    const start = touchStart;
-    touchStart = null;
+    const start = touchStart; touchStart = null;
     if (destroyed || !start || remainingPoints !== 0 || changedPoints !== 1) return noNavigation(false);
     const deltaX = x - start.x; const deltaY = y - start.y; const threshold = Math.min(96, Math.max(48, width * .12));
     if (Math.abs(deltaX) < threshold || Math.abs(deltaX) <= Math.abs(deltaY)) return noNavigation(false);
-    ignoreClickUntil = now + 400;
-    return step(deltaX < 0 ? 1 : -1); };
+    ignoreClickUntil = now + 400; return step(deltaX < 0 ? 1 : -1); };
    const suppressClick = ({ target, now = Date.now() } = {}) => !destroyed && now < ignoreClickUntil && (target === 'image' || target === 'body');
    const destroy = () => {
-    destroyed = true; touchStart = null; wheelDelta = 0; };
+    destroyed = true; touchStart = null; };
    return {
     get index() { return currentIndex; },
     get zoomed() { return zoomed; },
@@ -6023,11 +5237,9 @@
     return; }
    rail.scrollBy({ left: dir * Math.max(220, rail.clientWidth * .72), behavior: 'smooth' }); }
   function button(text, className, rail, dir) {
-   const btn = document.createElement('button');
-   btn.type = 'button';
+   const btn = document.createElement('button'); btn.type = 'button';
    btn.className =`jav-stills-arrow ${className}`;
-   btn.textContent = text;
-   btn.setAttribute('aria-label', dir < 0 ? '向左滚动剧照' : '向右滚动剧照');
+   btn.textContent = text; btn.setAttribute('aria-label', dir < 0 ? '向左滚动剧照' : '向右滚动剧照');
    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); scrollRail(rail, dir); });
    return btn; }
   function toAbsUrl(value) {
@@ -6035,8 +5247,7 @@
     return new URL(value, location.href).href;
    } catch { return ''; } }
   function isImageHref(value) {
-   const url = String(value || '').split('#')[0].split('?')[0];
-   return /\.(?:jpe?g|png|webp|gif|bmp)$/i.test(url); }
+   const url = String(value || '').split('#')[0].split('?')[0]; return /\.(?:jpe?g|png|webp|gif|bmp)$/i.test(url); }
   function collectImages(rail) {
    return [...rail.querySelectorAll(':scope > a[href]')].map(anchor => {
     const href = anchor.getAttribute('href') || '';
@@ -6050,32 +5261,13 @@
    }).filter(Boolean); }
   function openViewer(items, startIndex = 0) {
    if (!items.length) return;
-   activeViewerClose?.();
-   const originalHtmlOverflow = document.documentElement.style.overflow; const originalBodyOverflow = document.body.style.overflow;
-   document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
+   activeViewerClose?.(); const originalHtmlOverflow = document.documentElement.style.overflow; const originalBodyOverflow = document.body.style.overflow; document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
    const navigation = ViewerNavigation.create({ length: items.length, index: startIndex });
-   const overlay = document.createElement('div');
-   overlay.className = 'jav-stills-viewer';
-   const top = document.createElement('div');
-   top.className = 'jav-stills-viewer-top';
-   const count = document.createElement('div');
-   count.className = 'jav-stills-viewer-count';
-   const close = document.createElement('button');
-   close.type = 'button'; close.className = 'jav-stills-viewer-close'; close.textContent = '×';
-   close.setAttribute('aria-label', '关闭剧照预览'); top.append(count, close);
-   const body = document.createElement('div');
-   body.className = 'jav-stills-viewer-body';
-   const img = document.createElement('img');
-   img.className = 'jav-stills-viewer-img';
-   body.appendChild(img);
-   const prev = document.createElement('button');
-   prev.type = 'button'; prev.className = 'jav-stills-viewer-nav jav-stills-viewer-prev'; prev.textContent = '‹';
-   prev.setAttribute('aria-label', '上一张剧照');
-   const next = document.createElement('button');
-   next.type = 'button'; next.className = 'jav-stills-viewer-nav jav-stills-viewer-next'; next.textContent = '›';
-   next.setAttribute('aria-label', '下一张剧照');
-   const caption = document.createElement('div');
-   caption.className = 'jav-stills-viewer-caption';
+   const overlay = document.createElement('div'); overlay.className = 'jav-stills-viewer'; const top = document.createElement('div'); top.className = 'jav-stills-viewer-top'; const count = document.createElement('div');
+   count.className = 'jav-stills-viewer-count'; const close = document.createElement('button'); close.type = 'button'; close.className = 'jav-stills-viewer-close'; close.textContent = '×'; close.setAttribute('aria-label', '关闭剧照预览'); top.append(count, close);
+   const body = document.createElement('div'); body.className = 'jav-stills-viewer-body'; const img = document.createElement('img'); img.className = 'jav-stills-viewer-img'; body.appendChild(img); const prev = document.createElement('button');
+   prev.type = 'button'; prev.className = 'jav-stills-viewer-nav jav-stills-viewer-prev'; prev.textContent = '‹'; prev.setAttribute('aria-label', '上一张剧照'); const next = document.createElement('button'); next.type = 'button';
+   next.className = 'jav-stills-viewer-nav jav-stills-viewer-next'; next.textContent = '›'; next.setAttribute('aria-label', '下一张剧照'); const caption = document.createElement('div'); caption.className = 'jav-stills-viewer-caption';
    const highResCache = new Map();
    const preloadImage = url => {
     const source = String(url || '').trim();
@@ -6090,21 +5282,15 @@
      image.onerror = () => resolve(false);
     });
     highResCache.set(source, { image, promise });
-    image.src = source;
-    return promise; };
+    image.src = source; return promise; };
    const show = () => {
-    const index = navigation.index; const item = items[index];
-    img.classList.remove('is-zoomed'); overlay.classList.remove('is-zoomed');
-    img.src = item.url;
+    const index = navigation.index; const item = items[index]; img.classList.remove('is-zoomed'); overlay.classList.remove('is-zoomed'); img.src = item.url;
     img.alt = item.title ||`剧照 ${index + 1}`;
     count.textContent =`${index + 1} / ${items.length}`;
-    caption.textContent = item.title || '';
-    preloadImage(items[(index + items.length - 1) % items.length]?.url); preloadImage(items[(index + 1) % items.length]?.url); };
+    caption.textContent = item.title || ''; preloadImage(items[(index + items.length - 1) % items.length]?.url); preloadImage(items[(index + 1) % items.length]?.url); };
    const closeViewer = (event = null) => {
     if (event) { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); }
-    navigation.destroy(); overlay.remove();
-    document.documentElement.style.overflow = originalHtmlOverflow; document.body.style.overflow = originalBodyOverflow;
-    document.removeEventListener('keydown', keyHandler, true);
+    navigation.destroy(); overlay.remove(); document.documentElement.style.overflow = originalHtmlOverflow; document.body.style.overflow = originalBodyOverflow; document.removeEventListener('keydown', keyHandler, true);
     if (activeViewerClose === closeViewer) activeViewerClose = null;
    };
    const keyHandler = e => {
@@ -6115,8 +5301,7 @@
     if (result.navigate !== null) show();
    };
    const stopViewerEvent = e => {
-    e.preventDefault(); e.stopPropagation();
-    e.stopImmediatePropagation?.(); };
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); };
    const wheelHandler = e => {
     const result = navigation.wheel({ deltaX: e.deltaX, deltaY: e.deltaY, deltaMode: e.deltaMode, ctrlKey: e.ctrlKey, viewportHeight: overlay.clientHeight });
     if (result.consume) stopViewerEvent(e);
@@ -6145,19 +5330,13 @@
    };
    close.addEventListener('click', closeViewer, true);
    prev.addEventListener('click', e => {
-    e.preventDefault(); e.stopPropagation();
-    e.stopImmediatePropagation?.();
-    navigation.step(-1); show();
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); navigation.step(-1); show();
    }, true);
    next.addEventListener('click', e => {
-    e.preventDefault(); e.stopPropagation();
-    e.stopImmediatePropagation?.();
-    navigation.step(1); show();
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); navigation.step(1); show();
    }, true);
    img.addEventListener('click', e => {
-    e.preventDefault(); e.stopPropagation();
-    e.stopImmediatePropagation?.();
-    img.classList.toggle('is-zoomed', navigation.toggleZoom()); overlay.classList.toggle('is-zoomed', navigation.zoomed);
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); img.classList.toggle('is-zoomed', navigation.toggleZoom()); overlay.classList.toggle('is-zoomed', navigation.zoomed);
    }, true);
    overlay.addEventListener('click', e => {
     const target = e.target === img ? 'image' : (e.target === body ? 'body' : 'other');
@@ -6169,9 +5348,7 @@
    body.addEventListener('touchmove', touchMoveHandler, { passive: false });
    body.addEventListener('touchend', touchEndHandler, { passive: false });
    body.addEventListener('touchcancel', () => navigation.touchCancel(), { passive: true });
-   document.addEventListener('keydown', keyHandler, true); overlay.append(top, body, prev, next, caption); document.body.appendChild(overlay);
-   activeViewerClose = closeViewer;
-   show(); }
+   document.addEventListener('keydown', keyHandler, true); overlay.append(top, body, prev, next, caption); document.body.appendChild(overlay); activeViewerClose = closeViewer; show(); }
   function bindViewer(rail) {
    if (rail.dataset.laosijiStillsViewerBound === '1') return;
    rail.dataset.laosijiStillsViewerBound = '1';
@@ -6180,16 +5357,12 @@
     if (!anchor || !rail.contains(anchor)) return;
     const items = collectImages(rail); const index = items.findIndex(item => item.anchor === anchor);
     if (index < 0) return;
-    e.preventDefault(); e.stopPropagation();
-    e.stopImmediatePropagation?.();
-    openViewer(items, index);
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); openViewer(items, index);
    }, true); }
   function getDetailTrailerTileData(config) {
    if (!config || !['javbus', 'javlib'].includes(config.site)) return null;
-   const cover = config.site === 'javbus' ? document.querySelector('.movie-box img[src], a.bigImage img[src], .bigImage img[src], .cover img[src]')
-    : document.querySelector('#video_jacket_img[src], #video_jacket img[src]');
-   const code = config.site === 'javbus' ? SiteJavBus.getVid?.() : SiteJavLib.getVid?.();
-   const imageUrl = toAbsUrl(cover?.currentSrc || cover?.src || cover?.getAttribute('src') || '');
+   const cover = config.site === 'javbus' ? document.querySelector('.movie-box img[src], a.bigImage img[src], .bigImage img[src], .cover img[src]') : document.querySelector('#video_jacket_img[src], #video_jacket img[src]');
+   const code = config.site === 'javbus' ? SiteJavBus.getVid?.() : SiteJavLib.getVid?.(); const imageUrl = toAbsUrl(cover?.currentSrc || cover?.src || cover?.getAttribute('src') || '');
    if (!code || !imageUrl) return null;
    return { code, imageUrl }; }
   function syncTrailerTile(config) {
@@ -6198,16 +5371,13 @@
    const data = getDetailTrailerTileData(config);
    if (!data) { tile?.remove(); return; }
    if (tile) {
-    tile.dataset.code = data.code;
-    const image = tile.querySelector('img');
+    tile.dataset.code = data.code; const image = tile.querySelector('img');
     if (image && image.src !== data.imageUrl) image.src = data.imageUrl;
     return; }
-   const button = document.createElement('button');
-   button.type = 'button'; button.className = 'jav-stills-trailer-tile'; button.dataset.code = data.code;
+   const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-stills-trailer-tile'; button.dataset.code = data.code;
    button.setAttribute('aria-label',`播放 ${data.code} 预告片`);
    button.title =`播放 ${data.code} 预告片`;
-   button.innerHTML = '<img alt=""><span class="jav-stills-trailer-overlay"><span class="jav-stills-trailer-icon" aria-hidden="true">▶</span><span>预告片</span></span>';
-   button.querySelector('img').src = data.imageUrl;
+   button.innerHTML = '<img alt=""><span class="jav-stills-trailer-overlay"><span class="jav-stills-trailer-icon" aria-hidden="true">▶</span><span>预告片</span></span>'; button.querySelector('img').src = data.imageUrl;
    button.addEventListener('click', async event => {
     event.preventDefault(); event.stopPropagation();
     if (button.dataset.loading === '1') return;
@@ -6237,8 +5407,7 @@
    return null; }
   function cleanSiteShell(config) {
    if (config.site !== 'javdb') return;
-   config.container.closest('.column')?.classList.add('javdb-stills-column-clean');
-   config.container.closest('.message.video-panel, article.message')?.classList.add('javdb-stills-panel-clean');
+   config.container.closest('.column')?.classList.add('javdb-stills-column-clean'); config.container.closest('.message.video-panel, article.message')?.classList.add('javdb-stills-panel-clean');
    config.container.closest('.message-body')?.classList.add('javdb-stills-body-clean'); }
   function reorderJavbusStills(config, shell) {
    if (config?.site !== 'javbus' || !shell) return;
@@ -6250,36 +5419,28 @@
    if (!submitHeading?.parentNode || shell.nextElementSibling === submitHeading) return;
    submitHeading.parentNode.insertBefore(shell, submitHeading); }
   function sync() {
-   ensureObserver();
-   const config = findConfig();
+   ensureObserver(); const config = findConfig();
    if (!config?.container) return false;
-   ensureStillsGalleryStyles(); cleanSiteShell(config); syncTrailerTile(config); bindViewer(config.container);
-   const existingShell = config.container.closest('.jav-stills-shell');
+   ensureStillsGalleryStyles(); cleanSiteShell(config); syncTrailerTile(config); bindViewer(config.container); const existingShell = config.container.closest('.jav-stills-shell');
    if (existingShell) { reorderJavbusStills(config, existingShell); return true; }
    const shell = document.createElement('div');
    shell.className =`jav-stills-shell jav-stills-${config.site}`;
-   shell.dataset.laosijiStills = '1';
-   const stage = document.createElement('div');
-   stage.className = 'jav-stills-stage';
+   shell.dataset.laosijiStills = '1'; const stage = document.createElement('div'); stage.className = 'jav-stills-stage';
    config.container.classList.add('jav-stills-rail',`jav-stills-rail-${config.site}`);
-   config.container.dataset.laosijiStillsRail = '1';
-   const ref = config.heading || config.container;
-   ref.parentNode?.insertBefore(shell, ref);
+   config.container.dataset.laosijiStillsRail = '1'; const ref = config.heading || config.container; ref.parentNode?.insertBefore(shell, ref);
    if (config.heading) { config.heading.dataset.laosijiStillsHidden = '1'; config.heading.style.display = 'none'; }
-   stage.append( button('‹', 'jav-stills-arrow-prev', config.container, -1), config.container, button('›', 'jav-stills-arrow-next', config.container, 1) );
-   shell.append(stage); reorderJavbusStills(config, shell);
-   return true; }
+   stage.append( button('‹', 'jav-stills-arrow-prev', config.container, -1), config.container, button('›', 'jav-stills-arrow-next', config.container, 1) ); shell.append(stage); reorderJavbusStills(config, shell); return true; }
   function start() {
    ensureObserver(); scheduleSync(0, true); }
   return { start, sync };
  })();
- Core.expose('__LAOSIJI_SITE_MANAGER__', SiteManager); Core.expose('__LAOSIJI_SITE_JAVBUS__', SiteJavBus); Core.expose('__LAOSIJI_SITE_JAVDB__', SiteJavDB);
- Core.expose('__LAOSIJI_SITE_JAVLIB__', SiteJavLib); Core.expose('__LAOSIJI_STILLS_GALLERY__', StillsGallery);
+ Core.expose('__LAOSIJI_SITE_MANAGER__', SiteManager); Core.expose('__LAOSIJI_SITE_JAVBUS__', SiteJavBus); Core.expose('__LAOSIJI_SITE_JAVDB__', SiteJavDB); Core.expose('__LAOSIJI_SITE_JAVLIB__', SiteJavLib);
+ Core.expose('__LAOSIJI_STILLS_GALLERY__', StillsGallery);
  function mainRun() {
   SiteManager.initCurrent(); }
  GM_addStyle(`.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2147483647;display:flex;overflow:auto;cursor:zoom-out;backdrop-filter:blur(5px)}.preview-img{border-radius:4px;margin:auto;cursor:zoom-in;max-width:95vw;max-height:95vh;object-fit:contain;display:block;box-shadow:0 0 20px rgba(0,0,0,0.5)}.preview-img.zoomed{max-width:none;max-height:none;cursor:zoom-out}a:focus:not(:focus-visible),button:focus:not(:focus-visible),[role="button"]:focus:not(:focus-visible),input[type="button"]:focus:not(:focus-visible),input[type="submit"]:focus:not(:focus-visible){outline:none!important}.jav-card-grid{--jav-card-title-size:15px;--jav-card-title-line-height:1.5;--jav-card-title-lines:2;display:grid!important;grid-template-columns:repeat(var(--jav-card-columns,5),minmax(0,1fr))!important;gap:14px!important;align-items:stretch!important;width:100%!important;box-sizing:border-box!important}.jav-card{float:none!important;display:block!important;width:auto!important;height:100%!important;max-height:none!important;min-width:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;text-align:left!important;background:#fff!important;border:1px solid #e5e7eb!important;border-radius:6px!important;overflow:hidden!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;transform:translateZ(0)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;will-change:transform!important}.jav-card:hover{border-color:rgba(37,99,235,.35)!important;box-shadow:0 10px 24px rgba(15,23,42,.16)!important;transform:translateY(-4px) scale(1.018)!important;z-index:2!important}.jav-card-link{display:flex!important;flex-direction:column!important;height:100%!important;max-height:none!important;overflow:hidden!important;color:#2563eb!important;text-decoration:none!important}.jav-card-link:visited{color:#64748b!important}.jav-card-cover{display:block!important;width:100%!important;height:auto!important;aspect-ratio:800 / 538!important;overflow:hidden!important;background:#f8fafc!important;border-bottom:1px solid #f1f5f9!important}.jav-card-image{display:block!important;width:100%!important;height:100%!important;max-height:none!important;object-fit:cover!important;object-position:center center!important;background:#f8fafc!important;border:0!important}.jav-card-title{width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;text-align:left!important;white-space:normal!important;word-break:break-word!important}.jav-jump-btn-group{margin-top:8px;margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.jav-jump-btn-group.fc2cmadb-jump-group{margin-top:10px;margin-bottom:8px}.jav-jump-btn-group .jav-fc2cma-btn{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif!important;font-variant-emoji:text}.emby-fix{width:100%!important;flex-basis:100%!important;clear:both!important;margin-top:8px!important;margin-bottom:4px!important}.mini-switch{width:40px;height:20px;appearance:none;background:#e0e0e0;border-radius:20px;position:relative;cursor:pointer;outline:none;transition:background 0.2s}.mini-switch:checked{background:#4CAF50}.mini-switch::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:2px;left:2px;transition:left 0.2s}.mini-switch:checked::before{left:calc(100% - 18px)}@keyframes btnSlideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.jav-jump-btn-group a{transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;animation:btnSlideIn 0.3s ease-out}.jav-jump-btn-group a:hover{background:var(--jav-btn-hover-bg,#f8fafc)!important;transform:translateY(-1px)!important;filter:none!important;box-shadow:0 5px 14px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)!important;text-decoration:none!important}@keyframes menuFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}.search-menu{position:relative;display:inline-block;border-radius:4px}.search-main-btn{padding-right:28px!important}.search-toggle-btn{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:16px;height:16px;padding:0!important;margin:0!important;display:inline-flex!important;align-items:center;justify-content:center;flex-shrink:0;font-size:10px!important;line-height:1;opacity:1;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 18%,#ffffff)!important;color:inherit!important;border:1px solid color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important;border-radius:999px!important;box-shadow:0 1px 2px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.7)!important;cursor:pointer}.search-toggle-btn:hover{filter:none;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important}.search-toggle-btn .search-arrow{display:inline-block;transform:translateY(-1px);pointer-events:none}.search-submenu{position:absolute;top:calc(100%+4px);left:0;display:none;flex-direction:column;gap:4px;padding:4px;background:rgba(255,255,255,0.95);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:10000;min-width:120px;backdrop-filter:blur(5px)}.search-submenu.is-open{display:flex}.search-submenu a{transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.1)!important}.search-submenu a:hover{transform:translateX(5px) scale(1.02);filter:brightness(1.1)}.jav-pan115-badge{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:22px!important;padding:0 7px;margin-right:6px;position:static!important;top:auto!important;transform:none!important;border-radius:6px;background:#bbf7d0;border:1px solid #22c55e;color:#065f46;font-size:12px!important;font-weight:800;line-height:22px!important;text-decoration:none;box-sizing:border-box;vertical-align:middle;box-shadow:inset 0 1px 0 rgba(255,255,255,0.72)}.jav-pan115-badge:hover{background:#86efac;color:#064e3b;text-decoration:none;box-shadow:0 4px 12px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)}span.jav-pan115-badge{cursor:pointer}.jav-pan115-chooser-overlay{position:fixed;inset:0;z-index:10000030;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.38);backdrop-filter:blur(6px)}.jav-pan115-chooser{width:min(720px,calc(100vw - 24px));max-height:min(76vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;box-shadow:0 24px 70px rgba(15,23,42,0.22);color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-chooser-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px 16px 12px;border-bottom:1px solid #e2e8f0;background:#fff;color:#111827}.jav-pan115-chooser-title{font-size:16px;font-weight:800;line-height:1.35}.jav-pan115-chooser-desc{margin-top:4px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-chooser-close{width:30px;height:30px;flex:0 0 auto;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#475569;font-size:20px;line-height:1;cursor:pointer}.jav-pan115-candidate-list{overflow:auto;padding:10px;display:grid;gap:8px;overscroll-behavior:contain}.jav-pan115-candidate{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 4px 12px rgba(15,23,42,0.06)}.jav-pan115-candidate.is-low-priority{border-color:#e2e8f0;background:#f8fafc}.jav-pan115-candidate-name{max-width:100%;overflow:hidden;color:#0f172a;font-size:13px;font-weight:750;line-height:1.45;text-overflow:ellipsis;white-space:nowrap}.jav-pan115-candidate-meta{margin-top:3px;color:#64748b;font-size:12px;line-height:1.35}.jav-pan115-candidate-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.jav-pan115-candidate-actions button{min-width:48px;height:30px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer}.jav-pan115-candidate-play{border:1px solid #0f766e;background:#0f766e;color:#fff}.jav-pan115-candidate-rename{border:1px solid #cbd5e1;background:#f8fafc;color:#334155}.jav-pan115-candidate-delete{border:1px solid #e2e8f0;background:#fff;color:#dc2626}.jav-pan115-candidate-delete:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-candidate-actions button:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-confirm-overlay{position:fixed;inset:0;z-index:10000040;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.32);backdrop-filter:blur(5px)}.jav-pan115-confirm{width:min(420px,calc(100vw - 28px));padding:16px;border:1px solid #d8dee8;border-radius:14px;background:#fff;color:#111827;box-shadow:0 20px 54px rgba(15,23,42,0.26);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-confirm-title{font-size:16px;font-weight:900;line-height:1.35}.jav-pan115-confirm-message{margin-top:8px;color:#475569;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}.jav-pan115-confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.jav-pan115-confirm-actions button{min-width:70px;height:34px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:850;cursor:pointer}.jav-pan115-confirm-cancel{border:1px solid #e2e8f0;background:#f8fafc;color:#475569}.jav-pan115-confirm-ok{border:1px solid #dc2626;background:#dc2626;color:#fff}.jav-pan115-rename-input{width:100%;height:38px;margin-top:12px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#111827;font-size:13px;font-weight:650;outline:none}.jav-pan115-rename-input:focus{border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,0.12)}.jav-pan115-rename-hint{margin-top:7px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-rename-ok{border-color:#0f766e!important;background:#0f766e!important;color:#fff!important}html[data-laosiji-mobile] .jav-pan115-chooser-overlay{align-items:flex-end;padding:8px}html[data-laosiji-mobile] .jav-pan115-chooser{width:100%;max-height:82dvh;border-radius:14px 14px 10px 10px}html[data-laosiji-mobile] .jav-pan115-candidate{grid-template-columns:minmax(0,1fr);align-items:stretch}html[data-laosiji-mobile] .jav-pan115-candidate-actions button{flex:1 1 0;min-height:34px}html[data-laosiji-mobile] .jav-pan115-confirm-overlay{align-items:flex-end;padding:10px}html[data-laosiji-mobile] .jav-pan115-confirm{width:100%}html[data-laosiji-mobile] .jav-pan115-confirm-actions button{flex:1 1 0;min-height:38px}.jav-infinite-sentinel{width:100%;padding:14px 0;color:#64748b;font-size:13px;font-weight:700;text-align:center;clear:both}.jav-infinite-sentinel.is-loading{color:#2563eb}.jav-infinite-sentinel.is-done{color:#94a3b8}.jav-infinite-sentinel.is-error{color:#dc2626;cursor:pointer}.button.javdb-score-sort-btn,.button.javdb-votes-sort-btn{border-color:#be123c!important;background:#be123c!important;color:#fff!important}.button.javdb-score-sort-btn:hover,.button.javdb-votes-sort-btn:hover{border-color:#e11d48!important;background:#e11d48!important}.button.javdb-score-sort-btn.is-selected,.button.javdb-votes-sort-btn.is-selected{border-color:#9f1239!important;background:#9f1239!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.58)!important}.button.javdb-score-sort-btn:focus-visible,.button.javdb-votes-sort-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}.float-buttons .javdb-loaded-reorder-btn{display:block;align-items:center;justify-content:center;min-height:36px;max-width:calc(100vw - 32px);margin:0 0 8px auto;padding:7px 11px;border:1px solid #be123c;border-radius:6px;background:#be123c;color:#fff;font-size:13px;font-weight:700;line-height:1.25;letter-spacing:0;box-shadow:0 5px 16px rgba(15,23,42,.2);cursor:pointer}.float-buttons .javdb-loaded-reorder-btn:hover{background:#e11d48;border-color:#e11d48}.float-buttons .javdb-loaded-reorder-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}@media (max-width:768px){.float-buttons .javdb-loaded-reorder-btn{min-height:34px;padding:7px 10px;font-size:12px}}`);
  GM_addStyle(`.preview-toolbar{position:fixed;top:20px;right:20px;display:flex;gap:8px;z-index:2147483648;background:rgba(30,30,30,0.75);backdrop-filter:blur(10px);padding:6px 12px;border-radius:30px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 6px 18px rgba(0,0,0,0.25)}.preview-btn{border:none;color:#eee;font-size:13px;font-weight:450;cursor:pointer;padding:6px 14px;border-radius:24px;transition:all 0.2s ease;display:inline-flex;align-items:center;gap:6px;background:rgba(100,100,120,0.3);border:1px solid rgba(255,255,255,0.05);box-shadow:0 2px 4px rgba(0,0,0,0.1);letter-spacing:0.2px}.preview-btn:hover{background:rgba(140,140,160,0.4);transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.2)}.preview-btn.javfree.active{background:#2ecc71;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(46,204,113,0.6);font-weight:500}.preview-btn.javstore.active{background:#e74c3c;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(231,76,60,0.6);font-weight:500}.preview-btn.action{background:rgba(100,100,120,0.3)}.preview-btn.action:hover{background:rgba(140,140,160,0.5)}.preview-btn:active{transform:translateY(0);box-shadow:0 2px 4px rgba(0,0,0,0.15)}`);
- GM_addStyle(`.trailer-overlay{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:34px;background:radial-gradient(circle at 50% 18%,rgba(56,189,248,0.16),transparent 32%),linear-gradient(180deg,rgba(5,7,12,0.88),rgba(0,0,0,0.96));backdrop-filter:none;cursor:default}.trailer-modal{width:min(1120px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;background:#05070c;border:1px solid rgba(255,255,255,0.12);border-radius:8px;box-shadow:0 30px 80px rgba(0,0,0,0.68),0 0 0 1px rgba(255,255,255,0.04) inset;cursor:default;animation:trailerFadeIn .18s ease-out}@keyframes trailerFadeIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}.trailer-header{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 34px;background:linear-gradient(180deg,rgba(0,0,0,0.66),rgba(0,0,0,0));border:0;pointer-events:none;opacity:1;transition:opacity .18s ease,transform .18s ease}.trailer-title{min-width:0;display:flex;align-items:center;gap:10px;font:700 15px/1.3 Arial,"Microsoft YaHei",sans-serif;pointer-events:auto}.trailer-code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.4px}.trailer-source{flex-shrink:0;padding:3px 9px;border-radius:999px;color:rgba(255,255,255,0.82);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:500;backdrop-filter:blur(12px)}.jav-player-close{width:34px;height:34px;border:0;border-radius:50%;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font-size:18px;line-height:34px;pointer-events:auto;box-shadow:0 8px 20px rgba(0,0,0,0.22);transition:transform .15s ease,background .15s ease,box-shadow .15s ease}.jav-player-close:hover{transform:scale(1.08);background:rgba(248,113,113,0.34);box-shadow:0 10px 24px rgba(0,0,0,0.28)}.trailer-screen{position:relative;aspect-ratio:16 / 9;width:100%;max-height:82vh;overflow:hidden;background:radial-gradient(circle at center,rgba(31,41,55,.75),#000 62%),#000}.trailer-screen:fullscreen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen:-webkit-full-screen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.52),rgba(0,0,0,0) 30%),linear-gradient(0deg,rgba(0,0,0,0.62),rgba(0,0,0,0) 36%)}.trailer-screen.is-iframe::before{display:none}.trailer-screen video,.trailer-screen iframe{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}.trailer-volume-indicator{position:absolute;top:62px;right:26px;z-index:5;color:#f8fafc;font:750 24px/1 Arial,"Microsoft YaHei",sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.82);opacity:0;pointer-events:none;transition:opacity .14s ease}.trailer-volume-indicator.is-visible{opacity:1}.trailer-fallback-status{position:absolute;left:18px;top:58px;z-index:5;max-width:min(520px,calc(100% - 36px));padding:7px 10px;border-radius:8px;color:rgba(255,255,255,0.9);background:rgba(10,14,22,0.68);border:1px solid rgba(255,255,255,0.16);box-shadow:0 12px 28px rgba(0,0,0,0.28);backdrop-filter:blur(14px);font:12px/1.45 Arial,"Microsoft YaHei",sans-serif;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}.trailer-fallback-status.is-visible{opacity:1;transform:translateY(0)}.trailer-quality-bar{display:flex;align-items:center;gap:8px;padding:0;background:transparent;border:none;border-radius:0;backdrop-filter:none}.trailer-quality-select{min-width:78px;max-width:140px;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.12);color:#f8fafc;outline:none;font-size:12px;line-height:28px;text-align:center;text-align-last:center;appearance:none;cursor:pointer}.trailer-quality-select option{background:#0b1020;color:#f8fafc}.trailer-footer{position:absolute;left:16px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;color:rgba(255,255,255,0.78);background:rgba(10,14,22,0.62);border:1px solid rgba(255,255,255,0.16);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,0.32);backdrop-filter:blur(16px) saturate(1.08);font:12px/1.4 Arial,"Microsoft YaHei",sans-serif;opacity:1;transform:translateY(0);transition:opacity .18s ease,transform .18s ease}.trailer-screen.is-controls-hidden{cursor:none}.trailer-screen.is-controls-hidden .trailer-header{opacity:0;transform:translateY(-8px);pointer-events:none}.trailer-screen.is-controls-hidden .trailer-footer{opacity:0;transform:translateY(10px);pointer-events:none}.trailer-control-left,.trailer-control-right{display:flex;align-items:center;gap:9px;min-width:0}.trailer-control-left{flex:1 1 auto}.trailer-control-right{flex:0 0 auto}.trailer-control-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;border:0;border-radius:999px;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font:700 13px/1 Arial,"Microsoft YaHei",sans-serif;transition:background .15s ease,transform .15s ease}.trailer-control-btn:hover{background:rgba(255,255,255,0.24);transform:translateY(-1px)}.trailer-volume-wrap{position:relative;width:30px;height:30px;display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;box-sizing:border-box}.trailer-volume-wrap::before{content:"";position:absolute;left:50%;bottom:100%;width:46px;height:18px;transform:translateX(-50%)}.trailer-volume-popover{position:absolute;left:15px;bottom:42px;width:36px;height:126px;display:flex;align-items:center;justify-content:center;padding:12px 0;border-radius:999px;background:rgba(10,14,22,0.76);border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;box-shadow:0 14px 32px rgba(0,0,0,0.34);backdrop-filter:blur(16px) saturate(1.08);opacity:0;pointer-events:none;transform:translate(-50%,6px);transition:opacity .15s ease,transform .15s ease}.trailer-volume-wrap:hover .trailer-volume-popover{opacity:1;pointer-events:auto;transform:translate(-50%,0)}.trailer-volume-rail{position:absolute;left:50%;top:16px;bottom:16px;width:4px;transform:translateX(-50%);border-radius:999px;background:rgba(255,255,255,0.32);pointer-events:none}.trailer-volume-fill{position:absolute;left:0;right:0;bottom:0;height:var(--volume-percent,35%);border-radius:999px;background:#38bdf8}.trailer-volume-thumb{position:absolute;left:50%;bottom:var(--volume-percent,35%);width:16px;height:16px;transform:translate(-50%,50%);border-radius:50%;background:#38bdf8;border:2px solid rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.38)}.trailer-volume-slider{position:absolute;top:10px;bottom:10px;left:50%;width:16px;height:calc(100% - 20px);margin:0;transform:translateX(-50%);appearance:none;-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;background:transparent;cursor:pointer}.trailer-volume-slider::-webkit-slider-runnable-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-moz-range-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-volume-slider::-moz-range-thumb{width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-time{flex:0 0 auto;min-width:36px;color:rgba(255,255,255,0.78);font:11px/1.3 Arial,"Microsoft YaHei",sans-serif;white-space:nowrap;text-align:center}.trailer-progress{flex:1 1 160px;min-width:120px;height:32px;margin:0;border-radius:999px;accent-color:#38bdf8;cursor:pointer}`);
+ GM_addStyle(`.trailer-overlay{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:34px;background:radial-gradient(circle at 50% 18%,rgba(56,189,248,0.16),transparent 32%),linear-gradient(180deg,rgba(5,7,12,0.88),rgba(0,0,0,0.96));backdrop-filter:none;cursor:default}.trailer-modal{width:min(1120px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;background:#05070c;border:1px solid rgba(255,255,255,0.12);border-radius:8px;box-shadow:0 30px 80px rgba(0,0,0,0.68),0 0 0 1px rgba(255,255,255,0.04) inset;cursor:default;animation:trailerFadeIn .18s ease-out}@keyframes trailerFadeIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}.trailer-header{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 34px;background:linear-gradient(180deg,rgba(0,0,0,0.66),rgba(0,0,0,0));border:0;pointer-events:none;opacity:1;transition:opacity .18s ease,transform .18s ease}.trailer-title{min-width:0;display:flex;align-items:center;gap:10px;font:700 15px/1.3 Arial,"Microsoft YaHei",sans-serif;pointer-events:auto}.trailer-code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.4px}.trailer-source{flex-shrink:0;padding:3px 9px;border-radius:999px;color:rgba(255,255,255,0.82);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:500;backdrop-filter:blur(12px)}.jav-player-close{width:34px;height:34px;border:0;border-radius:50%;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font-size:18px;line-height:34px;pointer-events:auto;box-shadow:0 8px 20px rgba(0,0,0,0.22);transition:transform .15s ease,background .15s ease,box-shadow .15s ease}.jav-player-close:hover{transform:scale(1.08);background:rgba(248,113,113,0.34);box-shadow:0 10px 24px rgba(0,0,0,0.28)}.trailer-screen{position:relative;aspect-ratio:16 / 9;width:100%;max-height:82vh;overflow:hidden;background:radial-gradient(circle at center,rgba(31,41,55,.75),#000 62%),#000}.trailer-screen:fullscreen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen:-webkit-full-screen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.52),rgba(0,0,0,0) 30%),linear-gradient(0deg,rgba(0,0,0,0.62),rgba(0,0,0,0) 36%)}.trailer-screen.is-iframe::before{display:none}.trailer-screen video,.trailer-screen iframe{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}.trailer-volume-indicator{position:absolute;top:62px;right:26px;z-index:5;color:#f8fafc;font:750 24px/1 Arial,"Microsoft YaHei",sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.82);opacity:0;pointer-events:none;transition:opacity .14s ease}.trailer-volume-indicator.is-visible{opacity:1}.trailer-fallback-status{position:absolute;left:18px;top:58px;z-index:5;max-width:min(520px,calc(100% - 36px));padding:7px 10px;border-radius:8px;color:rgba(255,255,255,0.9);background:rgba(10,14,22,0.68);border:1px solid rgba(255,255,255,0.16);box-shadow:0 12px 28px rgba(0,0,0,0.28);backdrop-filter:blur(14px);font:12px/1.45 Arial,"Microsoft YaHei",sans-serif;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}.trailer-fallback-status.is-visible{opacity:1;transform:translateY(0)}.trailer-quality-bar{display:flex;align-items:center;gap:8px;padding:0;background:transparent;border:none;border-radius:0;backdrop-filter:none}.trailer-quality-select{min-width:78px;max-width:140px;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.12);color:#f8fafc;outline:none;font-size:12px;line-height:28px;text-align:center;text-align-last:center;appearance:none;cursor:pointer}.trailer-quality-select option{background:#0b1020;color:#f8fafc}.trailer-footer{position:absolute;left:16px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;color:rgba(255,255,255,0.78);background:rgba(10,14,22,0.62);border:1px solid rgba(255,255,255,0.16);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,0.32);backdrop-filter:blur(16px) saturate(1.08);font:12px/1.4 Arial,"Microsoft YaHei",sans-serif;opacity:1;transform:translateY(0);transition:opacity .18s ease,transform .18s ease}.trailer-screen.is-controls-hidden{cursor:none}.trailer-screen.is-controls-hidden .trailer-header{opacity:0;transform:translateY(-8px);pointer-events:none}.trailer-screen.is-controls-hidden .trailer-footer{opacity:0;transform:translateY(10px);pointer-events:none}.trailer-control-left,.trailer-control-right{display:flex;align-items:center;gap:9px;min-width:0}.trailer-control-left{flex:1 1 auto}.trailer-control-right{flex:0 0 auto}.trailer-control-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;border:0;border-radius:999px;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font:700 13px/1 Arial,"Microsoft YaHei",sans-serif;transition:background .15s ease,transform .15s ease}.trailer-control-btn:hover{background:rgba(255,255,255,0.24);transform:translateY(-1px)}.trailer-volume-wrap{position:relative;width:30px;height:30px;display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;box-sizing:border-box}.trailer-volume-wrap::before{content:"";position:absolute;left:50%;bottom:100%;width:46px;height:18px;transform:translateX(-50%)}.trailer-volume-popover{position:absolute;left:15px;bottom:42px;width:36px;height:126px;display:flex;align-items:center;justify-content:center;padding:12px 0;border-radius:999px;background:rgba(10,14,22,0.76);border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;box-shadow:0 14px 32px rgba(0,0,0,0.34);backdrop-filter:blur(16px) saturate(1.08);opacity:0;pointer-events:none;transform:translate(-50%,6px);transition:opacity .15s ease,transform .15s ease}.trailer-volume-wrap:hover .trailer-volume-popover{opacity:1;pointer-events:auto;transform:translate(-50%,0)}.trailer-volume-rail{position:absolute;left:50%;top:16px;bottom:16px;width:4px;transform:translateX(-50%);border-radius:999px;background:rgba(255,255,255,0.32);pointer-events:none}.trailer-volume-fill{position:absolute;left:0;right:0;bottom:0;height:var(--volume-percent,35%);border-radius:999px;background:#38bdf8}.trailer-volume-thumb{position:absolute;left:50%;bottom:var(--volume-percent,35%);width:16px;height:16px;transform:translate(-50%,50%);border-radius:50%;background:#38bdf8;border:2px solid rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.38)}.trailer-volume-slider{position:absolute;top:10px;bottom:10px;left:50%;width:16px;height:calc(100% - 20px);margin:0;transform:translateX(-50%);appearance:none;-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;background:transparent;cursor:pointer}.trailer-volume-slider::-webkit-slider-runnable-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-moz-range-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-volume-slider::-moz-range-thumb{width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-time{flex:0 0 auto;min-width:36px;color:rgba(255,255,255,0.78);font:11px/1.3 Arial,"Microsoft YaHei",sans-serif;white-space:nowrap;text-align:center}.trailer-progress{flex:1 1 160px;min-width:120px;height:32px;margin:0;border-radius:999px;accent-color:#38bdf8;cursor:pointer}`);
  GM_addStyle(`.jav-jump-toast{position:fixed;left:50%;top:72px;z-index:2147483647;display:flex;align-items:flex-start;gap:12px;width:min(420px,calc(100vw - 32px));padding:14px 16px;color:#f8fafc;background:rgba(15,23,42,0.94);border:1px solid rgba(148,163,184,0.28);border-left:4px solid #38bdf8;border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,0.34),0 0 0 1px rgba(255,255,255,0.04) inset;backdrop-filter:blur(14px) saturate(1.1);font-family:Arial,"Microsoft YaHei",sans-serif;transform:translate(-50%,-12px);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease}.jav-jump-toast.show{opacity:1;transform:translate(-50%,0)}.jav-jump-toast.hide{opacity:0;transform:translate(-50%,-12px)}.jav-jump-toast-icon{flex:0 0 auto;width:24px;height:24px;border-radius:999px;color:#082f49;background:#7dd3fc;font-size:16px;font-weight:800;line-height:24px;text-align:center}.jav-jump-toast-title{margin:0 0 4px;font-size:14px;font-weight:700;line-height:1.35}.jav-jump-toast-message{margin:0;color:#cbd5e1;font-size:13px;line-height:1.45}`);
  GM_addStyle(`html[data-laosiji-mobile]{overflow-x:hidden!important}html[data-laosiji-mobile] body{max-width:100%!important;overflow-x:hidden!important}html[data-laosiji-mobile] body[data-laosiji-javlib]{min-width:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu,html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo,html[data-laosiji-mobile] body[data-laosiji-javlib] #content,html[data-laosiji-mobile] body[data-laosiji-javlib] #rightcolumn,html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist,html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist .videos{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu{display:block!important;position:relative!important;z-index:2!important;height:auto!important;min-height:0!important;margin:0!important;padding:8px 12px!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .menutext{float:none!important;width:100%!important;min-width:0!important;height:auto!important;box-sizing:border-box!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .menutext,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar form{position:static!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar form,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar table,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar tbody{display:block!important;width:100%!important;min-width:0!important;height:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar tr{display:flex!important;flex-wrap:wrap!important;align-items:flex-start!important;width:100%!important;min-width:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar td{display:block!important;padding:0!important;line-height:0!important;vertical-align:top!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar td:first-child{position:relative!important;flex:1 1 140px!important;height:36px!important;max-height:36px!important;min-width:0!important;overflow:hidden!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchbox{display:block!important;width:100%!important;min-width:0!important;height:36px!important;min-height:36px!important;max-height:36px!important;margin:0!important;padding:0 9px!important;border:1px solid #94a3b8!important;border-radius:0!important;outline:0!important;background:#fff!important;color:#111827!important;box-shadow:none!important;vertical-align:top!important;box-sizing:border-box!important;appearance:none!important;-webkit-appearance:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchbox:focus{border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchboxmask{position:absolute!important;top:50%!important;right:8px!important;left:8px!important;max-width:none!important;max-height:calc(100% - 8px)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;line-height:1.2!important;pointer-events:none!important;transform:translateY(-50%)!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchbutton{display:block!important;width:auto!important;height:36px!important;min-height:36px!important;margin:0 0 0 6px!important;vertical-align:top!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .advsearch{flex:1 1 100%!important;padding:7px 0 0!important;line-height:1.5!important;white-space:normal!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .menutext{margin-top:8px!important;padding-top:8px!important;border-top:1px solid rgba(148,163,184,.28)!important;line-height:1.8!important;white-space:normal!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo{clear:both!important;position:relative!important;z-index:1!important;height:auto!important;margin:0!important;padding:8px 12px!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo{float:none!important;width:100%!important;text-align:center!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo img{width:min(280px,100%)!important;height:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .topbanner1{display:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .languagemenu{position:static!important;float:none!important;width:100%!important;margin:7px 0 0!important;text-align:center!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #content{margin:0!important;padding:0 12px 16px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #rightcolumn{float:none!important;margin:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist .videos.javlib-card-grid{grid-template-columns:repeat(var(--jav-card-columns,1),minmax(0,1fr))!important;gap:12px!important}html[data-laosiji-mobile] .jav-card-grid{grid-template-columns:repeat(var(--jav-card-columns,1),minmax(0,1fr))!important;gap:10px!important}html[data-laosiji-mobile] #waterfall.javbus-card-grid{grid-template-columns:repeat(var(--jav-card-columns,1),minmax(0,1fr))!important;gap:12px!important}html[data-laosiji-mobile] body .container-fluid{padding-left:12px!important;padding-right:12px!important}html[data-laosiji-mobile] .jav-card,html[data-laosiji-mobile] .jav-card:hover{transform:none!important;transition:none!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;z-index:auto!important}html[data-laosiji-mobile] .jav-card-image,html[data-laosiji-mobile] .jav-card:hover .jav-card-image,html[data-laosiji-mobile] .jav-card-link:hover .jav-card-image{transform:none!important;transition:none!important}html[data-laosiji-mobile] .jav-card-cover,html[data-laosiji-mobile] .jav-card-image{height:auto!important;aspect-ratio:auto!important}html[data-laosiji-mobile] .jav-card-cover{overflow:visible!important}html[data-laosiji-mobile] .jav-card-image{object-fit:contain!important;object-position:center!important}html[data-laosiji-mobile] .jav-card-title,html[data-laosiji-mobile] .javlib-card-headline,html[data-laosiji-mobile] .javdb-card-headline{height:auto!important;min-height:0!important;max-height:none!important}html[data-laosiji-mobile] .jav-flex-container,html[data-laosiji-mobile] .row.movie,html[data-laosiji-mobile] #video_jacket_info tr{display:block!important;width:100%!important;max-width:100%!important;margin:0!important}html[data-laosiji-mobile] .jav-flex-container>.column,html[data-laosiji-mobile] .row.movie>.col-md-9.screencap,html[data-laosiji-mobile] .row.movie>.col-md-3.info,html[data-laosiji-mobile] #video_jacket_info tr>td,html[data-laosiji-mobile] .jav-nong-slot{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;flex:none!important;float:none!important;box-sizing:border-box!important}html[data-laosiji-mobile] .jav-flex-container>.column,html[data-laosiji-mobile] .row.movie>.col-md-9.screencap,html[data-laosiji-mobile] .row.movie>.col-md-3.info,html[data-laosiji-mobile] #video_jacket_info tr>td{margin:0 0 14px!important;padding-left:0!important;padding-right:0!important}html[data-laosiji-mobile] .jav-flex-container .movie-panel-info,html[data-laosiji-mobile] .row.movie .info,html[data-laosiji-mobile] #video_info{width:100%!important;max-width:100%!important;overflow:visible!important;word-break:break-word!important}html[data-laosiji-mobile] .jav-flex-container img,html[data-laosiji-mobile] .row.movie .screencap img,html[data-laosiji-mobile] #video_jacket_img{width:100%!important;height:auto!important;max-width:100%!important;aspect-ratio:auto!important;object-fit:contain!important}html[data-laosiji-mobile] .jav-jump-btn-group{gap:6px!important;align-items:stretch!important}html[data-laosiji-mobile] .jav-jump-btn-group a,html[data-laosiji-mobile] .jav-jump-btn-group button{min-height:40px!important}html[data-laosiji-mobile] .jav-card-quick-actions{gap:4px!important}html[data-laosiji-mobile] .jav-card-quick-btn{width:40px!important;height:40px!important;min-width:40px!important;flex:0 0 40px!important;opacity:1!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-card-quick-btn:hover,html[data-laosiji-mobile] .jav-card-quick-btn:active{transform:none!important;opacity:1!important}html[data-laosiji-mobile] .jav-card-quick-btn .tool-svg{width:21px!important;height:21px!important}html[data-laosiji-mobile] .search-submenu{width:min(176px,calc(100vw - 16px))!important;min-width:0!important;max-width:calc(100vw - 16px)!important;box-sizing:border-box!important;overscroll-behavior:contain!important}html[data-laosiji-mobile] .search-submenu a{min-height:40px!important;display:flex!important;align-items:center!important;padding:8px 10px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-card-magnet-overlay{align-items:flex-end!important;padding:8px!important}html[data-laosiji-mobile] .jav-card-magnet-panel{width:100%!important;max-width:none!important;max-height:calc(100dvh - 8px)!important;border-radius:12px 12px 0 0!important}html[data-laosiji-mobile] .jav-card-magnet-head{min-height:52px!important;padding:8px 12px!important}html[data-laosiji-mobile] .jav-card-magnet-title{flex:1 1 auto!important}html[data-laosiji-mobile] .jav-card-magnet-close{width:44px!important;height:44px!important;flex:0 0 44px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-card-magnet-body{max-height:calc(100dvh - 64px)!important;padding:10px!important;overscroll-behavior:contain!important}html[data-laosiji-mobile] .jav-card-magnet-body>.laosiji-native-magnet-panel[data-laosiji-list-popup="1"]{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}html[data-laosiji-mobile] .jav-card-magnet-body .jav-nong-wrapper{overflow-x:auto!important;overflow-y:hidden!important}html[data-laosiji-mobile] .jav-card-magnet-body #jav-nong-table{min-width:448px!important}html[data-laosiji-mobile] .jav-card-magnet-body #jav-nong-table .nong-head-row>th:first-child,html[data-laosiji-mobile] .jav-card-magnet-body #jav-nong-table tr>td:first-child{width:210px!important}html[data-laosiji-mobile] .preview-toolbar{top:auto!important;right:8px!important;bottom:max(8px,env(safe-area-inset-bottom))!important;left:8px!important;max-width:calc(100vw - 16px)!important;overflow-x:auto!important;justify-content:flex-start!important;gap:6px!important;padding:6px!important;border-radius:12px!important;box-sizing:border-box!important}html[data-laosiji-mobile] .preview-btn{min-height:40px!important;flex:0 0 auto!important;padding:0 10px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-subtitle-overlay,html[data-laosiji-mobile] .jav-subtitle-preview-overlay{align-items:flex-end!important;padding:8px!important}html[data-laosiji-mobile] .jav-subtitle-panel,html[data-laosiji-mobile] .jav-subtitle-preview-panel{width:100%!important;max-width:none!important;max-height:calc(100dvh - 8px)!important;border-radius:12px 12px 0 0!important}html[data-laosiji-mobile] .jav-subtitle-close{width:44px!important;height:44px!important;flex:0 0 44px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-subtitle-row{grid-template-columns:1fr!important;gap:8px!important;padding:12px!important}html[data-laosiji-mobile] .jav-subtitle-actions{justify-content:stretch!important;flex-wrap:wrap!important}html[data-laosiji-mobile] .jav-subtitle-actions button,html[data-laosiji-mobile] .jav-subtitle-preview-download{min-height:40px!important;flex:1 1 120px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-subtitle-pre{max-height:calc(100dvh - 160px)!important;min-height:180px!important}html[data-laosiji-mobile] .trailer-overlay{padding:12px!important}html[data-laosiji-mobile] .trailer-modal{width:100%!important;max-height:100dvh!important;border-radius:10px 10px 0 0!important}html[data-laosiji-mobile] .trailer-screen>video{pointer-events:none!important}html[data-laosiji-mobile] .trailer-screen{touch-action:manipulation!important}html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-header,html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-footer{z-index:4!important;opacity:1!important}html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-header{transform:translateY(0)!important;pointer-events:none!important}html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-footer{transform:translateY(0)!important;pointer-events:auto!important}html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-header,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-footer{opacity:0!important}html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-header,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-header *,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-footer,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-footer *{pointer-events:none!important}html[data-laosiji-mobile] .trailer-header{gap:8px!important;padding:8px 10px 18px!important}html[data-laosiji-mobile] .trailer-title{gap:6px!important;font-size:12px!important}html[data-laosiji-mobile] .trailer-source{max-width:42vw!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}html[data-laosiji-mobile] .jav-player-close{width:36px!important;height:36px!important;line-height:36px!important}html[data-laosiji-mobile] .trailer-screen::before{background:linear-gradient(180deg,rgba(0,0,0,.38),rgba(0,0,0,0) 24%),linear-gradient(0deg,rgba(0,0,0,.42),rgba(0,0,0,0) 28%)!important}html[data-laosiji-mobile] .trailer-footer{left:8px!important;right:8px!important;bottom:8px!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:6px!important;padding:4px 6px!important}html[data-laosiji-mobile] .trailer-control-left,html[data-laosiji-mobile] .trailer-control-right{width:auto!important;gap:6px!important}html[data-laosiji-mobile] .trailer-control-left{min-width:0!important;justify-content:flex-start!important}html[data-laosiji-mobile] .trailer-control-right{flex:0 0 auto!important;justify-content:flex-end!important}html[data-laosiji-mobile] .trailer-control-btn,html[data-laosiji-mobile] .trailer-volume-wrap{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important}html[data-laosiji-mobile] .trailer-quality-select{width:70px!important;min-width:70px!important;max-width:70px!important;height:34px!important;padding:0 6px!important;font-size:11px!important}html[data-laosiji-mobile] .trailer-time{display:none!important}html[data-laosiji-mobile] .trailer-progress{min-width:0!important;height:32px!important;flex:1 1 0!important}html[data-laosiji-mobile] .trailer-control-btn,html[data-laosiji-mobile] .trailer-quality-select,html[data-laosiji-mobile] .trailer-progress,html[data-laosiji-mobile] .trailer-volume-slider{touch-action:manipulation!important}html[data-laosiji-mobile] .trailer-volume-popover{left:50%!important;bottom:calc(100%+8px)!important;width:138px!important;height:38px!important;padding:0 12px!important;border-radius:20px!important}html[data-laosiji-mobile] .trailer-volume-rail{top:50%!important;right:12px!important;bottom:auto!important;left:12px!important;width:auto!important;height:4px!important;transform:translateY(-50%)!important}html[data-laosiji-mobile] .trailer-volume-fill{top:0!important;right:auto!important;bottom:0!important;width:var(--volume-percent,35%)!important;height:auto!important}html[data-laosiji-mobile] .trailer-volume-thumb{top:50%!important;bottom:auto!important;left:var(--volume-percent,35%)!important;transform:translate(-50%,-50%)!important}html[data-laosiji-mobile] .trailer-volume-slider{top:0!important;bottom:auto!important;left:0!important;width:100%!important;height:100%!important;transform:none!important;writing-mode:horizontal-tb!important;direction:ltr!important}html[data-laosiji-mobile] .trailer-volume-wrap:focus-within .trailer-volume-popover{opacity:1!important;pointer-events:auto!important;transform:translate(-50%,0)!important}html[data-laosiji-mobile] .jav-stills-viewer-close,html[data-laosiji-mobile] .jav-stills-viewer-nav{width:44px!important;min-width:44px!important;height:56px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-detail-preview-wrap,html[data-laosiji-mobile] .javlib-nong-slot.has-detail-preview-inline>.jav-detail-preview-wrap{width:100%!important;max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important}html[data-laosiji-mobile] .jav-detail-preview-inline,html[data-laosiji-mobile] .javlib-nong-slot.has-detail-preview-inline .jav-detail-preview-inline{width:100%!important;max-width:100%!important;height:auto!important;max-height:78vw!important}@media (orientation:landscape){html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist .videos.javlib-card-grid,html[data-laosiji-mobile] .jav-card-grid,html[data-laosiji-mobile] #waterfall.javbus-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}}@media (max-width:720px){.jav-jump-toast{top:18px;width:calc(100vw - 24px);padding:13px 14px}}`);
  const Utils = {
@@ -6357,8 +5518,8 @@
     { regex: /(\d{6})([-_\s]?)(\d{2,3})/, type: 'numeric' },
     { regex: /\b([A-Z][A-Z0-9]{2,14}?)(\d{3,6})\b/i, type: 'mixedCompact' },
     { regex: /\b([A-Z]{2,10})(\d{3,6})\b/i, type: 'compactStandard' },
-    { regex: /([A-Z]{1,2})(\d{3,4})/i, type: 'compact' } ];
-   const ignoreList = ['FULLHD', 'H264', 'H265', '1080P', '720P', 'PART', 'DISC', '10BIT'];
+    { regex: /([A-Z]{1,2})(\d{3,4})/i, type: 'compact' }
+   ]; const ignoreList = ['FULLHD', 'H264', 'H265', '1080P', '720P', 'PART', 'DISC', '10BIT'];
    for (let i = 0; i < patterns.length; i++) {
     const { regex, type } = patterns[i];
     const match = text.match(regex);
@@ -6396,8 +5557,7 @@
    return`rgb(${mix('r')}, ${mix('g')}, ${mix('b')})`;
   },
   getModernBtnStyle(color) {
-   const accent = color || '#64748b'; const bg = Utils.mixColor(accent, '#ffffff', 0.10); const border = Utils.mixColor(accent, '#dbe3ef', 0.28);
-   const text = Utils.mixColor(accent, '#111827', 0.72); const hoverBg = Utils.mixColor(accent, '#ffffff', 0.16);
+   const accent = color || '#64748b'; const bg = Utils.mixColor(accent, '#ffffff', 0.10); const border = Utils.mixColor(accent, '#dbe3ef', 0.28); const text = Utils.mixColor(accent, '#111827', 0.72); const hoverBg = Utils.mixColor(accent, '#ffffff', 0.16);
    return [
     'height:30px',
     'padding:0 11px',
@@ -6421,11 +5581,9 @@
     'box-sizing:border-box',
    ].join(';'); },
   createLinkBtn(text, color, url) {
-   const btn = document.createElement('a');
-   btn.textContent = text; btn.href = url || '#';
+   const btn = document.createElement('a'); btn.textContent = text; btn.href = url || '#';
    if (url) btn.target = '_blank';
-   btn.rel = 'noopener noreferrer'; btn.style.cssText = Utils.getModernBtnStyle(color);
-   return btn; },
+   btn.rel = 'noopener noreferrer'; btn.style.cssText = Utils.getModernBtnStyle(color); return btn; },
   createJumpLinkBtn(text, color, url) {
    const btn = Utils.createLinkBtn(text, color, url);
    btn.addEventListener('click', e => {
@@ -6433,8 +5591,7 @@
    }, true);
    return btn; },
   createBtn(text, color, handler, useCapture = false) {
-   const btn = document.createElement('a');
-   btn.textContent = text; btn.style.cssText = Utils.getModernBtnStyle(color);
+   const btn = document.createElement('a'); btn.textContent = text; btn.style.cssText = Utils.getModernBtnStyle(color);
    if (useCapture) {
     btn.addEventListener('click', (e) => {
      e.preventDefault(); e.stopPropagation(); handler();
@@ -6448,23 +5605,14 @@
    const result = request.then(response => {
     if (!response.ok) {
      const error = new Error(`HTTP ${response.status || 0}`);
-     error.response = response;
-     throw error; }
+     error.response = response; throw error; }
     return response.responseText || '';
    });
-   result.abort = () => request.abort?.() || false;
-   return result; },
+   result.abort = () => request.abort?.() || false; return result; },
   showToast(title, message = '', duration = 2000) {
-   document.querySelector('.jav-jump-toast')?.remove();
-   const toast = document.createElement('div');
-   toast.className = 'jav-jump-toast';
-   const icon = document.createElement('div');
-   icon.className = 'jav-jump-toast-icon'; icon.textContent = '!';
-   const body = document.createElement('div'); const titleEl = document.createElement('p');
-   titleEl.className = 'jav-jump-toast-title'; titleEl.textContent = title;
-   const messageEl = document.createElement('p');
-   messageEl.className = 'jav-jump-toast-message'; messageEl.textContent = message;
-   body.appendChild(titleEl);
+   document.querySelector('.jav-jump-toast')?.remove(); const toast = document.createElement('div'); toast.className = 'jav-jump-toast'; const icon = document.createElement('div'); icon.className = 'jav-jump-toast-icon'; icon.textContent = '!';
+   const body = document.createElement('div'); const titleEl = document.createElement('p'); titleEl.className = 'jav-jump-toast-title'; titleEl.textContent = title; const messageEl = document.createElement('p'); messageEl.className = 'jav-jump-toast-message';
+   messageEl.textContent = message; body.appendChild(titleEl);
    if (message) body.appendChild(messageEl);
    toast.appendChild(icon); toast.appendChild(body); document.body.appendChild(toast); requestAnimationFrame(() => toast.classList.add('show'));
    setTimeout(() => {
@@ -6475,11 +5623,9 @@
   getJavBusUrl(code) {
    const codeLower = code.toLowerCase();
    const isUncensored =
-    /^\d{6}[-_\s]\d{3}$/.test(code) || codeLower.startsWith('heyzo') || codeLower.startsWith('carib') || codeLower.startsWith('1pondo') ||
-    codeLower.startsWith('tokyo') || codeLower.startsWith('cat') || codeLower.startsWith('paco') || codeLower.startsWith('10mu') ||
-    codeLower.startsWith('muram') || codeLower.startsWith('gach') || codeLower.startsWith('real') || codeLower.startsWith('juku') ||
-    codeLower.startsWith('aka') || codeLower.startsWith('s-cute') || codeLower.startsWith('n_') || /^n\d{4}$/.test(codeLower) || codeLower.startsWith('k_') ||
-    /^k\d{4}$/.test(codeLower);
+    /^\d{6}[-_\s]\d{3}$/.test(code) || codeLower.startsWith('heyzo') || codeLower.startsWith('carib') || codeLower.startsWith('1pondo') || codeLower.startsWith('tokyo') || codeLower.startsWith('cat') || codeLower.startsWith('paco') ||
+    codeLower.startsWith('10mu') || codeLower.startsWith('muram') || codeLower.startsWith('gach') || codeLower.startsWith('real') || codeLower.startsWith('juku') || codeLower.startsWith('aka') || codeLower.startsWith('s-cute') || codeLower.startsWith('n_') ||
+    /^n\d{4}$/.test(codeLower) || codeLower.startsWith('k_') || /^k\d{4}$/.test(codeLower);
    if (isUncensored) {
     return`https://www.javbus.com/uncensored/search/${encodeURIComponent(code)}&type=1`;
    }
@@ -6487,11 +5633,8 @@
   } };
  const ImagePreview = {
   open(imgUrl, code, source = null) {
-   const originalHtmlOverflow = document.documentElement.style.overflow; const originalBodyOverflow = document.body.style.overflow;
-   document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
-   const container = document.createElement('div');
-   container.className = 'preview-overlay';
-   const img = document.createElement('img');
+   const originalHtmlOverflow = document.documentElement.style.overflow; const originalBodyOverflow = document.body.style.overflow; document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
+   const container = document.createElement('div'); container.className = 'preview-overlay'; const img = document.createElement('img');
    img.className =`preview-img${MobilePolicy.isMobile() ? '' : ' zoomed'}`;
    img.onclick = (e) => {
     e.stopPropagation(); img.classList.toggle('zoomed'); };
@@ -6513,34 +5656,27 @@
       onerror: () => { img.src = url; }
      });
     } else { img.src = url; } };
-   loadImg(imgUrl, source);
-   const toolbar = document.createElement('div');
-   toolbar.className = 'preview-toolbar';
+   loadImg(imgUrl, source); const toolbar = document.createElement('div'); toolbar.className = 'preview-toolbar';
    toolbar.style.cssText =`position:fixed;top:20px;right:20px;display:flex;gap:12px;z-index:2147483648;`;
    const createButton = (text, icon, className, onClick) => {
     const btn = document.createElement('button');
     btn.className =`preview-btn ${className}`;
     btn.innerHTML =`${icon}${text}`;
-    btn.onclick = onClick;
-    return btn; };
+    btn.onclick = onClick; return btn; };
    const setActiveSource = (activeSource) => {
-    javfreeBtn.classList.toggle('active', activeSource === 'javfree'); projectjavBtn.classList.toggle('active', activeSource === 'projectjav');
-    javstoreBtn.classList.toggle('active', activeSource === 'javstore'); };
+    javfreeBtn.classList.toggle('active', activeSource === 'javfree'); projectjavBtn.classList.toggle('active', activeSource === 'projectjav'); javstoreBtn.classList.toggle('active', activeSource === 'javstore'); };
    const javfreeBtn = createButton('javfree', '🟢', 'javfree', async (e) => {
-    e.stopPropagation();
-    const newUrl = await Thumbnail.javfree(code);
+    e.stopPropagation(); const newUrl = await Thumbnail.javfree(code);
     if (newUrl) { loadImg(newUrl, 'javfree'); setActiveSource('javfree'); }
     else Utils.showToast('未找到预览图', 'javfree 未找到预览图', 2600);
    });
    const projectjavBtn = createButton('projectjav', '🟡', 'javstore', async (e) => {
-    e.stopPropagation();
-    const newUrl = await Thumbnail.projectjav(code);
+    e.stopPropagation(); const newUrl = await Thumbnail.projectjav(code);
     if (newUrl) { loadImg(newUrl, 'projectjav'); setActiveSource('projectjav'); }
     else Utils.showToast('未找到预览图', 'projectjav 未找到预览图', 2600);
    });
    const javstoreBtn = createButton('javstore', '🔴', 'javstore', async (e) => {
-    e.stopPropagation();
-    const newUrl = await Thumbnail.javstore(code);
+    e.stopPropagation(); const newUrl = await Thumbnail.javstore(code);
     if (newUrl) { loadImg(newUrl, 'javstore'); setActiveSource('javstore'); }
     else Utils.showToast('未找到预览图', 'javstore 未找到预览图', 2600);
    });
@@ -6554,12 +5690,10 @@
    if (source === 'javfree') javfreeBtn.classList.add('active');
    else if (source === 'projectjav') projectjavBtn.classList.add('active');
    else if (source === 'javstore') javstoreBtn.classList.add('active');
-   toolbar.appendChild(javfreeBtn); toolbar.appendChild(projectjavBtn); toolbar.appendChild(javstoreBtn); toolbar.appendChild(newWindowBtn);
-   toolbar.appendChild(downloadBtn); container.appendChild(img);
+   toolbar.appendChild(javfreeBtn); toolbar.appendChild(projectjavBtn); toolbar.appendChild(javstoreBtn); toolbar.appendChild(newWindowBtn); toolbar.appendChild(downloadBtn); container.appendChild(img);
    const closeOverlay = () => {
     if (container.parentNode) {
-     container.remove(); toolbar.remove();
-     document.documentElement.style.overflow = originalHtmlOverflow; document.body.style.overflow = originalBodyOverflow;
+     container.remove(); toolbar.remove(); document.documentElement.style.overflow = originalHtmlOverflow; document.body.style.overflow = originalBodyOverflow;
      if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
     } };
    container.onclick = closeOverlay;
@@ -6570,8 +5704,7 @@
  function createTrailerHlsRuntime() {
   const HLS_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/hls.js@1.5.18/dist/hls.min.js';
   const getHlsClass = () => {
-   const HlsClass = window.Hls || globalThis.Hls || (typeof Hls !== 'undefined' ? Hls : null);
-   return HlsClass?.isSupported?.() ? HlsClass : null; };
+   const HlsClass = window.Hls || globalThis.Hls || (typeof Hls !== 'undefined' ? Hls : null); return HlsClass?.isSupported?.() ? HlsClass : null; };
   const binaryTextToArrayBuffer = (value) => {
    const text = String(value || ''); const bytes = new Uint8Array(text.length);
    for (let index = 0; index < text.length; index += 1) { bytes[index] = text.charCodeAt(index) & 0xff; }
@@ -6605,9 +5738,7 @@
       if (!getHlsClass()) loadByGm().then(resolve);
      }, 4000);
      return; }
-    const hlsScript = document.createElement('script');
-    hlsScript.src = HLS_SCRIPT_URL; hlsScript.async = true; hlsScript.dataset.laosijiHls = '1'; hlsScript.onload = () => resolve(getHlsClass());
-    hlsScript.onerror = () => loadByGm().then(resolve);
+    const hlsScript = document.createElement('script'); hlsScript.src = HLS_SCRIPT_URL; hlsScript.async = true; hlsScript.dataset.laosijiHls = '1'; hlsScript.onload = () => resolve(getHlsClass()); hlsScript.onerror = () => loadByGm().then(resolve);
     document.head.appendChild(hlsScript);
    }).then(HlsClass => {
     if (!HlsClass) hlsLoadPromise = null;
@@ -6643,13 +5774,10 @@
     this.abort(); }
    abort() {
     if (this.stats) this.stats.aborted = true;
-    this.loader?.abort?.();
-    this.loader = null; }
+    this.loader?.abort?.(); this.loader = null; }
    load(context, config, callbacks) {
-    this.context = context; this.callbacks = callbacks;
-    const requestUrl = context.url; const wantsArrayBuffer = context.responseType === 'arraybuffer' || /\.(?:ts|m4s|mp4|key)(?:[?#]|$)/i.test(requestUrl);
-    const startedAt = performance.now(); const stats = this.stats = this.createStats();
-    stats.trequest = startedAt; stats.tfirst = startedAt; stats.tload = startedAt; stats.loading.start = startedAt;
+    this.context = context; this.callbacks = callbacks; const requestUrl = context.url; const wantsArrayBuffer = context.responseType === 'arraybuffer' || /\.(?:ts|m4s|mp4|key)(?:[?#]|$)/i.test(requestUrl); const startedAt = performance.now();
+    const stats = this.stats = this.createStats(); stats.trequest = startedAt; stats.tfirst = startedAt; stats.tload = startedAt; stats.loading.start = startedAt;
     this.loader = GM_xmlhttpRequest({
      method: 'GET',
      url: requestUrl,
@@ -6665,71 +5793,34 @@
      onload: (r) => {
       const status = Number(r.status || 0);
       const response = { code: status, text: r.statusText || '', url: r.finalUrl || requestUrl };
-      stats.tfirst = stats.tfirst || performance.now(); stats.tload = performance.now(); stats.loading.first = stats.loading.first || stats.tload;
-      stats.loading.end = stats.tload;
+      stats.tfirst = stats.tfirst || performance.now(); stats.tload = performance.now(); stats.loading.first = stats.loading.first || stats.tload; stats.loading.end = stats.tload;
       if (status < 200 || status >= 300) { callbacks.onError?.(response, context, null, stats); return; }
-      const responseText = r.responseText ?? r.response ?? ''; const data = wantsArrayBuffer ? binaryTextToArrayBuffer(responseText) : responseText;
-      stats.loaded = data?.byteLength || data?.length || stats.loaded || 0; stats.total = stats.total || stats.loaded;
-      stats.bwEstimate = stats.loading.end > stats.loading.first ? Math.round((stats.total * 8000) / (stats.loading.end - stats.loading.first)) : 0;
+      const responseText = r.responseText ?? r.response ?? ''; const data = wantsArrayBuffer ? binaryTextToArrayBuffer(responseText) : responseText; stats.loaded = data?.byteLength || data?.length || stats.loaded || 0;
+      stats.total = stats.total || stats.loaded; stats.bwEstimate = stats.loading.end > stats.loading.first ? Math.round((stats.total * 8000) / (stats.loading.end - stats.loading.first)) : 0;
       callbacks.onSuccess?.({ data, url: response.url }, stats, context, response); },
      onerror: () => callbacks.onError?.({ code: 0, text: 'network error', url: requestUrl }, context, null, stats),
      ontimeout: () => {
-      stats.tload = performance.now(); stats.loading.end = stats.tload;
-      callbacks.onTimeout?.(stats, context, null); }
+      stats.tload = performance.now(); stats.loading.end = stats.tload; callbacks.onTimeout?.(stats, context, null); }
     }); } };
   return { getHlsClass, loadHlsLibrary, createHlsLoader }; }
  function createTrailerPlayerView({ code, source, isIframe }) {
-  const overlay = document.createElement('div');
-  overlay.className = 'trailer-overlay';
-  const modal = document.createElement('div');
-  modal.className = 'trailer-modal'; modal.onclick = (e) => e.stopPropagation();
-  const header = document.createElement('div');
-  header.className = 'trailer-header';
-  const title = document.createElement('div');
-  title.className = 'trailer-title';
+  const overlay = document.createElement('div'); overlay.className = 'trailer-overlay'; const modal = document.createElement('div'); modal.className = 'trailer-modal'; modal.onclick = (e) => e.stopPropagation(); const header = document.createElement('div');
+  header.className = 'trailer-header'; const title = document.createElement('div'); title.className = 'trailer-title';
   title.innerHTML =`<span>🎞️</span><span class="trailer-code"> ${code} </span><span class="trailer-source"> ${source} </span>`;
-  const sourceBadge = title.querySelector('.trailer-source'); const closeBtn = document.createElement('button');
-  closeBtn.className = 'jav-player-close'; closeBtn.type = 'button'; closeBtn.textContent = '×';
-  header.appendChild(title); header.appendChild(closeBtn);
-  const screen = document.createElement('div');
-  screen.className = 'trailer-screen';
+  const sourceBadge = title.querySelector('.trailer-source'); const closeBtn = document.createElement('button'); closeBtn.className = 'jav-player-close'; closeBtn.type = 'button'; closeBtn.textContent = '×'; header.appendChild(title);
+  header.appendChild(closeBtn); const screen = document.createElement('div'); screen.className = 'trailer-screen';
   if (isIframe) screen.classList.add('is-iframe');
-  const fallbackStatus = document.createElement('div');
-  fallbackStatus.className = 'trailer-fallback-status';
-  const volumeIndicator = document.createElement('div');
-  volumeIndicator.className = 'trailer-volume-indicator';
-  const playBtn = document.createElement('button');
-  playBtn.className = 'trailer-control-btn'; playBtn.type = 'button'; playBtn.textContent = '⏸'; playBtn.title = '播放/暂停';
-  const volumeBtn = document.createElement('button');
-  volumeBtn.className = 'trailer-control-btn'; volumeBtn.type = 'button'; volumeBtn.textContent = '🔊'; volumeBtn.title = '静音/取消静音';
-  const volumeWrap = document.createElement('div');
-  volumeWrap.className = 'trailer-volume-wrap';
-  const volumePopover = document.createElement('div');
-  volumePopover.className = 'trailer-volume-popover';
-  const volumeRail = document.createElement('div');
-  volumeRail.className = 'trailer-volume-rail';
-  const volumeFill = document.createElement('div');
-  volumeFill.className = 'trailer-volume-fill';
-  const volumeThumb = document.createElement('div');
-  volumeThumb.className = 'trailer-volume-thumb';
-  const volumeSlider = document.createElement('input');
-  volumeSlider.className = 'trailer-volume-slider'; volumeSlider.type = 'range'; volumeSlider.min = '0'; volumeSlider.max = '100'; volumeSlider.step = '1';
-  volumeSlider.value = '35'; volumeSlider.title = '音量';
-  volumeRail.appendChild(volumeFill); volumeRail.appendChild(volumeThumb); volumePopover.appendChild(volumeRail); volumePopover.appendChild(volumeSlider);
-  volumeWrap.appendChild(volumeBtn); volumeWrap.appendChild(volumePopover);
-  const currentTimeText = document.createElement('span');
-  currentTimeText.className = 'trailer-time'; currentTimeText.textContent = '00:00';
-  const durationText = document.createElement('span');
-  durationText.className = 'trailer-time'; durationText.textContent = '00:00';
-  const progress = document.createElement('input');
-  progress.className = 'trailer-progress'; progress.type = 'range'; progress.min = '0'; progress.max = '1000'; progress.step = '1'; progress.value = '0';
-  progress.title = '播放进度';
-  const fullscreenBtn = document.createElement('button');
+  const fallbackStatus = document.createElement('div'); fallbackStatus.className = 'trailer-fallback-status'; const volumeIndicator = document.createElement('div'); volumeIndicator.className = 'trailer-volume-indicator';
+  const playBtn = document.createElement('button'); playBtn.className = 'trailer-control-btn'; playBtn.type = 'button'; playBtn.textContent = '⏸'; playBtn.title = '播放/暂停'; const volumeBtn = document.createElement('button');
+  volumeBtn.className = 'trailer-control-btn'; volumeBtn.type = 'button'; volumeBtn.textContent = '🔊'; volumeBtn.title = '静音/取消静音'; const volumeWrap = document.createElement('div'); volumeWrap.className = 'trailer-volume-wrap';
+  const volumePopover = document.createElement('div'); volumePopover.className = 'trailer-volume-popover'; const volumeRail = document.createElement('div'); volumeRail.className = 'trailer-volume-rail'; const volumeFill = document.createElement('div');
+  volumeFill.className = 'trailer-volume-fill'; const volumeThumb = document.createElement('div'); volumeThumb.className = 'trailer-volume-thumb'; const volumeSlider = document.createElement('input'); volumeSlider.className = 'trailer-volume-slider';
+  volumeSlider.type = 'range'; volumeSlider.min = '0'; volumeSlider.max = '100'; volumeSlider.step = '1'; volumeSlider.value = '35'; volumeSlider.title = '音量'; volumeRail.appendChild(volumeFill); volumeRail.appendChild(volumeThumb);
+  volumePopover.appendChild(volumeRail); volumePopover.appendChild(volumeSlider); volumeWrap.appendChild(volumeBtn); volumeWrap.appendChild(volumePopover); const currentTimeText = document.createElement('span'); currentTimeText.className = 'trailer-time';
+  currentTimeText.textContent = '00:00'; const durationText = document.createElement('span'); durationText.className = 'trailer-time'; durationText.textContent = '00:00'; const progress = document.createElement('input');
+  progress.className = 'trailer-progress'; progress.type = 'range'; progress.min = '0'; progress.max = '1000'; progress.step = '1'; progress.value = '0'; progress.title = '播放进度'; const fullscreenBtn = document.createElement('button');
   fullscreenBtn.className = 'trailer-control-btn'; fullscreenBtn.type = 'button'; fullscreenBtn.textContent = '⛶'; fullscreenBtn.title = '全屏';
-  return {
-   overlay, modal, header, sourceBadge, closeBtn, screen,
-   fallbackStatus, volumeIndicator, playBtn, volumeBtn, volumeWrap,
-   volumeRail, volumeSlider, currentTimeText, durationText, progress, fullscreenBtn, }; }
+  return { overlay, modal, header, sourceBadge, closeBtn, screen, fallbackStatus, volumeIndicator, playBtn, volumeBtn, volumeWrap, volumeRail, volumeSlider, currentTimeText, durationText, progress, fullscreenBtn }; }
  function createTrailerPlaybackControls({
   getVideo, isSeekingByProgress, getFooter, screen, playBtn, volumeBtn,
   volumeSlider, volumeRail, volumeIndicator, currentTimeText, durationText, progress,
@@ -6744,12 +5835,11 @@
   const syncTrailerControls = () => {
    const video = getVideo();
    if (!video) return;
-   playBtn.textContent = video.paused ? '▶' : '⏸'; volumeBtn.textContent = video.muted || video.volume <= 0 ? '🔇' : '🔊';
-   volumeSlider.value = String(Math.round((video.muted ? 0 : video.volume) * 100));
+   playBtn.textContent = video.paused ? '▶' : '⏸'; volumeBtn.textContent = video.muted || video.volume <= 0 ? '🔇' : '🔊'; volumeSlider.value = String(Math.round((video.muted ? 0 : video.volume) * 100));
    volumeRail.style.setProperty('--volume-percent',`${volumeSlider.value}%`);
    currentTimeText.textContent = formatTime(video.currentTime || 0); durationText.textContent = formatTime(video.duration || 0);
-   if (!isSeekingByProgress() && Number.isFinite(video.duration) && video.duration > 0) {
-    progress.value = String(Math.round(((video.currentTime || 0) / video.duration) * 1000)); } };
+   if (!isSeekingByProgress() && Number.isFinite(video.duration) && video.duration > 0) { progress.value = String(Math.round(((video.currentTime || 0) / video.duration) * 1000)); }
+  };
   const keepTrailerControlsVisible = () => {
    screen.classList.remove('is-controls-hidden'); clearTimeout(controlsHideTimer); };
   const hideTrailerControls = () => {
@@ -6763,15 +5853,13 @@
     volumeIndicator.classList.remove('is-visible');
    }, 820); };
   const showTrailerControls = () => {
-   keepTrailerControlsVisible();
-   const video = getVideo();
+   keepTrailerControlsVisible(); const video = getVideo();
    if (!video || video.paused) return;
    controlsHideTimer = setTimeout(() => {
     if (MobilePolicy.isMobile() || (!getFooter()?.matches(':hover') && document.activeElement !== volumeSlider)) { hideTrailerControls(); }
    }, 2000); };
   const scheduleHideTrailerControls = () => {
-   clearTimeout(controlsHideTimer);
-   const video = getVideo();
+   clearTimeout(controlsHideTimer); const video = getVideo();
    if (!video || video.paused) { screen.classList.remove('is-controls-hidden'); return; }
    controlsHideTimer = setTimeout(() => {
     hideTrailerControls();
@@ -6782,9 +5870,7 @@
   };
   const destroyTrailerControls = () => {
    clearTimeout(volumeIndicatorTimer); clearTimeout(controlsHideTimer); };
-  return {
-   formatTime, syncTrailerControls, keepTrailerControlsVisible, showVolumeIndicator,
-   showTrailerControls, hideTrailerControls, scheduleHideTrailerControls, toggleTrailerFullscreen, destroyTrailerControls, }; }
+  return { formatTime, syncTrailerControls, keepTrailerControlsVisible, showVolumeIndicator, showTrailerControls, hideTrailerControls, scheduleHideTrailerControls, toggleTrailerFullscreen, destroyTrailerControls }; }
  const createTrailerQualitySelector = ({
   qualities, initialQuality, getVideo, getActiveQuality, setActiveQuality,
   getFallbackUrls, setFallbackIndex, writePlaybackTime, destroyActiveHls,
@@ -6794,44 +5880,29 @@
   if (!qualityMap || Object.keys(qualityMap).length <= 1) return qualityBar;
   const qualityOrder = ['4k', 'hhb', 'hmb', 'mhb', 'mmb', 'dm', 'sm'];
   const qualityLabels = { '4k': '4K', hhb: '1080P', hmb: '720P', mhb: '576P', mmb: '432P' };
-  const sortedKeys = Object.keys(qualityMap) .filter(key => qualityMap[key]) .sort((a, b) => qualityOrder.indexOf(a) - qualityOrder.indexOf(b));
-  const select = document.createElement('select');
-  qualityBar.className = 'trailer-quality-bar'; select.className = 'trailer-quality-select';
+  const sortedKeys = Object.keys(qualityMap) .filter(key => qualityMap[key]) .sort((a, b) => qualityOrder.indexOf(a) - qualityOrder.indexOf(b)); const select = document.createElement('select'); qualityBar.className = 'trailer-quality-bar';
+  select.className = 'trailer-quality-select';
   sortedKeys.forEach(key => { select.add(new Option(qualityLabels[key] || key, key)); });
   select.addEventListener('change', async () => {
    const key = select.value; const video = getVideo();
    if (!video || !qualityMap[key] || getActiveQuality() === key) return;
-   const currentTime = video.currentTime || 0; const shouldPlay = !video.paused;
-   writePlaybackTime(currentTime); destroyActiveHls(); resetPlaybackReady();
-   video.dataset.playbackRestored = '1';
-   setFallbackIndex(Math.max(0, getFallbackUrls().indexOf(qualityMap[key])));
-   video.currentTime = currentTime;
-   setActiveQuality(key, qualityMap[key]);
-   sourceLink.href = qualityMap[key];
-   attachVideoSrc(qualityMap[key]); video.load();
+   const currentTime = video.currentTime || 0; const shouldPlay = !video.paused; writePlaybackTime(currentTime); destroyActiveHls(); resetPlaybackReady(); video.dataset.playbackRestored = '1';
+   setFallbackIndex(Math.max(0, getFallbackUrls().indexOf(qualityMap[key]))); video.currentTime = currentTime; setActiveQuality(key, qualityMap[key]); sourceLink.href = qualityMap[key]; attachVideoSrc(qualityMap[key]); video.load();
    video.currentTime = currentTime;
    if (shouldPlay) await video.play().catch(() => {});
   });
-  qualityBar.appendChild(select);
-  const initialKey = initialQuality && qualityMap[initialQuality] ? initialQuality : sortedKeys[0];
-  setActiveQuality(initialKey, qualityMap[initialKey]);
-  select.value = initialKey;
-  return qualityBar; };
+  qualityBar.appendChild(select); const initialKey = initialQuality && qualityMap[initialQuality] ? initialQuality : sortedKeys[0]; setActiveQuality(initialKey, qualityMap[initialKey]); select.value = initialKey; return qualityBar; };
  const TrailerPlayer = {
   open({ code, url, type = 'video', source = '预告片', qualities = null, quality = null, urls = null, fallbackResolver = null, javxySource = null }) {
-   document.querySelector('.trailer-overlay')?.remove();
-   const isIframe = type === 'iframe'; const originalHtmlOverflow = document.documentElement.style.overflow;
-   const originalBodyOverflow = document.body.style.overflow;
+   document.querySelector('.trailer-overlay')?.remove(); const isIframe = type === 'iframe'; const originalHtmlOverflow = document.documentElement.style.overflow; const originalBodyOverflow = document.body.style.overflow;
    document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
    const {
     overlay, modal, header, sourceBadge, closeBtn, screen,
     fallbackStatus, volumeIndicator, playBtn, volumeBtn, volumeWrap,
     volumeRail, volumeSlider, currentTimeText, durationText, progress, fullscreenBtn,
    } = createTrailerPlayerView({ code, source, isIframe });
-   let video = null; let activeUrl = url; let activeType = type; let activeSource = source; let activeJavxySource = javxySource || source;
-   let activeQuality = quality; let fallbackStatusTimer = null; let playbackReadyTimer = null; let sourceFallbackInProgress = false; let overlayClosed = false;
-   let playbackStarted = false; let qualityBar = null; let qualityBarMount = null; const failedSources = new Set(); let seekingByProgress = false;
-   let footer = null;
+   let video = null; let activeUrl = url; let activeType = type; let activeSource = source; let activeJavxySource = javxySource || source; let activeQuality = quality; let fallbackStatusTimer = null; let playbackReadyTimer = null;
+   let sourceFallbackInProgress = false; let overlayClosed = false; let playbackStarted = false; let qualityBar = null; let qualityBarMount = null; const failedSources = new Set(); let seekingByProgress = false; let footer = null;
    let removeMobileTapToggle = () => {};
    const {
     formatTime, syncTrailerControls, keepTrailerControlsVisible, showVolumeIndicator,
@@ -6843,14 +5914,12 @@
     screen, playBtn, volumeBtn, volumeSlider, volumeRail,
     volumeIndicator, currentTimeText, durationText, progress,
    });
-   let fallbackUrls = Array.isArray(urls) ? [...new Set(urls.filter(Boolean))] : [url].filter(Boolean);
-   let fallbackIndex = Math.max(0, fallbackUrls.indexOf(url)); let sourceLoadGeneration = 0;
+   let fallbackUrls = Array.isArray(urls) ? [...new Set(urls.filter(Boolean))] : [url].filter(Boolean); let fallbackIndex = Math.max(0, fallbackUrls.indexOf(url)); let sourceLoadGeneration = 0;
    const sourceLink = { href: activeUrl };
    const playbackKey = (value = activeUrl) =>`trailer_playback_${String(code || '').trim().toUpperCase()}_${String(value || '').slice(0, 160)}`;
    let playbackKeyBase = playbackKey(activeUrl);
    const readPlaybackTime = (key = playbackKeyBase) => {
-    const value = Number(sessionStorage.getItem(key) || 0);
-    return Number.isFinite(value) && value > 0 ? value : 0; };
+    const value = Number(sessionStorage.getItem(key) || 0); return Number.isFinite(value) && value > 0 ? value : 0; };
    const writePlaybackTime = (time = video?.currentTime || 0, key = playbackKeyBase) => {
     if (!Number.isFinite(time) || time < 3) return;
     const duration = Number(video?.duration || 0);
@@ -6862,20 +5931,16 @@
     const savedTime = readPlaybackTime(key);
     if (!savedTime) return;
     const duration = Number(video.duration || 0);
-    if (Number.isFinite(duration) && duration > 0 && savedTime < duration - 3) {
-     video.currentTime = savedTime; video.dataset.playbackRestored = '1';
-     syncTrailerControls(); } };
+    if (Number.isFinite(duration) && duration > 0 && savedTime < duration - 3) { video.currentTime = savedTime; video.dataset.playbackRestored = '1'; syncTrailerControls(); }
+   };
    const setFallbackStatus = (message, autoHide = false) => {
-    clearTimeout(fallbackStatusTimer);
-    fallbackStatus.textContent = message || '';
-    fallbackStatus.classList.toggle('is-visible', Boolean(message));
+    clearTimeout(fallbackStatusTimer); fallbackStatus.textContent = message || ''; fallbackStatus.classList.toggle('is-visible', Boolean(message));
     if (message && autoHide) {
      fallbackStatusTimer = setTimeout(() => {
       fallbackStatus.classList.remove('is-visible');
      }, 1800); } };
    const markPlaybackReady = () => {
-    playbackStarted = true;
-    clearTimeout(playbackReadyTimer); setFallbackStatus('', false); };
+    playbackStarted = true; clearTimeout(playbackReadyTimer); setFallbackStatus('', false); };
    const destroyActiveHls = () => {
     if (video?._hls) {
      try { video._hls.destroy(); } catch {}
@@ -6897,8 +5962,7 @@
      attachVideoSrc,
      sourceLink,
     });
-    qualityBar?.replaceWith(nextQualityBar);
-    qualityBar = nextQualityBar; };
+    qualityBar?.replaceWith(nextQualityBar); qualityBar = nextQualityBar; };
    const normalizedSourceName = (value = activeJavxySource) => {
     const raw = String(value || '').trim().toLowerCase();
     if (raw.includes('mgstage')) return 'MGStage';
@@ -6912,18 +5976,15 @@
     if (raw.includes('dmm')) return 'DMM';
     return String(value || activeSource || '').replace(/^Javxy\s*\|\s*/i, '').trim(); };
    const schedulePlaybackGuard = (reason = 'timeout') => {
-    clearTimeout(playbackReadyTimer);
-    const isJavTrailers = normalizedSourceName() === 'JavTrailers';
-    const timeout = isJavTrailers ? 4000 : (/\.m3u8(?:[?#].*)?$/i.test(activeUrl) || activeType === 'hls' ? 8000 : 4000);
+    clearTimeout(playbackReadyTimer); const isJavTrailers = normalizedSourceName() === 'JavTrailers'; const timeout = isJavTrailers ? 4000 : (/\.m3u8(?:[?#].*)?$/i.test(activeUrl) || activeType === 'hls' ? 8000 : 4000);
     playbackReadyTimer = setTimeout(() => {
      if (overlayClosed || playbackStarted || !video || !video.isConnected) return;
      handlePlaybackFailure(reason);
     }, timeout); };
    const useResultSource = (result) => {
-    activeUrl = result.url; activeType = result.type || 'video'; activeSource = result.source || '预告片';
-    activeJavxySource = result.javxySource || result.source || activeSource; activeQuality = result.quality || null; playbackStarted = false;
-    fallbackUrls = Array.isArray(result.urls) && result.urls.length ? [...new Set(result.urls.filter(Boolean))] : [activeUrl].filter(Boolean);
-    fallbackIndex = Math.max(0, fallbackUrls.indexOf(activeUrl)); sourceLink.href = activeUrl; playbackKeyBase = playbackKey(activeUrl);
+    activeUrl = result.url; activeType = result.type || 'video'; activeSource = result.source || '预告片'; activeJavxySource = result.javxySource || result.source || activeSource; activeQuality = result.quality || null; playbackStarted = false;
+    fallbackUrls = Array.isArray(result.urls) && result.urls.length ? [...new Set(result.urls.filter(Boolean))] : [activeUrl].filter(Boolean); fallbackIndex = Math.max(0, fallbackUrls.indexOf(activeUrl)); sourceLink.href = activeUrl;
+    playbackKeyBase = playbackKey(activeUrl);
     if (sourceBadge) sourceBadge.textContent = activeSource;
     renderQualityBar(result); };
    const handlePlaybackFailure = async (reason = 'error') => {
@@ -6931,17 +5992,13 @@
     if (playbackStarted && reason !== 'timeout') return;
     // JavTrailers 的多个地址只是同一来源的清晰度，不再逐级等待，失败后直接请求下一个来源。
     if (normalizedSourceName() !== 'JavTrailers' && fallbackIndex < fallbackUrls.length - 1) {
-     fallbackIndex += 1; activeUrl = fallbackUrls[fallbackIndex]; sourceLink.href = activeUrl;
-     destroyActiveHls(); setFallbackStatus('当前画质加载失败，正在切换备用画质...'); attachVideoSrc(activeUrl);
-     video.load?.();
+     fallbackIndex += 1; activeUrl = fallbackUrls[fallbackIndex]; sourceLink.href = activeUrl; destroyActiveHls(); setFallbackStatus('当前画质加载失败，正在切换备用画质...'); attachVideoSrc(activeUrl); video.load?.();
      video.play().catch(() => {});
-     schedulePlaybackGuard(reason);
-     return; }
+     schedulePlaybackGuard(reason); return; }
     if (typeof fallbackResolver !== 'function') return;
     const failedSource = normalizedSourceName();
     if (!failedSource || failedSources.has(failedSource)) return;
-    failedSources.add(failedSource);
-    sourceFallbackInProgress = true;
+    failedSources.add(failedSource); sourceFallbackInProgress = true;
     setFallbackStatus(`${failedSource} 加载失败，正在切换备用来源...`);
     destroyActiveHls();
     try {
@@ -6949,8 +6006,7 @@
      if (!result?.url) { setFallbackStatus('备用来源暂不可用', true); return; }
      useResultSource(result);
      setFallbackStatus(`已切换到 ${normalizedSourceName(result.javxySource || result.source) || '备用来源'}`, true);
-     attachVideoSrc(activeUrl);
-     video.load?.();
+     attachVideoSrc(activeUrl); video.load?.();
      video.play().catch(() => {});
      schedulePlaybackGuard('fallback');
     } catch (error) {
@@ -6999,13 +6055,11 @@
      if (data.type === HlsClass.ErrorTypes.MEDIA_ERROR) {
       if (playbackStarted || video?.readyState >= 2) {
        try { hls.recoverMediaError?.(); } catch {}
-       markPlaybackReady();
-       return; } }
+       markPlaybackReady(); return; } }
      if (overlayClosed) return;
      handlePlaybackFailure('hls');
     });
-    hls.loadSource(src); hls.attachMedia(video);
-    video._hls = hls; };
+    hls.loadSource(src); hls.attachMedia(video); video._hls = hls; };
    const attachVideoSrc = (src) => {
     if (!src) return;
     sourceLoadGeneration += 1;
@@ -7030,18 +6084,11 @@
      else attachMp4Src(src);
     } };
    if (isIframe) {
-    const iframe = document.createElement('iframe');
-    iframe.src = url; iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media'; iframe.allowFullscreen = true;
-    screen.appendChild(iframe);
+    const iframe = document.createElement('iframe'); iframe.src = url; iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media'; iframe.allowFullscreen = true; screen.appendChild(iframe);
    } else {
-    video = document.createElement('video'); video.controls = false; video.autoplay = true; video.loop = true; video.playsInline = true;
-    const savedVolume = Number(GM_getValue('trailer_volume', 0.35)); const savedMuted = GM_getValue('trailer_muted', false);
-    video.volume = Number.isFinite(savedVolume) ? Math.min(1, Math.max(0, savedVolume)) : 0.35; video.muted = Boolean(savedMuted);
-    initTrailerVideo(fallbackUrls[fallbackIndex] || url);
-    video.preload = 'auto';
-    video.addEventListener('volumechange', () => {
-     GM_setValue('trailer_volume', video.volume); GM_setValue('trailer_muted', video.muted); syncTrailerControls();
-    });
+    video = document.createElement('video'); video.controls = false; video.autoplay = true; video.loop = true; video.playsInline = true; const savedVolume = Number(GM_getValue('trailer_volume', 0.35)); const savedMuted = GM_getValue('trailer_muted', false);
+    video.volume = Number.isFinite(savedVolume) ? Math.min(1, Math.max(0, savedVolume)) : 0.35; video.muted = Boolean(savedMuted); initTrailerVideo(fallbackUrls[fallbackIndex] || url); video.preload = 'auto';
+    video.addEventListener('volumechange', () => { GM_setValue('trailer_volume', video.volume); GM_setValue('trailer_muted', video.muted); syncTrailerControls(); });
     video.addEventListener('play', () => {
      syncTrailerControls(); scheduleHideTrailerControls();
     });
@@ -7079,10 +6126,7 @@
     volumeSlider.addEventListener('input', e => {
      e.stopPropagation();
      if (!video) return;
-     keepTrailerControlsVisible();
-     const nextVolume = Math.min(1, Math.max(0, Number(volumeSlider.value) / 100));
-     video.volume = nextVolume; video.muted = nextVolume <= 0;
-     showVolumeIndicator(); syncTrailerControls();
+     keepTrailerControlsVisible(); const nextVolume = Math.min(1, Math.max(0, Number(volumeSlider.value) / 100)); video.volume = nextVolume; video.muted = nextVolume <= 0; showVolumeIndicator(); syncTrailerControls();
     });
     volumeSlider.addEventListener('change', scheduleHideTrailerControls);
     video.addEventListener('click', e => {
@@ -7095,15 +6139,11 @@
     progress.addEventListener('input', () => {
      seekingByProgress = true;
      if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return;
-     const nextTime = (Number(progress.value) / 1000) * video.duration;
-     currentTimeText.textContent = formatTime(nextTime);
+     const nextTime = (Number(progress.value) / 1000) * video.duration; currentTimeText.textContent = formatTime(nextTime);
     });
     progress.addEventListener('change', () => {
-     if (video && Number.isFinite(video.duration) && video.duration > 0) {
-      video.currentTime = (Number(progress.value) / 1000) * video.duration;
-      writePlaybackTime(video.currentTime); }
-     seekingByProgress = false;
-     syncTrailerControls();
+     if (video && Number.isFinite(video.duration) && video.duration > 0) { video.currentTime = (Number(progress.value) / 1000) * video.duration; writePlaybackTime(video.currentTime); }
+     seekingByProgress = false; syncTrailerControls();
     });
     fullscreenBtn.addEventListener('click', e => {
      e.preventDefault(); e.stopPropagation(); fullscreenBtn.blur(); toggleTrailerFullscreen();
@@ -7127,16 +6167,11 @@
     attachVideoSrc,
     sourceLink,
    });
-   footer = document.createElement('div'); footer.className = 'trailer-footer';
-   const footerLeft = document.createElement('div');
-   footerLeft.className = 'trailer-control-left';
+   footer = document.createElement('div'); footer.className = 'trailer-footer'; const footerLeft = document.createElement('div'); footerLeft.className = 'trailer-control-left';
    if (!isIframe) {
-    footerLeft.appendChild(playBtn); footerLeft.appendChild(volumeWrap); footerLeft.appendChild(currentTimeText); footerLeft.appendChild(progress);
-    footerLeft.appendChild(durationText); }
-   const footerRight = document.createElement('div');
-   footerRight.className = 'trailer-control-right'; qualityBarMount = footerRight;
-   footerRight.appendChild(qualityBar); footer.appendChild(footerLeft); footerRight.appendChild(fullscreenBtn); footer.appendChild(footerRight);
-   modal.appendChild(screen); screen.appendChild(header);
+    footerLeft.appendChild(playBtn); footerLeft.appendChild(volumeWrap); footerLeft.appendChild(currentTimeText); footerLeft.appendChild(progress); footerLeft.appendChild(durationText); }
+   const footerRight = document.createElement('div'); footerRight.className = 'trailer-control-right'; qualityBarMount = footerRight; footerRight.appendChild(qualityBar); footer.appendChild(footerLeft); footerRight.appendChild(fullscreenBtn);
+   footer.appendChild(footerRight); modal.appendChild(screen); screen.appendChild(header);
    if (!isIframe) screen.appendChild(footer);
    overlay.appendChild(modal);
    if (!isIframe) {
@@ -7151,8 +6186,7 @@
      if (screen.classList.contains('is-controls-hidden')) showTrailerControls();
      else hideTrailerControls();
     };
-    screen.addEventListener('click', toggleMobileScreenControls);
-    removeMobileTapToggle = () => screen.removeEventListener('click', toggleMobileScreenControls);
+    screen.addEventListener('click', toggleMobileScreenControls); removeMobileTapToggle = () => screen.removeEventListener('click', toggleMobileScreenControls);
     screen.addEventListener('mouseleave', () => {
      if (!MobilePolicy.isMobile() && video && !video.paused) hideTrailerControls();
     });
@@ -7164,26 +6198,22 @@
     }); }
    const closeOverlay = (event = null) => {
     if (event) { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); }
-    overlayClosed = true;
-    const video = overlay.querySelector('video');
+    overlayClosed = true; const video = overlay.querySelector('video');
     if (video) {
      writePlaybackTime(video.currentTime || 0);
      if (video._hls) {
       try { video._hls.destroy(); } catch {}
       video._hls = null; }
      video.pause(); video.removeAttribute('src'); video.load(); }
-    overlay.remove();
-    document.documentElement.style.overflow = originalHtmlOverflow; document.body.style.overflow = originalBodyOverflow;
-    window.removeEventListener('pointerdown', overlayCloseGuard, true); window.removeEventListener('mousedown', overlayCloseGuard, true);
-    window.removeEventListener('click', overlayCloseGuard, true); document.removeEventListener('keydown', escHandler, true); removeMobileTapToggle();
-    destroyTrailerControls(); clearTimeout(fallbackStatusTimer); clearTimeout(playbackReadyTimer); };
+    overlay.remove(); document.documentElement.style.overflow = originalHtmlOverflow; document.body.style.overflow = originalBodyOverflow; window.removeEventListener('pointerdown', overlayCloseGuard, true);
+    window.removeEventListener('mousedown', overlayCloseGuard, true); window.removeEventListener('click', overlayCloseGuard, true); document.removeEventListener('keydown', escHandler, true); removeMobileTapToggle(); destroyTrailerControls();
+    clearTimeout(fallbackStatusTimer); clearTimeout(playbackReadyTimer); };
    const overlayCloseGuard = (event) => {
     if (!overlay.contains(event.target)) return;
     const shouldClose = event.target === overlay || event.target.closest('.jav-player-close');
     if (!shouldClose) return;
     if (event.type === 'click') { closeOverlay(event); return; }
-    event.stopPropagation();
-    event.stopImmediatePropagation?.(); };
+    event.stopPropagation(); event.stopImmediatePropagation?.(); };
    const escHandler = (e) => {
     if (e.key === 'Escape') { closeOverlay(); return; }
     if (isIframe) return;
@@ -7198,19 +6228,17 @@
     } else if (key === 'ArrowLeft') {
      video.currentTime = Math.max(0, (video.currentTime || 0) - 2);
     } else if (key === 'ArrowRight') {
-     const nextTime = (video.currentTime || 0) + 2;
-     video.currentTime = Number.isFinite(video.duration) ? Math.min(video.duration, nextTime) : nextTime;
+     const nextTime = (video.currentTime || 0) + 2; video.currentTime = Number.isFinite(video.duration) ? Math.min(video.duration, nextTime) : nextTime;
     } else if (key === 'ArrowUp' || key === 'ArrowDown') {
-     const delta = key === 'ArrowUp' ? 0.05 : -0.05;
-     video.volume = Math.min(1, Math.max(0, Math.round((video.volume + delta) * 100) / 100));
+     const delta = key === 'ArrowUp' ? 0.05 : -0.05; video.volume = Math.min(1, Math.max(0, Math.round((video.volume + delta) * 100) / 100));
      if (video.volume > 0) video.muted = false;
      showVolumeIndicator(); } };
    closeBtn.addEventListener('click', closeOverlay, true);
    overlay.addEventListener('click', e => {
     if (e.target === overlay) closeOverlay(e);
    }, true);
-   window.addEventListener('pointerdown', overlayCloseGuard, true); window.addEventListener('mousedown', overlayCloseGuard, true);
-   window.addEventListener('click', overlayCloseGuard, true); document.addEventListener('keydown', escHandler, true); document.body.appendChild(overlay); }, };
+   window.addEventListener('pointerdown', overlayCloseGuard, true); window.addEventListener('mousedown', overlayCloseGuard, true); window.addEventListener('click', overlayCloseGuard, true); document.addEventListener('keydown', escHandler, true);
+   document.body.appendChild(overlay); }, };
  const Thumbnail = {
   sources: ['javfree', 'projectjav', 'javstore'],
   cacheKey(code) {
@@ -7224,8 +6252,7 @@
    const savedOrder = Settings.getSourceOrder(); const ordered = Array.isArray(savedOrder) ? savedOrder : []; const seen = new Set();
    return [...ordered, ...this.sources].filter(src => {
     if (seen.has(src) || typeof this[src] !== 'function') return false;
-    seen.add(src);
-    return true;
+    seen.add(src); return true;
    }); },
   async fetchFromSource(source, code) {
    try {
@@ -7234,14 +6261,10 @@
     debugLog(`Thumbnail[${source}] 异常:`, e.message);
     return null; } },
   normalizeForCompare(text) { return String(text || '').toLowerCase().replace(/[^a-z0-9]/g, ''); },
-  isCodeMatched(text, code) {
-   const normalizedText = this.normalizeForCompare(text); const normalizedCode = this.normalizeForCompare(code);
-   return !!normalizedCode && normalizedText.includes(normalizedCode); },
+  isCodeMatched(text, code) { const normalizedText = this.normalizeForCompare(text); const normalizedCode = this.normalizeForCompare(code); return !!normalizedCode && normalizedText.includes(normalizedCode); },
   isDetailMatched(doc, url, code) {
-   const title = doc?.querySelector('title')?.textContent || '';
-   const headings = [...(doc?.querySelectorAll('h1,h2,h3,.entry-title,.movie-title,.post-title') || [])] .map(el => el.textContent || '') .join(' ');
-   const bodyText = (doc?.body?.textContent || '').slice(0, 5000);
-   return this.isCodeMatched([url, title, headings, bodyText].join(' '), code); },
+   const title = doc?.querySelector('title')?.textContent || ''; const headings = [...(doc?.querySelectorAll('h1,h2,h3,.entry-title,.movie-title,.post-title') || [])] .map(el => el.textContent || '') .join(' ');
+   const bodyText = (doc?.body?.textContent || '').slice(0, 5000); return this.isCodeMatched([url, title, headings, bodyText].join(' '), code); },
   normalizePreviewUrl(url, baseUrl = '') {
    if (!url) return '';
    const absolute = /^https?:\/\//i.test(url)
@@ -7257,21 +6280,17 @@
      /-(?:1080p|demosaic)\.(?:jpe?g|png|webp)$/i.test(cleanUrl) || (isFc2Numeric && fc2ShotPattern.test(cleanUrl))
     ); },
   selectJavfreePreviewUrl(doc, detailUrl, code) {
-   const urls = [...doc.querySelectorAll('p > img[src]')] .map(img => this.normalizePreviewUrl(img.getAttribute('src') || img.src || '', detailUrl))
-    .filter(url => this.isJavfreePreviewImage(url, code));
-   return urls.find(url => /-1080p\./i.test(url)) || urls.find(url => /-demosaic\./i.test(url)) || urls.find(url => /_1\.(?:jpe?g|png|webp)$/i.test(url)) || '';
-  },
+   const urls = [...doc.querySelectorAll('p > img[src]')] .map(img => this.normalizePreviewUrl(img.getAttribute('src') || img.src || '', detailUrl)) .filter(url => this.isJavfreePreviewImage(url, code));
+   return urls.find(url => /-1080p\./i.test(url)) || urls.find(url => /-demosaic\./i.test(url)) || urls.find(url => /_1\.(?:jpe?g|png|webp)$/i.test(url)) || ''; },
   async javfree(code) {
-   code = this.lookupCode(code);
-   const cacheKey = this.cacheKey(code); const cacheEnabled = Settings.getPreviewCacheEnabled();
+   code = this.lookupCode(code); const cacheKey = this.cacheKey(code); const cacheEnabled = Settings.getPreviewCacheEnabled();
    if (cacheEnabled) {
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) return cached;
    }
    try {
     const html = await Utils.request(`https://javfree.me/search/${code}`);
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const link = [...doc.querySelectorAll('.entry-title>a')] .find(a => this.isCodeMatched([a.href, a.textContent].join(' '), code))?.href;
+    const doc = new DOMParser().parseFromString(html, 'text/html'); const link = [...doc.querySelectorAll('.entry-title>a')] .find(a => this.isCodeMatched([a.href, a.textContent].join(' '), code))?.href;
     if (!link) return null;
     const dHtml = await Utils.request(link); const dDoc = new DOMParser().parseFromString(dHtml, 'text/html');
     if (!this.isDetailMatched(dDoc, link, code)) return null;
@@ -7286,8 +6305,7 @@
     const normalizedCode = code.replace(/^fc2-?/i, '').replace(/-/g, '').toLowerCase();
     debugLog(`javstore: searching for code=${code}, normalized=${normalizedCode}`);
     const searchUrl =`https://javstore.net/search?q=${encodeURIComponent(code)}`;
-    const searchHtml = await Utils.request(searchUrl); const searchDoc = new DOMParser().parseFromString(searchHtml, 'text/html');
-    const candidateLinks = searchDoc.querySelectorAll('a[href*="/"]'); const detailUrls = [];
+    const searchHtml = await Utils.request(searchUrl); const searchDoc = new DOMParser().parseFromString(searchHtml, 'text/html'); const candidateLinks = searchDoc.querySelectorAll('a[href*="/"]'); const detailUrls = [];
     for (const link of candidateLinks) {
      const href = link.getAttribute('href');
      if (!href) continue;
@@ -7295,8 +6313,7 @@
      const urlObj = new URL(href, searchUrl);
      if (!/javstore\.net$/i.test(urlObj.hostname)) continue;
      if (/^\/search(?:[/?#]|$)/i.test(urlObj.pathname)) continue;
-     const fullUrl = urlObj.href; const pathLastPart = decodeURIComponent(urlObj.pathname.split('/').pop() || '');
-     const normalizedPath = pathLastPart.toLowerCase().replace(/-/g, '');
+     const fullUrl = urlObj.href; const pathLastPart = decodeURIComponent(urlObj.pathname.split('/').pop() || ''); const normalizedPath = pathLastPart.toLowerCase().replace(/-/g, '');
      const looksLikeDetail = /\.html$/i.test(urlObj.pathname) || /^\/\d+[-/]/.test(urlObj.pathname);
      if (looksLikeDetail && normalizedPath.includes(normalizedCode) && !detailUrls.includes(fullUrl)) {
       detailUrls.push(fullUrl);
@@ -7311,11 +6328,9 @@
       return imgUrl; }
      debugLog(`javstore: 该页无预览图，尝试下一个`);
     }
-    debugLog('javstore: 所有候选页均无预览图');
-    return null;
+    debugLog('javstore: 所有候选页均无预览图'); return null;
    } catch (e) {
-    debugLog('javstore 获取失败', e);
-    return null; } },
+    debugLog('javstore 获取失败', e); return null; } },
   async _extractImgFromDetail(detailUrl, code) {
    try {
     const detailHtml = await Utils.request(detailUrl); const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
@@ -7332,8 +6347,7 @@
      return this.normalizePreviewUrl(src.replace(/_s\.jpg$/, '_l.jpg'), detailUrl); }
     return null;
    } catch (e) {
-    debugLog('javstore: 详情页请求失败', detailUrl, e.message);
-    return null; } },
+    debugLog('javstore: 详情页请求失败', detailUrl, e.message); return null; } },
   async projectjav(code) {
    code = this.lookupCode(code);
    try {
@@ -7356,24 +6370,20 @@
      });
     });
     const searchUrl =`https://projectjav.com/?searchTerm=${encodeURIComponent(code)}`;
-    debugLog('[projectjav] 搜索页:', searchUrl);
-    const searchRes = await request(searchUrl); const searchHtml = searchRes.responseText || ''; const finalSearchUrl = searchRes.finalUrl || searchUrl;
+    debugLog('[projectjav] 搜索页:', searchUrl); const searchRes = await request(searchUrl); const searchHtml = searchRes.responseText || ''; const finalSearchUrl = searchRes.finalUrl || searchUrl;
     const searchDoc = new DOMParser().parseFromString(searchHtml, 'text/html');
     let detailUrl = /\/movie\//i.test(new URL(finalSearchUrl).pathname)
      ? finalSearchUrl : '';
     if (!detailUrl) {
      const allMovieLinks = [...searchDoc.querySelectorAll('a[href*="/movie/"]')];
      debugLog(`[projectjav] /movie/ 链接数: ${allMovieLinks.length}`);
-     allMovieLinks.slice(0, 5).forEach(a => debugLog('  ', a.getAttribute('href')));
-     const firstLink = allMovieLinks[0]?.getAttribute('href') || '';
+     allMovieLinks.slice(0, 5).forEach(a => debugLog('  ', a.getAttribute('href'))); const firstLink = allMovieLinks[0]?.getAttribute('href') || '';
      if (!firstLink) { debugLog('[projectjav] 无结果，页面标题:', searchDoc.title); debugLog('[projectjav] 页面前800字符:', searchHtml.slice(0, 800)); return null; }
      detailUrl = firstLink.startsWith('http') ? firstLink :`https://projectjav.com${firstLink}`;
     }
-    debugLog('[projectjav] 详情页:', detailUrl);
-    const detailRes = finalSearchUrl === detailUrl ? searchRes : await request(detailUrl); const detailHtml = detailRes.responseText || '';
-    const finalDetailUrl = detailRes.finalUrl || detailUrl; const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
-    const screenshotLink = [...detailDoc.querySelectorAll('.col-md-12.thumbnail a[data-featherlight="image"], .thumbnail a[data-featherlight="image"]')]
-     .find(a => this.isCodeMatched([
+    debugLog('[projectjav] 详情页:', detailUrl); const detailRes = finalSearchUrl === detailUrl ? searchRes : await request(detailUrl); const detailHtml = detailRes.responseText || ''; const finalDetailUrl = detailRes.finalUrl || detailUrl;
+    const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
+    const screenshotLink = [...detailDoc.querySelectorAll('.col-md-12.thumbnail a[data-featherlight="image"], .thumbnail a[data-featherlight="image"]')] .find(a => this.isCodeMatched([
       a.outerHTML,
       a.closest('.thumbnail')?.outerHTML,
       finalDetailUrl
@@ -7386,11 +6396,9 @@
       const src = (thumbImg.getAttribute('src') || '').replace(/\?.*$/, '');
       if (src) return this.normalizePreviewUrl(src, finalDetailUrl);
      } }
-    debugLog('[projectjav] 详情页未找到图片，页面标题:', detailDoc.title);
-    return null;
+    debugLog('[projectjav] 详情页未找到图片，页面标题:', detailDoc.title); return null;
    } catch (e) {
-    debugLog('[projectjav] 异常:', e.message);
-    return null; } },
+    debugLog('[projectjav] 异常:', e.message); return null; } },
   async get(code) {
    const cacheEnabled = Settings.getPreviewCacheEnabled(); const cacheKey = this.cacheKey(code);
    if (cacheEnabled) {
@@ -7444,9 +6452,7 @@
     if (!footer && title) { footer = document.createElement('span'); footer.className = 'javlib-card-footer'; title.appendChild(footer); }
     return footer; }
    if (site === 'sukebei') {
-    const title = card.querySelector(':scope > td:nth-child(2) a[href^="/view/"]');
-    const flexRow = title?.parentElement?.matches('span[style*="display: flex"]') ? title.parentElement : null;
-    return flexRow || card.querySelector(':scope > td:nth-child(2)'); }
+    const title = card.querySelector(':scope > td:nth-child(2) a[href^="/view/"]'); const flexRow = title?.parentElement?.matches('span[style*="display: flex"]') ? title.parentElement : null; return flexRow || card.querySelector(':scope > td:nth-child(2)'); }
    return null; }
   function insertActions(slot, actions, site, card) {
    if (site === 'sukebei') {
@@ -7454,19 +6460,16 @@
     if (title?.parentNode === slot) {
      const embyButton = slot.querySelector(':scope > .emby-btn');
      if (embyButton) { slot.appendChild(actions); slot.insertBefore(actions, embyButton); return; }
-     slot.insertBefore(actions, title);
-     return; } }
+     slot.insertBefore(actions, title); return; } }
    slot.appendChild(actions); }
   function closeMagnetPopup() {
-   magnetOverlay?.remove();
-   magnetOverlay = null; }
+   magnetOverlay?.remove(); magnetOverlay = null; }
   function usesAggregateMagnetPanel() { return MobilePolicy.isMobile() || CFG.magnetDisplayMode === 'native-replace'; }
   function visibleActions() { return enabled() ? ACTIONS : []; }
   function syncSukebeiOfflineButton(card) {
    if (cardSite(card) !== 'sukebei') return;
-   const cells = [...card.children].filter(child => child.matches?.('td')); const linkCell = cells.find(cell => cell.querySelector('a[href^="magnet:"]'));
-   const magnetLink = linkCell?.querySelector('a[href^="magnet:"]'); const existing = card.querySelector('.jav-sukebei-offline-115');
-   const assistantGroup = linkCell?.querySelector('.mag-btn-group[data-mag-assistant="1"]');
+   const cells = [...card.children].filter(child => child.matches?.('td')); const linkCell = cells.find(cell => cell.querySelector('a[href^="magnet:"]')); const magnetLink = linkCell?.querySelector('a[href^="magnet:"]');
+   const existing = card.querySelector('.jav-sukebei-offline-115'); const assistantGroup = linkCell?.querySelector('.mag-btn-group[data-mag-assistant="1"]');
    if (!linkCell || !magnetLink) { existing?.remove(); return; }
    if (assistantGroup) { existing?.remove(); return; }
    const magnet = magnetLink.getAttribute('href') || magnetLink.href;
@@ -7474,13 +6477,10 @@
     existing.dataset.magnet = magnet;
     if (existing.parentNode !== linkCell) linkCell.appendChild(existing);
     return; }
-   const button = document.createElement('a');
-   button.href = '#'; button.className = 'jav-sukebei-offline-115'; button.title = '推送到115';
-   button.setAttribute('aria-label', '推送到115');
-   button.dataset.magnet = magnet; button.innerHTML = '<i class="fa fa-cloud-upload"></i>';
+   const button = document.createElement('a'); button.href = '#'; button.className = 'jav-sukebei-offline-115'; button.title = '推送到115'; button.setAttribute('aria-label', '推送到115'); button.dataset.magnet = magnet;
+   button.innerHTML = '<i class="fa fa-cloud-upload"></i>';
    button.addEventListener('click', async e => {
-    e.preventDefault(); e.stopPropagation();
-    e.stopImmediatePropagation?.();
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.();
     if (button.dataset.loading === '1') return;
     button.dataset.loading = '1';
     try {
@@ -7491,21 +6491,17 @@
    magnetLink.insertAdjacentElement('afterend', button); }
   function openMagnetPopup(code) {
    if (!code) return;
-   closeMagnetPopup(); ensureStyle();
-   const overlay = document.createElement('div');
-   overlay.className = 'jav-card-magnet-overlay';
+   closeMagnetPopup(); ensureStyle(); const overlay = document.createElement('div'); overlay.className = 'jav-card-magnet-overlay';
    overlay.innerHTML =`<div class="jav-card-magnet-panel" role="dialog" aria-modal="true"><div class="jav-card-magnet-head"><div class="jav-card-magnet-title">磁力 ${code}</div><button class="jav-card-magnet-close" type="button">×</button></div><div class="jav-card-magnet-body"></div></div>`;
    overlay.addEventListener('click', e => {
     if (e.target === overlay) closeMagnetPopup();
    });
-   overlay.querySelector('.jav-card-magnet-close')?.addEventListener('click', closeMagnetPopup);
-   const body = overlay.querySelector('.jav-card-magnet-body');
+   overlay.querySelector('.jav-card-magnet-close')?.addEventListener('click', closeMagnetPopup); const body = overlay.querySelector('.jav-card-magnet-body');
    if (body) {
     body.appendChild(
      usesAggregateMagnetPanel() ? NativeMagnetPanel.createAggregatePanel(code) : Magnet.createMagnetWidget(code)
     ); }
-   document.body.appendChild(overlay);
-   magnetOverlay = overlay; }
+   document.body.appendChild(overlay); magnetOverlay = overlay; }
   async function runAction(action, code, btn) {
    if (!code || btn.dataset.loading === '1') return;
    if (action === 'magnet') { openMagnetPopup(code); return; }
@@ -7514,21 +6510,15 @@
     if (action === 'trailer') await Trailer.show(code);
     else await Thumbnail.show(code);
    } finally {
-    delete btn.dataset.loading;
-    btn.style.pointerEvents = ''; btn.style.opacity = ''; } }
+    delete btn.dataset.loading; btn.style.pointerEvents = ''; btn.style.opacity = ''; } }
   function createButton(meta, code, card) {
    const btn = document.createElement('span');
    btn.className =`tool-span jav-card-quick-btn jav-card-quick-${meta.key}`;
-   btn.setAttribute('name', meta.name); btn.setAttribute('avid', code);
-   btn.dataset.action = meta.key; btn.dataset.code = code;
+   btn.setAttribute('name', meta.name); btn.setAttribute('avid', code); btn.dataset.action = meta.key; btn.dataset.code = code;
    btn.title =`${meta.title} ${code}`;
-   btn.innerHTML = meta.svg;
-   btn.setAttribute('role', 'button');
-   btn.tabIndex = 0;
+   btn.innerHTML = meta.svg; btn.setAttribute('role', 'button'); btn.tabIndex = 0;
    const handler = e => {
-    e.preventDefault(); e.stopPropagation();
-    e.stopImmediatePropagation?.();
-    runAction(meta.key, btn.dataset.code || SiteManager.getCardCode(card), btn); };
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); runAction(meta.key, btn.dataset.code || SiteManager.getCardCode(card), btn); };
    btn.addEventListener('click', handler, true);
    btn.addEventListener('keydown', e => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -7542,11 +6532,8 @@
    if (!code) return;
    if (action === 'copy-code') { GM_setClipboard(code); showQuickMenuToast('\u5df2\u590d\u5236\u756a\u53f7', code); return; }
    if (action !== 'download-cover') return;
-   if (!Utils.isEligibleDmmCoverCode(code)) {
-    showQuickMenuToast('\u65e0\u6cd5\u4e0b\u8f7d\u5c01\u9762', '\u8be5\u756a\u53f7\u4e0d\u652f\u6301 DMM \u9ad8\u6e05\u5c01\u9762');
-    return; }
-   item.disabled = true;
-   showQuickMenuToast('\u6b63\u5728\u83b7\u53d6\u5c01\u9762', '\u6700\u9ad8\u652f\u6301 2K\uff0c\u56fe\u7247\u8f83\u5927\uff0c\u8bf7\u7a0d\u7b49');
+   if (!Utils.isEligibleDmmCoverCode(code)) { showQuickMenuToast('\u65e0\u6cd5\u4e0b\u8f7d\u5c01\u9762', '\u8be5\u756a\u53f7\u4e0d\u652f\u6301 DMM \u9ad8\u6e05\u5c01\u9762'); return; }
+   item.disabled = true; showQuickMenuToast('\u6b63\u5728\u83b7\u53d6\u5c01\u9762', '\u6700\u9ad8\u652f\u6301 2K\uff0c\u56fe\u7247\u8f83\u5927\uff0c\u8bf7\u7a0d\u7b49');
    try {
     const result = await Trailer.fromJavxyCover(code); const url = result?.found && (result.url || result.highCover || result.cover);
     if (!url) { showQuickMenuToast('\u672a\u627e\u5230\u5c01\u9762', '\u8be5\u756a\u53f7\u6ca1\u6709\u53ef\u7528\u7684 DMM \u5c01\u9762'); return; }
@@ -7560,11 +6547,9 @@
     item.disabled = false; } }
   function closeQuickMenu(menu) {
    if (!menu) return;
-   menu.classList.remove('is-open'); menu.querySelector('.jav-card-quick-menu-trigger')?.setAttribute('aria-expanded', 'false');
-   const popover = menu.__quickMenuPopover;
+   menu.classList.remove('is-open'); menu.querySelector('.jav-card-quick-menu-trigger')?.setAttribute('aria-expanded', 'false'); const popover = menu.__quickMenuPopover;
    if (!popover) return;
-   popover.classList.remove('is-open');
-   popover.style.left = ''; popover.style.top = '';
+   popover.classList.remove('is-open'); popover.style.left = ''; popover.style.top = '';
    if (popover.parentNode !== menu) menu.appendChild(popover);
   }
   function toggleQuickMenu(menu) {
@@ -7573,8 +6558,8 @@
    document.querySelectorAll('.jav-card-quick-menu.is-open').forEach(item => { if (item !== menu) closeQuickMenu(item); });
    const open = !menu.classList.contains('is-open');
    if (!open) { closeQuickMenu(menu); return; }
-   menu.classList.add('is-open'); trigger.setAttribute('aria-expanded', 'true'); popover.classList.add('is-open'); document.body.appendChild(popover);
-   const rect = trigger.getBoundingClientRect(); const width = popover.offsetWidth || 164; const height = popover.offsetHeight || 82;
+   menu.classList.add('is-open'); trigger.setAttribute('aria-expanded', 'true'); popover.classList.add('is-open'); document.body.appendChild(popover); const rect = trigger.getBoundingClientRect(); const width = popover.offsetWidth || 164;
+   const height = popover.offsetHeight || 82;
    popover.style.left =`${Math.min(Math.max(6, rect.right - width), window.innerWidth - width - 6)}px`;
    popover.style.top =`${rect.top >= height + 8 ? rect.top - height - 6 : Math.min(window.innerHeight - height - 6, rect.bottom + 6)}px`;
   }
@@ -7582,23 +6567,18 @@
    if (!actions || !code) return null;
    const existing = card.querySelector('.jav-card-quick-menu');
    if (existing) {
-    existing.dataset.code = code;
-    const coverItem = existing.querySelector('[data-quick-action="download-cover"]');
+    existing.dataset.code = code; const coverItem = existing.querySelector('[data-quick-action="download-cover"]');
     if (coverItem) coverItem.hidden = !Utils.isEligibleDmmCoverCode(code);
-    actions.appendChild(existing);
-    return existing; }
-   const menu = document.createElement('span');
-   menu.className = 'jav-card-quick-menu'; menu.dataset.code = code;
+    actions.appendChild(existing); return existing; }
+   const menu = document.createElement('span'); menu.className = 'jav-card-quick-menu'; menu.dataset.code = code;
    menu.innerHTML =`<button type="button" class="jav-card-quick-btn jav-card-quick-menu-trigger" title="\u9996\u9875\u5feb\u6377\u529f\u80fd" aria-label="\u9996\u9875\u5feb\u6377\u529f\u80fd" aria-haspopup="menu" aria-expanded="false">${QUICK_MENU_ICON}</button><span class="jav-card-quick-menu-popover" role="menu"></span>`;
-   const popover = menu.querySelector('.jav-card-quick-menu-popover');
-   menu.__quickMenuPopover = popover;
+   const popover = menu.querySelector('.jav-card-quick-menu-popover'); menu.__quickMenuPopover = popover;
    QUICK_MENU_ITEMS.forEach(item => {
     const button = document.createElement('button');
     button.type = 'button'; button.className = 'jav-card-quick-menu-item'; button.dataset.quickAction = item.key; button.innerHTML =`${item.icon}<span>${item.label}</span>`;
     if (item.key === 'download-cover' && !Utils.isEligibleDmmCoverCode(code)) button.hidden = true;
     button.addEventListener('click', event => {
-     event.preventDefault(); event.stopPropagation();
-     Promise.resolve(runQuickMenuAction(item.key, menu.dataset.code || code, card, button)).finally(() => closeQuickMenu(menu));
+     event.preventDefault(); event.stopPropagation(); Promise.resolve(runQuickMenuAction(item.key, menu.dataset.code || code, card, button)).finally(() => closeQuickMenu(menu));
     }, true);
     popover.appendChild(button);
    });
@@ -7610,16 +6590,12 @@
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault(); event.stopPropagation(); toggleQuickMenu(menu);
    }, true);
-   actions.appendChild(menu);
-   return menu; }
+   actions.appendChild(menu); return menu; }
   function createDetailActions(code, host = null) {
    if (!code) return null;
-   ensureStyle();
-   const actions = document.createElement('span');
-   actions.className = 'jav-detail-quick-actions'; actions.dataset.code = code;
+   ensureStyle(); const actions = document.createElement('span'); actions.className = 'jav-detail-quick-actions'; actions.dataset.code = code;
    QUICK_MENU_ITEMS.forEach(item => {
-    const button = document.createElement('button');
-    button.type = 'button'; button.className = 'jav-card-quick-btn jav-detail-quick-btn'; button.dataset.quickAction = item.key; button.innerHTML = item.icon;
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-card-quick-btn jav-detail-quick-btn'; button.dataset.quickAction = item.key; button.innerHTML = item.icon;
     button.title =`${item.label}：${code}`;
     button.setAttribute('aria-label',`${item.label}：${code}`);
     if (item.key === 'download-cover' && !Utils.isEligibleDmmCoverCode(code)) button.hidden = true;
@@ -7632,8 +6608,7 @@
    return actions; }
   if (window.__LAOSIJI_QUICK_MENU_EVENTS__) window.removeEventListener('click', window.__LAOSIJI_QUICK_MENU_EVENTS__, true);
   window.__LAOSIJI_QUICK_MENU_EVENTS__ = event => {
-   const insideMenu = event.target.closest?.('.jav-card-quick-menu')
-    || [...document.querySelectorAll('.jav-card-quick-menu.is-open')].some(menu => menu.__quickMenuPopover?.contains(event.target));
+   const insideMenu = event.target.closest?.('.jav-card-quick-menu') || [...document.querySelectorAll('.jav-card-quick-menu.is-open')].some(menu => menu.__quickMenuPopover?.contains(event.target));
    if (!insideMenu) document.querySelectorAll('.jav-card-quick-menu.is-open').forEach(closeQuickMenu);
   };
   window.addEventListener('click', window.__LAOSIJI_QUICK_MENU_EVENTS__, true);
@@ -7650,20 +6625,16 @@
    const actorNames = [...card.querySelectorAll('a[href*="/actors/"]:not(.jav-card-quick-actions a)')].map(anchor => anchor.textContent.trim()).filter(Boolean);
    const stored = api.getState?.().works?.[code] || {};
    const blocked = !!api.isWorkBlacklisted({ ...stored, code, title: title.trim() || stored.title || '', actorNames: [...new Set([...(stored.actorNames || []), ...actorNames])] });
-   card.hidden = blocked; card.dataset.javdbBlacklistHidden = blocked ? '1' : '0';
-   return blocked; }
+   card.hidden = blocked; card.dataset.javdbBlacklistHidden = blocked ? '1' : '0'; return blocked; }
   function resourceMetadata(card, code) {
-   const root = card || document;
-   const titleNode = root.querySelector('.javdb-card-headline, .javdb-card-title, .video-title, .movie-panel-info .title, .movie-panel-info h1, .movie-panel-info h2, .title');
+   const root = card || document; const titleNode = root.querySelector('.javdb-card-headline, .javdb-card-title, .video-title, .movie-panel-info .title, .movie-panel-info h1, .movie-panel-info h2, .title');
    const image = root.querySelector('img[src], img[data-src]'); const anchor = card?.querySelector('a[href]'); let url = ''; let cover = '';
    try { url = anchor ? new URL(anchor.getAttribute('href') || '', location.href).href : ''; } catch (_) { }
    try { cover = image ? new URL(image.getAttribute('src') || image.getAttribute('data-src') || '', location.href).href : ''; } catch (_) { }
-   return { code, title: String(titleNode?.textContent || '').replace(code, '').trim(), cover, url: url || location.href, source: 'javdb', type: 'unknown', tags: [], actorNames: [] };
-  }
+   return { code, title: String(titleNode?.textContent || '').replace(code, '').trim(), cover, url: url || location.href, source: 'javdb', type: 'unknown', tags: [], actorNames: [] }; }
   function closeResourceMenu(menu) {
    if (!menu) return;
-   menu.classList.remove('is-open'); menu.querySelector('.jav-card-resource-menu-trigger')?.setAttribute('aria-expanded', 'false');
-   const popover = menu.__resourcePopover;
+   menu.classList.remove('is-open'); menu.querySelector('.jav-card-resource-menu-trigger')?.setAttribute('aria-expanded', 'false'); const popover = menu.__resourcePopover;
    if (!popover) return;
    popover.classList.remove('is-open'); popover.style.removeProperty('left'); popover.style.removeProperty('top'); popover.style.removeProperty('visibility');
    if (popover.parentNode !== menu) menu.appendChild(popover);
@@ -7675,10 +6646,8 @@
    if (currentCode) syncResourceMenu(null, currentCode, menu.parentElement || menu);
    document.querySelectorAll('.jav-card-resource-menu.is-open').forEach(item => { if (item !== menu) closeResourceMenu(item); });
    if (menu.classList.contains('is-open')) return closeResourceMenu(menu);
-   menu.classList.add('is-open'); trigger.setAttribute('aria-expanded', 'true');
-   popover.style.visibility = 'hidden';
-   popover.classList.add('is-open'); document.body.appendChild(popover);
-   const rect = trigger.getBoundingClientRect(); const width = popover.offsetWidth || 128; const height = popover.offsetHeight || 150;
+   menu.classList.add('is-open'); trigger.setAttribute('aria-expanded', 'true'); popover.style.visibility = 'hidden'; popover.classList.add('is-open'); document.body.appendChild(popover); const rect = trigger.getBoundingClientRect();
+   const width = popover.offsetWidth || 128; const height = popover.offsetHeight || 150;
    popover.style.left =`${Math.min(Math.max(6, rect.right - width), window.innerWidth - width - 6)}px`;
    popover.style.top =`${Math.max(6, rect.top >= height + 8 ? rect.top - height - 6 : Math.min(window.innerHeight - height - 6, rect.bottom + 6))}px`;
    popover.style.visibility = 'visible'; }
@@ -7686,8 +6655,7 @@
    if (!card || cardSite(card) !== 'javdb') return;
    const cover = card.querySelector('.jav-card-cover, .cover');
    if (!cover) return;
-   const flags = resourceFlags(code); const active = RESOURCE_MARKERS.filter(([flag]) => flags[flag]);
-   let markers = cover.querySelector('.jav-card-resource-markers');
+   const flags = resourceFlags(code); const active = RESOURCE_MARKERS.filter(([flag]) => flags[flag]); let markers = cover.querySelector('.jav-card-resource-markers');
    if (!active.length) { markers?.remove(); return; }
    if (!markers) { markers = document.createElement('span'); markers.className = 'jav-card-resource-markers'; cover.appendChild(markers); }
    const html = active.map(([flag, labels]) =>`<span class="jav-card-resource-marker jav-card-resource-marker-${flag}">${labels[1]}</span>`).join('');
@@ -7698,8 +6666,7 @@
    if (!menu) return;
    const flags = resourceFlags(code);
    menu.querySelectorAll('[data-resource-work-flag]').forEach(button => {
-    const active = !!flags[button.dataset.resourceWorkFlag]; const labels = RESOURCE_FLAG_LABELS[button.dataset.resourceWorkFlag];
-    button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
+    const active = !!flags[button.dataset.resourceWorkFlag]; const labels = RESOURCE_FLAG_LABELS[button.dataset.resourceWorkFlag]; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
     if (labels && button.textContent !== labels[active ? 1 : 0]) button.textContent = labels[active ? 1 : 0];
    }); }
   function syncAllResourceMenus() {
@@ -7719,65 +6686,49 @@
     if (menu) { closeResourceMenu(menu); menu.remove(); }
     menu = document.createElement('span'); menu.className = 'jav-card-resource-menu'; menu.dataset.resourceMenuVersion = '3';
     menu.innerHTML = '<button type="button" class="jav-card-quick-btn jav-card-resource-menu-trigger" title="鉴定处理" aria-label="鉴定处理" aria-haspopup="menu" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="resource-menu-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M42.238 6.426c4.8 0 7.238 2.34 7.333 6.979l.003.286V42.31c0 4.731-2.34 7.167-7.045 7.262l-.29.003H13.784c-4.777 0-7.259-2.318-7.356-6.977l-.003-.288V13.69c0-4.754 2.386-7.168 7.07-7.262l.29-.003zm-.07 3.773H13.855c-2.268 0-3.57 1.164-3.652 3.448l-.004.232V42.12c0 2.359 1.23 3.598 3.433 3.676l.223.004h28.313c2.245 0 3.547-1.164 3.629-3.448l.004-.232V13.88c0-2.359-1.23-3.676-3.412-3.676zM33 38a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zm8-7a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zM14.1 14.239c1.465-1.645 3.856-1.652 5.31-.02l.24.277l.198.248l.162.216l.18.259l.156.262l.073-.13l.127-.2l.126-.18l.077-.103l.182-.234l.107-.13l.246-.285c1.448-1.627 3.844-1.625 5.31.02s1.42 4.202.017 5.961l-.304.367l-.376.43l-.432.477l-.716.77l-.75.787l-.958.985l-.677.679l-.512.497l-.125.114c-1.043.921-1.761.897-2.72.096l-.18-.158l-.237-.225l-.808-.799l-.891-.904l-.962-1l-.378-.403l-.535-.581l-.475-.534l-.27-.319q-.124-.15-.223-.279c-1.444-1.875-1.447-4.316.018-5.961"/></svg></button><span class="jav-card-resource-menu-popover" role="menu"></span>';
-    const popover = menu.querySelector('.jav-card-resource-menu-popover');
-    menu.__resourcePopover = popover;
+    const popover = menu.querySelector('.jav-card-resource-menu-popover'); menu.__resourcePopover = popover;
     Object.entries(RESOURCE_FLAG_LABELS).forEach(([flag, labels]) => { const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-card-resource-menu-item'; button.dataset.resourceWorkFlag = flag; button.textContent = labels[0]; popover.appendChild(button); });
     menu.querySelector('.jav-card-resource-menu-trigger').addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); toggleResourceMenu(menu); }, true);
     menu.querySelector('.jav-card-resource-menu-trigger').addEventListener('keydown', event => { if (event.key !== 'Enter' && event.key !== ' ') return; event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); toggleResourceMenu(menu); }, true);
     popover.addEventListener('click', event => {
      const button = event.target.closest?.('[data-resource-work-flag]');
      if (!button) return;
-     event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.();
-     const currentCode = menu.dataset.code || code; const api = resourceApi(); const flag = button.dataset.resourceWorkFlag;
-     const previous = !!resourceFlags(currentCode)[flag];
-     button.disabled = true;
+     event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); const currentCode = menu.dataset.code || code; const api = resourceApi(); const flag = button.dataset.resourceWorkFlag;
+     const previous = !!resourceFlags(currentCode)[flag]; button.disabled = true;
      Promise.resolve(api?.toggleWorkFlag?.(currentCode, flag, resourceMetadata(card, currentCode))).then(result => {
-      const active = typeof result === 'boolean' ? result : !previous;
-      button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active));
-      const labels = RESOURCE_FLAG_LABELS[flag];
+      const active = typeof result === 'boolean' ? result : !previous; button.classList.toggle('is-active', active); button.setAttribute('aria-pressed', String(active)); const labels = RESOURCE_FLAG_LABELS[flag];
       if (labels) button.textContent = labels[active ? 1 : 0];
       syncAllResourceMenus(); closeResourceMenu(menu);
      }).catch(() => closeResourceMenu(menu)).finally(() => { button.disabled = false; });
     }, true); }
-   menu.dataset.code = code;
-   syncResourceMenu(card, code, actions); syncResourceMarkers(card, code); actions.appendChild(menu); }
+   menu.dataset.code = code; syncResourceMenu(card, code, actions); syncResourceMarkers(card, code); actions.appendChild(menu); }
   if (window.__LAOSIJI_RESOURCE_MENU_EVENTS__) window.removeEventListener('click', window.__LAOSIJI_RESOURCE_MENU_EVENTS__, true);
-  if (window.__LAOSIJI_RESOURCE_STATE_EVENTS__) {
-   window.removeEventListener('laosiji-resource-state-changed', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
-   window.removeEventListener('laosiji-resource-state-ready', window.__LAOSIJI_RESOURCE_STATE_EVENTS__); }
+  if (window.__LAOSIJI_RESOURCE_STATE_EVENTS__) { window.removeEventListener('laosiji-resource-state-changed', window.__LAOSIJI_RESOURCE_STATE_EVENTS__); window.removeEventListener('laosiji-resource-state-ready', window.__LAOSIJI_RESOURCE_STATE_EVENTS__); }
   window.__LAOSIJI_RESOURCE_MENU_EVENTS__ = event => { if (!event.target.closest?.('.jav-card-resource-menu, .jav-card-resource-menu-popover')) document.querySelectorAll('.jav-card-resource-menu.is-open').forEach(closeResourceMenu); };
-  window.addEventListener('click', window.__LAOSIJI_RESOURCE_MENU_EVENTS__, true);
-  window.__LAOSIJI_RESOURCE_STATE_EVENTS__ = syncAllResourceMenus;
-  window.addEventListener('laosiji-resource-state-changed', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
+  window.addEventListener('click', window.__LAOSIJI_RESOURCE_MENU_EVENTS__, true); window.__LAOSIJI_RESOURCE_STATE_EVENTS__ = syncAllResourceMenus; window.addEventListener('laosiji-resource-state-changed', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
   window.addEventListener('laosiji-resource-state-ready', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
   function attachToCard(card) {
    if (!card) return;
-   card.querySelectorAll('.jav-list-preview-btn').forEach(el => el.remove());
-   const existing = card.querySelector('.jav-card-quick-actions');
+   card.querySelectorAll('.jav-list-preview-btn').forEach(el => el.remove()); const existing = card.querySelector('.jav-card-quick-actions');
    if (enabled()) syncSukebeiOfflineButton(card);
    else card.querySelector('.jav-sukebei-offline-115')?.remove();
    const site = cardSite(card); const code = SiteManager.getCardCode(card); const slot = targetSlot(card);
    if (!code || !slot) { existing?.remove(); return; }
    if (syncBlacklistCard(card, code)) { return; }
    if (existing) {
-    const actions = visibleActions(); const actionKeys = new Set(actions.map(action => action.key));
-    existing.dataset.code = code;
+    const actions = visibleActions(); const actionKeys = new Set(actions.map(action => action.key)); existing.dataset.code = code;
     existing.querySelectorAll('.jav-card-quick-btn:not(.jav-card-quick-menu-trigger):not(.jav-card-resource-menu-trigger)').forEach(btn => {
      const meta = ACTIONS.find(item => item.key === btn.dataset.action);
      if (!actionKeys.has(btn.dataset.action)) { btn.remove(); return; }
-     btn.setAttribute('avid', code);
-     btn.dataset.code = code;
+     btn.setAttribute('avid', code); btn.dataset.code = code;
      if (meta) btn.title =`${meta.title} ${code}`;
     });
     actions.forEach(meta => {
      if (!existing.querySelector(`[data-action="${meta.key}"]`)) {
       existing.appendChild(createButton(meta, code, card)); }
     });
-    addQuickMenu(card, existing, code); addResourceMenu(card, existing, code); insertActions(slot, existing, site, card);
-    return; }
-   const actions = document.createElement('span');
-   actions.className = 'toolbar-b jav-card-quick-actions'; actions.dataset.code = code;
-   visibleActions().forEach(meta => actions.appendChild(createButton(meta, code, card))); addQuickMenu(card, actions, code);
+    addQuickMenu(card, existing, code); addResourceMenu(card, existing, code); insertActions(slot, existing, site, card); return; }
+   const actions = document.createElement('span'); actions.className = 'toolbar-b jav-card-quick-actions'; actions.dataset.code = code; visibleActions().forEach(meta => actions.appendChild(createButton(meta, code, card))); addQuickMenu(card, actions, code);
    addResourceMenu(card, actions, code); insertActions(slot, actions, site, card); }
   function removeAll() {
    document.querySelectorAll('.jav-card-quick-actions .jav-card-resource-menu').forEach(closeResourceMenu);
@@ -7790,12 +6741,10 @@
  })();
  Core.expose('__LAOSIJI_LIST_PREVIEW__', ListPreview);
  const CoverHoverPreview = (() => {
-  let active = false; let timer = null; let popup = null; let lastEvent = null; let lastAnchor = null; const titleStore = new Map();
-  const pan115CoverCache = new Map(); const pan115CoverPending = new Map(); const PAN115_COVER_CACHE_PREFIX = 'pan115_cover_v2_';
+  let active = false; let timer = null; let popup = null; let lastEvent = null; let lastAnchor = null; const titleStore = new Map(); const pan115CoverCache = new Map(); const pan115CoverPending = new Map(); const PAN115_COVER_CACHE_PREFIX = 'pan115_cover_v2_';
   const DMM_GRAPHQL_URL = 'https://api.video.dmm.co.jp/graphql';
   function enabled() {
-   const feature = is115Page() ? 'pan115CoverHoverPreview' : 'coverHoverPreview';
-   const configured = is115Page() ? CFG.pan115CoverHoverPreview : CFG.coverHoverPreview; const embyPage = isEmbyPage();
+   const feature = is115Page() ? 'pan115CoverHoverPreview' : 'coverHoverPreview'; const configured = is115Page() ? CFG.pan115CoverHoverPreview : CFG.coverHoverPreview; const embyPage = isEmbyPage();
    if (embyPage) return true;
    return MobilePolicy.featureEnabled(feature, !!configured) && !SiteManager.isDetailPage(); }
   function ensureStyle() {
@@ -7803,12 +6752,9 @@
   }
   function clearTimer() {
    if (!timer) return;
-   clearTimeout(timer);
-   timer = null; }
+   clearTimeout(timer); timer = null; }
   function hide() {
-   clearTimer(); popup?.remove();
-   popup = null; lastEvent = null; lastAnchor = null;
-   restoreTitles(); }
+   clearTimer(); popup?.remove(); popup = null; lastEvent = null; lastAnchor = null; restoreTitles(); }
   function is115Page() { return /^(?:www\.)?115\.com$/i.test(location.hostname); }
   function isEmbyPage() { return typeof SiteManager !== 'undefined' && typeof SiteManager.isEmbyPage === 'function' && SiteManager.isEmbyPage(); }
   function resolveEmbyImage(value) {
@@ -7823,35 +6769,25 @@
    try {
     const url = new URL(source, location.href);
     if (!/\/Items\/[^/]+\/Images\//i.test(url.pathname)) return source;
-    url.searchParams.delete('fillWidth'); url.searchParams.delete('fillHeight'); url.searchParams.set('maxWidth', String(maxWidth));
-    url.searchParams.set('maxHeight', String(maxHeight));
-    return url.href;
+    url.searchParams.delete('fillWidth'); url.searchParams.delete('fillHeight'); url.searchParams.set('maxWidth', String(maxWidth)); url.searchParams.set('maxHeight', String(maxHeight)); return url.href;
    } catch { return source; } }
   function embyLargeImageSrc(value) {
    const source = resizeEmbyImage(value, 1920, 1080);
    if (!source) return '';
    try {
     const url = new URL(source, location.href);
-    if (/\/Images\/Primary$/i.test(url.pathname)) {
-     url.pathname = url.pathname.replace(/\/Images\/Primary$/i, '/Images/Thumb');
-     url.searchParams.delete('tag'); }
+    if (/\/Images\/Primary$/i.test(url.pathname)) { url.pathname = url.pathname.replace(/\/Images\/Primary$/i, '/Images/Thumb'); url.searchParams.delete('tag'); }
     return url.href;
    } catch { return source; } }
   function embyPrimaryFallbackSrc(value) { return resizeEmbyImage(value, 1080, 1620); }
   function cssImageUrl(value) {
-   const matches = String(value || '').matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/gi);
-   const urls = [...matches].map(match => resolveEmbyImage(match[2])).filter(Boolean);
+   const matches = String(value || '').matchAll(/url\(\s*(['"]?)(.*?)\1\s*\)/gi); const urls = [...matches].map(match => resolveEmbyImage(match[2])).filter(Boolean);
    return urls.find(url => /\/Items\/[^/]+\/Images\//i.test(url)) || urls.at(-1) || '';
   }
   function embyImageSrc(node) {
    if (!node) return '';
    const img = node.matches?.('img') ? node : node.querySelector?.('img[src], img[data-src], img[data-lazy-src], img[data-image]');
-   const imageValues = [
-    img?.currentSrc,
-    img?.getAttribute?.('src'),
-    img?.getAttribute?.('data-src'),
-    img?.getAttribute?.('data-lazy-src'),
-    img?.getAttribute?.('data-image'), ];
+   const imageValues = [ img?.currentSrc, img?.getAttribute?.('src'), img?.getAttribute?.('data-src'), img?.getAttribute?.('data-lazy-src'), img?.getAttribute?.('data-image') ];
    for (const value of imageValues) {
     const source = resolveEmbyImage(value);
     if (source) return source;
@@ -7869,9 +6805,7 @@
     '.itemImage',
     '.itemImageContainer',
     '.backdropCardImage',
-   ].join(',');
-   const directImage = target?.closest?.(imageSelector);
-   const card = directImage?.closest?.('.card, .listItem, .item, .emby-scroller-slide') || target?.closest?.('.card, .listItem, .item, .emby-scroller-slide');
+   ].join(','); const directImage = target?.closest?.(imageSelector); const card = directImage?.closest?.('.card, .listItem, .item, .emby-scroller-slide') || target?.closest?.('.card, .listItem, .item, .emby-scroller-slide');
    const image = directImage || card?.querySelector?.(imageSelector);
    if (!image || !card || target?.closest?.('.cardText')) return null;
    const src = embyImageSrc(image) || embyImageSrc(card);
@@ -7893,8 +6827,7 @@
     return { anchor: legacyItem, src: '', code: Utils.normalizeCode(code) }; }
    const item = target?.closest?.('.file-list-item');
    if (!item) return null;
-   const nameNode = item.querySelector('.file-name-responsive[title], .file-name-responsive');
-   const name = nameNode?.getAttribute('title') || nameNode?.textContent || '';
+   const nameNode = item.querySelector('.file-name-responsive[title], .file-name-responsive'); const name = nameNode?.getAttribute('title') || nameNode?.textContent || '';
    const isFolder = !!item.querySelector('img[src*="/icons/types/folder.svg"], img[alt="文件夹"]') || /(?:^|\s)文件夹(?:\s|$)/.test(item.textContent || '');
    if (!isFolder && !Pan115.isVideoName(name)) return null;
    const code = Utils.extractCode(name);
@@ -7924,9 +6857,7 @@
    try {
     const raw = sessionStorage.getItem(key);
     if (raw === null) return undefined;
-    const value = JSON.parse(raw);
-    pan115CoverCache.set(key, value || null);
-    return value || null;
+    const value = JSON.parse(raw); pan115CoverCache.set(key, value || null); return value || null;
    } catch { return undefined; } }
   function writePan115CoverCache(code, value) {
    const key =`${PAN115_COVER_CACHE_PREFIX}${code}`;
@@ -7967,11 +6898,8 @@
    if (!keyword) throw new Error('DMM cover keyword missing');
    for (const searchKeyword of [...new Set([keyword,`${keyword}#`])]) {
     const query =`{ legacySearchPPV(limit: 5, offset: 0, sort: SALES_RANK_SCORE, floor: AV, queryWord: ${JSON.stringify(searchKeyword)}) { result { contents { id } } } }`;
-    const data = await dmmGraphQLRequest(query);
-    const ids = Array.isArray(data?.legacySearchPPV?.result?.contents)
-     ? data.legacySearchPPV.result.contents.map(item => String(item?.id || '').trim()).filter(Boolean) : [];
-    const compactKeyword = keyword.replace(/[^a-z0-9]/gi, '').toLowerCase();
-    const contentID = ids.find(id => id.replace(/[^a-z0-9]/gi, '').toLowerCase().includes(compactKeyword)) || (ids.length === 1 ? ids[0] : '');
+    const data = await dmmGraphQLRequest(query); const ids = Array.isArray(data?.legacySearchPPV?.result?.contents) ? data.legacySearchPPV.result.contents.map(item => String(item?.id || '').trim()).filter(Boolean) : [];
+    const compactKeyword = keyword.replace(/[^a-z0-9]/gi, '').toLowerCase(); const contentID = ids.find(id => id.replace(/[^a-z0-9]/gi, '').toLowerCase().includes(compactKeyword)) || (ids.length === 1 ? ids[0] : '');
     if (contentID) {
      const encoded = encodeURIComponent(contentID);
      return`https://pics.dmm.co.jp/digital/video/${encoded}/${encoded}pl.jpg`;
@@ -7987,14 +6915,11 @@
     loadJavdbCover(normalized),
     loadDmmCover(normalized),
    ]).then(cover => {
-    writePan115CoverCache(normalized, cover);
-    return cover;
+    writePan115CoverCache(normalized, cover); return cover;
    }).catch(err => {
-    errorLog('115 JavDB/DMM 封面查询失败:', normalized, err); writePan115CoverCache(normalized, '');
-    return '';
+    errorLog('115 JavDB/DMM 封面查询失败:', normalized, err); writePan115CoverCache(normalized, ''); return '';
    }).finally(() => pan115CoverPending.delete(normalized));
-   pan115CoverPending.set(normalized, task);
-   return task; }
+   pan115CoverPending.set(normalized, task); return task; }
   function titleTargets(cover) {
    return [
     cover,
@@ -8024,9 +6949,7 @@
   }
   function show(src, event, fallback = '') {
    if (!src || !active) return;
-   ensureStyle(); popup?.remove();
-   const box = document.createElement('div'); const img = document.createElement('img');
-   box.className = 'jav-cover-hover-preview'; img.decoding = 'async'; img.loading = 'eager'; img.src = src;
+   ensureStyle(); popup?.remove(); const box = document.createElement('div'); const img = document.createElement('img'); box.className = 'jav-cover-hover-preview'; img.decoding = 'async'; img.loading = 'eager'; img.src = src;
    img.addEventListener('load', () => {
     position(box, event); requestAnimationFrame(() => box.classList.add('is-visible'));
    }, { once: true });
@@ -8034,16 +6957,12 @@
    const onImageError = () => {
     if (fallback && !fallbackAttempted) { fallbackAttempted = true; img.src = fallback; return; }
     hide(); };
-   img.addEventListener('error', onImageError); box.appendChild(img); document.body.appendChild(box);
-   popup = box;
-   position(box, event); }
+   img.addEventListener('error', onImageError); box.appendChild(img); document.body.appendChild(box); popup = box; position(box, event); }
   function onOver(event) {
    if (!enabled()) return;
    const target = targetFromEvent(event.target);
    if (!target) return;
-   suppressTitles(target.anchor);
-   lastEvent = event; lastAnchor = target.anchor;
-   clearTimer();
+   suppressTitles(target.anchor); lastEvent = event; lastAnchor = target.anchor; clearTimer();
    timer = setTimeout(async () => {
     const current = targetFromEvent(lastEvent?.target);
     if (!current || current.anchor !== target.anchor || !active) return;
@@ -8071,11 +6990,9 @@
     return; }
    active = shouldEnable;
    if (active) {
-    document.addEventListener('mouseover', onOver, true); document.addEventListener('mousemove', onMove, true);
-    document.addEventListener('mouseout', onOut, true); document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('mouseover', onOver, true); document.addEventListener('mousemove', onMove, true); document.addEventListener('mouseout', onOut, true); document.addEventListener('pointerdown', onPointerDown, true);
    } else {
-    document.removeEventListener('mouseover', onOver, true); document.removeEventListener('mousemove', onMove, true);
-    document.removeEventListener('mouseout', onOut, true); document.removeEventListener('pointerdown', onPointerDown, true); hide(); } }
+    document.removeEventListener('mouseover', onOver, true); document.removeEventListener('mousemove', onMove, true); document.removeEventListener('mouseout', onOut, true); document.removeEventListener('pointerdown', onPointerDown, true); hide(); } }
   return { sync, hide };
  })();
  Core.expose('__LAOSIJI_COVER_HOVER_PREVIEW__', CoverHoverPreview);
@@ -8090,15 +7007,12 @@
    SiteManager.clearDetailPreviewInline(); }
   async function sync() {
    if (!enabled() || !SiteManager.isDetailPage()) {
-    lastToken++;
-    remove();
+    lastToken++; remove();
     state = { code: '', status: '' };
     return; }
-   ensureStyle();
-   const code = SiteManager.getDetailCode();
+   ensureStyle(); const code = SiteManager.getDetailCode();
    if (!code) {
-    lastToken++;
-    remove();
+    lastToken++; remove();
     state = { code: '', status: '' };
     return; }
    if (state.code === code && state.status === 'missing') return;
@@ -8113,10 +7027,8 @@
    if (!target.standalone) target.slot.classList.add('has-detail-preview-inline');
    let wrap = document.querySelector('.jav-detail-preview-wrap');
    if (!wrap) {
-    wrap = document.createElement('div'); wrap.className = 'jav-detail-preview-wrap'; wrap.dataset.code = code; wrap.dataset.state = 'loading';
-    const loading = document.createElement('span');
-    loading.className = 'jav-detail-preview-loading'; loading.textContent = '预览图加载中...';
-    wrap.appendChild(loading);
+    wrap = document.createElement('div'); wrap.className = 'jav-detail-preview-wrap'; wrap.dataset.code = code; wrap.dataset.state = 'loading'; const loading = document.createElement('span'); loading.className = 'jav-detail-preview-loading';
+    loading.textContent = '预览图加载中...'; wrap.appendChild(loading);
     if (target.anchor?.parentElement === target.slot) {
      target.slot.insertBefore(wrap, target.anchor);
     } else { target.slot.insertBefore(wrap, target.slot.firstChild); }
@@ -8129,9 +7041,7 @@
     state = { code, status: 'missing' };
     return; }
    state = { code, status: 'loaded' };
-   wrap.dataset.state = 'loaded'; wrap.innerHTML = '';
-   const img = document.createElement('img');
-   img.className = 'jav-detail-preview-inline'; img.dataset.code = code; img.src = result.url; img.alt = code; img.loading = 'lazy'; img.title = '点击查看预览图';
+   wrap.dataset.state = 'loaded'; wrap.innerHTML = ''; const img = document.createElement('img'); img.className = 'jav-detail-preview-inline'; img.dataset.code = code; img.src = result.url; img.alt = code; img.loading = 'lazy'; img.title = '点击查看预览图';
    img.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); Utils.showOverlay(result.url, code, result.source); });
    wrap.appendChild(img); }
   return { sync, remove };
@@ -8142,8 +7052,7 @@
    injectStyle('jav-detail-quick-actions-style',`.jav-detail-quick-actions{display:inline-flex!important;align-items:center!important;gap:5px!important;margin-left:8px!important;vertical-align:middle!important;line-height:0!important;white-space:nowrap!important}.jav-detail-quick-actions .jav-detail-quick-btn{width:26px!important;height:26px!important;padding:0!important;flex:0 0 26px!important;appearance:none!important;border:0!important;vertical-align:middle!important;border-radius:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;outline:0!important;text-shadow:none!important}.jav-detail-quick-actions .quick-menu-item-icon{width:24px!important;height:24px!important;display:block!important;background:transparent!important;background-image:none!important;border:0!important}.jav-detail-quick-actions .resource-menu-icon{width:24px!important;height:24px!important;display:block!important;background:transparent!important;border:0!important}.jav-detail-quick-actions .jav-detail-quick-btn:hover,.jav-detail-quick-actions .jav-detail-quick-btn:active,.jav-detail-quick-actions .jav-detail-quick-btn:focus{border:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;outline:0!important}`);
   }
   function removeLegacyCopyButtons() {
-   document.querySelectorAll('.jav-avid-copy').forEach(button => button.remove());
-   document.querySelectorAll('.movie-panel-info .first-block .copy-to-clipboard').forEach(button => button.remove()); }
+   document.querySelectorAll('.jav-avid-copy').forEach(button => button.remove()); document.querySelectorAll('.movie-panel-info .first-block .copy-to-clipboard').forEach(button => button.remove()); }
   function remove() {
    document.querySelectorAll('.jav-detail-quick-actions').forEach(actions => actions.remove());
    document.querySelectorAll('.jav-detail-cover-download-shell').forEach(shell => {
@@ -8155,29 +7064,22 @@
    const numberBlock = document.querySelector('.movie-panel-info .first-block'); const numberValue = numberBlock?.querySelector('.value');
    if (numberBlock && numberValue) return { anchor: numberValue, host: numberBlock };
    const javbusInfo = document.querySelector('div.col-md-3.info');
-   const javbusCode = [...(javbusInfo?.querySelectorAll('p span, h3 span') || [])].find(el => {
-    return el.textContent.trim().toUpperCase() === code.toUpperCase();
-   });
+   const javbusCode = [...(javbusInfo?.querySelectorAll('p span, h3 span') || [])].find(el => { return el.textContent.trim().toUpperCase() === code.toUpperCase(); });
    if (javbusCode) return { anchor: javbusCode, host: javbusInfo };
-   const javbusAnchor = [...(javbusInfo?.querySelectorAll('p, h3, span') || [])].find(el => {
-    return el.textContent.trim().toUpperCase().includes(code.toUpperCase());
-   });
+   const javbusAnchor = [...(javbusInfo?.querySelectorAll('p, h3, span') || [])].find(el => { return el.textContent.trim().toUpperCase().includes(code.toUpperCase()); });
    if (javbusAnchor) return { anchor: javbusAnchor, host: javbusInfo };
    const javlibAnchor = document.querySelector('#video_id .text');
    if (javlibAnchor) return { anchor: javlibAnchor, host: javlibAnchor, inside: true };
    return null; }
   function sync() {
-   const code = SiteManager.isDetailPage() ? SiteManager.getDetailCode() : '';
-   removeLegacyCopyButtons();
+   const code = SiteManager.isDetailPage() ? SiteManager.getDetailCode() : ''; removeLegacyCopyButtons();
    if (!code) { remove(); return; }
    const target = getTarget(code);
    if (!target) { remove(); return; }
-   const existing = target.anchor.querySelector(':scope > .jav-detail-quick-actions')
-    || target.anchor.parentElement?.querySelector(':scope > .jav-detail-quick-actions')
+   const existing = target.anchor.querySelector(':scope > .jav-detail-quick-actions') || target.anchor.parentElement?.querySelector(':scope > .jav-detail-quick-actions')
     || target.anchor.nextElementSibling?.classList.contains('jav-detail-quick-actions') && target.anchor.nextElementSibling;
    if (existing?.dataset.code === code) return;
-   remove(); ensureStyle();
-   const actions = ListPreview.createDetailActions(code, target.host);
+   remove(); ensureStyle(); const actions = ListPreview.createDetailActions(code, target.host);
    if (!actions) return;
    actions.dataset.code = code;
    if (target.inside) target.anchor.appendChild(actions);
@@ -8185,16 +7087,14 @@
   }
   return { sync, remove };
  })();
- Core.expose('__LAOSIJI_DETAIL_COVER_DOWNLOAD__', DetailCoverDownload);
- const JAVXY_DEV_API_BASE = '';
+ Core.expose('__LAOSIJI_DETAIL_COVER_DOWNLOAD__', DetailCoverDownload); const JAVXY_DEV_API_BASE = '';
  const Trailer = {
   normalize(code) { return Utils.normalizeCode(code); },
   cacheKey(code) {
    return`trailer_cache_v17_${this.normalize(code)}`;
   },
   isDynamicTrailer(result) {
-   const url = String(result?.url || '');
-   return String(result?.type || '').toLowerCase() === 'hls' || /\.m3u8(?:[?#].*)?$/i.test(url); },
+   const url = String(result?.url || ''); return String(result?.type || '').toLowerCase() === 'hls' || /\.m3u8(?:[?#].*)?$/i.test(url); },
   debug(...args) {
    if (DEBUG_LOG) console.log('[TrailerResolver]', ...args);
   },
@@ -8216,7 +7116,7 @@
      quality: result.quality,
      urls: result.urls,
      javxySource: result.javxySource || result.source,
-     fallbackResolver: async (failedSources = []) => {
+     fallbackResolver: result.proxied ? null : async (failedSources = []) => {
       const failed = [...new Set(failedSources.map(source => this.normalizeJavxySource(source)).filter(Boolean))];
       if (failed.includes('JavDB')) return null;
       if (failed.includes('DMM')) this.markJpSourceTemporarilyFailed('DMM');
@@ -8229,6 +7129,18 @@
   async get(code) {
    const rawCode = String(code || '').trim(); const id = this.normalize(code); const cacheEnabled = Settings.getTrailerCacheEnabled();
    this.debug('开始查询', { rawCode, normalized: id, cacheEnabled });
+   if (Settings.getTrailerProxyPlaybackEnabled()) {
+    this.debug('已开启预告片代理播放，直接请求服务器中转', { normalized: id });
+    const proxied = await this.proxyJavxyPlaybackResult(id, rawCode);
+    if (proxied?.url) return proxied;
+    // A title can legitimately lack a relayable MP4. Only reset the
+    // user setting after the capability endpoint explicitly reports
+    // that the server relay feature was switched off.
+    const proxyStatus = await this.getProxyPlaybackStatus();
+    if (!proxyStatus.closed) return null;
+    CFG.trailerProxyPlayback = false; Utils.showToast('服务器已关闭', '预告片中转播放已关闭，已切换为普通播放', 4000);
+    this.debug('服务器已关闭预告片中转播放，已关闭本地选项并重试普通播放', { normalized: id });
+    return this.get(rawCode); }
    if (cacheEnabled) {
     const cached = sessionStorage.getItem(this.cacheKey(id));
     if (cached) {
@@ -8273,11 +7185,9 @@
     if (['network', 'timeout', 'abort'].includes(response.error?.kind)) return null;
     return response;
    });
-   result.abort = () => request.abort?.() || false;
-   return result; },
+   result.abort = () => request.abort?.() || false; return result; },
   javxyToken() {
-   return [118,119,112,71,97,110,28,84,124,65,76,102,65,16,77,109,64,82,85,83,67,92,125,108,83,65,124,107,84,104,71,84,17,124,118,125,104,8,125,96,112,103,29,18,82,83,87,84]
-    .map(v => String.fromCharCode(v ^ 0x25)) .join(''); },
+   return [118,119,112,71,97,110,28,84,124,65,76,102,65,16,77,109,64,82,85,83,67,92,125,108,83,65,124,107,84,104,71,84,17,124,118,125,104,8,125,96,112,103,29,18,82,83,87,84] .map(v => String.fromCharCode(v ^ 0x25)) .join(''); },
   normalizeJavxySource(value) {
    const raw = String(value || '').trim().toLowerCase();
    if (raw.includes('fc2')) return 'FC2';
@@ -8302,8 +7212,7 @@
   markJpSourceTemporarilyFailed(source = 'DMM') {
    sessionStorage.setItem(this.jpSourceFailedKey(source), String(Date.now() + 30 * 60 * 1000)); },
   async fallbackJavxyResult(code, rawCode = '', failedSources = [], options = {}) {
-   const skip = [...new Set((failedSources || []).map(source => this.normalizeJavxySource(source)).filter(Boolean))];
-   const prefer = [...new Set((options.prefer || []).map(source => String(source || '').trim()).filter(Boolean))];
+   const skip = [...new Set((failedSources || []).map(source => this.normalizeJavxySource(source)).filter(Boolean))]; const prefer = [...new Set((options.prefer || []).map(source => String(source || '').trim()).filter(Boolean))];
    const source = [...new Set((options.source || []).map(source => String(source || '').trim()).filter(Boolean))];
    if (!skip.length && !prefer.length && !source.length) return null;
    if (!options.silent) {
@@ -8315,6 +7224,33 @@
      rule: '仅跳过失败来源，后续顺序按服务端后台设置'
     }); }
    return this.fromJavxyCcCd(code, rawCode, { skip, prefer, source, playbackFallback: true }); },
+  async proxyJavxyPlaybackResult(code, rawCode = '') {
+   this.debug('请求预告片服务器中转播放', { code });
+   return this.fromJavxyCcCd(code, rawCode, {
+    proxyPlayback: true
+   }); },
+  async getProxyPlaybackStatus() {
+   const localApiBase = String(JAVXY_DEV_API_BASE || '').trim().replace(/\/+$/, '');
+   const endpoints = localApiBase ? [{ base: localApiBase, label: 'Javxy Local' }] : [
+     { host: String.fromCharCode(106,97,118,120,121,46,99,99,46,99,100), label: 'Javxy' },
+     { host: String.fromCharCode(119,111,114,107,101,114,46,106,97,118,120,121,46,99,99,46,99,100), label: 'Javxy Worker' } ];
+   for (const endpoint of endpoints) {
+    const params = new URLSearchParams({ client: 'laosiji-new' });
+    const apiUrl = endpoint.base
+     ?`${endpoint.base}/trailers/_proxy/status?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/trailers/_proxy/status?${params}`;
+    const response = await this.request(apiUrl, {
+     timeout: 5000,
+     headers: {
+      Accept: 'application/json,text/plain,*/*',
+      [[String.fromCharCode(88),String.fromCharCode(74,97,118,120,121),String.fromCharCode(84,111,107,101,110)].join('-')]: this.javxyToken() }
+    });
+    if (!response || response.status !== 200 || !response.responseText) continue;
+    try {
+     const data = JSON.parse(response.responseText);
+     if (typeof data?.enabled === 'boolean') return { available: data.enabled, closed: !data.enabled };
+    } catch {
+    } }
+   return { available: false, closed: false }; },
   installFallbackDebugHelper() {
    const targetWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : globalThis;
    targetWindow.__javxyFailDMMFor30m = globalThis.__javxyFailDMMFor30m = () => {
@@ -8371,6 +7307,7 @@
     if (Array.isArray(options.prefer) && options.prefer.length) params.set('prefer', options.prefer.join(','));
     if (Array.isArray(options.source) && options.source.length) params.set('source', options.source.join(','));
     if (options.playbackFallback) params.set('purpose', 'playback-fallback');
+    if (options.proxyPlayback) params.set('purpose', 'proxy-playback');
     const apiUrl = endpoint.base
      ?`${endpoint.base}/trailers/${encodeURIComponent(query)}?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/trailers/${encodeURIComponent(query)}?${params}`;
     this.debug('Javxy \u8bf7\u6c42 API', { query, apiUrl, endpoint: endpoint.label });
@@ -8408,7 +7345,7 @@
     const qualityMap = data?.qualities && typeof data.qualities === 'object' ? data.qualities : {};
     const quality = data?.quality && qualityMap[data.quality] ? data.quality : this.selectHighestQuality(qualityMap);
     const sourceBase = this.javxySourceLabels[data?.source] ||`Javxy | ${data?.source || 'dmm'}`;
-    const source = sourceBase;
+    const source = data?.proxy ?`${sourceBase} | 代理` : sourceBase;
     this.debug('Javxy 返回结果', { endpoint: endpoint.label, source: data?.source, quality, qualities: Object.keys(qualityMap) });
     const resultType = String(data?.type || '').trim() || 'video'; const directUrl = qualityMap[quality] || trailerUrl;
     return this.result(directUrl, source, resultType, {
@@ -8419,6 +7356,7 @@
      rawCode,
      javxySource: String(data?.source || '').trim(),
      requiresJP: Boolean(data?.requiresJP),
+     proxied: Boolean(data?.proxy),
      fallbackSources: Array.isArray(data?.fallback) ? data.fallback.filter(Boolean) : [],
      fallbackQuery: {
       skip: Array.isArray(options.skip) ? options.skip.filter(Boolean) : [],
@@ -8452,13 +7390,12 @@
  const Settings = {
   getPreviewCacheEnabled() { return true; },
   getTrailerCacheEnabled() { return true; },
+  getTrailerProxyPlaybackEnabled() { return CFG.trailerProxyPlayback; },
   getDefaultSearchEngine(code = '') {
    const fc2Engine = SearchEngines.find(engine => engine.fc2Only && engine.isAvailable?.(code));
    if (fc2Engine) return fc2Engine;
-   const defaultIndex = SearchEngines.findIndex(engine => engine.name === 'AVBase');
-   const index = GM_getValue('default_search_engine', defaultIndex >= 0 ? defaultIndex : SearchEngines.length - 1); const configured = SearchEngines[index];
-   const fallback = SearchEngines.find(engine => engine.name === 'AVBase' && !engine.isAvailable) || SearchEngines.find(engine => !engine.isAvailable)
-    || SearchEngines[0];
+   const defaultIndex = SearchEngines.findIndex(engine => engine.name === 'AVBase'); const index = GM_getValue('default_search_engine', defaultIndex >= 0 ? defaultIndex : SearchEngines.length - 1); const configured = SearchEngines[index];
+   const fallback = SearchEngines.find(engine => engine.name === 'AVBase' && !engine.isAvailable) || SearchEngines.find(engine => !engine.isAvailable) || SearchEngines[0];
    return configured?.isAvailable && !configured.isAvailable(code) ? fallback : configured || fallback; },
   getDefaultVideoEngine() { return GM_getValue('default_video_engine', 'missav'); },
   getVideoEngines() { return VIDEO_ENGINES; },
@@ -8540,8 +7477,7 @@
 `/user_agent="${String(navigator.userAgent).replace(/[\r\n]/g, ' ').split('"').join(' ')}"`,
     '/referer="https://115.com/"',
     encodedTitle ?`/title="${encodedTitle}"` : '',
-   ].filter(Boolean).join(' ');
-   GM_setClipboard(command);
+   ].filter(Boolean).join(' '); GM_setClipboard(command);
    window.open('potplayer:///current/clipboard', '_self');
    return directUrl; },
   cacheKey(code) {
@@ -8576,8 +7512,7 @@
    } catch {} },
   clearCached(code) {
    try {
-    const normalized = this.normalizeKeepSeparator(code);
-    sessionStorage.removeItem(this.cacheKey(normalized)); sessionStorage.removeItem(this.listCacheKey(normalized));
+    const normalized = this.normalizeKeepSeparator(code); sessionStorage.removeItem(this.cacheKey(normalized)); sessionStorage.removeItem(this.listCacheKey(normalized));
    } catch {} },
   sourcePattern() { return Object.keys(this.sourceAliases).sort((a, b) => b.length - a.length).join('|'); },
   sourceGroup(source) { return this.sourceAliases[String(source || '').toUpperCase()] || [String(source || '').toUpperCase()].filter(Boolean); },
@@ -8656,8 +7591,7 @@
    return new RegExp(`(?:${[...new Set(patterns)].join('|')})`, 'i');
   },
   isVideoName(name) {
-   const ext = String(name || '').split('.').pop().toLowerCase();
-   return this.videoExts.has(ext); },
+   const ext = String(name || '').split('.').pop().toLowerCase(); return this.videoExts.has(ext); },
   parseSize(value) {
    if (value == null || value === '') return 0;
    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -8666,8 +7600,7 @@
     const amount = Number(unitMatch[1]); const unit = unitMatch[2].toLowerCase();
     const power = { b: 0, kb: 1, mb: 2, gb: 3, tb: 4 }[unit] || 0;
     return Number.isFinite(amount) ? Math.round(amount * 1024 ** power) : 0; }
-   const numeric = Number(text);
-   return Number.isFinite(numeric) ? numeric : 0; },
+   const numeric = Number(text); return Number.isFinite(numeric) ? numeric : 0; },
   formatSize(bytes) {
    const size = this.parseSize(bytes);
    if (!size) return '';
@@ -8677,17 +7610,13 @@
    return`${value.toFixed(digits).replace(/\.0+$/, '')} ${units[index]}`;
   },
   lowPriorityReason(item) {
-   const name = String(item?.name || ''); const size = this.parseSize(item?.size);
-   const previewName = /(?:^|[.\-_\s])(?:tp|trailer|sample|preview|pv|cm|予告|预告|試看|试看)(?:[.\-_\s]|$)/i.test(name);
+   const name = String(item?.name || ''); const size = this.parseSize(item?.size); const previewName = /(?:^|[.\-_\s])(?:tp|trailer|sample|preview|pv|cm|予告|预告|試看|试看)(?:[.\-_\s]|$)/i.test(name);
    if (previewName) return '疑似预告/样片';
    if (size > 0 && size < 180 * 1024 * 1024) return '小体积文件';
    return ''; },
-  candidateRank(item) {
-   const reason = this.lowPriorityReason(item); const size = this.parseSize(item?.size);
-   return (reason ? 1000 : 0) - Math.min(size / (1024 ** 3), 100); },
+  candidateRank(item) { const reason = this.lowPriorityReason(item); const size = this.parseSize(item?.size); return (reason ? 1000 : 0) - Math.min(size / (1024 ** 3), 100); },
   flattenFiles(payload) {
-   const candidates = [ payload?.data, payload?.data?.list, payload?.data?.files, payload?.data?.items, payload?.files, payload?.list ];
-   const arr = candidates.find(Array.isArray) || [];
+   const candidates = [ payload?.data, payload?.data?.list, payload?.data?.files, payload?.data?.items, payload?.files, payload?.list ]; const arr = candidates.find(Array.isArray) || [];
    return arr.map(item => ({
     name: item.n || item.name || item.file_name || item.filename || item.title || '',
     pickcode: item.pc || item.pickcode || item.pick_code || item.pickCode || item.pick || '',
@@ -8718,11 +7647,9 @@
     });
    }); },
   async search(code) {
-   const matches = await this.searchAll(code);
-   return matches[0] || null; },
+   const matches = await this.searchAll(code); return matches[0] || null; },
   async searchAll(code) {
-   const matcher = this.codeRegex(code); const seen = new Set(); const matches = [];
-   const keywords = [...new Set(this.searchVariants(code).map(item => this.searchKeyword(item)).filter(Boolean))];
+   const matcher = this.codeRegex(code); const seen = new Set(); const matches = []; const keywords = [...new Set(this.searchVariants(code).map(item => this.searchKeyword(item)).filter(Boolean))];
    for (const keyword of keywords) {
     const payload = await this.requestSearch(keyword); const state = payload?.state ?? payload?.success;
     if (state === false) { const msg = payload?.error || payload?.message || payload?.errno || '115查询失败'; throw new Error(String(msg)); }
@@ -8730,9 +7657,8 @@
      const key = item.pickcode || item.name;
      if (seen.has(key)) continue;
      seen.add(key);
-     if (matcher.test(item.name) && this.isVideoName(item.name) && item.pickcode) {
-      item.lowPriorityReason = this.lowPriorityReason(item); item.sizeText = this.formatSize(item.size);
-      matches.push(item); } } }
+     if (matcher.test(item.name) && this.isVideoName(item.name) && item.pickcode) { item.lowPriorityReason = this.lowPriorityReason(item); item.sizeText = this.formatSize(item.size); matches.push(item); }
+    } }
    return matches.sort((a, b) => this.candidateRank(a) - this.candidateRank(b)); },
   async searchCached(code) {
    const normalized = this.normalizeKeepSeparator(code);
@@ -8741,11 +7667,9 @@
    if (cached !== undefined) return cached;
    if (this.pending.has(normalized)) return this.pending.get(normalized);
    const task = this.search(normalized) .then(hit => {
-     this.setCached(normalized, hit || null);
-     return hit || null;
+     this.setCached(normalized, hit || null); return hit || null;
     }) .finally(() => this.pending.delete(normalized));
-   this.pending.set(normalized, task);
-   return task; },
+   this.pending.set(normalized, task); return task; },
   async searchAllCached(code) {
    const normalized = this.normalizeKeepSeparator(code);
    if (!normalized) return [];
@@ -8757,14 +7681,11 @@
      if (matches.length) this.setCached(normalized, matches[0]);
      return matches;
     }) .finally(() => this.pendingAll.delete(normalized));
-   this.pendingAll.set(normalized, task);
-   return task; },
+   this.pendingAll.set(normalized, task); return task; },
   async deleteFile(fileId) {
    const fid = String(fileId || '').trim();
    if (!fid) throw new Error('缺少115文件ID，无法删除');
-   const body = new URLSearchParams();
-   body.set('fid[0]', fid); body.set('ignore_warn', '1');
-   return this.postForm(this.deleteApi, body, '115删除'); },
+   const body = new URLSearchParams(); body.set('fid[0]', fid); body.set('ignore_warn', '1'); return this.postForm(this.deleteApi, body, '115删除'); },
   async renameFile(fileId, newName) {
    const fid = String(fileId || '').trim(); const fileName = String(newName || '').trim().replace(/[\\/:*?"<>|]/g, ' ');
    if (!fid) throw new Error('缺少115文件ID，无法改名');
@@ -8805,8 +7726,7 @@
   let result = 1n; let value = base % modulus; let power = exponent;
   while (power > 0n) {
    if (power & 1n) result = (result * value) % modulus;
-   value = (value * value) % modulus;
-   power >>= 1n; }
+   value = (value * value) % modulus; power >>= 1n; }
   return result; }
  function m115BytesToHex(bytes) { return bytes.map(byte => Number(byte).toString(16).padStart(2, '0')).join(''); }
  function m115HexToBytes(hex) {
@@ -8822,12 +7742,9 @@
   while (sourceIndex >= 0) padded[--targetIndex] = text.charCodeAt(sourceIndex--);
   padded[--targetIndex] = 0;
   while (targetIndex > 2) padded[--targetIndex] = 0xff;
-  padded[--targetIndex] = 2;
-  const encrypted = m115ModPow(BigInt('0x' + m115BytesToHex(padded)), M115_RSA_E, M115_RSA_N);
-  return encrypted.toString(16).padStart(256, '0'); }
+  padded[--targetIndex] = 2; const encrypted = m115ModPow(BigInt('0x' + m115BytesToHex(padded)), M115_RSA_E, M115_RSA_N); return encrypted.toString(16).padStart(256, '0'); }
  function m115RsaDecrypt(text) {
-  const encrypted = BigInt('0x' + m115BytesToHex([...text].map(char => char.charCodeAt(0))));
-  const padded = m115BigIntToBytes(m115ModPow(encrypted, M115_RSA_E, M115_RSA_N)); let separator = 1;
+  const encrypted = BigInt('0x' + m115BytesToHex([...text].map(char => char.charCodeAt(0)))); const padded = m115BigIntToBytes(m115ModPow(encrypted, M115_RSA_E, M115_RSA_N)); let separator = 1;
   while (separator < padded.length && padded[separator] !== 0) separator += 1;
   return String.fromCharCode(...padded.slice(separator + 1)); }
  function m115GetKey(length, key) {
@@ -8838,40 +7755,26 @@
   for (let index = 0; index < remainder; index += 1) result.push(source[index] ^ key[index % key.length]);
   for (let index = remainder; index < source.length; index += 1) result.push(source[index] ^ key[(index - remainder) % key.length]);
   return result; }
- function m115SymEncode(source, key1, key2) {
-  const result = m115XorEncode(source, m115GetKey(4, key1));
-  result.reverse();
-  return m115XorEncode(result, m115GetKey(12, key2)); }
- function m115SymDecode(source, key1, key2) {
-  const result = m115XorEncode(source, m115GetKey(12, key2));
-  result.reverse();
-  return m115XorEncode(result, m115GetKey(4, key1)); }
+ function m115SymEncode(source, key1, key2) { const result = m115XorEncode(source, m115GetKey(4, key1)); result.reverse(); return m115XorEncode(result, m115GetKey(12, key2)); }
+ function m115SymDecode(source, key1, key2) { const result = m115XorEncode(source, m115GetKey(12, key2)); result.reverse(); return m115XorEncode(result, m115GetKey(4, key1)); }
  function m115StringToBytes(value) { return [...value].map(char => char.charCodeAt(0)); }
  function m115BytesToString(bytes) { return bytes.map(byte => String.fromCharCode(byte)).join(''); }
  function m115AsymEncode(source) {
   const chunkSize = 128 - 11; let encoded = '';
-  for (let index = 0; index < Math.ceil(source.length / chunkSize); index += 1) {
-   const chunk = source.slice(index * chunkSize, Math.min((index + 1) * chunkSize, source.length));
-   encoded += m115RsaEncrypt(m115BytesToString(chunk)); }
+  for (let index = 0; index < Math.ceil(source.length / chunkSize); index += 1) { const chunk = source.slice(index * chunkSize, Math.min((index + 1) * chunkSize, source.length)); encoded += m115RsaEncrypt(m115BytesToString(chunk)); }
   return btoa(m115HexToBytes(encoded).map(byte => String.fromCharCode(byte)).join('')); }
  function m115AsymDecode(source) {
   const chunkSize = 128; let decoded = '';
-  for (let index = 0; index < Math.ceil(source.length / chunkSize); index += 1) {
-   const chunk = source.slice(index * chunkSize, Math.min((index + 1) * chunkSize, source.length));
-   decoded += m115RsaDecrypt(m115BytesToString(chunk)); }
+  for (let index = 0; index < Math.ceil(source.length / chunkSize); index += 1) { const chunk = source.slice(index * chunkSize, Math.min((index + 1) * chunkSize, source.length)); decoded += m115RsaDecrypt(m115BytesToString(chunk)); }
   return m115StringToBytes(decoded); }
  function m115Md5(value) {
   if (typeof MagnetApi !== 'undefined' && typeof MagnetApi.javdbMd5 === 'function') return MagnetApi.javdbMd5(value);
   throw new Error('MD5模块未加载'); }
  function m115Encode(source, timestamp) {
   const key = m115StringToBytes(m115Md5(`!@###@#${timestamp}DFDR@#@#`));
-  let encoded = m115StringToBytes(source);
-  encoded = m115SymEncode(encoded, key, null); encoded = key.slice(0, 16).concat(encoded);
+  let encoded = m115StringToBytes(source); encoded = m115SymEncode(encoded, key, null); encoded = key.slice(0, 16).concat(encoded);
   return { data: m115AsymEncode(encoded), key }; }
- function m115Decode(source, key) {
-  let decoded = m115StringToBytes(atob(source));
-  decoded = m115AsymDecode(decoded);
-  return m115BytesToString(m115SymDecode(decoded.slice(16), key, decoded.slice(0, 16))); }
+ function m115Decode(source, key) { let decoded = m115StringToBytes(atob(source)); decoded = m115AsymDecode(decoded); return m115BytesToString(m115SymDecode(decoded.slice(16), key, decoded.slice(0, 16))); }
  function fetchPan115DirectUrl(pickcode) {
   return new Promise((resolve, reject) => {
    const timestamp = Math.floor(Date.now() / 1000);
@@ -8918,8 +7821,7 @@
    ensureSubtitleStyles(); },
   lockScroll() {
    if (this.scrollLockDepth === 0) {
-    this.savedHtmlOverflow = document.documentElement.style.overflow || ''; this.savedBodyOverflow = document.body.style.overflow || '';
-    document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; }
+    this.savedHtmlOverflow = document.documentElement.style.overflow || ''; this.savedBodyOverflow = document.body.style.overflow || ''; document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; }
    this.scrollLockDepth++; },
   unlockScroll() {
    if (this.scrollLockDepth <= 0) return;
@@ -8963,8 +7865,7 @@
     let settled = false;
     const finish = (fn, value) => {
      if (settled) return;
-     settled = true;
-     clearTimeout(watchdog); fn(value); };
+     settled = true; clearTimeout(watchdog); fn(value); };
     const fail = message => finish(reject, new Error(message)); const watchdog = setTimeout(() => fail('字幕下载超时'), 30000);
     try {
      GM_xmlhttpRequest({
@@ -9011,14 +7912,12 @@
     const url = this.itemUrl(item);
     const key =`${url}|${this.itemDisplayName(item, normalized)}`;
     if (!url || seen.has(key)) return false;
-    seen.add(key);
-    return true;
+    seen.add(key); return true;
    }); },
   createShell(code, title =`字幕 ${code}`) {
    this.ensureStyle();
    if (this.closeOverlay) this.closeOverlay();
-   const overlay = document.createElement('div');
-   overlay.className = 'jav-subtitle-overlay';
+   const overlay = document.createElement('div'); overlay.className = 'jav-subtitle-overlay';
    overlay.innerHTML =`<section class="jav-subtitle-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><div class="jav-subtitle-body"><div class="jav-subtitle-status">正在搜索字幕...</div></div></section>`;
    overlay.querySelector('.jav-subtitle-title').textContent = title;
    const close = () => {
@@ -9033,39 +7932,22 @@
     if (e.target === overlay) close();
    });
    overlay.addEventListener('wheel', e => e.stopPropagation(), { passive: false });
-   overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close); this.lockScroll(); document.addEventListener('keydown', onKeydown, true);
-   document.body.appendChild(overlay);
-   this.overlay = overlay; this.closeOverlay = close;
-   return overlay; },
+   overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close); this.lockScroll(); document.addEventListener('keydown', onKeydown, true); document.body.appendChild(overlay); this.overlay = overlay; this.closeOverlay = close; return overlay;
+  },
   setStatus(overlay, text) {
    const body = overlay.querySelector('.jav-subtitle-body');
    if (!body) return;
-   body.innerHTML = '';
-   const status = document.createElement('div');
-   status.className = 'jav-subtitle-status'; status.textContent = text;
-   body.appendChild(status); },
+   body.innerHTML = ''; const status = document.createElement('div'); status.className = 'jav-subtitle-status'; status.textContent = text; body.appendChild(status); },
   renderList(overlay, code, items) {
    const body = overlay.querySelector('.jav-subtitle-body');
    if (!body) return;
-   body.innerHTML = '';
-   const table = document.createElement('div');
-   table.className = 'jav-subtitle-table';
+   body.innerHTML = ''; const table = document.createElement('div'); table.className = 'jav-subtitle-table';
    items.forEach(item => {
-    const row = document.createElement('div');
-    row.className = 'jav-subtitle-row';
-    const name = document.createElement('div');
-    name.className = 'jav-subtitle-name'; name.textContent = this.itemDisplayName(item, code); name.title = name.textContent;
-    const ext = document.createElement('span');
-    ext.className = 'jav-subtitle-ext'; ext.textContent = this.itemExt(item) || 'file';
-    const actions = document.createElement('div');
-    actions.className = 'jav-subtitle-actions';
-    const preview = document.createElement('button');
-    preview.type = 'button'; preview.textContent = '预览';
-    preview.addEventListener('click', () => this.preview(item, code, preview));
-    const download = document.createElement('button');
-    download.type = 'button'; download.textContent = '下载';
-    download.addEventListener('click', () => this.download(item, code, download)); actions.appendChild(preview); actions.appendChild(download);
-    row.appendChild(name); row.appendChild(ext); row.appendChild(actions); table.appendChild(row);
+    const row = document.createElement('div'); row.className = 'jav-subtitle-row'; const name = document.createElement('div'); name.className = 'jav-subtitle-name'; name.textContent = this.itemDisplayName(item, code); name.title = name.textContent;
+    const ext = document.createElement('span'); ext.className = 'jav-subtitle-ext'; ext.textContent = this.itemExt(item) || 'file'; const actions = document.createElement('div'); actions.className = 'jav-subtitle-actions';
+    const preview = document.createElement('button'); preview.type = 'button'; preview.textContent = '预览'; preview.addEventListener('click', () => this.preview(item, code, preview)); const download = document.createElement('button'); download.type = 'button';
+    download.textContent = '下载'; download.addEventListener('click', () => this.download(item, code, download)); actions.appendChild(preview); actions.appendChild(download); row.appendChild(name); row.appendChild(ext); row.appendChild(actions);
+    table.appendChild(row);
    });
    body.appendChild(table); },
   async show(code) {
@@ -9093,8 +7975,7 @@
     Utils.showToast('暂不支持预览',`${ext || '该'} 类型可直接下载`, 2400);
     return; }
    await this.withBusy(btn, '读取中', async () => {
-    const text = await this.requestText(url);
-    this.showPreview(code, this.fileName(item, code), text, item);
+    const text = await this.requestText(url); this.showPreview(code, this.fileName(item, code), text, item);
    }).catch(err => {
     errorLog('字幕预览失败:', err); Utils.showToast('字幕预览失败', err?.message || '请求失败', 2800);
    }); },
@@ -9105,21 +7986,15 @@
     if (this.previewExts.has(ext)) {
      const text = await this.requestText(url);
      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-     this.saveBlob(blob, this.fileName(item, code));
-     return; }
-    const blob = await this.requestBlob(url);
-    this.saveBlob(blob, this.fileName(item, code));
+     this.saveBlob(blob, this.fileName(item, code)); return; }
+    const blob = await this.requestBlob(url); this.saveBlob(blob, this.fileName(item, code));
    }).catch(err => {
     errorLog('字幕下载失败:', err); Utils.showToast('字幕下载失败', err?.message || '请求失败', 2800);
    }); },
   saveBlob(blob, fileName) {
-   const url = URL.createObjectURL(blob); const a = document.createElement('a');
-   a.href = url; a.download = fileName;
-   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1200); },
+   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1200); },
   showPreview(code, fileName, text, item) {
-   this.ensureStyle();
-   const overlay = document.createElement('div');
-   overlay.className = 'jav-subtitle-preview-overlay';
+   this.ensureStyle(); const overlay = document.createElement('div'); overlay.className = 'jav-subtitle-preview-overlay';
    overlay.innerHTML =`<section class="jav-subtitle-panel jav-subtitle-preview-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><pre class="jav-subtitle-pre"></pre><div class="jav-subtitle-preview-footer"><button class="jav-subtitle-preview-download" type="button">下载</button></div></section>`;
    const close = () => {
     overlay.remove(); this.unlockScroll(); document.removeEventListener('keydown', onKeydown, true); };
@@ -9152,16 +8027,14 @@
     return JSON.parse(response.responseText || '{}');
    } catch { throw new Error('subtitle response is not valid JSON'); }
   });
-  result.abort = () => request.abort?.() || false;
-  return result; };
+  result.abort = () => request.abort?.() || false; return result; };
  Subtitle.requestText = function (url) {
   const request = gmFetch(url, { timeout: 20000 });
   const result = request.then(response => {
    if (!response.ok) throw new Error(`${response.error?.kind || 'http'} ${response.status || 0}`);
    return response.responseText || '';
   });
-  result.abort = () => request.abort?.() || false;
-  return result; };
+  result.abort = () => request.abort?.() || false; return result; };
  Core.expose('__LAOSIJI_SUBTITLE__', Subtitle);
  function ensureResourceLibraryStyles() {
   injectStyle('jav-resource-library-style',`.jav-resource-overlay{position:fixed;inset:0;z-index:10000060;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.44);backdrop-filter:blur(6px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-resource-center{width:min(96vw,1600px);height:min(90vh,960px);max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);display:grid;grid-template-columns:190px minmax(0,1fr);overflow:hidden;border:1px solid #d8dee8;border-radius:10px;background:#f8fafc;color:#0f172a;box-shadow:0 28px 80px rgba(15,23,42,.3)}.jav-resource-center *{box-sizing:border-box}.jav-resource-nav{display:flex;flex-direction:column;gap:4px;padding:14px 10px;border-right:1px solid #e2e8f0;background:#fff}.jav-resource-brand{padding:5px 8px 14px;font-size:16px;font-weight:850;color:#0f172a}.jav-resource-nav button{height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:#475569;font-size:13px;font-weight:700;text-align:left;cursor:pointer}.jav-resource-nav button:hover{background:#f1f5f9;color:#1e3a8a}.jav-resource-nav button.is-active{background:#dbeafe;color:#1d4ed8}.jav-resource-nav-spacer{flex:1}.jav-resource-nav-close{color:#64748b!important}.jav-resource-main{min-width:0;min-height:0;display:flex;flex-direction:column;background:#f8fafc}.jav-resource-head{display:flex;align-items:center;min-height:66px;padding:13px 18px;border-bottom:1px solid #e2e8f0;background:#fff}.jav-resource-head-title{font-size:18px;font-weight:850;line-height:1.2}.jav-resource-backup{flex:1 1 auto;min-height:0;overflow:auto;padding:30px 34px 24px}.jav-resource-backup-intro{max-width:620px}.jav-resource-backup-kicker{color:#2563eb;font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.jav-resource-backup h2{margin:5px 0 8px;color:#0f172a;font-size:22px;line-height:1.2}.jav-resource-backup p{margin:0;color:#64748b;font-size:13px;line-height:1.65}.jav-resource-library{flex:1 1 auto;min-height:0;overflow:auto;padding:12px}.jav-resource-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.jav-resource-toolbar-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.jav-resource-toolbar input,.jav-resource-toolbar select{height:34px;min-width:130px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-toolbar input{min-width:210px}.jav-resource-toolbar button{height:34px;padding:0 12px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px;font-weight:700;cursor:pointer}.jav-resource-toolbar button.primary{border-color:#2563eb;background:#2563eb;color:#fff}.jav-resource-toolbar button:disabled{opacity:.6;cursor:wait}.jav-resource-summary{margin:0 0 12px;color:#64748b;font-size:12px}.jav-resource-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;width:100%;min-width:0;max-width:1680px;margin:0 auto;padding:4px}.jav-resource-card{display:flex;flex-direction:column;min-width:0;padding:16px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}.jav-resource-card:hover{border-color:#93c5fd}.jav-resource-card-head{display:flex;align-items:center;gap:10px;min-width:0}.jav-resource-avatar{width:52px;height:52px;flex:none;border-radius:50%;object-fit:cover;background:#e2e8f0}.jav-resource-card-title{min-width:0;color:#0f172a;font-size:14px;font-weight:850;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-card-subtitle{margin-top:3px;color:#94a3b8;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-card-meta{display:grid;gap:4px;margin:12px 0;color:#64748b;font-size:11px}.jav-resource-card-meta strong{color:#334155}.jav-resource-card-actions{display:flex;gap:7px;margin-top:auto}.jav-resource-card-actions button,.jav-resource-card-actions.button{height:30px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none}.jav-resource-card-actions button.primary{border-color:#2563eb;background:#2563eb;color:#fff}.jav-resource-type{display:inline-flex;align-items:center;width:max-content;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:850}.jav-resource-type.uncensored{background:#dcfce7;color:#15803d}.jav-resource-type.censored{background:#fef3c7;color:#a16207}.jav-resource-type.unknown{background:#f1f5f9;color:#64748b}.jav-resource-work-cover{width:100%;aspect-ratio:3/2;overflow:hidden;border-radius:5px;background:#f1f5f9}.jav-resource-work-cover img{width:100%;height:100%;object-fit:cover}.jav-resource-work-code{color:#2563eb;font-size:12px;font-weight:850}.jav-resource-work-title{margin-top:4px;color:#0f172a;font-size:13px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-empty{padding:50px 12px;text-align:center;color:#94a3b8;font-size:13px}.jav-resource-progress{margin:0 0 12px;padding:9px 11px;border:1px solid #bfdbfe;border-radius:6px;background:#eff6ff;color:#1d4ed8;font-size:12px}.jav-resource-backup-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:24px 0}.jav-resource-backup-stats div{padding:14px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}.jav-resource-backup-stats strong,.jav-resource-backup-stats span{display:block}.jav-resource-backup-stats strong{color:#0f172a;font-size:22px;line-height:1.2}.jav-resource-backup-stats span{margin-top:3px;color:#94a3b8;font-size:12px;font-weight:700}.jav-resource-backup-actions,.jav-resource-backup-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 0;border-top:1px solid #e2e8f0}.jav-resource-backup-tools{border-bottom:1px solid #e2e8f0}.jav-resource-backup-actions button,.jav-resource-backup-tools button,.jav-resource-backup-apply,.jav-resource-backup-cancel,.jav-resource-health-repair{height:34px;padding:0 12px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;font-size:13px;font-weight:800;cursor:pointer}.jav-resource-backup-actions button:first-child,.jav-resource-backup-apply{border-color:#2563eb;background:#2563eb;color:#fff}.jav-resource-backup-actions button:hover,.jav-resource-backup-tools button:hover,.jav-resource-backup-cancel:hover,.jav-resource-health-repair:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.jav-resource-backup-actions span,.jav-resource-backup-tools span{color:#94a3b8;font-size:11px}.jav-resource-backup-tools button:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}.jav-resource-file-input{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}.jav-resource-health{margin-top:16px;padding:12px 14px;border:1px solid #bbf7d0;border-radius:7px;background:#f0fdf4;color:#166534;font-size:12px;line-height:1.7}.jav-resource-health strong,.jav-resource-health span{display:block}.jav-resource-health.has-errors{border-color:#fecaca;background:#fef2f2;color:#b91c1c}.jav-resource-health-repair{margin-top:10px;height:30px;padding:0 10px;border-color:#fecaca;color:#b91c1c}.jav-resource-webdav{margin-top:18px;padding:16px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}.jav-resource-webdav-title,.jav-resource-cloud-title{color:#0f172a;font-size:13px;font-weight:850}.jav-resource-webdav-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-top:10px}.jav-resource-webdav-grid input{min-width:0;height:34px;padding:0 10px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#0f172a;font-size:12px;outline:none}.jav-resource-webdav-grid input:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.13)}.jav-resource-webdav-actions,.jav-resource-conflict-actions,.jav-resource-cleanup-confirm div{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}.jav-resource-webdav-actions button,.jav-resource-cloud-item button,.jav-resource-cleanup-actions button,.jav-resource-cleanup-confirm button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-webdav-actions button:hover,.jav-resource-cloud-item button:hover,.jav-resource-cleanup-actions button:hover,.jav-resource-cleanup-confirm button:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.jav-resource-webdav-actions button:disabled,.jav-resource-cloud-item button:disabled{opacity:.6;cursor:wait}.jav-resource-webdav-actions span{color:#94a3b8;font-size:11px}.jav-resource-cloud-list,.jav-resource-history{margin-top:16px;border-top:1px solid #e2e8f0}.jav-resource-cloud-title{padding:12px 0 8px;font-size:12px}.jav-resource-cloud-item,.jav-resource-history-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f5f9}.jav-resource-cloud-file,.jav-resource-history-main{min-width:0;flex:1}.jav-resource-cloud-file strong,.jav-resource-cloud-file span,.jav-resource-history-main strong,.jav-resource-history-main span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-cloud-file strong,.jav-resource-history-main strong{color:#334155;font-size:12px}.jav-resource-cloud-file span,.jav-resource-history-main span{margin-top:3px;color:#94a3b8;font-size:11px}.jav-resource-cloud-empty{padding:12px 0;color:#94a3b8;font-size:11px}.jav-resource-history-status{width:34px;flex:none;font-size:11px;font-weight:850;text-align:center}.jav-resource-history-status.is-ok{color:#047857}.jav-resource-history-status.is-error{color:#b91c1c}.jav-resource-history-status.is-conflict{color:#b45309}.jav-resource-history-item time{flex:none;color:#94a3b8;font-size:11px}.jav-resource-import-preview{margin-top:18px;padding:16px;border:1px solid #bfdbfe;border-radius:7px;background:#eff6ff}.jav-resource-backup-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:#475569;font-size:12px}.jav-resource-backup-summary strong{width:100%;color:#1e3a8a;font-size:13px}.jav-resource-import-errors{margin:12px 0;color:#b91c1c;font-size:12px;line-height:1.7}.jav-resource-import-ok{margin:12px 0;color:#047857;font-size:12px}.jav-resource-backup-apply:disabled{border-color:#cbd5e1;background:#cbd5e1;cursor:not-allowed}.jav-resource-conflict,.jav-resource-cleanup-confirm{margin-top:16px;padding:14px;border:1px solid #fca5a5;border-radius:7px;background:#fff1f2;color:#9f1239}.jav-resource-conflict strong,.jav-resource-conflict span,.jav-resource-cleanup-confirm strong{display:block}.jav-resource-conflict span,.jav-resource-cleanup-confirm strong{margin-top:4px;font-size:12px;line-height:1.6}.jav-resource-cleanup{margin-top:18px;padding-top:2px;border-top:1px solid #e2e8f0}.jav-resource-cleanup p{margin:0 0 10px;color:#94a3b8;font-size:11px;line-height:1.6}.jav-resource-cleanup-confirm{margin:10px 0}.jav-resource-cleanup-confirm button:first-child{border-color:#dc2626;background:#dc2626;color:#fff}.jav-resource-confirm{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:20px;background:rgba(15,23,42,.28)}.jav-resource-confirm-box{width:min(360px,100%);padding:18px;border:1px solid #fecaca;border-radius:8px;background:#fff;color:#334155;box-shadow:0 18px 50px rgba(15,23,42,.24)}.jav-resource-confirm-box strong,.jav-resource-confirm-box span{display:block}.jav-resource-confirm-box strong{font-size:14px;color:#991b1b}.jav-resource-confirm-box span{margin-top:8px;font-size:12px;line-height:1.6}.jav-resource-confirm-box div{display:flex;gap:8px;margin-top:14px}.jav-resource-confirm-box button{height:30px;padding:0 11px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-confirm-box button:first-child{border-color:#dc2626;background:#dc2626;color:#fff}html[data-theme="dark"] .jav-resource-center{border-color:#3f3f46;background:#18181b;color:#f4f4f5}html[data-theme="dark"] .jav-resource-nav,html[data-theme="dark"] .jav-resource-head,html[data-theme="dark"] .jav-resource-backup-stats div,html[data-theme="dark"] .jav-resource-webdav,html[data-theme="dark"] .jav-resource-card{border-color:#3f3f46;background:#27272a;color:#f4f4f5}html[data-theme="dark"] .jav-resource-main{background:#18181b}html[data-theme="dark"] .jav-resource-brand,html[data-theme="dark"] .jav-resource-head-title,html[data-theme="dark"] .jav-resource-backup h2,html[data-theme="dark"] .jav-resource-backup-stats strong,html[data-theme="dark"] .jav-resource-cloud-title,html[data-theme="dark"] .jav-resource-card-title,html[data-theme="dark"] .jav-resource-work-title{color:#fafafa}html[data-theme="dark"] .jav-resource-nav button{color:#d4d4d8}html[data-theme="dark"] .jav-resource-nav button:hover{background:#3f3f46;color:#bfdbfe}html[data-theme="dark"] .jav-resource-nav button.is-active{background:#1e3a5f;color:#bfdbfe}html[data-theme="dark"] .jav-resource-backup p,html[data-theme="dark"] .jav-resource-backup-stats span,html[data-theme="dark"] .jav-resource-cloud-file span,html[data-theme="dark"] .jav-resource-history-main span,html[data-theme="dark"] .jav-resource-card-meta,html[data-theme="dark"] .jav-resource-card-subtitle{color:#a1a1aa}html[data-theme="dark"] .jav-resource-backup-actions button,html[data-theme="dark"] .jav-resource-backup-tools button,html[data-theme="dark"] .jav-resource-backup-cancel,html[data-theme="dark"] .jav-resource-webdav-grid input,html[data-theme="dark"] .jav-resource-webdav-actions button,html[data-theme="dark"] .jav-resource-cloud-item button,html[data-theme="dark"] .jav-resource-cleanup-actions button,html[data-theme="dark"] .jav-resource-cleanup-confirm button,html[data-theme="dark"] .jav-resource-toolbar input,html[data-theme="dark"] .jav-resource-toolbar select,html[data-theme="dark"] .jav-resource-toolbar button,html[data-theme="dark"] .jav-resource-card-actions button{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-import-preview{border-color:#1e3a5f;background:#172554}html[data-theme="dark"] .jav-resource-backup-summary strong{color:#bfdbfe}html[data-theme="dark"] .jav-resource-health{border-color:#14532d;background:#052e16;color:#bbf7d0}html[data-theme="dark"] .jav-resource-health.has-errors,html[data-theme="dark"] .jav-resource-conflict,html[data-theme="dark"] .jav-resource-cleanup-confirm{border-color:#7f1d1d;background:#450a0a;color:#fecaca}html[data-theme="dark"] .jav-resource-cloud-list,html[data-theme="dark"] .jav-resource-history,html[data-theme="dark"] .jav-resource-cleanup{border-color:#3f3f46}html[data-theme="dark"] .jav-resource-cloud-item,html[data-theme="dark"] .jav-resource-history-item{border-color:#3f3f46}@media (max-width:700px){.jav-resource-overlay{padding:8px}.jav-resource-center{width:calc(100vw - 16px);height:calc(100vh - 16px);grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.jav-resource-nav{display:flex;flex-direction:row;align-items:center;overflow:auto;padding:8px;border-right:0;border-bottom:1px solid #e2e8f0}.jav-resource-brand{padding:5px 8px;white-space:nowrap}.jav-resource-nav button{flex:none}.jav-resource-nav-spacer{display:none}.jav-resource-nav-close{margin-left:auto}.jav-resource-backup{padding:22px 16px}.jav-resource-backup-stats{gap:6px}.jav-resource-backup-stats div{padding:10px}.jav-resource-webdav-grid{grid-template-columns:1fr 1fr}.jav-resource-webdav-grid input:first-child,.jav-resource-webdav-grid input:last-child{grid-column:1/-1}}`);
@@ -9171,20 +8044,18 @@
   injectStyle('jav-resource-library-card-grid',`.jav-resource-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}`);
  }
  const ResourceLibrary = (() => {
-  const STORAGE_KEY = 'laosiji_resource_library_v1'; const CACHE_DB_NAME = 'laosiji_resource_library_cache'; const CACHE_DB_VERSION = 3;
-  const BACKUP_FORMAT = 'laosiji-resource-library'; const BACKUP_VERSION = 2; const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
+  const STORAGE_KEY = 'laosiji_resource_library_v1'; const CACHE_DB_NAME = 'laosiji_resource_library_cache'; const CACHE_DB_VERSION = 3; const BACKUP_FORMAT = 'laosiji-resource-library'; const BACKUP_VERSION = 2; const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
   const WEBDAV_KEY =`${STORAGE_KEY}_webdav`;
   const WEBDAV_SYNC_KEY =`${STORAGE_KEY}_webdav_sync`;
   const BACKUP_HISTORY_KEY =`${STORAGE_KEY}_backup_history`;
-  const MAX_BACKUP_HISTORY = 20; let state = null; let resourceDbPromise = null; let resourceStateHydration = null; let resourceWriteQueue = Promise.resolve();
-  let resourceStateRevision = 0; let recoverySnapshot = null; let activeResourceOperation = null; const actorLookupInFlight = new Map();
+  const MAX_BACKUP_HISTORY = 20; let state = null; let resourceDbPromise = null; let resourceStateHydration = null; let resourceWriteQueue = Promise.resolve(); let resourceStateRevision = 0; let recoverySnapshot = null; let activeResourceOperation = null;
+  const actorLookupInFlight = new Map();
   function isSupported() {
-   return /(?:^|\.)javdb\.com$/i.test(location.hostname) && !(typeof MobilePolicy !== 'undefined' && MobilePolicy.isMobile()); }
+   return /(?:^|\.)(?:javdb|javbus|javlibrary)\.com$/i.test(location.hostname) && !(typeof MobilePolicy !== 'undefined' && MobilePolicy.isMobile()); }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   })[char]);
-  function createState() {
-   return { version: 3, works: {}, actors: {}, relations: {}, blacklist: { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] }, updatedAt: 0 }; }
+  function createState() { return { version: 3, works: {}, actors: {}, relations: {}, blacklist: { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] }, updatedAt: 0 }; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
   function normalizeStoredState(value) {
    const source = value && typeof value === 'object' ? value : {};
@@ -9204,8 +8075,7 @@
     });
    });
    const normalizeKeywords = (values, transform) => [...new Set((Array.isArray(values) ? values : []).map(value => transform(String(value || '').trim())).filter(Boolean))];
-   result.blacklist.codeKeywords = normalizeKeywords(sourceBlacklist.codeKeywords, value => value.toUpperCase());
-   result.blacklist.titleKeywords = normalizeKeywords(sourceBlacklist.titleKeywords, value => value.toLowerCase());
+   result.blacklist.codeKeywords = normalizeKeywords(sourceBlacklist.codeKeywords, value => value.toUpperCase()); result.blacklist.titleKeywords = normalizeKeywords(sourceBlacklist.titleKeywords, value => value.toLowerCase());
    Object.values(result.works).forEach(work => {
     if (!(work?.flags?.blocked ?? work?.filter)) return;
     const code = String(work.code || '').trim();
@@ -9213,12 +8083,10 @@
     if (work.flags) work.flags.blocked = false;
     if ('filter' in work) work.filter = false;
    });
-   result.updatedAt = Number(source.updatedAt) || 0;
-   return result; }
+   result.updatedAt = Number(source.updatedAt) || 0; return result; }
   function getState() {
    if (state) return state;
-   state = createState();
-   return state; }
+   state = createState(); return state; }
   function emitResourceEvent(name) {
    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
    try { window.dispatchEvent(new Event(name)); } catch (_) { }
@@ -9241,8 +8109,7 @@
    if (!db) return null;
    return new Promise(resolve => {
     try {
-     const request = db.transaction('snapshots', 'readonly').objectStore('snapshots').get(key);
-     request.onsuccess = () => resolve(request.result || null); request.onerror = () => resolve(null);
+     const request = db.transaction('snapshots', 'readonly').objectStore('snapshots').get(key); request.onsuccess = () => resolve(request.result || null); request.onerror = () => resolve(null);
     } catch (_) { resolve(null); }
    }); }
   async function writeIndexedDbValue(key, value) {
@@ -9250,10 +8117,8 @@
    if (!db) throw new Error('IndexedDB unavailable');
    return new Promise((resolve, reject) => {
     try {
-     const transaction = db.transaction('snapshots', 'readwrite');
-     transaction.objectStore('snapshots').put(clone(value), key);
-     transaction.oncomplete = () => resolve(true); transaction.onerror = () => reject(transaction.error || new Error('IndexedDB write failed'));
-     transaction.onabort = () => reject(transaction.error || new Error('IndexedDB write aborted'));
+     const transaction = db.transaction('snapshots', 'readwrite'); transaction.objectStore('snapshots').put(clone(value), key); transaction.oncomplete = () => resolve(true);
+     transaction.onerror = () => reject(transaction.error || new Error('IndexedDB write failed')); transaction.onabort = () => reject(transaction.error || new Error('IndexedDB write aborted'));
     } catch (error) { reject(error); }
    }); }
   async function deleteIndexedDbValue(key) {
@@ -9261,9 +8126,7 @@
    if (!db) return false;
    return new Promise((resolve, reject) => {
     try {
-     const transaction = db.transaction('snapshots', 'readwrite');
-     transaction.objectStore('snapshots').delete(key);
-     transaction.oncomplete = () => resolve(true); transaction.onerror = () => reject(transaction.error || new Error('IndexedDB delete failed'));
+     const transaction = db.transaction('snapshots', 'readwrite'); transaction.objectStore('snapshots').delete(key); transaction.oncomplete = () => resolve(true); transaction.onerror = () => reject(transaction.error || new Error('IndexedDB delete failed'));
      transaction.onabort = () => reject(transaction.error || new Error('IndexedDB delete aborted'));
     } catch (error) { reject(error); }
    }); }
@@ -9273,39 +8136,29 @@
      readIndexedDbValue('latest'),
      readIndexedDbValue('recovery'),
     ]).then(([indexedState, indexedRecovery]) => {
-     state = indexedState ? normalizeStoredState(indexedState) : createState(); resourceStateRevision += 1;
-     recoverySnapshot = indexedRecovery?.format === BACKUP_FORMAT && indexedRecovery?.data ? indexedRecovery : null;
-     emitResourceEvent('laosiji-resource-state-ready');
-     return state;
+     state = indexedState ? normalizeStoredState(indexedState) : createState(); resourceStateRevision += 1; recoverySnapshot = indexedRecovery?.format === BACKUP_FORMAT && indexedRecovery?.data ? indexedRecovery : null;
+     emitResourceEvent('laosiji-resource-state-ready'); return state;
     }).catch(() => {
-     state = createState(); resourceStateRevision += 1; recoverySnapshot = null;
-     emitResourceEvent('laosiji-resource-state-ready');
-     return state;
+     state = createState(); resourceStateRevision += 1; recoverySnapshot = null; emitResourceEvent('laosiji-resource-state-ready'); return state;
     }); }
    if (onReady) resourceStateHydration.then(onReady);
    return resourceStateHydration; }
   function persist() {
-   const library = getState();
-   library.updatedAt = Date.now(); resourceStateRevision += 1;
-   const snapshot = clone(library);
+   const library = getState(); library.updatedAt = Date.now(); resourceStateRevision += 1; const snapshot = clone(library);
    resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => writeIndexedDbValue('latest', snapshot));
-   emitResourceEvent('laosiji-resource-state-changed');
-   return resourceWriteQueue; }
+   emitResourceEvent('laosiji-resource-state-changed'); return resourceWriteQueue; }
   const RESOURCE_WORK_FLAG_META = { favorite: '收藏', watched: '观看', downloaded: '下载' };
   const ACTOR_NAME_EXCLUSIONS = new Set(['有码', '无码', '欧美', '未知', '演员', '女优', '类别', '类型', 'censored', 'uncensored', 'western']);
   ['\u6709\u7801', '\u65e0\u7801', '\u6b27\u7f8e', '\u672a\u77e5', '\u6f14\u5458', '\u5973\u4f18', '\u7c7b\u522b', '\u7c7b\u578b'].forEach(name => ACTOR_NAME_EXCLUSIONS.add(name));
   function normalizeActorNames(values, code = '') {
-   values = (Array.isArray(values) ? values : [values]).flatMap(value => String(value || '').split(/[\u3001,\uFF0C|/]+/));
-   const codeKey = String(code || '').trim().toLowerCase();
-   return [...new Set((Array.isArray(values) ? values : [values]).flatMap(value => String(value || '').split(/[、,，|/]+/))
-    .map(value => value.replace(/\s+/g, ' ').trim()) .filter(value => value && value.toLowerCase() !== codeKey && !ACTOR_NAME_EXCLUSIONS.has(value)))]; }
+   values = (Array.isArray(values) ? values : [values]).flatMap(value => String(value || '').split(/[\u3001,\uFF0C|/]+/)); const codeKey = String(code || '').trim().toLowerCase();
+   return [...new Set((Array.isArray(values) ? values : [values]).flatMap(value => String(value || '').split(/[、,，|/]+/)) .map(value => value.replace(/\s+/g, ' ').trim())
+    .filter(value => value && value.toLowerCase() !== codeKey && !ACTOR_NAME_EXCLUSIONS.has(value)))]; }
   function linkKnownActorsToWorks(library) {
    const actorEntries = Object.entries(library.actors || {});
    let changed = false;
    Object.values(library.works || {}).forEach(work => {
-    const beforeNames = JSON.stringify(work.actorNames || []); const beforeIds = JSON.stringify(work.actorIds || []);
-    work.actorNames = normalizeActorNames(work.actorNames, work.code);
-    const known = new Set(Array.isArray(work.actorIds) ? work.actorIds : []);
+    const beforeNames = JSON.stringify(work.actorNames || []); const beforeIds = JSON.stringify(work.actorIds || []); work.actorNames = normalizeActorNames(work.actorNames, work.code); const known = new Set(Array.isArray(work.actorIds) ? work.actorIds : []);
     work.actorNames.forEach(name => actorEntries.forEach(([actorId, actor]) => {
      const aliases = [actor?.name, ...(Array.isArray(actor?.aliases) ? actor.aliases : [])].filter(Boolean).map(item => String(item).trim().toLowerCase());
      if (aliases.includes(name.toLowerCase())) known.add(actorId);
@@ -9348,8 +8201,7 @@
    if (Array.isArray(metadata.actorNames) && metadata.actorNames.length) previous.actorNames = normalizeActorNames([...(previous.actorNames || []), ...metadata.actorNames], normalizedCode);
    else previous.actorNames = normalizeActorNames(previous.actorNames, normalizedCode);
    if (!previous.createdAt) previous.createdAt = now;
-   previous.lastSeenAt = now;
-   return previous; }
+   previous.lastSeenAt = now; return previous; }
   function getBlacklist(library = getState()) {
    if (!library.blacklist || typeof library.blacklist !== 'object' || Array.isArray(library.blacklist)) library.blacklist = { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] };
    ['actors', 'works'].forEach(kind => {
@@ -9366,8 +8218,7 @@
    if ((work.actorIds || []).some(actorId => blacklist.actors[actorId])) return '演员黑名单';
    const actorNames = normalizeActorNames(work.actorNames, code).map(name => name.toLowerCase()); const titleText = String(work.title || '').toLowerCase();
    if (Object.values(blacklist.actors).some(actor => [actor.name, ...(actor.aliases || [])].filter(Boolean).some(name => {
-    const normalizedName = String(name).trim().toLowerCase();
-    return actorNames.includes(normalizedName) || (normalizedName.length >= 2 && titleText.includes(normalizedName));
+    const normalizedName = String(name).trim().toLowerCase(); return actorNames.includes(normalizedName) || (normalizedName.length >= 2 && titleText.includes(normalizedName));
    }))) return '演员黑名单';
    if (code && blacklist.works[code]) return '作品黑名单';
    const codeText = code.toUpperCase();
@@ -9384,8 +8235,7 @@
    else delete blacklist.works[normalizedCode];
    work.modifiedAt = Date.now(); work.activity = Array.isArray(work.activity) ? work.activity : [];
    work.activity.unshift({ action: 'blocked', value: blocked, at: Date.now() });
-   work.activity = work.activity.slice(0, 50);
-   return blocked; }
+   work.activity = work.activity.slice(0, 50); return blocked; }
   function setActorBlacklist(actorId, actor, blocked = true) {
    const blacklist = getBlacklist();
    if (!actorId) return false;
@@ -9396,8 +8246,7 @@
    else delete blacklist.actors[actorId];
    return blocked; }
   async function toggleResourceActorBlacklist(actorId, metadata = {}) {
-   await hydrateResourceState();
-   const library = getState(); const blocked = !isActorBlacklisted(actorId, library);
+   await hydrateResourceState(); const library = getState(); const blocked = !isActorBlacklisted(actorId, library);
    const actor = library.actors[actorId] || {
     starId: actorId,
     name: String(metadata.name || actorId),
@@ -9412,11 +8261,9 @@
     try {
      await syncBlacklistedActor(actorId);
     } catch (error) { errorLog('actor blacklist work sync failed:', error?.message || error); } }
-   await persist();
-   return blocked; }
+   await persist(); return blocked; }
   async function syncBlacklistedActor(actorId, onProgress, operation) {
-   await hydrateResourceState();
-   const library = getState(); const entry = getBlacklist().actors[actorId];
+   await hydrateResourceState(); const library = getState(); const entry = getBlacklist().actors[actorId];
    if (!entry) throw new Error('演员不在黑名单中');
    const actor = library.actors[actorId] || {
     starId: actorId,
@@ -9426,17 +8273,11 @@
     source: 'javdb',
     url: absoluteUrl(`/actors/${encodeURIComponent(actorId)}`),
    };
-   library.actors[actorId] = actor;
-   const result = await syncActorWorks(actorId, onProgress, operation);
-   const workCodes = Object.values(library.works).filter(work => work.actorIds?.includes(actorId)).map(work => work.code).filter(Boolean);
-   entry.workCodes = [...new Set([...(Array.isArray(entry.workCodes) ? entry.workCodes : []), ...workCodes])]; entry.name = actor.name || entry.name || actorId;
-   entry.aliases = Array.isArray(actor.aliases) ? [...actor.aliases] : []; entry.worksSyncedAt = Date.now();
-   await persist();
-   return result; }
+   library.actors[actorId] = actor; const result = await syncActorWorks(actorId, onProgress, operation); const workCodes = Object.values(library.works).filter(work => work.actorIds?.includes(actorId)).map(work => work.code).filter(Boolean);
+   entry.workCodes = [...new Set([...(Array.isArray(entry.workCodes) ? entry.workCodes : []), ...workCodes])]; entry.name = actor.name || entry.name || actorId; entry.aliases = Array.isArray(actor.aliases) ? [...actor.aliases] : [];
+   entry.worksSyncedAt = Date.now(); await persist(); return result; }
   async function syncPendingBlacklistedActors() {
-   await hydrateResourceState();
-   const library = getState(); const pending = Object.values(getBlacklist().actors).filter(actor => actor?.actorId && !actor.worksSyncedAt);
-   let changed = false;
+   await hydrateResourceState(); const library = getState(); const pending = Object.values(getBlacklist().actors).filter(actor => actor?.actorId && !actor.worksSyncedAt); let changed = false;
    for (const entry of pending) {
     const actorId = String(entry.actorId);
     if (!library.actors[actorId]) {
@@ -9449,8 +8290,7 @@
       url: absoluteUrl(`/actors/${encodeURIComponent(actorId)}`),
      }; }
     try {
-     await syncBlacklistedActor(actorId);
-     changed = true;
+     await syncBlacklistedActor(actorId); changed = true;
     } catch (error) { errorLog('pending actor blacklist sync failed:', error?.message || error); } }
    if (changed) await persist();
   }
@@ -9459,53 +8299,40 @@
    if (flag === 'blocked') {
     const work = ensureResourceWork(code, metadata);
     if (!work) return false;
-    const blocked = !getBlacklist().works[work.code];
-    setWorkBlacklist(work.code, metadata, blocked); await persist();
-    return blocked; }
+    const blocked = !getBlacklist().works[work.code]; setWorkBlacklist(work.code, metadata, blocked); await persist(); return blocked; }
    const work = RESOURCE_WORK_FLAG_META[flag] ? ensureResourceWork(code, metadata) : null;
    if (!work) return false;
-   const flags = {
-    favorite: !!(work.flags?.favorite ?? work.favorite),
-    watched: !!(work.flags?.watched ?? work.hasWatch),
-    downloaded: !!(work.flags?.downloaded ?? work.hasDown), };
+   const flags = { favorite: !!(work.flags?.favorite ?? work.favorite), watched: !!(work.flags?.watched ?? work.hasWatch), downloaded: !!(work.flags?.downloaded ?? work.hasDown) };
    flags[flag] = !flags[flag]; work.flags = flags; work.modifiedAt = Date.now(); work.activity = Array.isArray(work.activity) ? work.activity : [];
    work.activity.unshift({ action: flag, value: flags[flag], at: Date.now() });
-   work.activity = work.activity.slice(0, 50);
-   await persist();
-   return flags[flag]; }
+   work.activity = work.activity.slice(0, 50); await persist(); return flags[flag]; }
   function parseWorkActors(html, pageUrl) {
-   const doc = parseHTML(html); const seen = new Set();
-   const actorLinks = doc.querySelectorAll('.movie-panel-info a[href*="/actors/"], .video-panel a[href*="/actors/"], a[href*="/actors/"]');
+   const doc = parseHTML(html); const seen = new Set(); const actorLinks = doc.querySelectorAll('.movie-panel-info a[href*="/actors/"], .video-panel a[href*="/actors/"], a[href*="/actors/"]');
    return [...actorLinks].map(anchor => {
     // The marker belongs to the current link and follows it. Never inspect
     // the previous sibling: it may be the female marker of the prior actor.
-    const femaleMarker = anchor.nextElementSibling?.matches?.('.symbol.female, .female') || anchor.matches?.('.female, [data-gender="female"]')
-     || String(anchor.getAttribute('data-gender') || '').toLowerCase() === 'female';
+    const femaleMarker = anchor.nextElementSibling?.matches?.('.symbol.female, .female') || anchor.matches?.('.female, [data-gender="female"]') || String(anchor.getAttribute('data-gender') || '').toLowerCase() === 'female';
     if (!femaleMarker) return null;
     const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); let path = '';
     try { path = new URL(href || '', pageUrl).pathname; } catch (_) { }
-    const match = path.match(/\/actors\/([^/?#]+)/i); const starId = match?.[1] || '';
-    const name = String(anchor.querySelector('.name, .actor-name, .info')?.textContent || anchor.textContent || '').replace(/\s+/g, ' ').trim();
+    const match = path.match(/\/actors\/([^/?#]+)/i); const starId = match?.[1] || ''; const name = String(anchor.querySelector('.name, .actor-name, .info')?.textContent || anchor.textContent || '').replace(/\s+/g, ' ').trim();
     if (!starId || !name || ACTOR_NAME_EXCLUSIONS.has(starId.toLowerCase()) || ACTOR_NAME_EXCLUSIONS.has(name) || seen.has(starId)) return null;
     seen.add(starId);
     return { starId, name, url: href };
    }).filter(Boolean); }
   function parseWorkPublishTime(html) {
-   const doc = parseHTML(html);
-   const blocks = doc.querySelectorAll('.movie-panel-info .panel-block, .video-meta-panel .panel-block, .movie-panel-info p, .video-meta-panel p');
+   const doc = parseHTML(html); const blocks = doc.querySelectorAll('.movie-panel-info .panel-block, .video-meta-panel .panel-block, .movie-panel-info p, .video-meta-panel p');
    for (const block of blocks) {
     const label = String(block.querySelector('strong, .header, dt')?.textContent || '').replace(/[：:]/g, '').trim();
     if (!/(日期|发行日期|发布日期|發行日期|發布日期|release date|released|date)/i.test(label)) continue;
-    const value = String(block.querySelector('.value, dd, span')?.textContent || block.textContent || '')
-     .replace(label, '').replace(/^[：:\s]+/, '').replace(/\s+/g, ' ').trim();
+    const value = String(block.querySelector('.value, dd, span')?.textContent || block.textContent || '') .replace(label, '').replace(/^[：:\s]+/, '').replace(/\s+/g, ' ').trim();
     const match = value.match(/\b(?:19|20)\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}(?:日)?\b/);
     if (match) return match[0].replace(/[年月]/g, '-').replace(/日$/, '').replace(/[/.]/g, '-');
     if (value) return value;
    }
    return ''; }
   async function enrichWorkActors(code, detailUrl, options = {}) {
-   await hydrateResourceState();
-   const normalizedCode = String(code || '').trim(); const url = absoluteUrl(detailUrl);
+   await hydrateResourceState(); const normalizedCode = String(code || '').trim(); const url = absoluteUrl(detailUrl);
    if (!normalizedCode || !url) return false;
    const current = getState().works[normalizedCode] || ensureResourceWork(normalizedCode, { code: normalizedCode, url, source: 'javdb' });
    // Re-run enrichment after parser changes so stale non-female names are removed.
@@ -9517,8 +8344,7 @@
     const actors = parseWorkActors(response.responseText, url); const library = getState(); const work = library.works[normalizedCode];
     if (!work) return false;
     // Replace the snapshot instead of merging it with stale card/detail data.
-    work.actorNames = normalizeActorNames(actors.map(actor => actor.name), normalizedCode);
-    const publishTime = parseWorkPublishTime(response.responseText);
+    work.actorNames = normalizeActorNames(actors.map(actor => actor.name), normalizedCode); const publishTime = parseWorkPublishTime(response.responseText);
     if (publishTime) work.publishTime = publishTime;
     work.actorIds = [];
     actors.forEach(actor => {
@@ -9539,25 +8365,19 @@
     work.actorIds.forEach(actorId => {
      if (library.actors[actorId]) library.relations[`${work.code}:${actorId}`] = { workCode: work.code, actorId, updatedAt: Date.now() };
     });
-    work.actorInfoFetchedAt = Date.now(); work.actorInfoVersion = 3;
-    persist();
-    return true;
+    work.actorInfoFetchedAt = Date.now(); work.actorInfoVersion = 3; persist(); return true;
    })().finally(() => actorLookupInFlight.delete(normalizedCode));
-   actorLookupInFlight.set(normalizedCode, task);
-   return task; }
+   actorLookupInFlight.set(normalizedCode, task); return task; }
   function exportBackup() { return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data: clone(getState()) }; }
   function downloadBackup() {
    const blob = new Blob([JSON.stringify(exportBackup(), null, 2)], { type: 'application/json' });
    const url = URL.createObjectURL(blob); const link = document.createElement('a');
    const filename = `laosiji-resource-backup-${new Date().toISOString().replace(/[.:]/g, '-')}.json`;
-   link.href = url; link.download = filename;
-   document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-   return filename; }
+   link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); return filename; }
   function getBackupHistory() {
    const saved = GM_getValue(BACKUP_HISTORY_KEY, '');
    try {
-    const history = typeof saved === 'string' ? JSON.parse(saved || '[]') : saved;
-    return Array.isArray(history) ? history.filter(item => item && typeof item === 'object').slice(0, MAX_BACKUP_HISTORY) : [];
+    const history = typeof saved === 'string' ? JSON.parse(saved || '[]') : saved; return Array.isArray(history) ? history.filter(item => item && typeof item === 'object').slice(0, MAX_BACKUP_HISTORY) : [];
    } catch (_) { return []; } }
   function recordBackupHistory(action, status, details = {}) {
    const history = getBackupHistory();
@@ -9568,8 +8388,7 @@
    const saved = GM_getValue(WEBDAV_SYNC_KEY, '');
    try {
     const records = typeof saved === 'string' ? JSON.parse(saved || '{}') : saved;
-    const record = records?.[webdavSyncId(config)];
-    return record && typeof record === 'object' ? record : null;
+    const record = records?.[webdavSyncId(config)]; return record && typeof record === 'object' ? record : null;
    } catch (_) { return null; } }
   function saveWebdavSyncRecord(config, digest, action) {
    const saved = GM_getValue(WEBDAV_SYNC_KEY, '');
@@ -9582,8 +8401,7 @@
    if (!globalThis.crypto?.subtle) throw new Error('当前浏览器不支持 WebDAV 冲突检测');
    const text = typeof value === 'string' ? value : JSON.stringify(value); let normalized = text;
    try { normalized = JSON.stringify(JSON.parse(text)); } catch (_) { normalized = text.trim(); }
-   const buffer = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized));
-   return Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join(''); }
+   const buffer = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized)); return Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join(''); }
   function getWebdavConfig() {
    const saved = GM_getValue(WEBDAV_KEY, '');
    try {
@@ -9592,8 +8410,7 @@
    } catch (_) { return { url: '', username: '', password: '', filename: 'laosiji-resource-backup.json' }; } }
   function saveWebdavConfig(config) {
    const next = { url: String(config?.url || '').trim().replace(/\/+$/, ''), username: String(config?.username || ''), password: String(config?.password || ''), filename: String(config?.filename || 'laosiji-resource-backup.json').trim() || 'laosiji-resource-backup.json' };
-   GM_setValue(WEBDAV_KEY, JSON.stringify(next));
-   return next; }
+   GM_setValue(WEBDAV_KEY, JSON.stringify(next)); return next; }
   function webdavAuth(config) {
    const bytes = new TextEncoder().encode(`${config.username}:${config.password}`);
    return `Basic ${btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))}`;
@@ -9611,8 +8428,7 @@
    });
    if (!response.loadstuts || response.status < 200 || response.status >= 400) {
     const error = new Error(`WebDAV 请求失败: HTTP ${response.status || 0}`);
-    error.status = response.status || 0;
-    throw error; }
+    error.status = response.status || 0; throw error; }
    return response; }
   async function webdavTest(config) { return { status: (await webdavRequest('PROPFIND', config)).status, message: '连接成功' }; }
   async function webdavUpload(config, options = {}) {
@@ -9620,12 +8436,9 @@
    if (previous?.digest && !options.force) {
     let remoteBody = '';
     try { remoteBody = (await webdavRequest('GET', config)).responseText || ''; } catch (error) { if (error.status !== 404) throw error; }
-    if (remoteBody && await backupDigest(remoteBody) !== previous.digest) {
-     const conflict = new Error('云端备份已在其他位置发生修改');
-     conflict.code = 'WEBDAV_CONFLICT';
-     throw conflict; } }
-   const response = await webdavRequest('PUT', config, body);
-   saveWebdavSyncRecord(config, await backupDigest(body), 'upload');
+    if (remoteBody && await backupDigest(remoteBody) !== previous.digest) { const conflict = new Error('云端备份已在其他位置发生修改'); conflict.code = 'WEBDAV_CONFLICT'; throw conflict; }
+   }
+   const response = await webdavRequest('PUT', config, body); saveWebdavSyncRecord(config, await backupDigest(body), 'upload');
    return { status: response.status, message: '备份已上传' }; }
   async function webdavDownload(config) {
    const response = await webdavRequest('GET', config); const body = response.responseText || '';
@@ -9644,12 +8457,10 @@
    const base = new URL(`${config.url.replace(/\/+$/, '')}/`);
    const seen = new Set();
    return Array.from(documentXml.getElementsByTagName('*')).filter(node => node.localName === 'response').map(node => {
-    const href = xmlNodeText(node, 'href'); const resourceUrl = href ? new URL(href, base) : null;
-    const resourceType = Array.from(node.getElementsByTagName('*')).find(element => element.localName === 'resourcetype');
+    const href = xmlNodeText(node, 'href'); const resourceUrl = href ? new URL(href, base) : null; const resourceType = Array.from(node.getElementsByTagName('*')).find(element => element.localName === 'resourcetype');
     const isCollection = Array.from(resourceType?.getElementsByTagName?.('*') || []).some(element => element.localName === 'collection');
     if (!resourceUrl || isCollection) return null;
-    const pathname = decodeUri(resourceUrl.pathname); const basePath = decodeUri(base.pathname).replace(/\/+$/, '') + '/';
-    const filename = (pathname.startsWith(basePath) ? pathname.slice(basePath.length) : '').split('/').filter(Boolean).pop() || '';
+    const pathname = decodeUri(resourceUrl.pathname); const basePath = decodeUri(base.pathname).replace(/\/+$/, '') + '/'; const filename = (pathname.startsWith(basePath) ? pathname.slice(basePath.length) : '').split('/').filter(Boolean).pop() || '';
     if (!filename || !/\.json$/i.test(filename) || seen.has(filename)) return null;
     seen.add(filename);
     return { filename, size: Number(xmlNodeText(node, 'getcontentlength')) || 0, modifiedAt: xmlNodeText(node, 'getlastmodified') };
@@ -9668,8 +8479,7 @@
    if (!snapshot) throw new Error('没有可恢复的本地快照');
    const prepared = prepareImport(snapshot);
    state = { version: 2, ...prepared.data, updatedAt: Date.now() };
-   persist();
-   return state; }
+   persist(); return state; }
   function checkIntegrity() {
    const library = getState(); const issues = []; const workCodes = new Set(Object.keys(library.works)); const actorIds = new Set(Object.keys(library.actors));
    Object.entries(library.works).forEach(([key, work]) => { if (!work || typeof work !== 'object' || Array.isArray(work)) issues.push(`作品记录异常：${key}`); });
@@ -9718,23 +8528,19 @@
    if (Array.isArray(previous) || Array.isArray(incoming)) return [...new Set([...(Array.isArray(previous) ? previous : []), ...(Array.isArray(incoming) ? incoming : [])])];
    if (previous && typeof previous === 'object' && incoming && typeof incoming === 'object') {
     return Object.keys({ ...previous, ...incoming }).reduce((result, key) => {
-     result[key] = key in incoming ? mergeValues(previous[key], incoming[key]) : clone(previous[key]);
-     return result;
+     result[key] = key in incoming ? mergeValues(previous[key], incoming[key]) : clone(previous[key]); return result;
     }, {}); }
    return incoming ?? previous; }
   function mergeImportedState(imported) {
-   saveRecoverySnapshot();
-   const library = getState();
+   saveRecoverySnapshot(); const library = getState();
    ['works', 'actors', 'relations'].forEach(kind => Object.entries(imported[kind] || {}).forEach(([key, value]) => { library[kind][key] = mergeValues(library[kind][key], value); }));
    const blacklist = getBlacklist(library);
    ['actors', 'works'].forEach(kind => Object.entries(imported.blacklist?.[kind] || {}).forEach(([key, value]) => { blacklist[kind][key] = mergeValues(blacklist[kind][key], value); }));
    ['codeKeywords', 'titleKeywords'].forEach(kind => { blacklist[kind] = [...new Set([...(blacklist[kind] || []), ...(imported.blacklist?.[kind] || [])])]; });
-   persist();
-   return library; }
+   persist(); return library; }
   function clearAuxiliaryData() {
    GM_setValue(WEBDAV_SYNC_KEY, '{}');
-   GM_setValue(BACKUP_HISTORY_KEY, '[]');
-   recoverySnapshot = null;
+   GM_setValue(BACKUP_HISTORY_KEY, '[]'); recoverySnapshot = null;
    resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => deleteIndexedDbValue('recovery')).catch(() => {}); }
   function formatDate(value) { return value ? new Date(value).toLocaleString() : '未知时间'; }
   function normalizeCode(value) {
@@ -9746,8 +8552,7 @@
   }
   function absoluteUrl(value, base = location.origin) {
    try {
-    const url = new URL(String(value || ''), base);
-    return /^https?:$/i.test(url.protocol) ? url.href : '';
+    const url = new URL(String(value || ''), base); return /^https?:$/i.test(url.protocol) ? url.href : '';
    } catch (_) { return ''; } }
   function classifyType(value) {
    const text = String(value || '').toLowerCase();
@@ -9758,15 +8563,13 @@
   function actorType(actor) {
    const value = actor?.type || actor?.actressType || '';
    if (value === 'uncensored' || value === 'censored' || value === 'western') return value;
-   const classified = classifyType(value);
-   return classified !== 'unknown' ? classified : actor?.source === 'javdb' ? 'censored' : 'unknown'; }
+   const classified = classifyType(value); return classified !== 'unknown' ? classified : actor?.source === 'javdb' ? 'censored' : 'unknown'; }
   function parseActorPage(html, pageUrl) {
    const doc = parseHTML(html); const container = doc.querySelector('#actors');
    if (!container) throw new Error('未找到 JavDB 演员列表');
    const actors = [];
    container.querySelectorAll('.actor-box a[href*="/actors/"]').forEach(anchor => {
-    const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); const match = new URL(href || pageUrl).pathname.match(/\/actors\/([^/?#]+)/i);
-    const starId = match?.[1] || ''; const infoText = anchor.querySelector('.info')?.textContent || '';
+    const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); const match = new URL(href || pageUrl).pathname.match(/\/actors\/([^/?#]+)/i); const starId = match?.[1] || ''; const infoText = anchor.querySelector('.info')?.textContent || '';
     const typeHint = [
      anchor.querySelector('.info, .actor-info, .tag, .badge, [class*="type"], [class*="category"]')?.textContent,
      anchor.getAttribute('data-type'),
@@ -9774,16 +8577,13 @@
      anchor.getAttribute('title'),
      anchor.textContent,
      anchor.closest('.actor-box')?.textContent,
-    ].filter(Boolean).join(' ');
-    const title = String(anchor.getAttribute('title') || anchor.querySelector('.info')?.textContent || '').trim();
-    const aliases = title.split(/[,，、]/).map(item => item.trim()).filter(Boolean);
+    ].filter(Boolean).join(' '); const title = String(anchor.getAttribute('title') || anchor.querySelector('.info')?.textContent || '').trim(); const aliases = title.split(/[,，、]/).map(item => item.trim()).filter(Boolean);
     const name = aliases[0] || String(anchor.querySelector('.info')?.textContent || '').trim();
     if (!starId || !name) return;
     const detectedType = classifyType(typeHint || infoText);
     actors.push({ starId, name, aliases, avatar: absoluteUrl(anchor.querySelector('img')?.getAttribute('src'), pageUrl), type: detectedType === 'uncensored' ? 'uncensored' : detectedType === 'western' ? 'western' : 'censored', source: 'javdb', url: href });
    });
-   const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]');
-   const nextUrl = next ? absoluteUrl(next.getAttribute('href'), pageUrl) : '';
+   const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]'); const nextUrl = next ? absoluteUrl(next.getAttribute('href'), pageUrl) : '';
    return { actors, nextUrl, isChallenge: /Just a moment|cf-chl-|Cloudflare/i.test(doc.title + doc.body.textContent) }; }
   function extractWorkCode(text) {
    const source = String(text || '').toUpperCase();
@@ -9792,31 +8592,24 @@
   function parseWorkPage(html, pageUrl) {
    const doc = parseHTML(html); const anchors = [...doc.querySelectorAll('a[href*="/v/"]')]; const works = []; const seen = new Set();
    anchors.forEach(anchor => {
-    const card = anchor.closest('.item, .box, .movie-box, .video-box, .movie-list-item, .card') || anchor;
-    const text = card.textContent || anchor.textContent || ''; const code = extractWorkCode(text) || extractWorkCode(anchor.getAttribute('href'));
+    const card = anchor.closest('.item, .box, .movie-box, .video-box, .movie-list-item, .card') || anchor; const text = card.textContent || anchor.textContent || ''; const code = extractWorkCode(text) || extractWorkCode(anchor.getAttribute('href'));
     if (!code || seen.has(code)) return;
-    seen.add(code);
-    const image = card.querySelector('img[src], img[data-src]'); const titleNode = card.querySelector('.title, .name, .video-title, [class*="title"]');
-    const dateNode = card.querySelector('.meta, .date, .time, .release-date, time');
+    seen.add(code); const image = card.querySelector('img[src], img[data-src]'); const titleNode = card.querySelector('.title, .name, .video-title, [class*="title"]'); const dateNode = card.querySelector('.meta, .date, .time, .release-date, time');
     const title = String(titleNode?.textContent || anchor.textContent || '').replace(code, '').replace(/[|｜]/g, '').trim();
     works.push({ code, title, cover: absoluteUrl(image?.getAttribute('src') || image?.getAttribute('data-src'), pageUrl), publishTime: String(dateNode?.textContent || '').trim(), url: absoluteUrl(anchor.getAttribute('href'), pageUrl), type: classifyType(text), source: 'javdb', tags: [] });
    });
    const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]');
-   return { works, nextUrl: next ? absoluteUrl(next.getAttribute('href'), pageUrl) : '', isChallenge: /Just a moment|cf-chl-|Cloudflare/i.test(doc.title + doc.body.textContent) };
-  }
+   return { works, nextUrl: next ? absoluteUrl(next.getAttribute('href'), pageUrl) : '', isChallenge: /Just a moment|cf-chl-|Cloudflare/i.test(doc.title + doc.body.textContent) }; }
   function parseActorProfile(html) {
-   const doc = parseHTML(html);
-   const name = String(doc.querySelector('.actor-section-name, .avatar-box .photo-info .pb10, h1.title')?.textContent || '').replace(/\s+/g, ' ').trim();
-   const aliases = normalizeActorNames(name.split(/[,，、]/));
-   const avatarNode = doc.querySelector('.actor-avatar .avatar, .actor-avatar [style*="background-image"], .avatar-box .avatar, .avatar-box [style*="background-image"]');
-   const style = String(avatarNode?.getAttribute('style') || ''); const match = style.match(/background-image\s*:\s*url\(\s*["']?([^"')]+)["']?\s*\)/i);
-   let avatar = '';
+   const doc = parseHTML(html); const name = String(doc.querySelector('.actor-section-name, .avatar-box .photo-info .pb10, h1.title')?.textContent || '').replace(/\s+/g, ' ').trim(); const aliases = normalizeActorNames(name.split(/[,，、]/));
+   const avatarNode = doc.querySelector('.actor-avatar .avatar, .actor-avatar [style*="background-image"], .avatar-box .avatar, .avatar-box [style*="background-image"]'); const style = String(avatarNode?.getAttribute('style') || '');
+   const match = style.match(/background-image\s*:\s*url\(\s*["']?([^"')]+)["']?\s*\)/i); let avatar = '';
    try { avatar = match?.[1] ? absoluteUrl(match[1], location.href) : ''; } catch (_) { }
    return { name: aliases[0] || name, aliases, avatar }; }
   function getActorAvatarUrl(actorId) {
    const id = String(actorId || '').trim();
    if (id.length < 2) return '';
-   return `https://c0.jdbstatic.com/avatars/${encodeURIComponent(id.slice(0, 2))}/${encodeURIComponent(id)}.jpg`;
+   return `https://c0.jdbstatic.com/avatars/${encodeURIComponent(id.slice(0, 2).toLowerCase())}/${encodeURIComponent(id)}.jpg`;
   }
   function resolveActorAvatar(actor) {
    const fallback = 'https://c0.jdbstatic.com/images/actor_unknow.jpg';
@@ -9824,7 +8617,7 @@
    if (!value || /actor_unknow\.jpg/i.test(value)) return getActorAvatarUrl(actor?.starId) || fallback;
    try {
     const url = new URL(value, location.href);
-    if (/(?:^|\.)javdb\.com$/i.test(url.hostname) && /^\/avatars\//i.test(url.pathname)) return getActorAvatarUrl(actor?.starId) || fallback;
+    if (/(?:^|\.)(?:javdb\.com|jdbstatic\.com)$/i.test(url.hostname) && /^\/avatars\//i.test(url.pathname)) return getActorAvatarUrl(actor?.starId) || fallback;
    } catch (_) { }
    return value; }
   function createResourceOperation() { return { cancelled: false, request: null, cancel() { this.cancelled = true; this.request?.abort?.(); } }; }
@@ -9841,12 +8634,9 @@
    if (!response.loadstuts || !response.responseText) throw new Error(`请求失败 HTTP ${response.status || 0}`);
    return response.responseText; }
   async function syncActors(onProgress, operation) {
-   await hydrateResourceState();
-   const library = getState(); const origin = location.origin; const seen = new Set(); let url = new URL('/users/collection_actors', origin).href;
-   let pages = 0; const now = Date.now();
+   await hydrateResourceState(); const library = getState(); const origin = location.origin; const seen = new Set(); let url = new URL('/users/collection_actors', origin).href; let pages = 0; const now = Date.now();
    while (url && pages < 200 && !seen.has(url)) {
-    throwIfResourceOperationCancelled(operation); seen.add(url);
-    pages += 1;
+    throwIfResourceOperationCancelled(operation); seen.add(url); pages += 1;
     onProgress?.(`同步演员 ${pages} 页`);
     const result = parseActorPage(await fetchResourcePage(url, operation), url);
     if (result.isChallenge) throw new Error('JavDB 返回了 Cloudflare 验证页面');
@@ -9858,8 +8648,7 @@
    linkKnownActorsToWorks(library); persist();
    return { actors: Object.keys(library.actors).length, pages }; }
   async function syncActorWorks(actorId, onProgress, operation) {
-   await hydrateResourceState();
-   const library = getState(); const actor = library.actors[actorId];
+   await hydrateResourceState(); const library = getState(); const actor = library.actors[actorId];
    if (!actor) throw new Error('演员记录不存在');
    const pageUrl = absoluteUrl(`/actors/${encodeURIComponent(actorId)}`);
    onProgress?.(`检测 ${actor.name || actorId}`);
@@ -9869,11 +8658,9 @@
    if (profile.avatar) actor.avatar = profile.avatar;
    const result = parseWorkPage(firstPageHtml, pageUrl);
    if (result.isChallenge) throw new Error('JavDB 返回了 Cloudflare 验证页面');
-   const now = Date.now(); let added = 0; const allWorks = result.works.slice(); let nextUrl = result.nextUrl || ''; const seenPages = new Set([pageUrl]);
-   let pageCount = 1;
+   const now = Date.now(); let added = 0; const allWorks = result.works.slice(); let nextUrl = result.nextUrl || ''; const seenPages = new Set([pageUrl]); let pageCount = 1;
    while (nextUrl && pageCount < 200 && !seenPages.has(nextUrl)) {
-    seenPages.add(nextUrl); throwIfResourceOperationCancelled(operation);
-    const nextResult = parseWorkPage(await fetchResourcePage(nextUrl, operation), nextUrl);
+    seenPages.add(nextUrl); throwIfResourceOperationCancelled(operation); const nextResult = parseWorkPage(await fetchResourcePage(nextUrl, operation), nextUrl);
     if (nextResult.isChallenge) throw new Error('actor blacklist work sync challenge');
     allWorks.push(...nextResult.works);
     try {
@@ -9889,16 +8676,13 @@
     const relationKey = `${work.code}:${actorId}`;
     library.relations[relationKey] = { workCode: work.code, actorId, updatedAt: now };
    });
-   actor.lastCheckAt = now; actor.lastWorkCount = result.works.length; actor.newWorkCount = (actor.newWorkCount || 0) + added;
-   actor.lastPublishTime = result.works.map(item => item.publishTime).filter(Boolean).sort().at(-1) || actor.lastPublishTime || '';
+   actor.lastCheckAt = now; actor.lastWorkCount = result.works.length; actor.newWorkCount = (actor.newWorkCount || 0) + added; actor.lastPublishTime = result.works.map(item => item.publishTime).filter(Boolean).sort().at(-1) || actor.lastPublishTime || '';
    persist();
    return { found: result.works.length, added }; }
   async function syncAllActorWorks(actorIds, onProgress, operation) {
    const ids = (actorIds?.length ? actorIds : Object.keys(getState().actors)).filter(Boolean); let found = 0; let added = 0;
    for (const actorId of ids) {
-    throwIfResourceOperationCancelled(operation);
-    const result = await syncActorWorks(actorId, onProgress, operation);
-    found += result.found; added += result.added; }
+    throwIfResourceOperationCancelled(operation); const result = await syncActorWorks(actorId, onProgress, operation); found += result.found; added += result.added; }
    return { actors: ids.length, found, added }; }
   async function uncollectResourceActor(actorId) {
    const token = document.querySelector('meta[name="csrf-token"]')?.content;
@@ -9909,54 +8693,36 @@
    return response; }
   function open(initialView = 'actors', initialBlacklistView = 'actors', initialWorksStatusFilter = 'all') {
    if (!isSupported()) return null;
-   const previousOverlay = document.getElementById('jav-resource-overlay');
-   previousOverlay?.dispatchEvent(new Event('laosiji-resource-dispose')); previousOverlay?.remove();
+   const previousOverlay = document.getElementById('jav-resource-overlay'); previousOverlay?.dispatchEvent(new Event('laosiji-resource-dispose')); previousOverlay?.remove();
    if (previousOverlay) { document.body.style.overflow = ''; document.documentElement.style.overflow = ''; }
-   ensureResourceLibraryStyles();
-   const overlay = document.createElement('div');
-   overlay.id = 'jav-resource-overlay'; overlay.className = 'jav-resource-overlay';
-   const previousBodyOverflow = document.body.style.overflow; const previousDocumentOverflow = document.documentElement.style.overflow;
-   document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden';
+   ensureResourceLibraryStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-resource-overlay'; overlay.className = 'jav-resource-overlay'; const previousBodyOverflow = document.body.style.overflow;
+   const previousDocumentOverflow = document.documentElement.style.overflow; document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden';
    overlay.innerHTML = `<section class="jav-resource-center" role="dialog" aria-modal="true" aria-label="资源管理"><nav class="jav-resource-nav"><div class="jav-resource-brand">资源管理</div><button type="button" data-resource-view="actors" class="is-active" aria-current="page">演员库</button><button type="button" data-resource-view="works">作品库</button><button type="button" data-resource-view="history">鉴定记录</button><button type="button" data-resource-view="blacklist">黑名单</button><button type="button" data-resource-view="backup">备份与恢复</button><div class="jav-resource-nav-spacer"></div><button class="jav-resource-nav-close" type="button" data-resource-close="1">关闭</button></nav><main class="jav-resource-main"><header class="jav-resource-head"><div class="jav-resource-head-title">演员库</div></header><section class="jav-resource-backup"></section></main></section>`;
-   document.body.appendChild(overlay);
-   const backupEl = overlay.querySelector('.jav-resource-backup'); let pendingImport = null; let healthReport = null; let webdavListing = null;
-   let webdavListingLoading = false; let webdavConflict = null; let webdavConflictLoading = false; let cleanupPending = false;
-   let resourceCleanupPending = null; const validViews = new Set(['actors', 'works', 'history', 'blacklist', 'backup']);
-   const validBlacklistViews = new Set(['actors', 'works', 'keywords']); let activeView = validViews.has(initialView) ? initialView : 'actors';
-   let actorsFilter = 'all'; let actorsSearch = ''; let actorsPage = 1; const actorsPageSize = 20; let worksFilter = 'all'; let worksSearch = '';
-   let worksPage = 1; const worksPageSize = 20; const validWorksStatusFilters = new Set(['all', 'unmarked', 'favorite', 'watched', 'downloaded']);
-   let worksStatusFilter = validWorksStatusFilters.has(initialWorksStatusFilter) ? initialWorksStatusFilter : 'all';
-   let blacklistView = validBlacklistViews.has(initialBlacklistView) ? initialBlacklistView : 'actors'; let blacklistSearch = ''; let historyView = 'state';
-   let historyFilter = 'all'; let historySearch = ''; let historyRemoveCode = ''; const historyActorEnrichmentScheduled = new Set();
-   let actorWorkStatsRevision = -1; let actorWorkStats = null; let operationBusy = false; let operationMessage = '';
+   document.body.appendChild(overlay); const backupEl = overlay.querySelector('.jav-resource-backup'); let pendingImport = null; let healthReport = null; let webdavListing = null; let webdavListingLoading = false; let webdavConflict = null;
+   let webdavConflictLoading = false; let cleanupPending = false; let resourceCleanupPending = null; const validViews = new Set(['actors', 'works', 'history', 'blacklist', 'backup']); const validBlacklistViews = new Set(['actors', 'works', 'keywords']);
+   let activeView = validViews.has(initialView) ? initialView : 'actors'; let actorsFilter = 'all'; let actorsSearch = ''; let actorsPage = 1; const actorsPageSize = 20; let worksFilter = 'all'; let worksSearch = ''; let worksPage = 1;
+   const worksPageSize = 20; const validWorksStatusFilters = new Set(['all', 'unmarked', 'favorite', 'watched', 'downloaded']); let worksStatusFilter = validWorksStatusFilters.has(initialWorksStatusFilter) ? initialWorksStatusFilter : 'all';
+   let blacklistView = validBlacklistViews.has(initialBlacklistView) ? initialBlacklistView : 'actors'; let blacklistSearch = ''; let historyView = 'state'; let historyFilter = 'all'; let historySearch = ''; let historyRemoveCode = '';
+   const historyActorEnrichmentScheduled = new Set(); let actorWorkStatsRevision = -1; let actorWorkStats = null; let operationBusy = false; let operationMessage = '';
    function syncOperationControl() {
     const libraryEl = contentEl.querySelector('.jav-resource-library');
     if (!libraryEl) return;
     const grid = libraryEl.querySelector('.jav-resource-grid');
     if (grid) libraryEl.classList.add('jav-resource-library--workspace');
     if (grid && !grid.parentElement?.classList.contains('jav-resource-content-scroll')) {
-     const scroll = document.createElement('div');
-     scroll.className = 'jav-resource-content-scroll';
-     grid.parentNode.insertBefore(scroll, grid); scroll.appendChild(grid); }
+     const scroll = document.createElement('div'); scroll.className = 'jav-resource-content-scroll'; grid.parentNode.insertBefore(scroll, grid); scroll.appendChild(grid); }
     libraryEl.querySelectorAll('.nv-card .jav-resource-card-actions a').forEach(link => link.remove());
     libraryEl.querySelectorAll('.actress-card').forEach(card => {
      const actor = getState().actors[card.dataset.starId]; const rows = card.querySelectorAll('.actress-card__meta-row');
-     if (actor && rows[0]) {
-      rows[0].querySelector('dt').textContent = '最近作品';
-      rows[0].querySelector('dd').textContent = formatPublishDate(actor.lastPublishTime || actor.lastPublishAt); }
-     card.querySelector('.actress-card__note')?.remove();
-     const actions = card.querySelector('.actress-card__actions');
+     if (actor && rows[0]) { rows[0].querySelector('dt').textContent = '最近作品'; rows[0].querySelector('dd').textContent = formatPublishDate(actor.lastPublishTime || actor.lastPublishAt); }
+     card.querySelector('.actress-card__note')?.remove(); const actions = card.querySelector('.actress-card__actions');
      if (actions && !actions.querySelector('[data-resource-uncollect-actor]')) {
-      const remove = document.createElement('button');
-      remove.type = 'button'; remove.className = 'jav-resource-actor-remove'; remove.dataset.resourceUncollectActor = card.dataset.starId || '';
-      remove.textContent = '取消收藏';
-      actions.appendChild(remove); }
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'jav-resource-actor-remove'; remove.dataset.resourceUncollectActor = card.dataset.starId || ''; remove.textContent = '取消收藏'; actions.appendChild(remove); }
     });
     let stop = libraryEl.querySelector('[data-resource-stop]');
     if (!operationBusy) { stop?.remove(); return; }
     if (stop) return;
-    stop = document.createElement('button'); stop.type = 'button'; stop.dataset.resourceStop = '1'; stop.className = 'jav-resource-operation-stop';
-    stop.textContent = '\u505c\u6b62\u5f53\u524d\u64cd\u4f5c';
+    stop = document.createElement('button'); stop.type = 'button'; stop.dataset.resourceStop = '1'; stop.className = 'jav-resource-operation-stop'; stop.textContent = '\u505c\u6b62\u5f53\u524d\u64cd\u4f5c';
     libraryEl.querySelector('.jav-resource-toolbar-group')?.prepend(stop); }
    const readWebdavForm = () => saveWebdavConfig({
     url: backupEl.querySelector('[data-webdav-url]')?.value,
@@ -9969,21 +8735,18 @@
    const closeResourceMenus = (except = null) => {
     overlay.querySelectorAll('.jav-resource-card-menu.is-open').forEach(menu => {
      if (menu === except) return;
-     menu.classList.remove('is-open'); menu.querySelector('[data-resource-work-menu]')?.setAttribute('aria-expanded', 'false');
-     const popover = menu.querySelector('.jav-resource-card-menu-popover');
+     menu.classList.remove('is-open'); menu.querySelector('[data-resource-work-menu]')?.setAttribute('aria-expanded', 'false'); const popover = menu.querySelector('.jav-resource-card-menu-popover');
      if (popover) { popover.style.left = ''; popover.style.top = ''; }
     }); };
    const positionResourceMenu = menu => {
     const trigger = menu.querySelector('[data-resource-work-menu]'); const popover = menu.querySelector('.jav-resource-card-menu-popover');
     if (!trigger || !popover || !menu.classList.contains('is-open')) return;
-    const triggerRect = trigger.getBoundingClientRect(); const popoverRect = popover.getBoundingClientRect(); const width = popoverRect.width || 148;
-    const height = popoverRect.height || 130; const gap = 6; const left = Math.min(Math.max(8, triggerRect.right - width), window.innerWidth - width - 8);
-    const top = window.innerHeight - triggerRect.bottom >= height + gap ? triggerRect.bottom + gap : Math.max(8, triggerRect.top - height - gap);
+    const triggerRect = trigger.getBoundingClientRect(); const popoverRect = popover.getBoundingClientRect(); const width = popoverRect.width || 148; const height = popoverRect.height || 130; const gap = 6;
+    const left = Math.min(Math.max(8, triggerRect.right - width), window.innerWidth - width - 8); const top = window.innerHeight - triggerRect.bottom >= height + gap ? triggerRect.bottom + gap : Math.max(8, triggerRect.top - height - gap);
     popover.style.left = `${Math.round(left)}px`;
     popover.style.top = `${Math.round(top)}px`;
    };
-   const closeResourceMenusOnViewportChange = () => closeResourceMenus();
-   window.addEventListener('resize', closeResourceMenusOnViewportChange); overlay.addEventListener('scroll', closeResourceMenusOnViewportChange, true);
+   const closeResourceMenusOnViewportChange = () => closeResourceMenus(); window.addEventListener('resize', closeResourceMenusOnViewportChange); overlay.addEventListener('scroll', closeResourceMenusOnViewportChange, true);
    overlay.addEventListener('laosiji-resource-dispose', () => window.removeEventListener('resize', closeResourceMenusOnViewportChange), { once: true });
    const typeLabel = type => type === 'uncensored' ? '无码' : type === 'censored' ? '有码' : type === 'western' ? '欧美' : '未知';
    function getActorWorkStats() {
@@ -9998,15 +8761,12 @@
       stats.set(actorId, current);
      });
     });
-    actorWorkStats = stats; actorWorkStatsRevision = resourceStateRevision;
-    return stats; }
-   const actorWorkCount = actorId => getActorWorkStats().get(actorId)?.total || 0;
-   const actorNewCount = actorId => getActorWorkStats().get(actorId)?.fresh || 0;
+    actorWorkStats = stats; actorWorkStatsRevision = resourceStateRevision; return stats; }
+   const actorWorkCount = actorId => getActorWorkStats().get(actorId)?.total || 0; const actorNewCount = actorId => getActorWorkStats().get(actorId)?.fresh || 0;
    const displayWorkType = work => work?.type && work.type !== 'unknown' ? work.type : (work?.actorIds || []).map(id => actorType(getState().actors[id])).find(type => type !== 'unknown') || 'unknown';
    const workActorNames = work => {
     const library = getState();
-    return normalizeActorNames([ ...(work?.actorIds || []).map(id => library.actors[id]?.name).filter(Boolean),
-     ...(Array.isArray(work?.actorNames) ? work.actorNames : []),
+    return normalizeActorNames([ ...(work?.actorIds || []).map(id => library.actors[id]?.name).filter(Boolean), ...(Array.isArray(work?.actorNames) ? work.actorNames : []),
     ], work?.code); };
    const formatPublishDate = value => value ? String(value).trim().replace(/\s+\d{1,2}:\d{2}(?::\d{2})?.*$/, '') : '暂无记录';
    const formatHistoryDate = value => {
@@ -10023,12 +8783,9 @@
     const work = getState().works[code];
     if (!work) return false;
     work.flags = { favorite: false, watched: false, downloaded: false, blocked: false };
-    work.acknowledged = false; work.activity = []; work.modifiedAt = Date.now();
-    persist();
-    return true; }
+    work.acknowledged = false; work.activity = []; work.modifiedAt = Date.now(); persist(); return true; }
    function getResourceCleanupMatches(scope, type) {
-    const library = getState(); const typeMatches = value => type === 'all' || value === type;
-    const actorIds = scope === 'actors' || scope === 'all' ? Object.entries(library.actors).filter(([, actor]) => typeMatches(actorType(actor))).map(([id]) => id) : [];
+    const library = getState(); const typeMatches = value => type === 'all' || value === type; const actorIds = scope === 'actors' || scope === 'all' ? Object.entries(library.actors).filter(([, actor]) => typeMatches(actorType(actor))).map(([id]) => id) : [];
     const workCodes = scope === 'works' || scope === 'all' ? Object.entries(library.works).filter(([, work]) => typeMatches(displayWorkType(work))).map(([code]) => code) : [];
     const historyCodes = scope === 'history' ? Object.entries(library.works).filter(([, work]) => Object.values(workFlags(work)).some(Boolean) || Array.isArray(work.activity) && work.activity.length || work.acknowledged).map(([code]) => code) : [];
     const orphanRelations = scope === 'relations' ? Object.entries(library.relations).filter(([, relation]) => !library.actors[relation?.actorId] || !library.works[relation?.workCode]).map(([key]) => key) : [];
@@ -10057,9 +8814,7 @@
      persist();
      return { actors: 0, works: 0, relations: 0, history: 0, blacklist: count }; }
     if (scope === 'blacklist-keywords') {
-     const count = (library.blacklist.codeKeywords || []).length + (library.blacklist.titleKeywords || []).length;
-     library.blacklist.codeKeywords = []; library.blacklist.titleKeywords = [];
-     persist();
+     const count = (library.blacklist.codeKeywords || []).length + (library.blacklist.titleKeywords || []).length; library.blacklist.codeKeywords = []; library.blacklist.titleKeywords = []; persist();
      return { actors: 0, works: 0, relations: 0, history: 0, blacklist: count }; }
     if (scope === 'relations') {
      matches.orphanRelations.forEach(key => delete library.relations[key]); persist();
@@ -10070,8 +8825,7 @@
      library.works = {};
      library.relations = {};
      library.blacklist = { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] };
-     persist();
-     return result; }
+     persist(); return result; }
     actorIds.forEach(id => delete library.actors[id]); workCodes.forEach(code => delete library.works[code]);
     if (scope === 'works') workCodes.forEach(code => delete library.blacklist.works[code]);
     if (scope === 'actors') actorIds.forEach(id => delete library.blacklist.actors[id]);
@@ -10088,13 +8842,10 @@
     const library = getState(); let actors = Object.values(library.actors);
     if (actorsFilter !== 'all') actors = actors.filter(actor => actorType(actor) === actorsFilter);
     if (actorsSearch) actors = actors.filter(actor => `${actor.name} ${(Array.isArray(actor.aliases) ? actor.aliases : actor.allName || []).join(' ')}`.toLowerCase().includes(actorsSearch.toLowerCase()));
-    actors.sort((a, b) => (actorNewCount(b.starId) - actorNewCount(a.starId)) || String(a.name).localeCompare(String(b.name)));
-    const totalPages = Math.max(1, Math.ceil(actors.length / actorsPageSize));
-    actorsPage = Math.min(Math.max(1, actorsPage), totalPages);
-    const pageActors = actors.slice((actorsPage - 1) * actorsPageSize, actorsPage * actorsPageSize);
+    actors.sort((a, b) => (actorNewCount(b.starId) - actorNewCount(a.starId)) || String(a.name).localeCompare(String(b.name))); const totalPages = Math.max(1, Math.ceil(actors.length / actorsPageSize));
+    actorsPage = Math.min(Math.max(1, actorsPage), totalPages); const pageActors = actors.slice((actorsPage - 1) * actorsPageSize, actorsPage * actorsPageSize);
     const cards = pageActors.map(actor => {
-     const newCount = actorNewCount(actor.starId); const avatar = resolveActorAvatar(actor); const type = actorType(actor);
-     const aliases = Array.isArray(actor.aliases) ? actor.aliases : Array.isArray(actor.allName) ? actor.allName : [];
+     const newCount = actorNewCount(actor.starId); const avatar = resolveActorAvatar(actor); const type = actorType(actor); const aliases = Array.isArray(actor.aliases) ? actor.aliases : Array.isArray(actor.allName) ? actor.allName : [];
      const blacklisted = !!getBlacklist().actors[actor.starId];
      return `<article class="jav-resource-card actress-card" data-star-id="${escape(actor.starId)}"><div class="actress-card__badges"><span class="jav-resource-badge jav-resource-badge-count">${newCount} 新</span><span class="jav-resource-badge jav-resource-badge-type ${escape(type)}">${typeLabel(type)}</span>${blacklisted ? '<span class="jav-resource-badge jav-resource-badge-blocked">已屏蔽作品</span>' : ''}</div><a class="actress-card__profile" href="${escape(actor.url ||`/actors/${encodeURIComponent(actor.starId)}`)}" target="_blank" rel="noopener"><img class="actress-card-avatar" loading="lazy" src="${escape(avatar)}" alt="${escape(actor.name)}"><span><span class="actress-card-name">${escape(actor.name)}</span><span class="actress-card-allname">${escape(aliases.slice(1).join('、') || '暂无别名')}</span></span></a><dl class="actress-card__meta"><div class="actress-card__meta-row"><dt>作品</dt><dd>${actorWorkCount(actor.starId)} 部 · 待处理 ${newCount}</dd></div><div class="actress-card__meta-row"><dt>上次检测</dt><dd>${escape(formatDate(actor.lastCheckAt || actor.lastCheckTime))}</dd></div></dl><p class="actress-card__note">${escape(newCount ? `待处理 ${newCount} 部最新作品` : '暂无待处理作品')}</p><div class="actress-card__actions"><button type="button" class="primary btn-check-actress" data-resource-check-actor="${escape(actor.starId)}">检测最新作品</button></div></article>`;
     }).join('');
@@ -10113,9 +8864,7 @@
       return !!flags[worksStatusFilter];
      }); }
     if (worksSearch) works = works.filter(work => `${work.code} ${work.title} ${(work.actorIds || []).map(id => library.actors[id]?.name || '').join(' ')}`.toLowerCase().includes(worksSearch.toLowerCase()));
-    works.sort((a, b) => String(b.publishTime || b.lastSeenAt || '').localeCompare(String(a.publishTime || a.lastSeenAt || '')));
-    const totalPages = Math.max(1, Math.ceil(works.length / worksPageSize));
-    worksPage = Math.min(Math.max(1, worksPage), totalPages);
+    works.sort((a, b) => String(b.publishTime || b.lastSeenAt || '').localeCompare(String(a.publishTime || a.lastSeenAt || ''))); const totalPages = Math.max(1, Math.ceil(works.length / worksPageSize)); worksPage = Math.min(Math.max(1, worksPage), totalPages);
     const pageWorks = works.slice((worksPage - 1) * worksPageSize, worksPage * worksPageSize);
     const cards = pageWorks.map(work => {
      const names = normalizeActorNames((work.actorIds || []).map(id => library.actors[id]?.name), work.code).join('、'); const flags = workFlags(work);
@@ -10131,8 +8880,7 @@
    function renderHistory() {
     const library = getState();
     const hasHistory = work => {
-     const flags = workFlags(work);
-     return Object.values(flags).some(Boolean) || (Array.isArray(work?.activity) && work.activity.length > 0); };
+     const flags = workFlags(work); return Object.values(flags).some(Boolean) || (Array.isArray(work?.activity) && work.activity.length > 0); };
     let works = Object.values(library.works).filter(hasHistory).map(work => ({ ...work, type: displayWorkType(work) }));
     works = works.filter(work => !isWorkBlacklisted(work, library));
     if (historyFilter !== 'all') works = works.filter(work => workFlags(work)[historyFilter]);
@@ -10179,14 +8927,9 @@
     contentEl.innerHTML = `<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">命中番号或标题关键词的作品会从作品库和鉴定记录中隐藏。</div><div class="jav-resource-blacklist-keyword-form"><label>番号关键词<input type="text" data-resource-blacklist-keyword-input="code" placeholder="例如 FC2、无码"></label><button type="button" data-resource-blacklist-add-keyword="code">添加</button></div><div class="jav-resource-keyword-list">${codeKeywords || '<span class="jav-resource-blacklist-muted">暂无番号关键词</span>'}</div><div class="jav-resource-blacklist-keyword-form"><label>标题关键词<input type="text" data-resource-blacklist-keyword-input="title" placeholder="例如 字幕、合集"></label><button type="button" data-resource-blacklist-add-keyword="title">添加</button></div><div class="jav-resource-keyword-list">${titleKeywords || '<span class="jav-resource-blacklist-muted">暂无标题关键词</span>'}</div></div>`;
    }
    function renderActiveView() {
-    const title = activeView === 'actors' ? '演员库' : activeView === 'works' ? '作品库' : activeView === 'history' ? '鉴定记录' : activeView === 'blacklist' ? '黑名单' : '备份与恢复';
-    overlay.querySelector('.jav-resource-head-title').textContent = title;
-    backupEl.classList.toggle('jav-resource-backup--library', activeView === 'actors' || activeView === 'works' || activeView === 'history' || activeView === 'blacklist');
-    backupEl.classList.toggle('jav-resource-backup--history', activeView === 'history');
-    overlay.querySelectorAll('[data-resource-view]').forEach(button => {
-     const active = button.dataset.resourceView === activeView;
-     button.classList.toggle('is-active', active); button.setAttribute('aria-current', active ? 'page' : 'false');
-    });
+    const title = activeView === 'actors' ? '演员库' : activeView === 'works' ? '作品库' : activeView === 'history' ? '鉴定记录' : activeView === 'blacklist' ? '黑名单' : '备份与恢复'; overlay.querySelector('.jav-resource-head-title').textContent = title;
+    backupEl.classList.toggle('jav-resource-backup--library', activeView === 'actors' || activeView === 'works' || activeView === 'history' || activeView === 'blacklist'); backupEl.classList.toggle('jav-resource-backup--history', activeView === 'history');
+    overlay.querySelectorAll('[data-resource-view]').forEach(button => { const active = button.dataset.resourceView === activeView; button.classList.toggle('is-active', active); button.setAttribute('aria-current', active ? 'page' : 'false'); });
     if (activeView === 'actors') renderActors();
     else if (activeView === 'works') renderWorks();
     else if (activeView === 'history') renderHistory();
@@ -10194,10 +8937,9 @@
     else renderBackup();
     syncOperationControl(); }
    function renderResourceCleanup() {
-    const library = getState(); const selectedScope = resourceCleanupPending?.scope || 'works'; const selectedType = resourceCleanupPending?.type || 'all';
-    const matches = resourceCleanupPending ? getResourceCleanupMatches(selectedScope, selectedType) : null; const blacklist = getBlacklist(library);
-    const blacklistCount = selectedScope === 'blacklist-actors' ? Object.keys(blacklist.actors).length
-     : selectedScope === 'blacklist-works' ? Object.keys(blacklist.works).length
+    const library = getState(); const selectedScope = resourceCleanupPending?.scope || 'works'; const selectedType = resourceCleanupPending?.type || 'all'; const matches = resourceCleanupPending ? getResourceCleanupMatches(selectedScope, selectedType) : null;
+    const blacklist = getBlacklist(library);
+    const blacklistCount = selectedScope === 'blacklist-actors' ? Object.keys(blacklist.actors).length : selectedScope === 'blacklist-works' ? Object.keys(blacklist.works).length
       : selectedScope === 'blacklist-keywords' ? blacklist.codeKeywords.length + blacklist.titleKeywords.length : 0;
     const preview = resourceCleanupPending ? selectedScope === 'history' ? `将清除 ${matches.historyCodes.length} 条鉴定记录，作品资料保留。`
      : selectedScope === 'relations' ? `将清除 ${matches.orphanRelations.length} 条孤立关联。`
@@ -10236,16 +8978,12 @@
     if (blacklistTab) { blacklistView = blacklistTab.dataset.blacklistView || 'actors'; blacklistSearch = ''; renderActiveView(); return; }
     const menuTrigger = event.target.closest('[data-resource-work-menu]');
     if (menuTrigger) {
-     const menu = menuTrigger.closest('.jav-resource-card-menu');
-     closeResourceMenus(menu);
-     const isOpen = menu?.classList.toggle('is-open') || false;
-     menuTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+     const menu = menuTrigger.closest('.jav-resource-card-menu'); closeResourceMenus(menu); const isOpen = menu?.classList.toggle('is-open') || false; menuTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
      if (isOpen) requestAnimationFrame(() => positionResourceMenu(menu));
      return; }
     const historyActorQuery = event.target.closest('[data-resource-history-query-actors], [data-resource-work-query-actors]');
     if (historyActorQuery) {
-     const code = historyActorQuery.dataset.resourceHistoryQueryActors || historyActorQuery.dataset.resourceWorkQueryActors || '';
-     const work = getState().works[code];
+     const code = historyActorQuery.dataset.resourceHistoryQueryActors || historyActorQuery.dataset.resourceWorkQueryActors || ''; const work = getState().works[code];
      if (!work?.url || historyActorEnrichmentScheduled.has(code)) return;
      historyActorEnrichmentScheduled.add(code); renderActiveView();
      enrichWorkActors(code, work.url, { force: true }).then(updated => {
@@ -10262,10 +9000,7 @@
     if (event.target.closest('[data-resource-history-remove-cancel]')) { historyRemoveCode = ''; return renderActiveView(); }
     const historyRemoveConfirm = event.target.closest('[data-resource-history-remove-confirm]');
     if (historyRemoveConfirm) {
-     removeWorkFromHistory(historyRemoveConfirm.dataset.resourceHistoryRemoveConfirm);
-     historyRemoveCode = '';
-     Utils.showToast('已移出鉴定记录', historyRemoveConfirm.dataset.resourceHistoryRemoveConfirm);
-     return renderActiveView(); }
+     removeWorkFromHistory(historyRemoveConfirm.dataset.resourceHistoryRemoveConfirm); historyRemoveCode = ''; Utils.showToast('已移出鉴定记录', historyRemoveConfirm.dataset.resourceHistoryRemoveConfirm); return renderActiveView(); }
     if (event.target.closest('[data-resource-close]')) { activeResourceOperation?.cancel(); activeResourceOperation = null; overlay.dispatchEvent(new Event('laosiji-resource-dispose')); overlay.remove(); document.body.style.overflow = previousBodyOverflow; document.documentElement.style.overflow = previousDocumentOverflow; return; }
     if (event.target.closest('[data-resource-stop]')) { activeResourceOperation?.cancel(); operationMessage = '\u6b63\u5728\u505c\u6b62\u64cd\u4f5c...'; return; }
     const workPageClick = event.target.closest('[data-resource-works-page]'); const actorPageClick = event.target.closest('[data-resource-actors-page]');
@@ -10273,21 +9008,18 @@
     if (workPageClick) { const nextPage = Number(workPageClick.dataset.resourceWorksPage); if (Number.isFinite(nextPage) && nextPage >= 1) { worksPage = nextPage; renderActiveView(); requestAnimationFrame(() => { const scroll = contentEl.querySelector('.jav-resource-content-scroll'); if (scroll) scroll.scrollTop = 0; }); } return; }
     if (event.target.closest('[data-resource-sync-actors]')) {
      if (operationBusy) return;
-     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在同步演员...';
-     renderActiveView();
+     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在同步演员...'; renderActiveView();
      syncActors(message => { operationMessage = message; renderActiveView(); }, activeResourceOperation).then(result => { operationMessage = `演员同步完成：${result.actors} 位，${result.pages} 页`; Utils.showToast('演员同步完成', `${result.actors} 位演员`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `演员同步失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); });
      return; }
     if (event.target.closest('[data-resource-check-all]')) {
      if (operationBusy) return;
-     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在检测演员最新作品...';
-     renderActiveView();
+     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在检测演员最新作品...'; renderActiveView();
      syncAllActorWorks(null, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation).then(result => { operationMessage = `作品检测完成：${result.actors} 位演员，新增 ${result.added} 部作品`; Utils.showToast('作品检测完成', `新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `作品检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); });
      return; }
     const actorCheck = event.target.closest('[data-resource-check-actor]');
     if (actorCheck) {
      if (operationBusy) return;
-     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在检测演员最新作品...';
-     renderActiveView();
+     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在检测演员最新作品...'; renderActiveView();
      syncActorWorks(actorCheck.dataset.resourceCheckActor, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation).then(result => { operationMessage = `检测完成：发现 ${result.found} 部，新增 ${result.added} 部`; Utils.showToast('作品检测完成', `新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); });
      return; }
     const uncollect = event.target.closest('[data-resource-uncollect-actor]');
@@ -10295,11 +9027,9 @@
      if (operationBusy) return;
      const actorId = uncollect.dataset.resourceUncollectActor; const actor = getState().actors[actorId];
      if (!actor || !window.confirm(`确定取消收藏 ${actor.name || actorId}？`)) return;
-     operationBusy = true; operationMessage = '正在取消收藏...';
-     renderActiveView();
+     operationBusy = true; operationMessage = '正在取消收藏...'; renderActiveView();
      uncollectResourceActor(actorId).then(() => {
-      const library = getState();
-      delete library.actors[actorId];
+      const library = getState(); delete library.actors[actorId];
       Object.entries(library.relations).forEach(([key, relation]) => { if (relation.actorId === actorId) delete library.relations[key]; });
       persist(); Utils.showToast('已取消收藏', actor.name || actorId);
      }).catch(error => { operationMessage = `取消收藏失败：${error.message || error}`; Utils.showToast('取消收藏失败', error.message || '请稍后重试', 3500); }).finally(() => { operationBusy = false; renderActiveView(); });
@@ -10308,12 +9038,9 @@
     if (workBlacklist) {
      const code = workBlacklist.dataset.resourceWorkBlacklist; const work = getState().works[code];
      setWorkBlacklist(code, work || { code }, true);
-     persist(); Utils.showToast('已加入作品黑名单', code); renderActiveView();
-     return; }
+     persist(); Utils.showToast('已加入作品黑名单', code); renderActiveView(); return; }
     if (workFlag) {
-     updateWorkFlag(workFlag.dataset.resourceWorkCode, workFlag.dataset.resourceWorkFlag) .then(() => renderActiveView())
-      .catch(error => Utils.showToast('标记失败', error.message || '资源库写入失败', 3500));
-     return; }
+     updateWorkFlag(workFlag.dataset.resourceWorkCode, workFlag.dataset.resourceWorkFlag) .then(() => renderActiveView()) .catch(error => Utils.showToast('标记失败', error.message || '资源库写入失败', 3500)); return; }
     if (event.target.closest('[data-resource-export]')) { const filename = downloadBackup(); recordBackupHistory('export', 'success', { filename }); Utils.showToast('备份已导出', filename); return renderBackup(); }
     if (event.target.closest('[data-resource-import]')) return backupEl.querySelector('[data-resource-file-input]')?.click();
     if (event.target.closest('[data-resource-import-cancel]')) { pendingImport = null; return renderBackup(); }
@@ -10337,8 +9064,7 @@
     if (event.target.closest('[data-resource-cleanup-confirm]')) { clearAuxiliaryData(); recordBackupHistory('cleanup', 'success', { message: '已清理本地备份辅助数据' }); cleanupPending = false; Utils.showToast('清理完成', '本地备份辅助数据已清理'); return renderBackup(); }
     if (event.target.closest('[data-resource-data-cleanup-cancel]')) { resourceCleanupPending = null; return renderBackup(); }
     if (event.target.closest('[data-resource-data-cleanup]')) {
-     const scope = backupEl.querySelector('[data-resource-data-cleanup-scope]')?.value;
-     const type = scope === 'all' ? 'all' : backupEl.querySelector('[data-resource-data-cleanup-type]')?.value;
+     const scope = backupEl.querySelector('[data-resource-data-cleanup-scope]')?.value; const type = scope === 'all' ? 'all' : backupEl.querySelector('[data-resource-data-cleanup-type]')?.value;
      if (!['all', 'actors', 'works', 'history', 'blacklist-actors', 'blacklist-works', 'blacklist-keywords', 'relations'].includes(scope) || !['all', 'uncensored', 'censored', 'western', 'unknown'].includes(type)) return;
      const matches = getResourceCleanupMatches(scope, type);
      resourceCleanupPending = { scope, type, actors: matches.actorIds.length, works: matches.workCodes.length, history: matches.historyCodes.length, relations: matches.orphanRelations.length };
@@ -10354,8 +9080,7 @@
      if (operationBusy) return;
      const actorId = checkBlacklistActor.dataset.resourceBlacklistCheckActor;
      if (!actorId || !getBlacklist().actors[actorId]) return;
-     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在继续检测演员作品...';
-     renderActiveView();
+     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在继续检测演员作品...'; renderActiveView();
      syncBlacklistedActor(actorId, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation)
       .then(result => Utils.showToast('演员作品已更新', `发现 ${result.found} 部，新增 ${result.added} 部`))
       .catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `继续检测失败：${error.message || error}`; Utils.showToast('演员作品检测失败', error.message || '资源库写入失败', 3500); })
@@ -10373,20 +9098,14 @@
      if (!value) return;
      const normalized = kind === 'codeKeywords' ? value.toUpperCase() : value.toLowerCase(); const blacklist = getBlacklist();
      if (!blacklist[kind].includes(normalized)) blacklist[kind].push(normalized);
-     persist();
-     return renderActiveView(); }
+     persist(); return renderActiveView(); }
     const removeKeyword = event.target.closest('[data-resource-blacklist-remove-keyword]');
     if (removeKeyword) {
-     const kind = removeKeyword.dataset.resourceBlacklistRemoveKeyword === 'code' ? 'codeKeywords' : 'titleKeywords';
-     const value = removeKeyword.dataset.resourceBlacklistKeyword; const blacklist = getBlacklist();
-     blacklist[kind] = blacklist[kind].filter(item => item !== value);
-     persist();
-     return renderActiveView(); }
+     const kind = removeKeyword.dataset.resourceBlacklistRemoveKeyword === 'code' ? 'codeKeywords' : 'titleKeywords'; const value = removeKeyword.dataset.resourceBlacklistKeyword; const blacklist = getBlacklist();
+     blacklist[kind] = blacklist[kind].filter(item => item !== value); persist(); return renderActiveView(); }
     const listButton = event.target.closest('[data-webdav-list]');
     if (listButton) {
-     const config = readWebdavForm();
-     webdavListingLoading = true;
-     renderBackup();
+     const config = readWebdavForm(); webdavListingLoading = true; renderBackup();
      webdavList(config).then(result => { webdavListing = result.items; Utils.showToast('云端列表已更新', `找到 ${result.items.length} 个 JSON 备份`); }).catch(error => { webdavListing = null; Utils.showToast('读取云端列表失败', error.message || '请检查 WebDAV 配置', 3500); }).finally(() => { webdavListingLoading = false; renderBackup(); });
      return; }
     const cloudDownload = event.target.closest('[data-webdav-backup-download]');
@@ -10397,8 +9116,7 @@
      return; }
     const cloudDelete = event.target.closest('[data-webdav-backup-delete]');
     if (cloudDelete) {
-     const filename = cloudDelete.dataset.webdavBackupDelete; const confirm = document.createElement('div');
-     confirm.className = 'jav-resource-confirm';
+     const filename = cloudDelete.dataset.webdavBackupDelete; const confirm = document.createElement('div'); confirm.className = 'jav-resource-confirm';
      confirm.innerHTML = `<div class="jav-resource-confirm-box"><strong>删除云端备份？</strong><span>${escape(filename)} 将从 WebDAV 中删除，此操作无法撤销。</span><div><button type="button" data-confirm-delete="1">确认删除</button><button type="button" data-cancel-delete="1">取消</button></div></div>`;
      overlay.appendChild(confirm);
      confirm.addEventListener('click', confirmEvent => {
@@ -10414,16 +9132,13 @@
     if (conflictAction && webdavConflict) {
      const filename = webdavConflict.filename;
      const config = saveWebdavConfig({ ...readWebdavForm(), filename });
-     webdavConflictLoading = true;
-     renderBackup();
-     const downloadRemote = conflictAction.dataset.webdavConflictDownload;
+     webdavConflictLoading = true; renderBackup(); const downloadRemote = conflictAction.dataset.webdavConflictDownload;
      const task = downloadRemote ? webdavDownload(config).then(result => { pendingImport = result; webdavConflict = null; recordBackupHistory('download', 'success', { filename }); Utils.showToast('云端备份已读取', '请确认导入预览内容'); }) : webdavUpload(config, { force: true }).then(result => { webdavConflict = null; recordBackupHistory('upload', 'success', { filename, message: '冲突后强制覆盖' }); Utils.showToast('云端备份已覆盖', result.message); });
      task.catch(error => { recordBackupHistory(downloadRemote ? 'download' : 'upload', 'error', { filename, message: error.message }); Utils.showToast(downloadRemote ? '读取云端备份失败' : '覆盖云端备份失败', error.message || '请稍后重试', 3500); }).finally(() => { webdavConflictLoading = false; renderBackup(); });
      return; }
     const action = event.target.closest('[data-webdav-test], [data-webdav-upload], [data-webdav-download]');
     if (action) {
-     const config = readWebdavForm(); const kind = action.dataset.webdavTest ? 'test' : action.dataset.webdavUpload ? 'upload' : 'download';
-     const task = kind === 'test' ? webdavTest(config) : kind === 'upload' ? webdavUpload(config) : webdavDownload(config);
+     const config = readWebdavForm(); const kind = action.dataset.webdavTest ? 'test' : action.dataset.webdavUpload ? 'upload' : 'download'; const task = kind === 'test' ? webdavTest(config) : kind === 'upload' ? webdavUpload(config) : webdavDownload(config);
      task.then(result => { if (kind === 'download') { pendingImport = result; recordBackupHistory('download', 'success', { filename: config.filename }); Utils.showToast('云端备份已读取', '请确认导入预览内容'); } else { if (kind === 'upload') recordBackupHistory('upload', 'success', { filename: config.filename }); Utils.showToast(kind === 'upload' ? '备份已上传' : 'WebDAV 连接成功', result.message); } }).catch(error => { if (kind === 'upload' && error.code === 'WEBDAV_CONFLICT') { webdavConflict = { filename: config.filename }; recordBackupHistory('upload', 'conflict', { filename: config.filename, message: error.message }); } else if (kind === 'download' || kind === 'upload') recordBackupHistory(kind, 'error', { filename: config.filename, message: error.message }); Utils.showToast(kind === 'upload' && error.code === 'WEBDAV_CONFLICT' ? '检测到云端冲突' : kind === 'download' ? '云端备份读取失败' : 'WebDAV 操作失败', error.message || '请检查地址和凭据', 3500); }).finally(renderBackup);
     }
    });
@@ -10507,8 +9222,7 @@
    match: (url) => /javdb\d*\.com/.test(url) && (/\/v\/\w+/.test(url) || /[?&](?:laosiji_detail=fc2\b|laosiji_123av_fc2_detail=)/.test(url)),
    titleSelector: 'h2.title, .javdb-api-detail-title',
    getCode(titleElem) {
-    const explicitCode = titleElem?.dataset?.laosijiCode || titleElem?.closest?.('[data-laosiji-code]')?.dataset?.laosijiCode || '';
-    return explicitCode ? Utils.normalizeCode(explicitCode) : Utils.extractCode(titleElem?.textContent || ''); } },
+    const explicitCode = titleElem?.dataset?.laosijiCode || titleElem?.closest?.('[data-laosiji-code]')?.dataset?.laosijiCode || ''; return explicitCode ? Utils.normalizeCode(explicitCode) : Utils.extractCode(titleElem?.textContent || ''); } },
   {
    id: 'javlibrary',
    name: 'JAVLibrary',
@@ -10539,8 +9253,7 @@
     } catch { return false; }
     if (!/(?:^|\.)(?:missav\.(?:ws|ai|com)|njavtv\.com)$/i.test(parsed.hostname)) return false;
     if (/^\/(?:$|search(?:\/|$)|tags(?:\/|$)|actresses(?:\/|$)|genres(?:\/|$))/i.test(parsed.pathname)) return false;
-    const titleElem = document.querySelector(this.titleSelector);
-    return !!Utils.extractCode(titleElem?.textContent || ''); },
+    const titleElem = document.querySelector(this.titleSelector); return !!Utils.extractCode(titleElem?.textContent || ''); },
    titleSelector: 'h1[class*="text-nord6"]' },
   {
    id: 'jable',
@@ -10561,16 +9274,15 @@
    titleSelector: 'table.table tr:first-child td',
    getInfoTable() {
     return [...document.querySelectorAll('table.table')].find(table => {
-     const row = table.querySelector('tr:first-child'); const label = (row?.querySelector('th')?.textContent || '').replace(/\s+/g, '').trim();
-     const value = row?.querySelector('td')?.textContent || '';
+     const row = table.querySelector('tr:first-child'); const label = (row?.querySelector('th')?.textContent || '').replace(/\s+/g, '').trim(); const value = row?.querySelector('td')?.textContent || '';
      return /^ID[:：]?$/i.test(label) && /\b\d{6,9}\b/.test(value);
     }) || null; },
    getTitleElement() { return this.getInfoTable()?.querySelector('tr:first-child td') || null; },
    getCode(titleElem) {
     const raw = String(titleElem?.textContent || '').match(/\b(\d{6,9})\b/)?.[1] || '';
     return raw ? `FC2-PPV-${raw}` : '';
-   } } ];
- Core.expose('__LAOSIJI_JUMP_SITES__', JumpSites);
+   } }
+ ]; Core.expose('__LAOSIJI_JUMP_SITES__', JumpSites);
  function clearMobileJumpMenuPosition(subMenu) {
   [
    'position',
@@ -10603,17 +9315,13 @@
    return Math.max(8, rect.bottom + 8); };
   const positionMobileMenu = () => {
    if (!isMobile()) return;
-   const gutter = 8; const viewportWidth = document.documentElement.clientWidth || window.innerWidth; const viewportHeight = window.innerHeight;
-   const triggerRect = menuDiv.getBoundingClientRect(); const menuWidth = Math.max(0, Math.min(176, viewportWidth - gutter * 2));
-   subMenu.style.setProperty('position', 'fixed'); subMenu.style.setProperty('top', '0px'); subMenu.style.setProperty('left', '0px');
+   const gutter = 8; const viewportWidth = document.documentElement.clientWidth || window.innerWidth; const viewportHeight = window.innerHeight; const triggerRect = menuDiv.getBoundingClientRect();
+   const menuWidth = Math.max(0, Math.min(176, viewportWidth - gutter * 2)); subMenu.style.setProperty('position', 'fixed'); subMenu.style.setProperty('top', '0px'); subMenu.style.setProperty('left', '0px');
    subMenu.style.setProperty('width', `${menuWidth}px`, 'important');
-   subMenu.style.setProperty('min-width', '0px', 'important'); subMenu.style.setProperty('visibility', 'hidden');
-   const menuHeight = subMenu.getBoundingClientRect().height; const minimumTop = Math.min(viewportHeight - gutter, getFixedHeaderBottom());
-   const preferredTop = Math.max(minimumTop, triggerRect.bottom + 4); const availableBelow = viewportHeight - gutter - preferredTop;
-   const availableAbove = triggerRect.top - gutter - minimumTop; const shouldOpenAbove = menuHeight > availableBelow && availableAbove > availableBelow;
-   const top = shouldOpenAbove ? Math.max(minimumTop, triggerRect.top - 4 - menuHeight) : preferredTop;
-   const availableHeight = Math.max(0, viewportHeight - gutter - top); const maxLeft = Math.max(gutter, viewportWidth - gutter - menuWidth);
-   const left = Math.min(Math.max(gutter, triggerRect.left), maxLeft);
+   subMenu.style.setProperty('min-width', '0px', 'important'); subMenu.style.setProperty('visibility', 'hidden'); const menuHeight = subMenu.getBoundingClientRect().height; const minimumTop = Math.min(viewportHeight - gutter, getFixedHeaderBottom());
+   const preferredTop = Math.max(minimumTop, triggerRect.bottom + 4); const availableBelow = viewportHeight - gutter - preferredTop; const availableAbove = triggerRect.top - gutter - minimumTop;
+   const shouldOpenAbove = menuHeight > availableBelow && availableAbove > availableBelow; const top = shouldOpenAbove ? Math.max(minimumTop, triggerRect.top - 4 - menuHeight) : preferredTop; const availableHeight = Math.max(0, viewportHeight - gutter - top);
+   const maxLeft = Math.max(gutter, viewportWidth - gutter - menuWidth); const left = Math.min(Math.max(gutter, triggerRect.left), maxLeft);
    subMenu.style.setProperty('top', `${top}px`);
    subMenu.style.setProperty('left', `${left}px`);
    subMenu.style.setProperty('max-height', `${availableHeight}px`);
@@ -10623,9 +9331,7 @@
    if (subMenu.classList.contains('is-open')) closeTimer = setTimeout(closeMenu, 1000);
   };
   toggleBtn.addEventListener('click', e => {
-   e.preventDefault(); e.stopPropagation();
-   const willOpen = !subMenu.classList.contains('is-open');
-   closeAllJumpMenus(subMenu); clearCloseTimer(); subMenu.classList.toggle('is-open', willOpen);
+   e.preventDefault(); e.stopPropagation(); const willOpen = !subMenu.classList.contains('is-open'); closeAllJumpMenus(subMenu); clearCloseTimer(); subMenu.classList.toggle('is-open', willOpen);
    if (willOpen && isMobile()) positionMobileMenu();
    if (willOpen && !isMobile() && !menuDiv.matches(':hover')) scheduleClose();
   });
@@ -10649,20 +9355,14 @@
  function createJumpMenu({ accent, mainBtn, subButtons, toggleTitle, className = '', stretchSubButtons = true }) {
   const menuDiv = document.createElement('div');
   menuDiv.className = `search-menu${className ? ` ${className}` : ''}`;
-  menuDiv.style.setProperty('--jav-btn-accent', accent); mainBtn.classList.add('search-main-btn'); menuDiv.appendChild(mainBtn);
-  const toggleBtn = document.createElement('button');
-  toggleBtn.type = 'button'; toggleBtn.className = 'search-toggle-btn'; toggleBtn.title = toggleTitle;
-  toggleBtn.innerHTML = '<span class="search-arrow">▼</span>';
-  menuDiv.appendChild(toggleBtn);
-  const subMenu = document.createElement('div');
-  subMenu.className = 'search-submenu';
+  menuDiv.style.setProperty('--jav-btn-accent', accent); mainBtn.classList.add('search-main-btn'); menuDiv.appendChild(mainBtn); const toggleBtn = document.createElement('button'); toggleBtn.type = 'button'; toggleBtn.className = 'search-toggle-btn';
+  toggleBtn.title = toggleTitle; toggleBtn.innerHTML = '<span class="search-arrow">▼</span>'; menuDiv.appendChild(toggleBtn); const subMenu = document.createElement('div'); subMenu.className = 'search-submenu';
   subButtons.forEach(btn => {
    btn.style.margin = '2px 0';
    if (stretchSubButtons) { btn.style.width = '100%'; btn.style.textAlign = 'left'; }
    subMenu.appendChild(btn);
   });
-  menuDiv.appendChild(subMenu); bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn);
-  return menuDiv; }
+  menuDiv.appendChild(subMenu); bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn); return menuDiv; }
  function addNyaaBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_nyaa', true)) return;
   if (/sukebei\.nyaa/i.test(location.hostname)) return;
@@ -10671,8 +9371,7 @@
  function addJavbusBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_javbus', true)) return;
   if (/javbus\.com/i.test(location.hostname)) return;
-  const url = Utils.getJavBusUrl(code); const btn = Utils.createJumpLinkBtn('🎬 JavBus', '#007bff', url);
-  container.appendChild(btn); }
+  const url = Utils.getJavBusUrl(code); const btn = Utils.createJumpLinkBtn('🎬 JavBus', '#007bff', url); container.appendChild(btn); }
  function addJavdbBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_javdb', true)) return;
   if (/javdb\.com/i.test(location.hostname)) return;
@@ -10705,11 +9404,9 @@
   };
   const enabledVideoKeys = new Set([ ...(showMissav ? ['missav', 'jable', '123av', 'javday', 'supjav', 'javrate'] : []),
   ]);
-  const videoButtons = Settings.getVideoEngines() .filter(item => enabledVideoKeys.has(item.key) && !item.host.test(location.hostname))
-   .map(item => ({ ...item, url: videoUrlMap[item.key] })) .filter(item => item.url);
+  const videoButtons = Settings.getVideoEngines() .filter(item => enabledVideoKeys.has(item.key) && !item.host.test(location.hostname)) .map(item => ({ ...item, url: videoUrlMap[item.key] })) .filter(item => item.url);
   if (!videoButtons.length) return;
-  const defaultKey = Settings.getDefaultVideoEngine(); const mainItem = videoButtons.find(item => item.key === defaultKey) || videoButtons[0];
-  const subItems = videoButtons.filter(item => item !== mainItem);
+  const defaultKey = Settings.getDefaultVideoEngine(); const mainItem = videoButtons.find(item => item.key === defaultKey) || videoButtons[0]; const subItems = videoButtons.filter(item => item !== mainItem);
   const createVideoBtn = item => Utils.createJumpLinkBtn(`🎬 ${item.label}`, item.color, item.url);
   if (!subItems.length) { container.appendChild(createVideoBtn(mainItem)); return; }
   container.appendChild(createJumpMenu({
@@ -10724,23 +9421,19 @@
   const fc2CmaUrl = getFc2CmaArticleUrl(code);
   if (fc2CmaUrl) {
    if (/(?:^|\.)fc2cmadb\.com$/i.test(location.hostname)) return;
-   const btn = typeof Utils.createJumpLinkBtn === 'function' ? Utils.createJumpLinkBtn('▶ FC2CMA', '#2563eb', fc2CmaUrl)
-    : Utils.createBtn('▶ FC2CMA', '#2563eb', () => {
+   const btn = typeof Utils.createJumpLinkBtn === 'function' ? Utils.createJumpLinkBtn('▶ FC2CMA', '#2563eb', fc2CmaUrl) : Utils.createBtn('▶ FC2CMA', '#2563eb', () => {
      window.open(fc2CmaUrl);
     }, useCapture);
-   btn.classList?.add('jav-fc2cma-btn'); container.appendChild(btn);
-   return; }
+   btn.classList?.add('jav-fc2cma-btn'); container.appendChild(btn); return; }
   const fanzaUrl = `https://www.dmm.co.jp/mono/-/search/=/searchstr=${encodeURIComponent(code)}/`;
-  const btn = typeof Utils.createJumpLinkBtn === 'function' ? Utils.createJumpLinkBtn('▶ FANZA', '#c0392b', fanzaUrl)
-   : Utils.createBtn('▶ FANZA', '#c0392b', () => {
+  const btn = typeof Utils.createJumpLinkBtn === 'function' ? Utils.createJumpLinkBtn('▶ FANZA', '#c0392b', fanzaUrl) : Utils.createBtn('▶ FANZA', '#c0392b', () => {
     window.open(fanzaUrl);
    }, useCapture);
   container.appendChild(btn); }
  function addSubtitleBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_subtitle', true)) return;
   const btn = Utils.createBtn('📝 字幕', '#0f766e', async () => {
-   const oldText = btn.textContent;
-   btn.textContent = '📝 搜索中...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.72';
+   const oldText = btn.textContent; btn.textContent = '📝 搜索中...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.72';
    try {
     await Subtitle.show(code);
    } finally {
@@ -10750,8 +9443,7 @@
  function addTrailerBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_trailer', true)) return;
   const btn = Utils.createBtn('🎞️ 预告片', '#111827', async () => {
-   const oldText = btn.textContent;
-   btn.textContent = '🎞️ 解析中...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.72';
+   const oldText = btn.textContent; btn.textContent = '🎞️ 解析中...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.72';
    try {
     await Trailer.show(code);
    } finally {
@@ -10785,13 +9477,9 @@
   const btn = Utils.createBtn('⚙️ 设置', '#475569', () => {
    SettingsPanel.open();
   }, useCapture);
-  btn.classList.add('jav-settings-btn');
-  btn.title = '打开老司机设置';
-  container.appendChild(btn); }
+  btn.classList.add('jav-settings-btn'); btn.title = '打开老司机设置'; container.appendChild(btn); }
  function addJumpLineBreak(container) {
-  const lineBreak = document.createElement('span');
-  lineBreak.className = 'jav-jump-line-break'; lineBreak.style.cssText = 'flex-basis:100%;height:0;padding:0;margin:0;';
-  container.appendChild(lineBreak); }
+  const lineBreak = document.createElement('span'); lineBreak.className = 'jav-jump-line-break'; lineBreak.style.cssText = 'flex-basis:100%;height:0;padding:0;margin:0;'; container.appendChild(lineBreak); }
  let pan115ChooserOverlay = null;
  function normalizePan115Matches(value) {
   return (Array.isArray(value) ? value : value?.pickcode ? [value] : []) .filter(item => item?.pickcode); }
@@ -10806,9 +9494,8 @@
   const list = normalizePan115Matches(matches);
   if (!control?.isConnected) return;
   if (!list.length) { control.remove(); return; }
-  const best = list[0]; const isBadge = control.classList.contains('jav-pan115-badge'); const base = isBadge ? '115匹配' : '115播放';
-  control.textContent = pan115DisplayLabel(base, list); control.title = pan115MatchTitle(list, code); control.dataset.pickcode = best.pickcode;
-  control.dataset.pan115Code = Pan115.normalizeKeepSeparator(code) || code || '';
+  const best = list[0]; const isBadge = control.classList.contains('jav-pan115-badge'); const base = isBadge ? '115匹配' : '115播放'; control.textContent = pan115DisplayLabel(base, list); control.title = pan115MatchTitle(list, code);
+  control.dataset.pickcode = best.pickcode; control.dataset.pan115Code = Pan115.normalizeKeepSeparator(code) || code || '';
   if (control.tagName === 'A' && !Pan115.isPotPlayerMode() && list.length === 1) { control.href = Pan115.playUrl(best.pickcode); }
  }
  function refreshPan115ControlsForCode(code, matches, trigger = null) {
@@ -10822,10 +9509,7 @@
   if (!match?.pickcode) return;
   if (Pan115.isPotPlayerMode()) { playPan115Pot(match.pickcode, match.name, trigger); return; }
   window.open(Pan115.playUrl(match.pickcode), '_blank', 'noopener,noreferrer'); }
- function closePan115Chooser() {
-  pan115ChooserOverlay?.remove();
-  pan115ChooserOverlay = null;
-  document.removeEventListener('keydown', onPan115ChooserKeydown, true); }
+ function closePan115Chooser() { pan115ChooserOverlay?.remove(); pan115ChooserOverlay = null; document.removeEventListener('keydown', onPan115ChooserKeydown, true); }
  function onPan115ChooserKeydown(event) {
   if (document.querySelector('.jav-pan115-confirm-overlay')) return;
   if (event.key === 'Escape') closePan115Chooser();
@@ -10834,21 +9518,16 @@
   const node = document.createElement(tag);
   if (className) node.className = className;
   if (text !== null) node.textContent = text;
-  parent?.appendChild(node);
-  return node; }
+  parent?.appendChild(node); return node; }
  function pan115Button(text, className, parent, onClick = null) {
-  const button = pan115Node('button', className, text, parent);
-  button.type = 'button';
+  const button = pan115Node('button', className, text, parent); button.type = 'button';
   if (onClick) button.addEventListener('click', onClick, true);
   return button; }
  function confirmPan115Action(options = {}) {
   return new Promise(resolve => {
-   const overlay = pan115Node('div', 'jav-pan115-confirm-overlay'); const dialog = pan115Node('div', 'jav-pan115-confirm', null, overlay);
-   pan115Node('div', 'jav-pan115-confirm-title', options.title || '确认操作', dialog);
-   pan115Node('div', 'jav-pan115-confirm-message', options.message || '', dialog);
-   const actions = pan115Node('div', 'jav-pan115-confirm-actions', null, dialog);
-   const cancel = pan115Button(options.cancelText || '取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(false));
-   const confirm = pan115Button(options.confirmText || '确认', 'jav-pan115-confirm-ok', actions, () => cleanup(true));
+   const overlay = pan115Node('div', 'jav-pan115-confirm-overlay'); const dialog = pan115Node('div', 'jav-pan115-confirm', null, overlay); pan115Node('div', 'jav-pan115-confirm-title', options.title || '确认操作', dialog);
+   pan115Node('div', 'jav-pan115-confirm-message', options.message || '', dialog); const actions = pan115Node('div', 'jav-pan115-confirm-actions', null, dialog);
+   const cancel = pan115Button(options.cancelText || '取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(false)); const confirm = pan115Button(options.confirmText || '确认', 'jav-pan115-confirm-ok', actions, () => cleanup(true));
    const cleanup = value => {
     overlay.remove(); document.removeEventListener('keydown', onKeydown, true); resolve(value); };
    const onKeydown = event => {
@@ -10862,15 +9541,10 @@
   }); }
  function promptPan115Rename(options = {}) {
   return new Promise(resolve => {
-   const overlay = pan115Node('div', 'jav-pan115-confirm-overlay jav-pan115-rename-overlay');
-   const dialog = pan115Node('div', 'jav-pan115-confirm jav-pan115-rename-dialog', null, overlay);
-   pan115Node('div', 'jav-pan115-confirm-title', options.title || '手动改名', dialog);
-   const input = pan115Node('input', 'jav-pan115-rename-input', null, dialog);
-   input.className = 'jav-pan115-rename-input'; input.type = 'text'; input.value = options.value || ''; input.placeholder = '输入新的 115 文件名';
-   pan115Node('div', 'jav-pan115-rename-hint', options.hint || '确认后会直接改名，请保留正确扩展名。', dialog);
-   const actions = pan115Node('div', 'jav-pan115-confirm-actions', null, dialog);
-   pan115Button('取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(null));
-   pan115Button('确认改名', 'jav-pan115-confirm-ok jav-pan115-rename-ok', actions, () => submit());
+   const overlay = pan115Node('div', 'jav-pan115-confirm-overlay jav-pan115-rename-overlay'); const dialog = pan115Node('div', 'jav-pan115-confirm jav-pan115-rename-dialog', null, overlay);
+   pan115Node('div', 'jav-pan115-confirm-title', options.title || '手动改名', dialog); const input = pan115Node('input', 'jav-pan115-rename-input', null, dialog); input.className = 'jav-pan115-rename-input'; input.type = 'text'; input.value = options.value || '';
+   input.placeholder = '输入新的 115 文件名'; pan115Node('div', 'jav-pan115-rename-hint', options.hint || '确认后会直接改名，请保留正确扩展名。', dialog); const actions = pan115Node('div', 'jav-pan115-confirm-actions', null, dialog);
+   pan115Button('取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(null)); pan115Button('确认改名', 'jav-pan115-confirm-ok jav-pan115-rename-ok', actions, () => submit());
    const cleanup = value => {
     overlay.remove(); document.removeEventListener('keydown', onKeydown, true); resolve(value); };
    const submit = () => cleanup(input.value.trim() || null);
@@ -10891,25 +9565,20 @@
   if (!match.fileId) { notify('115 改名失败', '115 搜索结果未返回文件ID，无法改名'); return false; }
   if (!nextName) return false;
   if (nextName === match.name) { notify('115 改名', '新旧文件名一致，已跳过'); return false; }
-  const oldText = button.textContent;
-  button.disabled = true; button.textContent = '改名中';
+  const oldText = button.textContent; button.disabled = true; button.textContent = '改名中';
   try {
-   await Pan115.renameFile(match.fileId, nextName);
-   match.name = nextName;
+   await Pan115.renameFile(match.fileId, nextName); match.name = nextName;
    if (nameNode) { nameNode.textContent = nextName; nameNode.title = nextName; }
-   Pan115.clearCached(normalized || code); refreshPan115ControlsForCode(normalized || code, matches, trigger); notify('115 改名成功', nextName);
-   return true;
+   Pan115.clearCached(normalized || code); refreshPan115ControlsForCode(normalized || code, matches, trigger); notify('115 改名成功', nextName); return true;
   } catch (error) {
-   errorLog('115改名失败:', error); notify('115 改名失败', error?.message || '改名请求失败');
-   return false;
+   errorLog('115改名失败:', error); notify('115 改名失败', error?.message || '改名请求失败'); return false;
   } finally {
    button.disabled = false; button.textContent = oldText; } }
  function createPan115CandidateAction(action, context) {
-  const button = document.createElement('button'); const disabled = typeof action.disabled === 'function' && action.disabled(context);
-  button.type = 'button';
+  const button = document.createElement('button'); const disabled = typeof action.disabled === 'function' && action.disabled(context); button.type = 'button';
   button.className = `jav-pan115-candidate-action ${action.className || ''}`.trim();
-  button.dataset.pan115Action = action.key || ''; button.textContent = typeof action.label === 'function' ? action.label(context) : action.label;
-  button.disabled = !!disabled; button.title = typeof action.title === 'function' ? action.title(context) : action.title || '';
+  button.dataset.pan115Action = action.key || ''; button.textContent = typeof action.label === 'function' ? action.label(context) : action.label; button.disabled = !!disabled;
+  button.title = typeof action.title === 'function' ? action.title(context) : action.title || '';
   button.addEventListener('click', event => {
    event.preventDefault(); event.stopImmediatePropagation();
    if (button.disabled) return;
@@ -10949,46 +9618,26 @@
      if (!confirmed) return;
      button.disabled = true; button.textContent = '删除中';
      try {
-      await Pan115.deleteFile(match.fileId);
-      const pos = matches.indexOf(match);
+      await Pan115.deleteFile(match.fileId); const pos = matches.indexOf(match);
       if (pos >= 0) matches.splice(pos, 1);
-      Pan115.clearCached(normalized || code); row.remove(); refreshDesc(); refreshPan115ControlsForCode(normalized || code, matches, trigger);
-      notify('115 删除成功', match.name || '文件已删除');
+      Pan115.clearCached(normalized || code); row.remove(); refreshDesc(); refreshPan115ControlsForCode(normalized || code, matches, trigger); notify('115 删除成功', match.name || '文件已删除');
       if (!matches.length) closePan115Chooser();
      } catch (error) {
-      errorLog('115删除失败:', error); notify('115 删除失败', error?.message || '删除请求失败');
-      button.disabled = false; button.textContent = '删除'; } }, }, ]; }
+      errorLog('115删除失败:', error); notify('115 删除失败', error?.message || '删除请求失败'); button.disabled = false; button.textContent = '删除'; } }, }, ]; }
  function openPan115Chooser(code, value, trigger = null) {
   const matches = normalizePan115Matches(value);
   if (!matches.length) return;
   if (matches.length === 1) { playPan115Candidate(matches[0], trigger); return; }
-  closePan115Chooser();
-  const normalized = Pan115.normalizeKeepSeparator(code); const overlay = document.createElement('div');
-  overlay.className = 'jav-pan115-chooser-overlay';
+  closePan115Chooser(); const normalized = Pan115.normalizeKeepSeparator(code); const overlay = document.createElement('div'); overlay.className = 'jav-pan115-chooser-overlay';
   overlay.addEventListener('click', event => {
    if (event.target === overlay) closePan115Chooser();
   }, true);
-  const dialog = document.createElement('div');
-  dialog.className = 'jav-pan115-chooser';
-  overlay.appendChild(dialog);
-  const header = document.createElement('div');
-  header.className = 'jav-pan115-chooser-header';
-  dialog.appendChild(header);
-  const titleWrap = document.createElement('div');
-  header.appendChild(titleWrap);
-  const title = document.createElement('div');
-  title.className = 'jav-pan115-chooser-title';
+  const dialog = document.createElement('div'); dialog.className = 'jav-pan115-chooser'; overlay.appendChild(dialog); const header = document.createElement('div'); header.className = 'jav-pan115-chooser-header'; dialog.appendChild(header);
+  const titleWrap = document.createElement('div'); header.appendChild(titleWrap); const title = document.createElement('div'); title.className = 'jav-pan115-chooser-title';
   title.textContent = `${normalized || code} 的 115 匹配`;
-  titleWrap.appendChild(title);
-  const desc = document.createElement('div');
-  desc.className = 'jav-pan115-chooser-desc';
-  titleWrap.appendChild(desc);
-  const close = document.createElement('button');
-  close.type = 'button'; close.className = 'jav-pan115-chooser-close'; close.textContent = '×'; close.title = '关闭';
-  close.addEventListener('click', closePan115Chooser, true); header.appendChild(close);
-  const list = document.createElement('div');
-  list.className = 'jav-pan115-candidate-list';
-  dialog.appendChild(list);
+  titleWrap.appendChild(title); const desc = document.createElement('div'); desc.className = 'jav-pan115-chooser-desc'; titleWrap.appendChild(desc); const close = document.createElement('button'); close.type = 'button';
+  close.className = 'jav-pan115-chooser-close'; close.textContent = '×'; close.title = '关闭'; close.addEventListener('click', closePan115Chooser, true); header.appendChild(close); const list = document.createElement('div');
+  list.className = 'jav-pan115-candidate-list'; dialog.appendChild(list);
   const refreshDesc = () => {
    desc.textContent = `共 ${matches.length} 个候选，可选择播放或管理文件。`;
   };
@@ -10996,57 +9645,32 @@
   matches.forEach((match, index) => {
    const row = document.createElement('div');
    row.className = `jav-pan115-candidate${match.lowPriorityReason ? ' is-low-priority' : ''}`;
-   list.appendChild(row);
-   const main = document.createElement('div');
-   main.className = 'jav-pan115-candidate-main';
-   row.appendChild(main);
-   const name = document.createElement('div');
-   name.className = 'jav-pan115-candidate-name';
+   list.appendChild(row); const main = document.createElement('div'); main.className = 'jav-pan115-candidate-main'; row.appendChild(main); const name = document.createElement('div'); name.className = 'jav-pan115-candidate-name';
    name.textContent = match.name || `候选 ${index + 1}`;
-   name.title = match.name || '';
-   main.appendChild(name);
-   const meta = document.createElement('div');
-   meta.className = 'jav-pan115-candidate-meta';
-   meta.textContent = [match.sizeText || Pan115.formatSize(match.size), match.lowPriorityReason].filter(Boolean).join(' · ') || '未返回文件大小';
-   main.appendChild(meta);
-   const actions = document.createElement('div');
-   actions.className = 'jav-pan115-candidate-actions';
-   row.appendChild(actions);
-   getPan115CandidateActions().forEach(action => {
-    actions.appendChild(createPan115CandidateAction(action, { match, matches, normalized, code, row, nameNode: name, metaNode: meta, refreshDesc, trigger }));
-   });
+   name.title = match.name || ''; main.appendChild(name); const meta = document.createElement('div'); meta.className = 'jav-pan115-candidate-meta';
+   meta.textContent = [match.sizeText || Pan115.formatSize(match.size), match.lowPriorityReason].filter(Boolean).join(' · ') || '未返回文件大小'; main.appendChild(meta); const actions = document.createElement('div');
+   actions.className = 'jav-pan115-candidate-actions'; row.appendChild(actions);
+   getPan115CandidateActions().forEach(action => { actions.appendChild(createPan115CandidateAction(action, { match, matches, normalized, code, row, nameNode: name, metaNode: meta, refreshDesc, trigger })); });
   });
-  document.body.appendChild(overlay);
-  pan115ChooserOverlay = overlay;
-  document.addEventListener('keydown', onPan115ChooserKeydown, true); }
+  document.body.appendChild(overlay); pan115ChooserOverlay = overlay; document.addEventListener('keydown', onPan115ChooserKeydown, true); }
  function createPan115MatchButton(matches, code, text, useCapture = false) {
-  const list = normalizePan115Matches(matches); const best = list[0];
-  const button = Utils.createBtn(pan115DisplayLabel(text, list), '#00a85a', () => openPan115Chooser(code, list, button), useCapture);
-  button.classList.add('jav-pan115-play-btn');
-  button.dataset.pickcode = best.pickcode; button.dataset.pan115Code = Pan115.normalizeKeepSeparator(code) || code || '';
-  button.title = pan115MatchTitle(list, code);
-  return button; }
+  const list = normalizePan115Matches(matches); const best = list[0]; const button = Utils.createBtn(pan115DisplayLabel(text, list), '#00a85a', () => openPan115Chooser(code, list, button), useCapture); button.classList.add('jav-pan115-play-btn');
+  button.dataset.pickcode = best.pickcode; button.dataset.pan115Code = Pan115.normalizeKeepSeparator(code) || code || ''; button.title = pan115MatchTitle(list, code); return button; }
  function addPan115PlayBtn(code, container, useCapture = false) {
   if (!Pan115.enabled() || !code || !container) return;
   const normalized = Pan115.normalizeKeepSeparator(code);
   if (!normalized || container.dataset.pan115PlayCode === normalized) return;
-  container.dataset.pan115PlayCode = normalized;
-  const marker = document.createComment('pan115-play');
-  const anchor = container.querySelector('.jav-subtitle-btn, .jav-trailer-btn, .jav-preview-btn, .jav-settings-btn');
+  container.dataset.pan115PlayCode = normalized; const marker = document.createComment('pan115-play'); const anchor = container.querySelector('.jav-subtitle-btn, .jav-trailer-btn, .jav-preview-btn, .jav-settings-btn');
   container.insertBefore(marker, anchor || null);
   Pan115.searchAllCached(normalized).then(matches => {
    const list = normalizePan115Matches(matches);
    if (!Pan115.enabled() || !list.length || !marker.parentNode) return;
-   const btn = createPan115MatchButton(list, normalized, '115播放', useCapture);
-   marker.parentNode.insertBefore(btn, marker);
+   const btn = createPan115MatchButton(list, normalized, '115播放', useCapture); marker.parentNode.insertBefore(btn, marker);
   }).catch(err => {
    errorLog('115自动查询失败:', err);
   }).finally(() => { marker.remove(); }); }
  function createPan115PotButton(text, pickcode, title, useCapture = false) {
-  let button;
-  button = Utils.createBtn(text, '#00a85a', () => playPan115Pot(pickcode, title, button), useCapture); button.dataset.pickcode = pickcode;
-  button.title = title || '使用 PotPlayer 播放';
-  return button; }
+  let button; button = Utils.createBtn(text, '#00a85a', () => playPan115Pot(pickcode, title, button), useCapture); button.dataset.pickcode = pickcode; button.title = title || '使用 PotPlayer 播放'; return button; }
  async function playPan115Pot(pickcode, title, button = null) {
   if (button?.dataset.pan115Loading === '1') return;
   if (button) { button.dataset.pan115Loading = '1'; button.setAttribute('aria-busy', 'true'); }
@@ -11058,14 +9682,11 @@
    if (button) { delete button.dataset.pan115Loading; button.removeAttribute('aria-busy'); }
   } }
  function createPan115Badge(hit, code, asAnchor = true) {
-  const matches = normalizePan115Matches(hit); const best = matches[0]; const isMulti = matches.length > 1;
-  const url = best ? Pan115.playUrl(best.pickcode) : '#';
-  const badge = document.createElement(asAnchor && !isMulti && !Pan115.isPotPlayerMode() ? 'a' : 'span');
-  badge.className = 'jav-pan115-badge'; badge.textContent = pan115DisplayLabel('115匹配', matches); badge.title = pan115MatchTitle(matches, code);
+  const matches = normalizePan115Matches(hit); const best = matches[0]; const isMulti = matches.length > 1; const url = best ? Pan115.playUrl(best.pickcode) : '#';
+  const badge = document.createElement(asAnchor && !isMulti && !Pan115.isPotPlayerMode() ? 'a' : 'span'); badge.className = 'jav-pan115-badge'; badge.textContent = pan115DisplayLabel('115匹配', matches); badge.title = pan115MatchTitle(matches, code);
   badge.dataset.pickcode = best?.pickcode || ''; badge.dataset.pan115Code = Pan115.normalizeKeepSeparator(code) || code || '';
   if (isMulti) {
-   badge.setAttribute('role', 'link');
-   badge.tabIndex = 0;
+   badge.setAttribute('role', 'link'); badge.tabIndex = 0;
    const openList = event => {
     event.preventDefault(); event.stopImmediatePropagation(); openPan115Chooser(code, matches, badge); };
    badge.addEventListener('click', openList, true);
@@ -11074,8 +9695,7 @@
    }, true);
   } else if (Pan115.isPotPlayerMode()) {
    if (asAnchor) badge.href = '#';
-   badge.setAttribute('role', 'link');
-   badge.tabIndex = 0;
+   badge.setAttribute('role', 'link'); badge.tabIndex = 0;
    const openPot = event => {
     event.preventDefault(); event.stopImmediatePropagation(); playPan115Pot(best.pickcode, best.name, badge); };
    badge.addEventListener('click', openPot, true);
@@ -11088,8 +9708,7 @@
     e.stopImmediatePropagation();
    }, true);
   } else {
-   badge.setAttribute('role', 'link');
-   badge.tabIndex = 0;
+   badge.setAttribute('role', 'link'); badge.tabIndex = 0;
    const open = e => {
     e.preventDefault(); e.stopImmediatePropagation(); window.open(Pan115.playUrl(badge.dataset.pickcode), '_blank', 'noopener,noreferrer'); };
    badge.addEventListener('click', open, true);
@@ -11100,8 +9719,7 @@
  let pan115ListRunning = false;
  async function renderPan115ListBadges() {
   if (!Pan115.enabled() || pan115ListRunning || SiteManager.isDetailPage() || document.querySelector('#jav-resource-overlay')) return;
-  pan115ListRunning = true;
-  const targets = SiteManager.collectPan115ListTargets();
+  pan115ListRunning = true; const targets = SiteManager.collectPan115ListTargets();
   try {
    let nextIndex = 0;
    const worker = async () => {
@@ -11116,8 +9734,7 @@
      } catch (err) {
       if (anchor.isConnected) delete anchor.dataset.pan115Checked;
       errorLog('115列表单项查询失败:', err); } } };
-   const isJavdbApiList = !!document.querySelector('.javdb-api-shell .movie-list');
-   const workerCount = isJavdbApiList ? Math.min(4, targets.length) : targets.length;
+   const isJavdbApiList = !!document.querySelector('.javdb-api-shell .movie-list'); const workerCount = isJavdbApiList ? Math.min(4, targets.length) : targets.length;
    await Promise.all(Array.from({ length: workerCount }, worker));
   } catch (err) {
    errorLog('115列表自动查询失败:', err);
@@ -11183,21 +9800,18 @@
   function targetLanguage(siteId) {
    let lang = '';
    if (siteId === 'javdb') {
-    lang = document.documentElement.dataset.lang || document.body?.dataset.lang || new URL(location.href).searchParams.get('locale') || '';
-    const lower = String(lang).toLowerCase();
+    lang = document.documentElement.dataset.lang || document.body?.dataset.lang || new URL(location.href).searchParams.get('locale') || ''; const lower = String(lang).toLowerCase();
     if (lower === 'en') return 'en';
     if (lower === 'zh') return 'zh-TW';
     return 'zh-CN'; }
    if (siteId === 'javbus') {
-    lang = readJavbusLang();
-    const lower = String(lang).toLowerCase();
+    lang = readJavbusLang(); const lower = String(lang).toLowerCase();
     if (lower === 'ja') return '';
     if (lower === 'en') return 'en';
     if (lower === 'ko') return 'ko';
     return 'zh-CN'; }
    if (siteId === 'javlibrary' || siteId === 'javlib') {
-    lang = document.documentElement.lang || '';
-    const lower = String(lang).toLowerCase();
+    lang = document.documentElement.lang || ''; const lower = String(lang).toLowerCase();
     if (lower.startsWith('ja')) return '';
     if (lower.startsWith('en')) return '';
     if (lower.includes('tw') || lower === 'zh') return 'zh-TW';
@@ -11228,8 +9842,7 @@
    const json = JSON.parse(r.responseText || '{}');
    const result = String(json.translation || '').trim();
    if (!result) throw new Error('empty translation');
-   sessionStorage.setItem(key, result);
-   return result; }
+   sessionStorage.setItem(key, result); return result; }
   function clear() {
    document.querySelectorAll('.jav-title-translation').forEach(el => el.remove()); }
   async function sync() {
@@ -11238,8 +9851,7 @@
    if (!info?.text || !info.anchor) { clear(); return; }
    const target = targetLanguage(info.site);
    if (!target) { clear(); return; }
-   ensureStyle();
-   let row = Array.from(info.anchor.parentNode?.children || []).find(el => el.classList?.contains('jav-title-translation'));
+   ensureStyle(); let row = Array.from(info.anchor.parentNode?.children || []).find(el => el.classList?.contains('jav-title-translation'));
    if (!row) { row = document.createElement('div'); row.className = 'jav-title-translation is-loading'; info.anchor.insertAdjacentElement('afterend', row); }
    const id =`${info.site}:${target}:${info.text}`;
    if (row.dataset.translateId === id && ['loading', 'loaded'].includes(row.dataset.state)) return;
@@ -11250,15 +9862,13 @@
     row.dataset.state = 'loaded'; row.className = 'jav-title-translation'; row.textContent = translated;
    } catch (err) {
     if (row.dataset.translateId !== id) return;
-    row.dataset.state = 'error'; row.className = 'jav-title-translation is-error'; row.textContent = translateMessage(target, 'error');
-    errorLog('翻译标题失败:', err); } }
+    row.dataset.state = 'error'; row.className = 'jav-title-translation is-error'; row.textContent = translateMessage(target, 'error'); errorLog('翻译标题失败:', err); } }
   return { sync, clear };
  })();
  Core.expose('__LAOSIJI_TITLE_TRANSLATE__', TitleTranslate);
  function isCurrentDetailPage() {
   if (typeof Javdb123AvFc2 !== 'undefined' && Javdb123AvFc2.isDetailRoute?.()) return true;
-  if (/javbus\.com/i.test(location.hostname)) {
-   return /^\/(?:[a-z]{2}\/)?(?:[A-Z]{2,15}-?\d{2,10}(?:-\d{1,3})?|[A-Z]{2,10}\d{3,6}|FC2(?:-PPV)?-\d{6,9})\/?$/i.test(location.pathname); }
+  if (/javbus\.com/i.test(location.hostname)) { return /^\/(?:[a-z]{2}\/)?(?:[A-Z]{2,15}-?\d{2,10}(?:-\d{1,3})?|[A-Z]{2,10}\d{3,6}|FC2(?:-PPV)?-\d{6,9})\/?$/i.test(location.pathname); }
   return JumpSites.some(site => site.match(window.location.href)); }
  function isElemVisible(el) {
   if (!el) return false;
@@ -11280,8 +9890,7 @@
  function resolveEmbyTitleElem() {
   const nodes = Array.from(document.querySelectorAll(
    'h1, h2, h3.itemName, .itemName-primary, .pageTitle, .nameContainer h3, [class*="itemName"]'
-  ));
-  let firstVisible = null;
+  )); let firstVisible = null;
   for (const el of nodes) {
    const txt = (el.textContent || '').trim();
    if (!txt) continue;
@@ -11312,24 +9921,19 @@
   if (existingBtnGroup) {
    if (site.id === 'emby') {
    } else {
-    const existingTitleText = titleElem.textContent || '';
-    const code = typeof site.getCode === 'function' ? site.getCode(titleElem) : Utils.extractCode(existingTitleText);
+    const existingTitleText = titleElem.textContent || ''; const code = typeof site.getCode === 'function' ? site.getCode(titleElem) : Utils.extractCode(existingTitleText);
     if (code && existingBtnGroup.dataset.code && existingBtnGroup.dataset.code !== code) {
-     existingBtnGroup.remove();
-     delete titleElem.dataset.enhanced;
+     existingBtnGroup.remove(); delete titleElem.dataset.enhanced;
     } else {
      if (code) existingBtnGroup.dataset.code = code;
      const pan115Code = Pan115.extractCode(site.id === 'fc2cmadb' ? code : existingTitleText, code);
      if (pan115Code) addPan115PlayBtn(pan115Code, existingBtnGroup);
-     addSettingsBtn(existingBtnGroup); placeJumpButtonGroup(site, titleElem, existingBtnGroup);
-     return; } } }
+     addSettingsBtn(existingBtnGroup); placeJumpButtonGroup(site, titleElem, existingBtnGroup); return; } } }
   if (titleElem.dataset.enhanced === '1') return;
-  titleElem.dataset.enhanced = '1';
-  const titleText = titleElem.textContent; const code = typeof site.getCode === 'function' ? site.getCode(titleElem) : Utils.extractCode(titleText);
+  titleElem.dataset.enhanced = '1'; const titleText = titleElem.textContent; const code = typeof site.getCode === 'function' ? site.getCode(titleElem) : Utils.extractCode(titleText);
   if (!code) return;
   const trailerCode = typeof site.getCode === 'function' ? code : Utils.extractCode(titleText, { keepUncensoredSource: true }) || code;
-  const btnGroup = document.createElement('div');
-  btnGroup.className = 'jav-jump-btn-group'; btnGroup.dataset.laosijiJump = '1'; btnGroup.dataset.code = code;
+  const btnGroup = document.createElement('div'); btnGroup.className = 'jav-jump-btn-group'; btnGroup.dataset.laosijiJump = '1'; btnGroup.dataset.code = code;
   if (site.id === 'fc2cmadb') { btnGroup.classList.add('fc2cmadb-jump-group'); insertAvidCopyBtn(titleElem, code, null, true); }
   addNyaaBtn(code, btnGroup); addJavbusBtn(code, btnGroup); addJavdbBtn(code, btnGroup); addMissAVBtn(code, btnGroup); addDmmBtn(code, btnGroup);
   if (site.id === 'missav') {
@@ -11348,21 +9952,16 @@
    addSearchMenu(code, btnGroup);
    if (site.id === 'javlibrary' || ['javbus', 'javdb', 'supjav', 'jable'].includes(site.id)) { addJumpLineBreak(btnGroup); }
   }
-  addPan115PlayBtn(Pan115.extractCode(site.id === 'fc2cmadb' ? code : titleText, code), btnGroup); addSubtitleBtn(code, btnGroup);
-  addTrailerBtn(trailerCode, btnGroup); addPreviewBtn(code, btnGroup); addSettingsBtn(btnGroup);
+  addPan115PlayBtn(Pan115.extractCode(site.id === 'fc2cmadb' ? code : titleText, code), btnGroup); addSubtitleBtn(code, btnGroup); addTrailerBtn(trailerCode, btnGroup); addPreviewBtn(code, btnGroup); addSettingsBtn(btnGroup);
   if (site.id === 'javlibrary') {
    btnGroup.querySelectorAll('a').forEach(btn => {
-    let style = btn.getAttribute('style') || '';
-    style = style.replace(/background:\s*([^;]+);/g, 'background: $1 !important;'); style = style.replace(/color:\s*([^;]+);/g, 'color: $1 !important;');
-    btn.setAttribute('style', style);
+    let style = btn.getAttribute('style') || ''; style = style.replace(/background:\s*([^;]+);/g, 'background: $1 !important;'); style = style.replace(/color:\s*([^;]+);/g, 'color: $1 !important;'); btn.setAttribute('style', style);
    });
   } else if (site.id === 'missav') {
    btnGroup.style.cssText =`margin:10px 0 6px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative;z-index:9999;`;
   }
   if (site.id === 'emby') {
-   btnGroup.classList.add('emby-fix');
-   btnGroup.dataset.embyRenderKey = SiteManager.getEmbyRenderKey(titleElem);
-   SiteManager.getEmbyInsertAnchor(titleElem).insertAdjacentElement('afterend', btnGroup);
+   btnGroup.classList.add('emby-fix'); btnGroup.dataset.embyRenderKey = SiteManager.getEmbyRenderKey(titleElem); SiteManager.getEmbyInsertAnchor(titleElem).insertAdjacentElement('afterend', btnGroup);
   } else { placeJumpButtonGroup(site, titleElem, btnGroup); } }
  function getJhsLikeJumpTarget(site) {
   if (typeof Javdb123AvFc2 !== 'undefined' && Javdb123AvFc2.isDetailRoute?.()) { return document.querySelector('.movie-panel-info'); }
@@ -11380,19 +9979,15 @@
    return; }
   if (site.id === 'supjav') {
    btnGroup.style.marginTop = '8px';
-   if (btnGroup.parentElement !== titleElem.parentElement || btnGroup.previousElementSibling !== titleElem) {
-    titleElem.insertAdjacentElement('afterend', btnGroup); }
+   if (btnGroup.parentElement !== titleElem.parentElement || btnGroup.previousElementSibling !== titleElem) { titleElem.insertAdjacentElement('afterend', btnGroup); }
    return; }
   if (site.id === 'jable') {
    btnGroup.style.marginTop = '8px'; btnGroup.style.display = 'flex'; btnGroup.style.flexWrap = 'wrap';
    if (btnGroup.parentElement !== titleElem) { titleElem.appendChild(btnGroup); }
    return; }
   if (site.id === '123av') {
-   btnGroup.style.marginTop = '10px'; btnGroup.style.display = 'flex'; btnGroup.style.flexWrap = 'wrap';
-   const head = titleElem.closest('.watch__head, .watch__headinfo') || titleElem.parentElement;
-   allowJumpMenuOverflow(head);
-   if (btnGroup.parentElement !== titleElem.parentElement || btnGroup.previousElementSibling !== titleElem) {
-    titleElem.insertAdjacentElement('afterend', btnGroup); }
+   btnGroup.style.marginTop = '10px'; btnGroup.style.display = 'flex'; btnGroup.style.flexWrap = 'wrap'; const head = titleElem.closest('.watch__head, .watch__headinfo') || titleElem.parentElement; allowJumpMenuOverflow(head);
+   if (btnGroup.parentElement !== titleElem.parentElement || btnGroup.previousElementSibling !== titleElem) { titleElem.insertAdjacentElement('afterend', btnGroup); }
    return; }
   const target = getJhsLikeJumpTarget(site);
   if (target) {
@@ -11420,10 +10015,7 @@
    target.closest('.row.movie'),
    target.closest('.video-info'),
    target.closest('.info-header') ];
-  [...new Set(elements.filter(Boolean))].forEach(el => {
-   el.style.setProperty('overflow', 'visible', 'important'); el.style.setProperty('overflow-x', 'visible', 'important');
-   el.style.setProperty('overflow-y', 'visible', 'important');
-  }); }
+  [...new Set(elements.filter(Boolean))].forEach(el => { el.style.setProperty('overflow', 'visible', 'important'); el.style.setProperty('overflow-x', 'visible', 'important'); el.style.setProperty('overflow-y', 'visible', 'important'); }); }
  const JumpButtons = { render: renderButtonsForCurrentPage, refresh: renderButtonsForCurrentPage };
  Core.expose('__LAOSIJI_JUMP_BUTTONS__', JumpButtons);
  const InfiniteScroll = {
@@ -11445,9 +10037,7 @@
    if (SiteJavDB.match() && !SiteManager.isDetailPage()) { SiteJavDB._initListPage?.(); }
    const config = this.getConfig();
    if (!config?.container || !config.nextUrl) { this.scheduleInitRetry(); return; }
-   this.clearInitRetry();
-   const generation = ++this.generation;
-   this.pendingScrollY = null;
+   this.clearInitRetry(); const generation = ++this.generation; this.pendingScrollY = null;
    this.state = { ...config,
     generation,
     loading: false,
@@ -11464,21 +10054,18 @@
    if (this.restoreEnabled()) this.restoreScroll();
   },
   clearInitRetry(resetCount = true) {
-   clearTimeout(this.initRetryTimer);
-   this.initRetryTimer = null;
+   clearTimeout(this.initRetryTimer); this.initRetryTimer = null;
    if (resetCount) this.initRetryCount = 0;
   },
   scheduleInitRetry() {
    if (this.initRetryTimer || this.initRetryCount >= 8) return;
-   const delays = [250, 600, 1000, 1600, 2400, 3500, 5000, 7000]; const delay = delays[Math.min(this.initRetryCount, delays.length - 1)];
-   this.initRetryCount += 1;
+   const delays = [250, 600, 1000, 1600, 2400, 3500, 5000, 7000]; const delay = delays[Math.min(this.initRetryCount, delays.length - 1)]; this.initRetryCount += 1;
    this.initRetryTimer = setTimeout(() => {
     this.initRetryTimer = null;
     if (!this.state) this.init();
    }, delay); },
   destroy() {
-   ++this.generation; this.state?.abortRequest?.();
-   const javdbList = this.state?.site === 'javdb' ? this.state.container : null;
+   ++this.generation; this.state?.abortRequest?.(); const javdbList = this.state?.site === 'javdb' ? this.state.container : null;
    if (this.restoreEnabled()) this.saveSnapshot();
    else this.clearSnapshot(this.state);
    this.clearInitRetry();
@@ -11489,10 +10076,7 @@
    document.querySelectorAll('#next, .pagination, nav.pagination, .page_selector').forEach(el => { el.style.display = ''; }); },
   pauseForBfcache() {
    if (!this.state) return;
-   this.state.paused = true;
-   this.state.observer?.disconnect();
-   this.state.observer = null;
-   this.clearInitRetry(); },
+   this.state.paused = true; this.state.observer?.disconnect(); this.state.observer = null; this.clearInitRetry(); },
   resumeFromBfcache() {
    if (!this.enabled() || SiteManager.isDetailPage()) return;
    if (!this.state?.container?.isConnected || !this.state?.sentinel?.isConnected) { this.init(); return; }
@@ -11503,8 +10087,7 @@
   getConfig(doc = document, baseUrl = location.href) { return SiteManager.getInfiniteScrollConfig(doc, baseUrl); },
   cacheKey(config = this.state) {
    if (!config?.site) return '';
-   const url = new URL(location.href);
-   url.hash = '';
+   const url = new URL(location.href); url.hash = '';
    return`${this.cachePrefix}${config.site}_${url.href}`;
   },
   readSnapshot(config = this.state) {
@@ -11515,8 +10098,7 @@
     if (!data || data.site !== config.site) return null;
     return data;
    } catch {
-    sessionStorage.removeItem(key);
-    return null; } },
+    sessionStorage.removeItem(key); return null; } },
   clearSnapshot(config = this.state) {
    const key = this.cacheKey(config);
    if (!key) return;
@@ -11525,54 +10107,37 @@
    } catch {
    } },
   itemKey(item) {
-   const href = item?.querySelector?.('a[href]')?.getAttribute('href') || '';
-   return href ? new URL(href, location.href).href : (item?.textContent || '').trim().slice(0, 80); },
+   const href = item?.querySelector?.('a[href]')?.getAttribute('href') || ''; return href ? new URL(href, location.href).href : (item?.textContent || '').trim().slice(0, 80); },
   applySnapshotState(config, snapshot) {
    if (!snapshot) return;
    if ('nextUrl' in snapshot) config.nextUrl = snapshot.nextUrl || '';
    config.done = !!snapshot.done; config.restoredScrollY = Number(snapshot.scrollY) || 0; },
   sanitizeSnapshotItem(item) {
    if (!item) return null;
-   const clone = item.cloneNode(true);
-   clone.querySelectorAll('.emby-badge, .emby-btn, .emby-button-group, .emby-javlibrary-list-badge, .jav-card-quick-actions, .jav-list-preview-btn').forEach(el => el.remove());
+   const clone = item.cloneNode(true); clone.querySelectorAll('.emby-badge, .emby-btn, .emby-button-group, .emby-javlibrary-list-badge, .jav-card-quick-actions, .jav-list-preview-btn').forEach(el => el.remove());
    clone.querySelectorAll('a[href]').forEach(anchor => { anchor.querySelectorAll('a[href]').forEach(child => child.replaceWith(...child.childNodes)); });
    return clone; },
   restoreSnapshot(config) {
    const snapshot = this.readSnapshot(config);
    if (!snapshot) return false;
-   this.applySnapshotState(config, snapshot);
-   const items = Array.isArray(snapshot.items) ? snapshot.items : [];
+   this.applySnapshotState(config, snapshot); const items = Array.isArray(snapshot.items) ? snapshot.items : [];
    if (!items.length) return false;
-   const liveKeys = new Set([...config.container.querySelectorAll(config.itemSelector)] .map(item => this.itemKey(item)) .filter(Boolean));
-   const frag = document.createDocumentFragment(); let restored = 0;
+   const liveKeys = new Set([...config.container.querySelectorAll(config.itemSelector)] .map(item => this.itemKey(item)) .filter(Boolean)); const frag = document.createDocumentFragment(); let restored = 0;
    items.forEach(html => {
-    const tpl = document.createElement('template');
-    tpl.innerHTML = html;
-    let item = tpl.content.firstElementChild; const key = this.itemKey(item);
+    const tpl = document.createElement('template'); tpl.innerHTML = html; let item = tpl.content.firstElementChild; const key = this.itemKey(item);
     if (!item || !key || liveKeys.has(key)) return;
-    liveKeys.add(key); config.seen.add(key);
-    item.dataset.laosijiInfiniteItem = '1'; item = this.sanitizeSnapshotItem(item) || item;
-    SiteManager.decorateInfiniteScrollItem(config.site, item); frag.appendChild(item);
-    restored += 1;
+    liveKeys.add(key); config.seen.add(key); item.dataset.laosijiInfiniteItem = '1'; item = this.sanitizeSnapshotItem(item) || item; SiteManager.decorateInfiniteScrollItem(config.site, item); frag.appendChild(item); restored += 1;
    });
    if (!restored) return false;
-   config.container.appendChild(frag); this.hidePagination();
-   return true; },
+   config.container.appendChild(frag); this.hidePagination(); return true; },
   saveSnapshot() {
    if (!this.restoreEnabled()) { this.clearSnapshot(); return; }
    if (!this.state?.container) return;
    const key = this.cacheKey();
    if (!key) return;
    const allItems = [...this.state.container.querySelectorAll(this.state.itemSelector)];
-   const items = allItems .filter(item => item.dataset.laosijiInfiniteItem === '1') .slice(-this.maxSnapshotItems)
-    .map(item => this.sanitizeSnapshotItem(item)?.outerHTML || item.outerHTML);
-   const payload = {
-    site: this.state.site,
-    nextUrl: this.state.nextUrl || '',
-    done: !!this.state.done,
-    scrollY: this.pendingScrollY ?? window.scrollY ?? 0,
-    items,
-    savedAt: Date.now(), };
+   const items = allItems .filter(item => item.dataset.laosijiInfiniteItem === '1') .slice(-this.maxSnapshotItems) .map(item => this.sanitizeSnapshotItem(item)?.outerHTML || item.outerHTML);
+   const payload = { site: this.state.site, nextUrl: this.state.nextUrl || '', done: !!this.state.done, scrollY: this.pendingScrollY ?? window.scrollY ?? 0, items, savedAt: Date.now() };
    try {
     sessionStorage.setItem(key, JSON.stringify(payload));
    } catch (err) { errorLog('瀑布流快照保存失败:', err); } },
@@ -11587,13 +10152,11 @@
    if (y <= 0) return;
    setTimeout(() => window.scrollTo(window.scrollX || 0, y), 0); setTimeout(() => window.scrollTo(window.scrollX || 0, y), 120); },
   createSentinel() {
-   const sentinel = document.createElement('div');
-   sentinel.className = 'jav-infinite-sentinel'; sentinel.textContent = '继续滚动加载下一页';
+   const sentinel = document.createElement('div'); sentinel.className = 'jav-infinite-sentinel'; sentinel.textContent = '继续滚动加载下一页';
    sentinel.addEventListener('click', () => {
     if (sentinel.classList.contains('is-error')) this.loadNext();
    });
-   this.state.sentinel = sentinel;
-   this.state.container.insertAdjacentElement('afterend', sentinel); },
+   this.state.sentinel = sentinel; this.state.container.insertAdjacentElement('afterend', sentinel); },
   observe() {
    this.state.observer = new IntersectionObserver(entries => {
     if (entries.some(entry => entry.isIntersecting)) this.loadNext();
@@ -11618,8 +10181,7 @@
       signal: controller?.signal,
      });
      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-     const html = await res.text();
-     return new DOMParser().parseFromString(html, 'text/html');
+     const html = await res.text(); return new DOMParser().parseFromString(html, 'text/html');
     } catch (err) {
      if (controller?.signal.aborted) throw err;
      debugLog('same-origin page fetch failed, fallback to GM_xmlhttpRequest:', err); } }
@@ -11632,8 +10194,7 @@
    if (!r.ok) throw new Error(`${r.error?.kind || 'http'} ${r.status || 0}`);
    return new DOMParser().parseFromString(r.responseText, 'text/html'); },
   appendItems(doc) {
-   const items = [...doc.querySelectorAll(this.state.itemSelector)]; let container = this.state.container;
-   const live = SiteManager.getInfiniteScrollContainer(this.state.site);
+   const items = [...doc.querySelectorAll(this.state.itemSelector)]; let container = this.state.container; const live = SiteManager.getInfiniteScrollContainer(this.state.site);
    if (live) container = this.state.container = live;
    let added = 0; const addedItems = [];
    items.forEach(item => {
@@ -11641,15 +10202,12 @@
      const key = this.itemKey(item);
      if (key && this.state.seen.has(key)) return;
      if (key) this.state.seen.add(key);
-     item.dataset.laosijiInfiniteItem = '1';
-     const adopted = document.adoptNode(item);
-     container.appendChild(adopted);
+     item.dataset.laosijiInfiniteItem = '1'; const adopted = document.adoptNode(item); container.appendChild(adopted);
      try {
       const imgs = adopted.matches?.('img') ? [adopted] : adopted.querySelectorAll?.('img') || [];
       imgs.forEach(img => { if (!img.getAttribute('loading')) img.setAttribute('loading', 'lazy'); });
      } catch (e) {}
-     SiteManager.decorateInfiniteScrollItem(this.state.site, adopted); addedItems.push(adopted);
-     added += 1;
+     SiteManager.decorateInfiniteScrollItem(this.state.site, adopted); addedItems.push(adopted); added += 1;
     } catch (err) { errorLog('追加单项失败:', err); }
    });
    if (this.state.site === 'javdb' && addedItems.length) { JavdbListScoreSort.sync(container, addedItems); }
@@ -11657,8 +10215,7 @@
   async loadNext() {
    const state = this.state; const generation = state?.generation ?? this.generation;
    if (!this.isCurrent(state, generation) || state.paused || state.loading || state.done || !state.nextUrl) return;
-   state.loading = true;
-   this.setStatus('正在加载下一页...', 'is-loading');
+   state.loading = true; this.setStatus('正在加载下一页...', 'is-loading');
    try {
     const currentUrl = state.nextUrl;
     const requestContext = { abort: null };
@@ -11671,17 +10228,14 @@
     if (!doc.querySelector(state.itemSelector)) throw new Error('next page has no list items');
     const added = this.appendItems(doc); const nextConfig = this.getConfig(doc, currentUrl);
     if (!this.isCurrent(state, generation)) return;
-    const resolvedNext = nextConfig?.nextUrl || '';
-    state.nextUrl = (resolvedNext && resolvedNext !== currentUrl) ? resolvedNext : '';
-    this.hidePagination(); this.reflow(); Runtime.refreshListDecorations(); this.saveSnapshot();
+    const resolvedNext = nextConfig?.nextUrl || ''; state.nextUrl = (resolvedNext && resolvedNext !== currentUrl) ? resolvedNext : ''; this.hidePagination(); this.reflow(); Runtime.refreshListDecorations(); this.saveSnapshot();
     setTimeout(() => {
      if (!this.isCurrent(state, generation)) return;
      Runtime.refreshListPage();
     }, 80);
     state.emptyStreak = added ? 0 : (state.emptyStreak + 1);
     if (!state.nextUrl || state.emptyStreak >= 3) {
-     state.done = true;
-     state.observer?.disconnect(); this.setStatus('已经到底了', 'is-done'); this.saveSnapshot();
+     state.done = true; state.observer?.disconnect(); this.setStatus('已经到底了', 'is-done'); this.saveSnapshot();
     } else { this.setStatus('继续滚动加载下一页'); }
    } catch (err) {
     errorLog('瀑布流加载失败:', err); this.setStatus('加载失败，点击重试', 'is-error');
@@ -11694,24 +10248,20 @@
     this.state.container = SiteManager.reflowInfiniteScroll(this.state.site, this.state.container);
    } catch (err) { errorLog('瀑布流重排失败:', err); }
    window.dispatchEvent(new Event('resize')); }, };
- Core.expose('__LAOSIJI_INFINITE_SCROLL__', InfiniteScroll);
- let pan115ListTimer = null;
+ Core.expose('__LAOSIJI_INFINITE_SCROLL__', InfiniteScroll); let pan115ListTimer = null;
  function schedulePan115ListBadges() {
   if (!Pan115.enabled() || SiteManager.isDetailPage()) return;
-  clearTimeout(pan115ListTimer);
-  pan115ListTimer = setTimeout(renderPan115ListBadges, 300); }
+  clearTimeout(pan115ListTimer); pan115ListTimer = setTimeout(renderPan115ListBadges, 300); }
  Core.expose('__LAOSIJI_SCHEDULE_PAN115__', schedulePan115ListBadges); Core.expose('__LAOSIJI_RENDER_BUTTONS__', () => JumpButtons.render());
  const Runtime = {
   refreshTimer: null,
   refreshGeneration: 0,
   cancelScheduledRefresh() { this.refreshGeneration += 1; clearTimeout(this.refreshTimer); this.refreshTimer = null; },
   scheduleRefresh(options = {}, delay = 0) {
-   const generation = ++this.refreshGeneration;
-   clearTimeout(this.refreshTimer);
+   const generation = ++this.refreshGeneration; clearTimeout(this.refreshTimer);
    this.refreshTimer = setTimeout(() => {
     if (generation !== this.refreshGeneration) return;
-    this.refreshTimer = null;
-    this.refresh(options);
+    this.refreshTimer = null; this.refresh(options);
    }, Math.max(0, Number(delay) || 0)); },
   refreshForChange(change = {}) {
    const type = typeof change === 'string' ? change : change.type;
@@ -11761,9 +10311,7 @@
   refreshListPage() {
    this.refresh({ detailPreview: false, infiniteScroll: false }); },
   refreshListDecorations() {
-   if (SiteJavDB.match()) {
-    SiteJavDB._stripNativeLayoutParam(); document.querySelectorAll('.movie-list, .movies, .grid').forEach(list => SiteJavDB._neutralizeNativeListLayout(list));
-    SiteJavDB._hideNativeLayoutSwitcher(); }
+   if (SiteJavDB.match()) { SiteJavDB._stripNativeLayoutParam(); document.querySelectorAll('.movie-list, .movies, .grid').forEach(list => SiteJavDB._neutralizeNativeListLayout(list)); SiteJavDB._hideNativeLayoutSwitcher(); }
    ListPreview.sync(); ListOpenNewTab.sync(); PortraitCards.apply(); CoverHoverPreview.sync(); schedulePan115ListBadges(); },
   syncPan115(enabled = Pan115.enabled()) {
    syncPan115AfterSettingsSave(enabled); },
@@ -11794,8 +10342,7 @@
    injectStyle('jav-card-fx-style',`html[data-laosiji-card-fx="off"] .jav-card{transition:none!important;will-change:auto!important;transform:none!important}html[data-laosiji-card-fx="off"] .jav-card:hover{transform:none!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;border-color:rgba(148,163,184,.35)!important}.jav-card{content-visibility:auto;contain-intrinsic-size:auto 320px}.jav-card-cover .jav-card-image{transition:opacity .18s ease!important;transform:none!important;will-change:auto!important}html[data-laosiji-card-fx="off"] .jav-card-cover .jav-card-image{transition:transform .22s ease,opacity .18s ease!important}html[data-laosiji-card-fx="off"] .jav-card-cover:hover .jav-card-image,html[data-laosiji-card-fx="off"] .jav-card-link:hover .jav-card-image,html[data-laosiji-card-fx="off"] .jav-card:hover .jav-card-image{transform:scale(1.06)!important}html:not([data-laosiji-card-fx="off"]) .jav-card-cover:hover .jav-card-image,html:not([data-laosiji-card-fx="off"]) .jav-card-link:hover .jav-card-image,html:not([data-laosiji-card-fx="off"]) .jav-card:hover .jav-card-image,html:not([data-laosiji-card-fx="off"]) .movie-list .javdb-grid-card .box:hover .cover img,html:not([data-laosiji-card-fx="off"]) .movies .javdb-grid-card .box:hover .cover img,html:not([data-laosiji-card-fx="off"]) .grid .javdb-grid-card .box:hover .cover img{transform:none!important}`);
   }
   function apply(enabled = CFG.cardFx) {
-   ensureStyle();
-   const root = document.documentElement;
+   ensureStyle(); const root = document.documentElement;
    if (enabled) root.removeAttribute('data-laosiji-card-fx');
    else root.setAttribute('data-laosiji-card-fx', 'off');
   }
@@ -11804,20 +10351,17 @@
  Core.expose('__LAOSIJI_CARD_FX__', CardFx);
  function resetEmbyButtonState() {
   if (!SiteManager.isEmbyPage()) return;
-  document.querySelectorAll('.jav-jump-btn-group[data-laosiji-jump="1"]').forEach(el => el.remove());
-  document.querySelectorAll('h1[data-enhanced="1"]').forEach(el => delete el.dataset.enhanced); }
+  document.querySelectorAll('.jav-jump-btn-group[data-laosiji-jump="1"]').forEach(el => el.remove()); document.querySelectorAll('h1[data-enhanced="1"]').forEach(el => delete el.dataset.enhanced); }
  function is123AvHost() { return /(?:^|\.)123av\.com$/i.test(location.hostname); }
  function reset123AvRouteState() {
   if (!is123AvHost()) return;
-  document.querySelectorAll('.jav-jump-btn-group[data-laosiji-jump="1"]').forEach(el => el.remove());
-  document.querySelectorAll('.watch__title[data-enhanced="1"]').forEach(el => delete el.dataset.enhanced); removePan115Ui(); }
+  document.querySelectorAll('.jav-jump-btn-group[data-laosiji-jump="1"]').forEach(el => el.remove()); document.querySelectorAll('.watch__title[data-enhanced="1"]').forEach(el => delete el.dataset.enhanced); removePan115Ui(); }
  let mutationSyncTimer = null;
  const runIdle = window.requestIdleCallback ? (fn) => window.requestIdleCallback(fn, { timeout: 600 }) : (fn) => setTimeout(fn, 0);
  const isOwnNode = (node) => {
   if (!node || node.nodeType !== 1) return false;
   try {
-   return !!(node.matches?.('[class*="jav-"],[class*="laosiji"],[data-laosiji-grid-card],[data-laosiji-jump]')
-    || node.closest?.('[class*="jav-"],[data-laosiji-grid-card]'));
+   return !!(node.matches?.('[class*="jav-"],[class*="laosiji"],[data-laosiji-grid-card],[data-laosiji-jump]') || node.closest?.('[class*="jav-"],[data-laosiji-grid-card]'));
   } catch (e) { return false; } };
  const hasMeaningfulMutation = (records) => {
   try {
@@ -11836,15 +10380,12 @@
  });
  let lastEmbyLoc = location.href;
  function embyButtonsPresent() {
-  const g = document.querySelector('.jav-jump-btn-group[data-laosiji-jump="1"]');
-  return !!(g && g.isConnected); }
+  const g = document.querySelector('.jav-jump-btn-group[data-laosiji-jump="1"]'); return !!(g && g.isConnected); }
  let embyRetryTimers = [];
  function clearEmbyRetries() {
-  embyRetryTimers.forEach(t => clearTimeout(t));
-  embyRetryTimers = []; }
+  embyRetryTimers.forEach(t => clearTimeout(t)); embyRetryTimers = []; }
  function embyRenderWithRetry() {
-  clearEmbyRetries();
-  const delays = [0, 80, 200, 400, 700, 1100, 1700, 2500, 3500, 5000, 6500];
+  clearEmbyRetries(); const delays = [0, 80, 200, 400, 700, 1100, 1700, 2500, 3500, 5000, 6500];
   delays.forEach(d => {
    embyRetryTimers.push(setTimeout(() => {
     JumpButtons.render();
@@ -11853,11 +10394,9 @@
   }); }
  let routeRefreshTimers = [];
  function clearRouteRefreshRetries() {
-  routeRefreshTimers.forEach(t => clearTimeout(t));
-  routeRefreshTimers = []; }
+  routeRefreshTimers.forEach(t => clearTimeout(t)); routeRefreshTimers = []; }
  function routeRefreshWithRetry() {
-  clearRouteRefreshRetries();
-  const delays = [80, 200, 450, 800, 1300, 2200, 3500];
+  clearRouteRefreshRetries(); const delays = [80, 200, 450, 800, 1300, 2200, 3500];
   delays.forEach(d => {
    routeRefreshTimers.push(setTimeout(() => {
     Runtime.scheduleRefresh();
@@ -11865,9 +10404,7 @@
   }); }
  function onEmbyNavigate() {
   if (location.href === lastEmbyLoc) return;
-  lastEmbyLoc = location.href;
-  Runtime.cancelScheduledRefresh();
-  const isEmby = SiteManager.isEmbyPage();
+  lastEmbyLoc = location.href; Runtime.cancelScheduledRefresh(); const isEmby = SiteManager.isEmbyPage();
   if (isEmby) {
    resetEmbyButtonState(); embyRenderWithRetry();
   } else if (is123AvHost()) {
@@ -11900,23 +10437,19 @@
      const orig = history[type];
      if (typeof orig !== 'function') return;
      history[type] = function () {
-      const ret = orig.apply(this, arguments);
-      setTimeout(onEmbyNavigate, 0);
-      return ret; }; };
+      const ret = orig.apply(this, arguments); setTimeout(onEmbyNavigate, 0); return ret; }; };
     wrap('pushState'); wrap('replaceState');
    })(); },
   init() {
    if (this.started) return;
-   this.started = true;
-   const start = () => this._start();
+   this.started = true; const start = () => this._start();
    if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start, { once: true });
     return; }
    start(); },
   _start() {
-   MobilePolicy.start(); MobileSettingsEntry.install(); Pan115SettingsEntry.install(); CardFx.apply(MobilePolicy.featureEnabled('cardFx', CFG.cardFx));
-   Trailer.installFallbackDebugHelper(); this.initRuntimeObserver(); this.initNavigationHooks(); SiteManager.setupJavDbGuards();
-   StillsGallery.start?.();
+   MobilePolicy.start(); MobileSettingsEntry.install(); Pan115SettingsEntry.install(); CardFx.apply(MobilePolicy.featureEnabled('cardFx', CFG.cardFx)); Trailer.installFallbackDebugHelper(); this.initRuntimeObserver(); this.initNavigationHooks();
+   SiteManager.setupJavDbGuards(); StillsGallery.start?.();
    if (location.hostname.includes('javdb') && location.pathname.startsWith('/v/')) {
     setTimeout(mainRun, 600);
    } else { mainRun(); }
