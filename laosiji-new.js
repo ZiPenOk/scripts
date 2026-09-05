@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.3.3
+// @version      2.8.4
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -47,7 +47,7 @@
 // @updateURL    https://github.com/ZiPenOk/scripts/raw/refs/heads/main/laosiji-new.js
 // ==/UserScript==
 (function () {
- 'use strict'; const SCRIPT_VERSION = '2.8.3.3'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ 'use strict'; const SCRIPT_VERSION = '2.8.4'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const getDetailPreviewInlineDefault = () => {
@@ -5809,6 +5809,7 @@
      onprogress: (event) => {
       stats.loaded = Number(event?.loaded || stats.loaded || 0); stats.total = Number(event?.total || stats.total || stats.loaded || 0);
       if (!stats.loading.first && stats.loaded > 0) stats.loading.first = performance.now();
+      if (stats.loaded > 0) callbacks.onProgress?.(stats, context, undefined, null);
      },
      onload: (r) => {
       if (!isCurrentRequest()) return;
@@ -6036,7 +6037,7 @@
     if (raw.includes('dmm')) return 'DMM';
     return String(value || activeSource || '').replace(/^Javxy\s*\|\s*/i, '').trim(); };
    const schedulePlaybackGuard = (reason = 'timeout') => {
-    clearTimeout(playbackReadyTimer); const isHlsSource = /\.m3u8(?:[?#].*)?$/i.test(activeUrl) || activeType === 'hls'; const timeout = isHlsSource ? 15000 : 4000;
+    clearTimeout(playbackReadyTimer); const isHlsSource = /\.m3u8(?:[?#].*)?$/i.test(activeUrl) || activeType === 'hls'; const timeout = isHlsSource ? (hlsStartupActivity ? 5000 : 4000) : 4000;
     playbackReadyTimer = setTimeout(() => {
      if (overlayClosed || playbackStarted || !video || !video.isConnected) return;
      handlePlaybackFailure(reason);
@@ -6074,14 +6075,27 @@
     } finally {
      sourceFallbackInProgress = false; } };
    const { getHlsClass, loadHlsLibrary, createHlsLoader } = createTrailerHlsRuntime();
-   const isHlsSource = src => /\.m3u8(?:[?#].*)?$/i.test(src) || activeType === 'hls';
+   const isHlsSource = src => /\.m3u8(?:[?#].*)?$/i.test(src) || activeType === 'hls'; let activeHlsMode = null; let nativeHlsFallbackUsed = false; let hlsStartupActivity = false;
    const attachMp4Src = (src) => {
     if (!src) return;
-    video.src = src; };
-   const attachM3u8Src = (src) => {
+    activeHlsMode = null; hlsStartupActivity = false; video.src = src; };
+   const canPlayNativeHls = () => {
+    if (!video?.canPlayType) return false;
+    return Boolean(
+     video.canPlayType('application/vnd.apple.mpegurl') || video.canPlayType('application/x-mpegURL'),
+    ); };
+   const isNativeHlsClient = () => (
+    typeof MobilePolicy !== 'undefined' && MobilePolicy.isMobile() && canPlayNativeHls()
+   );
+   const attachNativeM3u8Src = (src) => {
     if (!src) return;
+    destroyActiveHls(); activeHlsMode = 'native'; nativeHlsFallbackUsed = false; hlsStartupActivity = false; video.src = src; video.load?.();
+    video.play().catch(() => {}); };
+   const attachM3u8Src = (src, preferNative = true) => {
+    if (!src) return;
+    if (preferNative && isNativeHlsClient()) { attachNativeM3u8Src(src); return; }
     const HlsClass = getHlsClass();
-    if (!HlsClass) { video.src = src; video.load?.(); return; }
+    if (!HlsClass) { attachNativeM3u8Src(src); return; }
     const hls = new HlsClass({
      enableWorker: false,
      // Trailer streams are VOD. LL-HLS mode makes normal playlists
@@ -6124,7 +6138,7 @@
      abrEwmaFastLive: 3,
      abrEwmaSlowLive: 9,
     });
-    let fragmentRetryCount = 0; let mediaRecoveryCount = 0; const maxFragmentRetries = 2;
+    activeHlsMode = 'hls'; hlsStartupActivity = false; video._hls = hls; let fragmentRetryCount = 0; let mediaRecoveryCount = 0; const maxFragmentRetries = 2;
     const retryFailedFragment = () => {
      if (overlayClosed || video?._hls !== hls || fragmentRetryCount >= maxFragmentRetries) return false;
      fragmentRetryCount += 1; clearTimeout(playbackReadyTimer);
@@ -6142,8 +6156,17 @@
      hls.startLoad(0);
      video.play().catch(() => {});
     });
+    const markHlsStartupActivity = () => {
+     if (hlsStartupActivity || playbackStarted || overlayClosed || video?._hls !== hls) return;
+     hlsStartupActivity = true;
+     // A first byte means the source is reachable, but it does not
+     // mean the media element has decoded enough to start playing.
+     schedulePlaybackGuard('hls-buffering'); };
+    [HlsClass.Events.FRAG_LOAD_PROGRESS, HlsClass.Events.FRAG_LOADED].forEach(eventName => {
+     if (eventName) hls.on(eventName, markHlsStartupActivity);
+    });
     if (HlsClass.Events.FRAG_BUFFERED) hls.on(HlsClass.Events.FRAG_BUFFERED, () => {
-     fragmentRetryCount = 0; mediaRecoveryCount = 0; markPlaybackReady();
+     fragmentRetryCount = 0; mediaRecoveryCount = 0; markHlsStartupActivity();
     });
     hls.on(HlsClass.Events.ERROR, (_, data) => {
      if (!data?.fatal) return;
@@ -6162,7 +6185,19 @@
      if (overlayClosed) return;
      handlePlaybackFailure('hls');
     });
-    hls.loadSource(src); hls.attachMedia(video); video._hls = hls; };
+    hls.loadSource(src); hls.attachMedia(video); };
+   const tryNativeHlsFallback = () => {
+    if (activeHlsMode !== 'native' || nativeHlsFallbackUsed || !isHlsSource(activeUrl)) return false;
+    const HlsClass = getHlsClass(); nativeHlsFallbackUsed = true;
+    if (HlsClass) { attachM3u8Src(activeUrl, false); schedulePlaybackGuard('hls'); return true; }
+    const generation = sourceLoadGeneration;
+    loadHlsLibrary().then(loadedHlsClass => {
+     if (generation !== sourceLoadGeneration || overlayClosed || !video?.isConnected) return;
+     if (loadedHlsClass) {
+      attachM3u8Src(activeUrl, false); schedulePlaybackGuard('hls');
+     } else { handlePlaybackFailure('hls'); }
+    });
+    return true; };
    const attachVideoSrc = (src) => {
     if (!src) return;
     sourceLoadGeneration += 1;
@@ -6175,27 +6210,32 @@
     const generation = ++sourceLoadGeneration;
     setFallbackStatus(`正在加载 ${normalizedSourceName() || '预告片'}...`);
     schedulePlaybackGuard('timeout');
-    if (isHlsSource(src) && !getHlsClass()) {
-     loadHlsLibrary().then(HlsClass => {
-      if (generation !== sourceLoadGeneration || !video || !video.isConnected) return;
-      if (HlsClass) attachM3u8Src(src);
-      else attachMp4Src(src);
-     });
-    } else {
-     if (generation !== sourceLoadGeneration) return;
-     if (isHlsSource(src)) attachM3u8Src(src);
-     else attachMp4Src(src);
-    } };
+    if (generation !== sourceLoadGeneration) return;
+    if (!isHlsSource(src)) { attachMp4Src(src); return; }
+    // Prefer the browser's native HLS path on mobile Safari and other
+    // clients that expose native M3U8 support. Load hls.js only when
+    // native playback is unavailable.
+    if (isNativeHlsClient()) { attachNativeM3u8Src(src); return; }
+    const HlsClass = getHlsClass();
+    if (HlsClass) { attachM3u8Src(src, false); return; }
+    loadHlsLibrary().then(loadedHlsClass => {
+     if (generation !== sourceLoadGeneration || !video || !video.isConnected) return;
+     if (loadedHlsClass) attachM3u8Src(src, false);
+     else attachNativeM3u8Src(src);
+    }); };
    if (isIframe) {
     const iframe = document.createElement('iframe'); iframe.src = url; iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media'; iframe.allowFullscreen = true; screen.appendChild(iframe);
    } else {
-    video = document.createElement('video'); video.controls = false; video.autoplay = true; video.loop = true; video.playsInline = true; const savedVolume = Number(GM_getValue('trailer_volume', 0.35)); const savedMuted = GM_getValue('trailer_muted', false);
-    video.volume = Number.isFinite(savedVolume) ? Math.min(1, Math.max(0, savedVolume)) : 0.35; video.muted = Boolean(savedMuted); initTrailerVideo(fallbackUrls[fallbackIndex] || url); video.preload = 'auto';
+    video = document.createElement('video'); video.controls = false; video.autoplay = true; video.loop = true; video.playsInline = true; video.preload = 'auto'; const savedVolume = Number(GM_getValue('trailer_volume', 0.35));
+    const savedMuted = GM_getValue('trailer_muted', false); video.volume = Number.isFinite(savedVolume) ? Math.min(1, Math.max(0, savedVolume)) : 0.35; video.muted = Boolean(savedMuted);
     video.addEventListener('volumechange', () => { GM_setValue('trailer_volume', video.volume); GM_setValue('trailer_muted', video.muted); syncTrailerControls(); });
     video.addEventListener('play', () => {
      syncTrailerControls(); scheduleHideTrailerControls();
     });
     video.addEventListener('playing', markPlaybackReady);
+    video.addEventListener('loadeddata', () => {
+     if (activeHlsMode === 'native' && !hlsStartupActivity) { hlsStartupActivity = true; schedulePlaybackGuard('hls-buffering'); }
+    });
     video.addEventListener('pause', () => {
      syncTrailerControls(); keepTrailerControlsVisible();
     });
@@ -6210,8 +6250,11 @@
      syncTrailerControls(); restorePlaybackTime();
     });
     video.addEventListener('ended', () => clearPlaybackTime());
-    video.addEventListener('error', () => { handlePlaybackFailure('video'); });
-    screen.appendChild(video); screen.appendChild(fallbackStatus); screen.appendChild(volumeIndicator);
+    video.addEventListener('error', () => {
+     if (tryNativeHlsFallback()) return;
+     handlePlaybackFailure('video');
+    });
+    screen.appendChild(video); screen.appendChild(fallbackStatus); screen.appendChild(volumeIndicator); initTrailerVideo(fallbackUrls[fallbackIndex] || url);
     playBtn.addEventListener('click', e => {
      e.preventDefault(); e.stopPropagation();
      if (!video) return;
