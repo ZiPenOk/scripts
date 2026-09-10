@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.4.1
+// @version      2.8.4.2
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // @updateURL    https://github.com/ZiPenOk/scripts/raw/refs/heads/main/laosiji-new.js
 // ==/UserScript==
 (function () {
- 'use strict'; const SCRIPT_VERSION = '2.8.4.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ 'use strict'; const SCRIPT_VERSION = '2.8.4.2'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const getDetailPreviewInlineDefault = () => {
@@ -417,7 +417,7 @@
    window[name] = value; return value; }, };
  Core.expose('__LAOSIJI_CORE__', Core);
  const VIDEO_ENGINES = [
-  { key: 'missav', label: 'MissAV', host: /(?:missav\.(com|ai|ws)|njavtv\.com)/i, color: '#ec4899' },
+  { key: 'missav', label: 'MissAV', host: /(?:missav\.(com|ai|ws|live)|missav123\.com|njavtv\.com)/i, color: '#ec4899' },
   { key: 'jable',  label: 'Jable',  host: /jable\.tv/i, color: '#f97316' },
   { key: '123av',  label: '123AV',  host: /123av\.com/i, color: '#10b981' },
   { key: 'javday', label: 'JavDay', host: /javday\.app/i, color: '#0ea5e9' },
@@ -3598,7 +3598,25 @@
     if (toolbar) return toolbar;
    }
    return null; }
+  function findCategorySortAnchor(list) {
+   const roots = [list.closest('main, section, body'), document].filter(Boolean);
+   for (const root of roots) {
+    const category = root.querySelector('#tag-category-10.tag-category, dt.tag-category#tag-category-10');
+    if (category) return category;
+   }
+   return null; }
+  function ensureCategorySortButtons(category) {
+   let group = category.querySelector('[data-laosiji-score-sort-group="1"]');
+   if (!group) {
+    group = document.createElement('span'); group.className = 'button-group javdb-category-score-sort-group'; group.dataset.laosijiScoreSortGroup = '1'; group.style.cssText = 'display:inline-flex;align-items:center;margin-left:8px;vertical-align:middle;';
+    group.innerHTML = '<span class="buttons has-addons"></span>'; const labels = category.querySelector('.tag_labels');
+    if (labels) labels.insertAdjacentElement('afterend', group);
+    else category.appendChild(group);
+   }
+   return group.querySelector('.buttons.has-addons'); }
   function ensureSortButtons(list) {
+   const category = findCategorySortAnchor(list);
+   if (category) return ensureCategorySortButtons(category);
    const nativeButtons = findNativeSortButtons(list);
    if (nativeButtons) return nativeButtons;
    const toolbar = findToolbar(list);
@@ -4312,11 +4330,17 @@
    injectStyle('javdb-native-layout-style',`.toolbar>.button-group[data-laosiji-hidden-native-layout="1"]{display:none!important}`);
   },
   _insertResourceNav() {
-   const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__; const hasListContent = document.querySelector('.movie-list, .masonry, .items, .item.jav-card, .jav-card'); const mainTabs = document.querySelector('.tabs.main-tabs');
-   const navList = mainTabs?.querySelector('ul') || [...document.querySelectorAll('ul')].find(list => list.querySelector('a[href="/censored"]') && list.querySelector('a[href="/uncensored"]') && list.querySelector('a[href="/western"]'));
+   const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__; const hasListContent = document.querySelector('.movie-list, .masonry, .items, .item.jav-card, .jav-card');
+   // JavDB uses `.tabs.is-boxed` on category/tag pages, while older
+   // list pages use `.tabs.main-tabs`; support both DOM variants.
+   const mainTabs = document.querySelector('.tabs.main-tabs, .tabs.is-boxed');
+   const navList = mainTabs?.querySelector('ul') || [...document.querySelectorAll('ul')].find(list => {
+    const hrefs = [...list.querySelectorAll('a[href]')].map(anchor => anchor.getAttribute('href') || ''); const hasCodedTabs = hrefs.some(href => /\/censored(?:\?|$)/i.test(href)) && hrefs.some(href => /\/uncensored(?:\?|$)/i.test(href));
+    const hasTagTabs = hrefs.some(href => /^\/tags(?:\?|$)/i.test(href)) && hrefs.some(href => /^\/tags\/uncensored(?:\?|$)/i.test(href)); return (hasCodedTabs || hasTagTabs) && hrefs.some(href => /(?:\/western|\/tags\/western)(?:\?|$)/i.test(href));
+   });
    const customShell = document.querySelector('.javdb-api-shell, .javdb-123av-fc2-shell'); const isFc2AdvancedSearch = this._isScriptFc2AdvancedSearch?.();
    if (!resourceApi?.open || (!navList && !customShell && !isFc2AdvancedSearch) || (!hasListContent && !customShell && !isFc2AdvancedSearch)) return;
-   injectStyle('javdb-resource-nav-style',`.javdb-resource-nav-item{display:flex!important;align-items:center!important;gap:6px;margin-left:auto!important;padding-left:14px;white-space:nowrap}.javdb-resource-nav-item>a{display:flex!important;align-items:center!important;min-height:36px;color:#fff!important;background:#334155!important;font-size:.9rem;font-weight:700;line-height:1;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2);border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.18)}.javdb-resource-nav-item>a:hover,.javdb-resource-nav-item>a:focus{color:#fff!important;background:#0f172a!important;box-shadow:0 2px 5px rgba(15,23,42,.26)}.javdb-resource-nav-item>a.javdb-resource-nav-main{background:#0f766e!important}.javdb-resource-nav-item>a.javdb-resource-nav-main:hover,.javdb-resource-nav-item>a.javdb-resource-nav-main:focus{background:#115e59!important}.javdb-resource-nav-item>a[data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-nav-item>a[data-resource-entry="history"]:hover,.javdb-resource-nav-item>a[data-resource-entry="history"]:focus{background:#1d4ed8!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:focus{background:#92400e!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:focus{background:#9f1239!important}.javdb-resource-work-shortcuts{display:flex;align-items:center;flex:0 0 auto;float:right}.toolbar>.javdb-resource-work-shortcuts .buttons{margin-bottom:0}.javdb-resource-custom-links,.javdb-resource-custom-shortcuts{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:8px 0 12px!important}.javdb-resource-custom-links>button,.javdb-resource-custom-shortcuts>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:auto!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font:700 .9rem/1 inherit!important;appearance:none!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important;white-space:nowrap!important}.javdb-resource-custom-links>button:hover,.javdb-resource-custom-links>button:focus,.javdb-resource-custom-shortcuts>button:hover,.javdb-resource-custom-shortcuts>button:focus{color:#fff!important;filter:brightness(.92)}.javdb-resource-custom-links [data-resource-entry="manager"]{background:#0f766e!important}.javdb-resource-custom-links [data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-custom-links [data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-custom-links [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-downloaded"]{background:#10b981!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:900px){.javdb-resource-nav-item{width:100%;margin-left:0!important;padding:8px 0 0}.javdb-resource-nav-item>a{flex:0 0 auto}}`);
+   injectStyle('javdb-resource-nav-style',`.javdb-resource-nav-item{display:flex!important;align-items:center!important;gap:6px;margin-left:auto!important;padding-left:14px;white-space:nowrap}.javdb-resource-nav-item>a{display:flex!important;align-items:center!important;min-height:36px;color:#fff!important;background:#334155!important;font-size:.9rem;font-weight:700;line-height:1;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2);border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.18)}.javdb-resource-nav-item>a:hover,.javdb-resource-nav-item>a:focus{color:#fff!important;background:#0f172a!important;box-shadow:0 2px 5px rgba(15,23,42,.26)}.javdb-resource-nav-item>a.javdb-resource-nav-main{background:#0f766e!important}.javdb-resource-nav-item>a.javdb-resource-nav-main:hover,.javdb-resource-nav-item>a.javdb-resource-nav-main:focus{background:#115e59!important}.javdb-resource-nav-item>a[data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-nav-item>a[data-resource-entry="history"]:hover,.javdb-resource-nav-item>a[data-resource-entry="history"]:focus{background:#1d4ed8!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:focus{background:#92400e!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:focus{background:#9f1239!important}.javdb-resource-work-shortcuts{display:flex;align-items:center;flex:0 0 auto;float:right}.javdb-resource-tabs-shortcuts{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:0 0 4px!important;padding:2px 0 0!important}.tabs.javdb-resource-tabs-with-shortcuts{margin-bottom:0!important}.toolbar>.javdb-resource-work-shortcuts .buttons{margin-bottom:0}.javdb-resource-custom-links,.javdb-resource-custom-shortcuts{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:8px 0 12px!important}.javdb-resource-custom-links>button,.javdb-resource-custom-shortcuts>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:auto!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font:700 .9rem/1 inherit!important;appearance:none!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important;white-space:nowrap!important}.javdb-resource-custom-links>button:hover,.javdb-resource-custom-links>button:focus,.javdb-resource-custom-shortcuts>button:hover,.javdb-resource-custom-shortcuts>button:focus{color:#fff!important;filter:brightness(.92)}.javdb-resource-custom-links [data-resource-entry="manager"]{background:#0f766e!important}.javdb-resource-custom-links [data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-custom-links [data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-custom-links [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-downloaded"]{background:#10b981!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:900px){.javdb-resource-nav-item{width:100%;margin-left:0!important;padding:8px 0 0}.javdb-resource-nav-item>a{flex:0 0 auto}}`);
    if (navList && !navList.querySelector('.javdb-resource-nav-item')) {
     const item = document.createElement('li'); item.className = 'javdb-resource-nav-item';
     item.innerHTML = `<a href="javascript:void(0)" class="javdb-resource-nav-main" data-resource-entry="manager" title="打开资源管理"><span>资源管理</span></a><a href="javascript:void(0)" data-resource-entry="history" title="打开鉴定记录"><span>鉴定记录</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-works" title="打开作品黑名单"><span>屏蔽列表</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-actors" title="打开演员黑名单"><span>演员黑名单</span></a>`;
@@ -4325,14 +4349,20 @@
     item.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('blacklist', 'works'); });
     item.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('blacklist', 'actors'); });
     navList.appendChild(item); }
-   const resourceTabs = navList?.closest('.tabs.main-tabs'); const toolbar = resourceTabs?.nextElementSibling?.matches('.toolbar') ? resourceTabs.nextElementSibling : null;
-   if (toolbar && !toolbar.querySelector('.javdb-resource-work-shortcuts')) {
-    const shortcuts = document.createElement('div'); shortcuts.className = 'button-group javdb-resource-work-shortcuts';
+   const resourceTabs = navList?.closest('.tabs.main-tabs, .tabs.is-boxed'); const toolbar = resourceTabs?.nextElementSibling?.matches('.toolbar') ? resourceTabs.nextElementSibling : null; const resourceTabsParent = resourceTabs?.parentElement;
+   const hasWorkShortcuts = !!resourceTabsParent?.querySelector('.javdb-resource-work-shortcuts, .javdb-resource-tabs-shortcuts');
+   const createWorkShortcuts = className => {
+    const shortcuts = document.createElement('div');
+    shortcuts.className = `button-group ${className}`;
     shortcuts.innerHTML = `<div class="buttons has-addons"><a class="button is-small is-warning" href="javascript:void(0)" data-resource-entry="works-favorite" title="查看作品库中已收藏的作品">已收藏</a><a class="button is-small is-success" href="javascript:void(0)" data-resource-entry="works-downloaded" title="查看作品库中已下载的作品">已下载</a><a class="button is-small is-info" href="javascript:void(0)" data-resource-entry="works-watched" title="查看作品库中已观看的作品">已观看</a></div>`;
     shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'favorite'); });
     shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'downloaded'); });
     shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'watched'); });
-    toolbar.appendChild(shortcuts); }
+    return shortcuts; };
+   if (!hasWorkShortcuts && toolbar && !toolbar.querySelector('.javdb-resource-work-shortcuts')) {
+    toolbar.appendChild(createWorkShortcuts('javdb-resource-work-shortcuts'));
+   } else if (!hasWorkShortcuts && resourceTabs) {
+    resourceTabs.classList.add('javdb-resource-tabs-with-shortcuts'); resourceTabs.insertAdjacentElement('afterend', createWorkShortcuts('javdb-resource-tabs-shortcuts')); }
    if (customShell) {
     const customHead = customShell.querySelector('.javdb-123av-fc2-head, .javdb-api-shell-head'); const hasNativeResourceNav = !!navList?.querySelector('.javdb-resource-nav-item');
     if (customHead && !hasNativeResourceNav && !customShell.querySelector('.javdb-resource-custom-links')) {
@@ -4913,6 +4943,10 @@
     '.thumbnail',
     '.post',
    ].join(',')) || null; },
+  isMissavListDurationAnchor(anchor, card, visibleTitleHasCode) {
+   if (!/^(?:www\.)?(?:missav\.(?:ws|ai|com|live)|missav123\.com|njavtv\.com)$/i.test(location.hostname)) return false;
+   if (!card?.matches?.('.thumbnail') || visibleTitleHasCode) return false;
+   return !anchor.querySelector('img, video'); },
   findPan115TitleAnchor(anchor) {
    if (!anchor || anchor.closest('#jav-resource-overlay, .jav-jump-btn-group, .jav-pan115-badge')) return null;
    if (anchor.closest('.emby-btn, .emby-badge, .emby-button-group, .emby-javlibrary-list-badge')) return null;
@@ -4928,6 +4962,7 @@
    const visibleTitle = (anchor.textContent || anchor.getAttribute('title') || '').trim(); const hasTitleText = visibleTitle.length > 0; const visibleTitleHasCode = !!Utils.extractCode(visibleTitle);
    if (!hasTitleText) return null;
    const card = this.getPan115ListCard(anchor);
+   if (this.isMissavListDurationAnchor(anchor, card, visibleTitleHasCode)) return null;
    if (card && anchor.querySelector('img') && !visibleTitleHasCode) {
     const titleAnchor = card.querySelector('.card__title .card__link[href], .detail .title a[href], h6.title a[href], .video-title a[href], .title a[href]');
     if (titleAnchor && titleAnchor !== anchor) return null;
@@ -7268,7 +7303,7 @@
   }
   return { sync, remove };
  })();
- Core.expose('__LAOSIJI_DETAIL_COVER_DOWNLOAD__', DetailCoverDownload); const JAVXY_DEV_API_BASE = '';
+ Core.expose('__LAOSIJI_DETAIL_COVER_DOWNLOAD__', DetailCoverDownload); const JAVXY_DEV_API_BASE = "";
  const Trailer = {
   normalize(code) { return Utils.normalizeCode(code); },
   cacheKey(code) {
@@ -7438,7 +7473,7 @@
    for (const endpoint of endpoints) {
     const params = new URLSearchParams({ client: 'laosiji-new' });
     const apiUrl = endpoint.base
-     ?`${endpoint.base}/trailers/_proxy/status?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/trailers/_proxy/status?${params}`;
+     ?`${endpoint.base}/api/trailers/proxy/status?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/api/trailers/proxy/status?${params}`;
     const response = await this.request(apiUrl, {
      timeout: 5000,
      headers: this.javxyHeaders(endpoint.authenticated)
@@ -7552,7 +7587,7 @@
     if (options.playbackFallback) params.set('purpose', 'playback-fallback');
     if (options.proxyPlayback) params.set('purpose', 'proxy-playback');
     const apiUrl = endpoint.base
-     ?`${endpoint.base}/trailers/${encodeURIComponent(query)}?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/trailers/${encodeURIComponent(query)}?${params}`;
+     ?`${endpoint.base}/api/trailers/${encodeURIComponent(query)}?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/api/trailers/${encodeURIComponent(query)}?${params}`;
     this.debug('Javxy \u8bf7\u6c42 API', { query, apiUrl, endpoint: endpoint.label });
     const r = await this.request(apiUrl, {
      timeout: 8000,
@@ -7611,11 +7646,13 @@
    const query = String(code || '').trim();
    if (!query) return null;
    const localApiBase = String(JAVXY_DEV_API_BASE || '').trim().replace(/\/+$/, '');
-   const endpoints = localApiBase ? [{ base: localApiBase, authenticated: true }] : [{ host: String.fromCharCode(106,97,118,120,121,46,99,99,46,99,100), authenticated: true, promptUpdate: true }];
+   const endpoints = localApiBase ? [{ base: localApiBase, authenticated: true }] : [
+     { host: String.fromCharCode(106,97,118,120,121,46,99,99,46,99,100), authenticated: true, promptUpdate: true },
+     { host: String.fromCharCode(119,111,114,107,101,114,46,106,97,118,120,121,46,99,99,46,99,100), authenticated: false } ];
    for (const endpoint of endpoints) {
     const params = new URLSearchParams({ client: 'laosiji-new' });
     const apiUrl = endpoint.base
-     ?`${endpoint.base}/covers/${encodeURIComponent(query)}?${params}`                    :`https://${endpoint.host}/covers/${encodeURIComponent(query)}?${params}`;
+     ?`${endpoint.base}/api/cover/${encodeURIComponent(query)}?${params}`                    :`https://${endpoint.host}/api/cover/${encodeURIComponent(query)}?${params}`;
     const response = await this.request(apiUrl, {
      timeout: 15000,
      headers: this.javxyHeaders(endpoint.authenticated)
@@ -9494,7 +9531,7 @@
     try {
      parsed = new URL(url);
     } catch { return false; }
-    if (!/(?:^|\.)(?:missav\.(?:ws|ai|com)|njavtv\.com)$/i.test(parsed.hostname)) return false;
+    if (!/(?:^|\.)(?:missav\.(?:ws|ai|com|live)|missav123\.com|njavtv\.com)$/i.test(parsed.hostname)) return false;
     if (/^\/(?:$|search(?:\/|$)|tags(?:\/|$)|actresses(?:\/|$)|genres(?:\/|$))/i.test(parsed.pathname)) return false;
     const titleElem = document.querySelector(this.titleSelector); return !!Utils.extractCode(titleElem?.textContent || ''); },
    titleSelector: 'h1[class*="text-nord6"]' },
@@ -9641,7 +9678,7 @@
    }
    return '/cn'; };
   const videoUrlMap = {
-   missav: `https://missav.ws/${fc2Slug || codeLower}`,
+   missav: `https://missav123.com/${fc2Slug || codeLower}`,
    jable: `https://jable.tv/videos/${codeLower}/`,
    '123av': `https://123av.com${get123AvLocalePrefix()}/v/${fc2Slug || codeLower}`,
    javday: fc2JavdaySlug ? `https://javday.app/index.php/videos/${fc2JavdaySlug}/` : `https://javday.app/videos/${codeCompactLower}/`,
