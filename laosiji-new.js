@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.4.4
+// @version      2.8.4.5
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // @updateURL    https://github.com/ZiPenOk/scripts/raw/refs/heads/main/laosiji-new.js
 // ==/UserScript==
 (function () {
- 'use strict'; const SCRIPT_VERSION = '2.8.4.4'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ 'use strict'; const SCRIPT_VERSION = '2.8.4.5'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const getDetailPreviewInlineDefault = () => {
@@ -7353,18 +7353,18 @@
       if (failed.includes('JavDB')) return null;
       if (failed.includes('DMM')) this.markJpSourceTemporarilyFailed('DMM');
       const sources = failed.includes('JavTrailers') ? ['JavDB'] : ['JavTrailers', 'JavDB'];
-      return this.fallbackJavxyResult(normalizedCode, rawCode, failed, { source: sources }); }
+      return this.fallbackJavxyResult(normalizedCode, rawCode, failed, { source: sources, requestID: result.requestID }); }
     });
    } else {
     this.debug('最终未找到可用视频源', { code: this.normalize(code) });
     if (this.lastJavxyFailure === 'rate_limited') { Utils.showToast('请求过于频繁', '预告片接口已触发限流，请稍后再试。', 4000); return; }
     Utils.showToast('该番号暂时没有可播放的预告片', '', 4000); } },
-  async get(code) {
-   const rawCode = String(code || '').trim(); const id = this.normalize(code); const cacheEnabled = Settings.getTrailerCacheEnabled(); this.lastJavxyFailure = '';
+  async get(code, options = {}) {
+   const rawCode = String(code || '').trim(); const id = this.normalize(code); const requestID = options.requestID || this.createQueryRequestID(); const cacheEnabled = Settings.getTrailerCacheEnabled(); this.lastJavxyFailure = '';
    this.debug('开始查询', { rawCode, normalized: id, cacheEnabled });
    if (Settings.getTrailerProxyPlaybackEnabled()) {
     this.debug('已开启预告片代理播放，直接请求服务器中转', { normalized: id });
-    const proxied = await this.proxyJavxyPlaybackResult(id, rawCode);
+    const proxied = await this.proxyJavxyPlaybackResult(id, rawCode, { requestID });
     if (proxied?.url) return proxied;
     // A title can legitimately lack a relayable MP4. Only reset the
     // user setting after the capability endpoint explicitly reports
@@ -7373,7 +7373,7 @@
     if (!proxyStatus.closed) return null;
     CFG.trailerProxyPlayback = false; Utils.showToast('服务器已关闭', '预告片中转播放已关闭，已切换为普通播放', 4000);
     this.debug('服务器已关闭预告片中转播放，已关闭本地选项并重试普通播放', { normalized: id });
-    return this.get(rawCode); }
+    return this.get(rawCode, { requestID }); }
    if (cacheEnabled) {
     const cached = sessionStorage.getItem(this.cacheKey(id));
     if (cached) {
@@ -7389,7 +7389,7 @@
        } else {
         this.debug('缓存命中', { source: cachedResult.source, url: cachedResult.url });
         const playbackResult = this.applyQualityPreference(cachedResult);
-        if (playbackResult?.url) return playbackResult;
+        if (playbackResult?.url) return { ...playbackResult, requestID };
         sessionStorage.removeItem(this.cacheKey(id)); } }
      } catch {
      }
@@ -7398,7 +7398,7 @@
     const resolverName = resolver.name || 'anonymous';
     try {
      this.debug('尝试来源', resolverName);
-     const options = resolverName === 'fromJavxyCcCd' && this.isJpSourceTemporarilyFailed('DMM') ? { skip: ['DMM'] } : {};
+     const options = resolverName === 'fromJavxyCcCd' && this.isJpSourceTemporarilyFailed('DMM') ? { skip: ['DMM'], requestID } : { requestID };
      const result = await resolver.fn.call(this, id, rawCode, options);
      if (result?.url) {
       this.debug('来源命中', resolverName, { source: result.source, type: result.type || 'video', url: result.url, qualities: result.qualities ? Object.keys(result.qualities) : [] });
@@ -7464,6 +7464,10 @@
    return true; },
   markJpSourceTemporarilyFailed(source = 'DMM') {
    sessionStorage.setItem(this.jpSourceFailedKey(source), String(Date.now() + 30 * 60 * 1000)); },
+  createQueryRequestID() {
+   try {
+    const bytes = new Uint8Array(9); crypto.getRandomValues(bytes); return Array.from(bytes, byte => byte.toString(36).padStart(2, '0')).join('').slice(0, 18);
+   } catch { return 'jr_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10); } },
   async fallbackJavxyResult(code, rawCode = '', failedSources = [], options = {}) {
    const skip = [...new Set((failedSources || []).map(source => this.normalizeJavxySource(source)).filter(Boolean))]; const prefer = [...new Set((options.prefer || []).map(source => String(source || '').trim()).filter(Boolean))];
    const source = [...new Set((options.source || []).map(source => String(source || '').trim()).filter(Boolean))];
@@ -7476,11 +7480,12 @@
      source,
      rule: '仅跳过失败来源，后续顺序按服务端后台设置'
     }); }
-   return this.fromJavxyCcCd(code, rawCode, { skip, prefer, source, playbackFallback: true }); },
-  async proxyJavxyPlaybackResult(code, rawCode = '') {
+   return this.fromJavxyCcCd(code, rawCode, { skip, prefer, source, playbackFallback: true, requestID: options.requestID }); },
+  async proxyJavxyPlaybackResult(code, rawCode = '', options = {}) {
    this.debug('请求预告片服务器中转播放', { code });
    return this.fromJavxyCcCd(code, rawCode, {
-    proxyPlayback: true
+    proxyPlayback: true,
+    requestID: options.requestID
    }); },
   async getProxyPlaybackStatus() {
    const localApiBase = String(JAVXY_DEV_API_BASE || '').trim().replace(/\/+$/, '');
@@ -7604,6 +7609,7 @@
     if (Array.isArray(options.source) && options.source.length) params.set('source', options.source.join(','));
     if (options.playbackFallback) params.set('purpose', 'playback-fallback');
     if (options.proxyPlayback) params.set('purpose', 'proxy-playback');
+    if (options.requestID) params.set('request_id', String(options.requestID));
     const apiUrl = endpoint.base
      ?`${endpoint.base}/api/trailers/${encodeURIComponent(query)}?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/api/trailers/${encodeURIComponent(query)}?${params}`;
     this.debug('Javxy \u8bf7\u6c42 API', { query, apiUrl, endpoint: endpoint.label });
@@ -7656,6 +7662,7 @@
      javxySource: String(data?.source || '').trim(),
      requiresJP: Boolean(data?.requiresJP),
      proxied: Boolean(data?.proxy),
+     requestID: options.requestID || '',
      fallbackSources: Array.isArray(data?.fallback) ? data.fallback.filter(Boolean) : [],
      fallbackQuery: {
       skip: Array.isArray(options.skip) ? options.skip.filter(Boolean) : [],
