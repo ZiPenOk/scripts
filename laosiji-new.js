@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.4.5
+// @version      2.8.4.6
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // @updateURL    https://github.com/ZiPenOk/scripts/raw/refs/heads/main/laosiji-new.js
 // ==/UserScript==
 (function () {
- 'use strict'; const SCRIPT_VERSION = '2.8.4.5'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ 'use strict'; const SCRIPT_VERSION = '2.8.4.6'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const getDetailPreviewInlineDefault = () => {
@@ -5853,8 +5853,11 @@
     this.loader = GM_xmlhttpRequest({
      method: 'GET',
      url: requestUrl,
-     responseType: 'text',
-     overrideMimeType: wantsArrayBuffer ? 'text/plain; charset=x-user-defined' : undefined,
+     // JavDB preview playlists use AES-128 encryption.  Read
+     // keys and MPEG-TS fragments as real binary data; the old
+     // x-user-defined text workaround could corrupt bytes in
+     // some userscript managers and made the stream unplayable.
+     responseType: wantsArrayBuffer ? 'arraybuffer' : 'text',
      timeout: Number.isFinite(requestTimeout) && requestTimeout > 0 ? requestTimeout : 20000,
      headers: {
       Accept: wantsArrayBuffer ? '*/*' : 'application/vnd.apple.mpegurl, application/x-mpegURL, */*' },
@@ -5869,8 +5872,18 @@
       const response = { code: status, text: r.statusText || '', url: r.finalUrl || requestUrl };
       stats.tfirst = stats.tfirst || performance.now(); markRequestFinished(); stats.loading.first = stats.loading.first || stats.tload;
       if (status < 200 || status >= 300) { callbacks.onError?.(response, context, null, stats); return; }
-      const responseText = r.responseText ?? r.response ?? ''; const data = wantsArrayBuffer ? binaryTextToArrayBuffer(responseText) : responseText; stats.loaded = data?.byteLength || data?.length || stats.loaded || 0;
-      stats.total = stats.total || stats.loaded; stats.bwEstimate = stats.loading.end > stats.loading.first ? Math.round((stats.total * 8000) / (stats.loading.end - stats.loading.first)) : 0;
+      const responseText = r.responseText ?? r.response ?? ''; let data = responseText;
+      if (wantsArrayBuffer) {
+       if (responseText instanceof ArrayBuffer) {
+        data = responseText;
+       } else if (ArrayBuffer.isView(responseText)) {
+        data = responseText.buffer.slice( responseText.byteOffset, responseText.byteOffset + responseText.byteLength );
+       } else {
+        // Older GM implementations may ignore
+        // responseType. Keep a safe compatibility path.
+        data = binaryTextToArrayBuffer(responseText); } }
+      stats.loaded = data?.byteLength || data?.length || stats.loaded || 0; stats.total = stats.total || stats.loaded;
+      stats.bwEstimate = stats.loading.end > stats.loading.first ? Math.round((stats.total * 8000) / (stats.loading.end - stats.loading.first)) : 0;
       callbacks.onSuccess?.({ data, url: response.url }, stats, context, response); },
      onerror: () => {
       if (!isCurrentRequest()) return;
