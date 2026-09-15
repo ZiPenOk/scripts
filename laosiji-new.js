@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.4.7
+// @version      2.8.4.8
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -48,7 +48,7 @@
 // @updateURL    https://github.com/ZiPenOk/scripts/raw/refs/heads/main/laosiji-new.js
 // ==/UserScript==
 (function () {
- 'use strict'; const SCRIPT_VERSION = '2.8.4.7'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ 'use strict'; const SCRIPT_VERSION = '2.8.4.8'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const getDetailPreviewInlineDefault = () => {
@@ -1944,6 +1944,11 @@
    if (site === 'javbus') return parseJavbusItems(container);
    if (site === 'javdb') return parseJavdbItems(container);
    return []; }
+  function isConfirmedEmptyNative(site, source) {
+   if (site !== 'javdb' || !source) return false;
+   if (source.querySelector('a[href^="magnet:"], .item .magnet-name')) return false;
+   const text = (source.textContent || '').replace(/\s+/g, '');
+   return /暂无.{0,24}磁链|暫無.{0,24}磁鏈/.test(text) || !source.querySelector('.item'); }
   function normalizeAggregateItems(data, { titleAsMagnet = false, nativeItems = [], keyword = '' } = {}) {
    const nativeTagMap = new Map(
     nativeItems .map(item => [magnetHash(item?.maglink), item?.nativeTags || []]) .filter(([hash]) => hash)
@@ -2111,7 +2116,7 @@
    const source = site === 'javbus' ? document.querySelector('#magnet-table') : document.querySelector('#magnets-content');
    if (!source) return false;
    const nativeItems = buildNativeItems(site, source);
-   if (!nativeItems.length) return false;
+   if (!nativeItems.length && !isConfirmedEmptyNative(site, source)) return false;
    const panel = createPanel(site, avid, nativeItems); const nativeParent = site === 'javbus' ? source.closest('.movie') : source.closest('article.message.video-panel');
    if (nativeParent?.parentNode) nativeParent.insertAdjacentElement('afterend', panel);
    else source.insertAdjacentElement('afterend', panel);
@@ -8380,6 +8385,17 @@
   })[char]);
   function createState() { return { version: 3, works: {}, actors: {}, relations: {}, blacklist: { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] }, updatedAt: 0 }; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function javdbCoverFromUrl(url) {
+   const id = String(url || '').match(/\/v\/([^/?#]+)/i)?.[1];
+   if (!id || id.length < 2) return '';
+   return `https://c0.jdbstatic.com/covers/${id.slice(0, 2).toLowerCase()}/${id}.jpg`;
+  }
+  function fillWorkCover(work) {
+   if (!work || typeof work !== 'object') return false;
+   if (String(work.cover || '').trim()) return false;
+   const cover = javdbCoverFromUrl(work.url);
+   if (!cover) return false;
+   work.cover = cover; return true; }
   function normalizeStoredState(value) {
    const source = value && typeof value === 'object' ? value : {};
    const result = createState();
@@ -8400,6 +8416,7 @@
    const normalizeKeywords = (values, transform) => [...new Set((Array.isArray(values) ? values : []).map(value => transform(String(value || '').trim())).filter(Boolean))];
    result.blacklist.codeKeywords = normalizeKeywords(sourceBlacklist.codeKeywords, value => value.toUpperCase()); result.blacklist.titleKeywords = normalizeKeywords(sourceBlacklist.titleKeywords, value => value.toLowerCase());
    Object.values(result.works).forEach(work => {
+    fillWorkCover(work);
     if (!(work?.flags?.blocked ?? work?.filter)) return;
     const code = String(work.code || '').trim();
     if (code && !result.blacklist.works[code]) result.blacklist.works[code] = { code, addedAt: Number(work.modifiedAt || work.createdAt) || Date.now() };
@@ -8460,7 +8477,9 @@
      readIndexedDbValue('recovery'),
     ]).then(([indexedState, indexedRecovery]) => {
      state = indexedState ? normalizeStoredState(indexedState) : createState(); resourceStateRevision += 1; recoverySnapshot = indexedRecovery?.format === BACKUP_FORMAT && indexedRecovery?.data ? indexedRecovery : null;
-     emitResourceEvent('laosiji-resource-state-ready'); return state;
+     emitResourceEvent('laosiji-resource-state-ready');
+     if (indexedState && Object.values(state.works).some(work => work.cover && !String(indexedState.works?.[work.code]?.cover || '').trim())) { persist(); }
+     return state;
     }).catch(() => {
      state = createState(); resourceStateRevision += 1; recoverySnapshot = null; emitResourceEvent('laosiji-resource-state-ready'); return state;
     }); }
@@ -8501,7 +8520,7 @@
     library.works[normalizedCode] = {
      code: normalizedCode,
      title: String(metadata.title || normalizedCode).trim(),
-     cover: String(metadata.cover || '').trim(),
+     cover: String(metadata.cover || '').trim() || javdbCoverFromUrl(metadata.url),
      publishTime: String(metadata.publishTime || '').trim(),
      url: String(metadata.url || '').trim(),
      type: metadata.type || 'unknown',
@@ -8519,6 +8538,7 @@
    ['title', 'cover', 'publishTime', 'url', 'type', 'source'].forEach(key => {
     if (!previous[key] && metadata[key]) previous[key] = String(metadata[key]).trim();
    });
+   fillWorkCover(previous);
    if (!Array.isArray(previous.tags)) previous.tags = Array.isArray(metadata.tags) ? [...metadata.tags] : [];
    if (!Array.isArray(previous.actorIds)) previous.actorIds = [];
    if (Array.isArray(metadata.actorNames) && metadata.actorNames.length) previous.actorNames = normalizeActorNames([...(previous.actorNames || []), ...metadata.actorNames], normalizedCode);
@@ -8632,9 +8652,9 @@
   function parseWorkActors(html, pageUrl) {
    const doc = parseHTML(html); const seen = new Set(); const actorLinks = doc.querySelectorAll('.movie-panel-info a[href*="/actors/"], .video-panel a[href*="/actors/"], a[href*="/actors/"]');
    return [...actorLinks].map(anchor => {
-    // The marker belongs to the current link and follows it. Never inspect
-    // the previous sibling: it may be the female marker of the prior actor.
-    const femaleMarker = anchor.nextElementSibling?.matches?.('.symbol.female, .female') || anchor.matches?.('.female, [data-gender="female"]') || String(anchor.getAttribute('data-gender') || '').toLowerCase() === 'female';
+    // JavDB now marks female actors on the link itself: <a class="actor-female">.
+    // Older pages used a following .symbol.female / .female node, or data-gender.
+    const femaleMarker = anchor.matches?.('.actor-female, .female, [data-gender="female"]') || String(anchor.getAttribute('data-gender') || '').toLowerCase() === 'female' || anchor.nextElementSibling?.matches?.('.symbol.female, .female, .actor-female');
     if (!femaleMarker) return null;
     const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); let path = '';
     try { path = new URL(href || '', pageUrl).pathname; } catch (_) { }
@@ -9195,7 +9215,8 @@
      const flagButtons = Object.entries(workFlagMeta).map(([flag, meta]) => `<button type="button" class="jav-resource-flag ${meta[1]}${flags[flag] ? ' is-active' : ''}" data-resource-work-flag="${flag}" data-resource-work-code="${escape(work.code)}" aria-pressed="${flags[flag]}">${flags[flag] ? meta[2] : meta[0]}</button>`).join('');
      const flagMenu = `<div class="jav-resource-card-menu"><button type="button" class="jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">鉴定处理</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-blacklist-action" data-resource-work-blacklist="${escape(work.code)}">屏蔽作品</button></div></div>`;
      const queryButton = work.url ? `<button type="button" class="jav-resource-history-query-actors" data-resource-work-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查询中...' : '查询演员'}</button>` : '';
-     return `<article class="jav-resource-card nv-card"><a class="nv-card__link" href="${escape(work.url || '#')}" target="_blank" rel="noopener"><div class="nv-card__cover">${work.cover ? `<img class="nv-cover-img" loading="lazy" src="${escape(work.cover)}" alt="${escape(work.code)}">` : '<div class="nv-card__empty">暂无封面</div>'}${statusMarkers ? `<div class="jav-resource-card-markers">${statusMarkers}</div>` : ''}</div><div class="nv-card__body"><div class="nv-card__title" title="${escape(work.code)}">${escape(work.code)}</div><div class="nv-card__actress" title="${escape(names || '未关联演员')}">${escape(names || '未关联演员')}</div><div class="nv-card__date-row"><div class="nv-card__date">${escape(work.publishTime || '发行时间未知')}</div><div class="nv-card__statuses"><span class="jav-resource-badge jav-resource-badge-type ${escape(work.type || 'unknown')}">${typeLabel(work.type)}</span></div></div></div></a><div class="jav-resource-card-actions jav-resource-card-actions-flags">${queryButton}${flagMenu}</div></article>`;
+     const cover = work.cover || javdbCoverFromUrl(work.url);
+     return `<article class="jav-resource-card nv-card"><a class="nv-card__link" href="${escape(work.url || '#')}" target="_blank" rel="noopener"><div class="nv-card__cover">${cover ? `<img class="nv-cover-img" loading="lazy" src="${escape(cover)}" alt="${escape(work.code)}">` : '<div class="nv-card__empty">暂无封面</div>'}${statusMarkers ? `<div class="jav-resource-card-markers">${statusMarkers}</div>` : ''}</div><div class="nv-card__body"><div class="nv-card__title" title="${escape(work.code)}">${escape(work.code)}</div><div class="nv-card__actress" title="${escape(names || '未关联演员')}">${escape(names || '未关联演员')}</div><div class="nv-card__date-row"><div class="nv-card__date">${escape(work.publishTime || '发行时间未知')}</div><div class="nv-card__statuses"><span class="jav-resource-badge jav-resource-badge-type ${escape(work.type || 'unknown')}">${typeLabel(work.type)}</span></div></div></div></a><div class="jav-resource-card-actions jav-resource-card-actions-flags">${queryButton}${flagMenu}</div></article>`;
     }).join('');
     const pagination = works.length > worksPageSize ? `<nav class="jav-resource-pagination" aria-label="作品库分页"><button type="button" data-resource-works-page="${worksPage - 1}" ${worksPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${worksPage} / ${totalPages} 页</span><button type="button" data-resource-works-page="${worksPage + 1}" ${worksPage >= totalPages ? 'disabled' : ''}>下一页</button></nav>` : '';
     contentEl.innerHTML = `<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>检测全部演员</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-works-search="1" value="${escape(worksSearch)}" placeholder="搜索番号、标题或演员"><select data-resource-works-filter="1"><option value="all" ${worksFilter === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${worksFilter === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${worksFilter === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${worksFilter === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${worksFilter === 'unknown' ? 'selected' : ''}>未知</option></select><select data-resource-works-status-filter="1"><option value="all" ${worksStatusFilter === 'all' ? 'selected' : ''}>全部标记</option><option value="unmarked" ${worksStatusFilter === 'unmarked' ? 'selected' : ''}>未标记</option><option value="favorite" ${worksStatusFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${worksStatusFilter === 'watched' ? 'selected' : ''}>已观看</option><option value="downloaded" ${worksStatusFilter === 'downloaded' ? 'selected' : ''}>已下载</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${works.length} / ${Object.keys(library.works).length} 部作品</p><div class="jav-resource-grid">${cards || '<div class="jav-resource-empty">暂无作品，请先检测演员最新作品</div>'}</div>${pagination}</div>`;
