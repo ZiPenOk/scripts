@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.5.1
+// @version      2.8.5.2
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -65,7 +65,7 @@
   try {
    const url = new URL(urlLike, location.href);
    if (!/javdb/i.test(url.hostname)) return '';
-   if (url.pathname.replace(/\/+$/, '') !== '/advanced_search') return '';
+   if (url.pathname.replace(/\/+$/, '') !== '/search_advanced') return '';
    const params = url.searchParams;
    if (params.get('laosiji_content')) return 'content';
    if (params.get('laosiji_rank')) return 'rank';
@@ -85,7 +85,7 @@
  function installJavdbApiRouteStartupGuard() {
   try {
    const url = new URL(location.href);
-   if (!/javdb/i.test(url.hostname) || url.pathname.replace(/\/+$/, '') !== '/advanced_search') return;
+   if (!/javdb/i.test(url.hostname) || url.pathname.replace(/\/+$/, '') !== '/search_advanced') return;
    const params = url.searchParams; const isRanking = /^(top|fc2|playback)$/.test(params.get('laosiji_rank') || ''); const isFc2Detail = params.get('laosiji_detail') === 'fc2' && !!params.get('movie_id');
    const isFc2Search = params.get('type') === '3' && params.get('laosiji_fc2') === '1';
    if (!isRanking && !isFc2Detail && !isFc2Search) return;
@@ -97,7 +97,7 @@
   } }
  function revealJavdbApiRouteShell() {
   document.getElementById('javdb-api-route-startup-guard')?.remove(); }
- installJavdbApiRouteStartupGuard(); const SCRIPT_VERSION = '2.8.5.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ installJavdbApiRouteStartupGuard(); const SCRIPT_VERSION = '2.8.5.2'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const JAVDB_REVIEW_INITIAL_LIMIT = 6; const JAVDB_REVIEW_MORE_LIMIT = 20;
@@ -489,11 +489,11 @@
  Core.expose('__LAOSIJI_CORE__', Core);
  const VIDEO_ENGINES = [
   { key: 'missav', label: 'MissAV', host: /(?:missav\.(com|ai|ws|live)|missav123\.com|njavtv\.com)/i, color: '#ec4899' },
-  { key: 'jable',  label: 'Jable',  host: /jable\.tv/i, color: '#f97316' },
   { key: '123av',  label: '123AV',  host: /123av\.com/i, color: '#10b981' },
-  { key: 'javday', label: 'JavDay', host: /javday\.app/i, color: '#0ea5e9' },
+  { key: 'jable',  label: 'Jable',  host: /jable\.tv/i, color: '#f97316' },
   { key: 'supjav', label: 'SupJav', host: /supjav\.com/i, color: '#ef4444' },
   { key: 'javrate', label: 'JavRate', host: /javrate\.com/i, color: '#8b5cf6' },
+  { key: 'javday', label: 'JavDay', host: /javday\.app/i, color: '#0ea5e9' },
  ]; Core.expose('__LAOSIJI_VIDEO_ENGINES__', VIDEO_ENGINES);
  const CACHE_CATEGORY_META = [
   {
@@ -770,7 +770,7 @@
    document.getElementById('jav-settings-overlay')?.remove(); injectSettingsPanelStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-settings-overlay';
    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
    const panel = document.createElement('div'); panel.id = 'jav-settings-panel';
-   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 原生页面</strong><small>JavDB 会员可开启此功能</small></span><span class="sp-toggle"><input id="sp-javdb-native-pages" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片使用代理播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 原生页面</strong><small>JavDB 会员可开启此功能</small></span><span class="sp-toggle"><input id="sp-javdb-native-pages" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片使用代理播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
    overlay.appendChild(panel); document.body.appendChild(overlay); const navItems = [...panel.querySelectorAll('[data-sp-section]')]; const sectionPanels = [...panel.querySelectorAll('[data-sp-panel]')];
    navItems.forEach(item => item.addEventListener('click', () => {
     const section = item.dataset.spSection;
@@ -2252,7 +2252,7 @@
    try {
     await Magnet.javdbApi.login(account, password); notify('JavDB App API', '登录成功，已保存授权'); close();
     if (nextUrl) location.href = nextUrl;
-    else if (location.hostname.includes('javdb') && /rankings|advanced_search/.test(location.pathname + location.search)) location.reload();
+    else if (location.hostname.includes('javdb') && /rankings|search_advanced/.test(location.pathname + location.search)) location.reload();
    } catch (err) { showError(err?.message || '验证失败，请检查账号和密码'); submit.disabled = false; submit.textContent = '验证登录'; }
   });
   setTimeout(() => accountInput.focus(), 0); }
@@ -3116,16 +3116,16 @@
     params.set('lsj_period', next.period || 'daily'); params.set('lsj_filter_by', next.filterBy || 'high_score');
    } else { params.set('lsj_period', next.period || 'daily'); }
    if (next.page && next.page > 1) params.set('lsj_page', String(next.page));
-   return `/advanced_search?${params.toString()}`;
+   return `/search_advanced?${params.toString()}`;
   },
   _apiDetailShellUrl(movieId) {
    const id = String(movieId || '').trim();
    if (!id) return '';
-   return `/advanced_search?laosiji_detail=fc2&movie_id=${encodeURIComponent(id)}`;
+   return `/search_advanced?laosiji_detail=fc2&movie_id=${encodeURIComponent(id)}`;
   },
   _getApiDetailShellMode() {
    const path = location.pathname.replace(/\/+$/, '');
-   if (path !== '/advanced_search') return null;
+   if (path !== '/search_advanced') return null;
    const params = new URLSearchParams(location.search);
    if (params.get('laosiji_detail') !== 'fc2') return null;
    const movieId = params.get('movie_id') || '';
@@ -3141,7 +3141,7 @@
     const url = new URL(href, location.href);
     if (!/javdb/i.test(url.hostname)) return '';
     const path = url.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(url.search);
-    if (path === '/advanced_search' && /^(top|fc2|playback)$/.test(params.get('laosiji_rank') || '')) {
+    if (path === '/search_advanced' && /^(top|fc2|playback)$/.test(params.get('laosiji_rank') || '')) {
      return `${url.pathname}${url.search}`;
     }
     if (path === '/rankings/top') {
@@ -3162,12 +3162,12 @@
       filterBy: params.get('filter_by') || 'high_score',
       page: parseInt(params.get('page') || '1', 10) || 1,
      }); }
-    if (path === '/fc2' || path === '/tags/fc2') { return '/advanced_search?type=3&score_min=0&d=1&laosiji_fc2=1'; }
+    if (path === '/fc2' || path === '/tags/fc2') { return '/search_advanced?type=3&score_min=0&d=1&laosiji_fc2=1'; }
    } catch {}
    return ''; },
   _isTopRankingShellUrl(href) {
    try {
-    const url = new URL(href, location.href); return url.pathname.replace(/\/+$/, '') === '/advanced_search' && new URLSearchParams(url.search).get('laosiji_rank') === 'top';
+    const url = new URL(href, location.href); return url.pathname.replace(/\/+$/, '') === '/search_advanced' && new URLSearchParams(url.search).get('laosiji_rank') === 'top';
    } catch {}
    return false; },
   _movieIdFromJavdbHref(href) {
@@ -3179,11 +3179,11 @@
    return ''; },
   _isFc2ListContext() {
    const path = location.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(location.search);
-   if (path === '/advanced_search' && params.get('type') === '3') return true;
+   if (path === '/search_advanced' && params.get('type') === '3') return true;
    const mode = this._getApiRankingShellMode(); return mode?.mode === 'fc2'; },
   _isScriptFc2AdvancedSearch() {
    const path = location.pathname.replace(/\/+$/, '');
-   if (path !== '/advanced_search') return false;
+   if (path !== '/search_advanced') return false;
    const params = new URLSearchParams(location.search); return params.get('type') === '3' && params.get('laosiji_fc2') === '1'; },
   _hideScriptFc2AdvancedSearchBox() {
    if (!this._isScriptFc2AdvancedSearch()) return;
@@ -3192,7 +3192,7 @@
    root.querySelectorAll?.('.pagination a[href]').forEach(link => {
     try {
      const url = new URL(link.getAttribute('href') || '', location.href);
-     if (url.origin !== location.origin || url.pathname.replace(/\/+$/, '') !== '/advanced_search') return;
+     if (url.origin !== location.origin || url.pathname.replace(/\/+$/, '') !== '/search_advanced') return;
      url.searchParams.set('type', '3'); url.searchParams.set('laosiji_fc2', '1');
      link.href = `${url.pathname}${url.search}${url.hash}`;
     } catch (_) {
@@ -3210,7 +3210,7 @@
     const url = new URL(href, location.href);
     if (!/javdb/i.test(url.hostname)) return '';
     const path = url.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(url.search); const page = Math.max(1, parseInt(params.get('lsj_page') || '1', 10) || 1);
-    if (path !== '/advanced_search') return '';
+    if (path !== '/search_advanced') return '';
     if (params.get('laosiji_detail') === 'fc2') {
      const movieId = params.get('movie_id') || '';
      return movieId ? `/v/${encodeURIComponent(movieId)}` : '';
@@ -3246,7 +3246,7 @@
    const shellUrl = this._apiRankingShellUrlFromHref(location.href);
    if (!shellUrl) return false;
    const currentPath = location.pathname.replace(/\/+$/, '');
-   if (currentPath === '/advanced_search') return false;
+   if (currentPath === '/search_advanced') return false;
    if (this._navigateCustomSpa(shellUrl, { replace: true })) return true;
    location.replace(shellUrl); return true; },
   _redirectCurrentNativeEntry() {
@@ -3395,7 +3395,7 @@
   },
   _getApiRankingShellMode() {
    const path = location.pathname.replace(/\/+$/, '');
-   if (path !== '/advanced_search') return null;
+   if (path !== '/search_advanced') return null;
    const params = new URLSearchParams(location.search); const mode = params.get('laosiji_rank') || '';
    if (!/^(top|fc2|playback)$/.test(mode)) return null;
    const legacyType = params.get('lsj_type') || ''; const legacyValue = params.get('lsj_type_value') || ''; let category = params.get('lsj_category') || ''; let year = params.get('lsj_year') || '';
@@ -3562,119 +3562,77 @@
     return`<a class="tile-item" href="${JavdbFc2DetailRenderer.escapeHtml(large)}" data-fancybox="gallery" data-caption="预览图${index + 1}"><img src="${JavdbFc2DetailRenderer.escapeHtml(thumb)}" loading="lazy" alt="预览图${index + 1}"></a>`;
    }).filter(Boolean).join('');
    return html ?`
-    <section class="javdb-fc2-detail-samples-section">
-     <h2 class="javdb-fc2-detail-sample-heading">剧照</h2>
-     <div class="tile-images preview-images">${html}</div>
-    </section>` : '';
-        },
-        _renderApiDetailPage(movie) {
-            const updateCover = value => String(value || '').replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
-            const number = String(movie?.number || '');
-            const title = movie?.origin_title || movie?.title || '';
-            const actors = (Array.isArray(movie?.actors) ? movie.actors : []).map(item => item?.name || item).filter(Boolean);
-            const cover = updateCover(movie?.cover_url || movie?.thumb_url || '');
-            const previewImages = movie?.preview_images
-                || movie?.previewImages
-                || movie?.samples
-                || movie?.images
-                || [];
-            return JavdbFc2DetailRenderer.render({
-                code: number,
-                title,
-                cover,
-                rows: [
-                    { label: '标题', value: title },
-                    { label: '日期', value: movie?.release_date },
-                    { label: '时长', value: movie?.duration ?`${movie.duration} 分钟` : '' },
-                    { label: '评分', value: movie?.score ?`${movie.score} / ${movie?.watched_count || 0} 人` : '' },
-                    { label: '片商', value: movie?.maker_name || movie?.publisher_name },
-                    { label: '系列', value: movie?.series_name },
-                    { label: '导演', value: movie?.director_name },
-                    { label: '演员', value: actors },
-                ],
-                tags: (Array.isArray(movie?.tags) ? movie.tags : []).map(item => item?.name || item?.title || item).filter(Boolean),
-            }, {
-                site: 'javdb',
-                samplesHtml: this._renderApiDetailImages(previewImages),
-            });
-        },
-        async _initApiDetailShellPage() {
-            const href = location.href;
-            const modeInfo = this._getApiDetailShellMode();
-            if (!modeInfo) {
-                return false;
-            }
-            const container = document.querySelector('body > section > div, .section .container');
-            if (!container) {
-                revealJavdbApiRouteShell?.();
-                return false;
-            }
-            this._ensureApiDetailShellStyle();
-            container.innerHTML = '<div class="javdb-api-shell-status">正在加载 API 详情...</div>';
-            revealJavdbApiRouteShell?.();
-            const status = container.querySelector('.javdb-api-shell-status');
-            try {
-                const json = await Magnet.javdbApi.movieDetail(modeInfo.movieId);
-                if (location.href !== href) return true;
-                if (json.success !== 1) throw new Error(json.message || json.action || 'JavDB API 请求失败');
-                const movie = json?.data?.movie;
-                if (!movie?.number) throw new Error('没有查询到详情数据');
-                container.innerHTML = this._renderApiDetailPage(movie);
-                const avid = normalizeAvid(movie.number);
-                const numberLabel = container.querySelector('.movie-panel-info .first-block strong');
-                if (numberLabel) numberLabel.textContent = '\u756a\u53f7:';
-                const magnetTitle = container.querySelector('.javdb-fc2-detail-magnet-title');
-                if (magnetTitle) magnetTitle.textContent = '\u78c1\u529b\u805a\u5408';
-                this._mountStandaloneMagnet(container, avid);
-                PageZoom.apply('javdb');
-                DetailFlex.apply('javdb');
-                Runtime.refresh({ detailPreview: true, infiniteScroll: false });
-                return true;
-            } catch (err) {
-                errorLog('JavDB API 详情请求失败:', err);
-                status.classList.add('is-error');
-                status.textContent = err.message || 'JavDB API 详情请求失败';
-                return true;
-            }
-        },
-    };
-    const JavdbContent = {
-        _contentUrl(kind, options = {}) {
-            const params = new URLSearchParams({ laosiji_content: kind });
-            if (options.page > 1) params.set('laosiji_page', String(options.page));
-            if (options.period && options.period !== 'latest') params.set('laosiji_period', options.period);
-            if (options.articleId) params.set('laosiji_article_id', options.articleId);
-            return`/advanced_search?${params.toString()}`;
-        },
-        _getContentMode() {
-            if (location.pathname.replace(/\/+$/, '') !== '/advanced_search') return null;
-            const params = new URLSearchParams(location.search);
-            const kind = params.get('laosiji_content') || '';
-            if (!/^(articles|article|reviews)$/.test(kind)) return null;
-            return {
-                kind,
-                page: Math.max(1, parseInt(params.get('laosiji_page') || '1', 10) || 1),
-                period: params.get('laosiji_period') || 'latest',
-                articleId: params.get('laosiji_article_id') || '',
-            };
-        },
-        _imageUrl(value) {
-            try {
-                const image = new URL(String(value || ''));
-                if (image.hostname === 'tp.spfcas.com') {
-                    image.hostname = 'c0.jdbstatic.com';
-                    image.pathname = image.pathname.replace(/^\/[^/]+(\/articles\/images\/)/, '$1');
-                    image.pathname = image.pathname.replace(/^\/[^/]+(\/small_covers\/)/, '$1');
-                }
-                return image.href;
-            } catch (_) {
-                return String(value || '');
-            }
-        },
-        _movieThumbUrl(movie) {
-            const id = String(movie?.id || '').trim();
-            return id.length >= 2
-                ?`https://c0.jdbstatic.com/thumbs/${id.slice(0, 2).toLowerCase()}/${encodeURIComponent(id)}.jpg`                : this._imageUrl(movie?.thumb_url);
+                <section class="javdb-fc2-detail-samples-section">
+                    <h2 class="javdb-fc2-detail-sample-heading">剧照</h2>
+                    <div class="tile-images preview-images">${html}</div>
+                </section>` : '';
+  },
+  _renderApiDetailPage(movie) {
+   const updateCover = value => String(value || '').replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
+   const number = String(movie?.number || ''); const title = movie?.origin_title || movie?.title || ''; const actors = (Array.isArray(movie?.actors) ? movie.actors : []).map(item => item?.name || item).filter(Boolean);
+   const cover = updateCover(movie?.cover_url || movie?.thumb_url || ''); const previewImages = movie?.preview_images || movie?.previewImages || movie?.samples || movie?.images || [];
+   return JavdbFc2DetailRenderer.render({
+    code: number,
+    title,
+    cover,
+    rows: [
+     { label: '标题', value: title },
+     { label: '日期', value: movie?.release_date },
+     { label: '时长', value: movie?.duration ?`${movie.duration} 分钟` : '' },
+     { label: '评分', value: movie?.score ?`${movie.score} / ${movie?.watched_count || 0} 人` : '' },
+     { label: '片商', value: movie?.maker_name || movie?.publisher_name },
+     { label: '系列', value: movie?.series_name },
+     { label: '导演', value: movie?.director_name },
+     { label: '演员', value: actors }, ],
+    tags: (Array.isArray(movie?.tags) ? movie.tags : []).map(item => item?.name || item?.title || item).filter(Boolean),
+   }, {
+    site: 'javdb',
+    samplesHtml: this._renderApiDetailImages(previewImages),
+   }); },
+  async _initApiDetailShellPage() {
+   const href = location.href; const modeInfo = this._getApiDetailShellMode();
+   if (!modeInfo) { return false; }
+   const container = document.querySelector('body > section > div, .section .container');
+   if (!container) { revealJavdbApiRouteShell?.(); return false; }
+   this._ensureApiDetailShellStyle(); container.innerHTML = '<div class="javdb-api-shell-status">正在加载 API 详情...</div>'; revealJavdbApiRouteShell?.(); const status = container.querySelector('.javdb-api-shell-status');
+   try {
+    const json = await Magnet.javdbApi.movieDetail(modeInfo.movieId);
+    if (location.href !== href) return true;
+    if (json.success !== 1) throw new Error(json.message || json.action || 'JavDB API 请求失败');
+    const movie = json?.data?.movie;
+    if (!movie?.number) throw new Error('没有查询到详情数据');
+    container.innerHTML = this._renderApiDetailPage(movie); const avid = normalizeAvid(movie.number); const numberLabel = container.querySelector('.movie-panel-info .first-block strong');
+    if (numberLabel) numberLabel.textContent = '\u756a\u53f7:';
+    const magnetTitle = container.querySelector('.javdb-fc2-detail-magnet-title');
+    if (magnetTitle) magnetTitle.textContent = '\u78c1\u529b\u805a\u5408';
+    this._mountStandaloneMagnet(container, avid); PageZoom.apply('javdb'); DetailFlex.apply('javdb');
+    Runtime.refresh({ detailPreview: true, infiniteScroll: false });
+    return true;
+   } catch (err) {
+    errorLog('JavDB API 详情请求失败:', err); status.classList.add('is-error'); status.textContent = err.message || 'JavDB API 详情请求失败'; return true; } }, };
+ const JavdbContent = {
+  _contentUrl(kind, options = {}) {
+   const params = new URLSearchParams({ laosiji_content: kind });
+   if (options.page > 1) params.set('laosiji_page', String(options.page));
+   if (options.period && options.period !== 'latest') params.set('laosiji_period', options.period);
+   if (options.articleId) params.set('laosiji_article_id', options.articleId);
+   return`/search_advanced?${params.toString()}`;
+  },
+  _getContentMode() {
+   if (location.pathname.replace(/\/+$/, '') !== '/search_advanced') return null;
+   const params = new URLSearchParams(location.search); const kind = params.get('laosiji_content') || '';
+   if (!/^(articles|article|reviews)$/.test(kind)) return null;
+   return { kind, page: Math.max(1, parseInt(params.get('laosiji_page') || '1', 10) || 1), period: params.get('laosiji_period') || 'latest', articleId: params.get('laosiji_article_id') || '' }; },
+  _imageUrl(value) {
+   try {
+    const image = new URL(String(value || ''));
+    if (image.hostname === 'tp.spfcas.com') { image.hostname = 'c0.jdbstatic.com'; image.pathname = image.pathname.replace(/^\/[^/]+(\/articles\/images\/)/, '$1'); image.pathname = image.pathname.replace(/^\/[^/]+(\/small_covers\/)/, '$1'); }
+    return image.href;
+   } catch (_) { return String(value || ''); } },
+  _movieThumbUrl(movie) {
+   const id = String(movie?.id || '').trim();
+   return id.length >= 2
+    ?`https://c0.jdbstatic.com/thumbs/${id.slice(0, 2).toLowerCase()}/${encodeURIComponent(id)}.jpg`                : this._imageUrl(movie?.thumb_url);
   },
   _safeArticleHtml(value) {
    const html = String(value || '');
@@ -3963,7 +3921,7 @@
    longest: { label: '\u6700\u957f' }, };
   const CURRENT_YEAR = new Date().getFullYear();
   const YEARS = Array.from( { length: Math.max(0, CURRENT_YEAR - 2000 + 1) }, (_, index) => String(CURRENT_YEAR - index) );
-  const CACHE_PREFIX = 'javdb_123av_fc2_cache_v3_'; const CACHE_TTL = 90 * 1000; const activeRequests = new Set(); let renderGeneration = 0;
+  const CACHE_PREFIX = 'javdb_123av_fc2_cache_v4_'; const CACHE_TTL = 90 * 1000; const activeRequests = new Set(); let renderGeneration = 0;
   function installJavdbRouteStartupGuard() {
    try {
     const url = new URL(location.href);
@@ -10218,12 +10176,33 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   const fc2Number = getFc2Number(code);
   return fc2Number ? `https://fc2cmadb.com/articles/${fc2Number}` : '';
  }
+ function getMissavSlug(code) {
+  const codeLower = String(code || '').trim().toLowerCase(); const fc2Number = getFc2Number(code);
+  if (fc2Number) return `fc2-ppv-${fc2Number}`;
+  const gachiMatch = codeLower.match(/^gachi[-_](\d+)$/);
+  if (gachiMatch) return `gachi${gachiMatch[1]}`;
+  const dateNumberMatch = codeLower.match(/^(\d{6})([_-])(\d{2,3})$/);
+  if (dateNumberMatch) {
+   const [, date, separator, serial] = dateNumberMatch; const prefix = serial.length === 2 ? 'musume' : serial === '100' ? 'pacopacomama' : separator === '_' ? 'pondo' : 'caribbeancom';
+   return `${prefix}-${date}${separator}${serial}`;
+  }
+  return codeLower .replace(/^10musume-/, 'musume-') .replace(/^1pondo-/, 'pondo-') .replace(/^heyzo_/, 'heyzo-'); }
  function addMissAVBtn(code, container, useCapture = false) {
   const showMissav = GM_getValue('btn_show_missav', true);
   if (!showMissav) return;
   const codeLower = String(code || '').trim().toLowerCase(); const codeCompactLower = codeLower.replace(/-/g, ''); const fc2Number = getFc2Number(code);
   const fc2Slug = fc2Number ? `fc2-ppv-${fc2Number}` : '';
   const fc2JavdaySlug = fc2Number ? `FC2PPV${fc2Number}` : '';
+  const dateNumberMatch = codeLower.match(/^(\d{6})([_-])(\d{2,3})$/);
+  const dateNumberPrefix = dateNumberMatch ? dateNumberMatch[3].length === 2 ? '10musume' : dateNumberMatch[3] === '100' ? 'pacopacomama' : dateNumberMatch[2] === '_' ? '1pondo' : '' : '';
+  const caribbeanCode = codeLower.match(/^(\d{6}-\d{3})$/)?.[1];
+  const caribbeanSlug = codeLower.match(/^(caribbeancom-\d{6}-\d{3})$/)?.[1];
+  const knownBrandedSlug = codeLower.match(/^10musume-\d{6}[_-]\d{2}$/)?.[0] || codeLower.match(/^1pondo-\d{6}[_-]\d{3}$/)?.[0] || codeLower.match(/^pacopacomama-\d{6}[_-]\d{3}$/)?.[0]
+   || codeLower.match(/^heyzo[-_]?\d{4}$/)?.[0]?.replace(/^heyzo(?=[_\d])/, 'heyzo-').replace('heyzo-_', 'heyzo-') || codeLower.match(/^tokyo-hot-(?:n-?\d{4}|k-?\d{4}|kb-?\d{4}|s2mbd-?\d{3})$/)?.[0]
+   || codeLower.match(/^(?:n-?\d{4}|k-?\d{4}|kb-?\d{4}|s2mbd-?\d{3})$/)?.[0]?.replace(/^/, 'tokyo-hot-') || codeLower.match(/^fc2-ppv-\d+$/)?.[0] || '';
+  const dateNumberSlug = dateNumberPrefix ? `${dateNumberPrefix}-${dateNumberMatch[1]}${dateNumberMatch[2]}${dateNumberMatch[3]}` : '';
+  const known123AvSlug = knownBrandedSlug || caribbeanSlug || (caribbeanCode ? `caribbeancom-${caribbeanCode}` : '') || dateNumberSlug;
+  const code123AvSlug = known123AvSlug || fc2Slug || codeLower;
   const get123AvLocalePrefix = () => {
    if (/(?:^|\.)123av\.com$/i.test(location.hostname)) {
     const locale = location.pathname.match(/^\/([a-z]{2}(?:-[a-z]{2})?)\//i)?.[1];
@@ -10231,9 +10210,9 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    }
    return '/cn'; };
   const videoUrlMap = {
-   missav: `https://missav123.com/${fc2Slug || codeLower}`,
+   missav: fc2Number ? `https://missav123.com/${fc2Slug}` : `https://missav123.com/cn/${getMissavSlug(code)}`,
    jable: `https://jable.tv/videos/${codeLower}/`,
-   '123av': `https://123av.com${get123AvLocalePrefix()}/v/${fc2Slug || codeLower}`,
+   '123av': `https://123av.com${known123AvSlug ? '/cn' : get123AvLocalePrefix()}/v/${code123AvSlug}`,
    javday: fc2JavdaySlug ? `https://javday.app/index.php/videos/${fc2JavdaySlug}/` : `https://javday.app/videos/${codeCompactLower}/`,
    supjav: `https://supjav.com/zh/?s=${encodeURIComponent(fc2Number || code)}`,
    javrate: `https://www.javrate.com/search/${encodeURIComponent(codeLower)}`,
