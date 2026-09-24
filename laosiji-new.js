@@ -3594,14 +3594,14 @@
    if (!modeInfo) { return false; }
    const container = document.querySelector('body > section > div, .section .container');
    if (!container) { revealJavdbApiRouteShell?.(); return false; }
-   this._ensureApiDetailShellStyle(); container.innerHTML = '<div class="javdb-api-shell-status">正在加载 API 详情...</div>'; revealJavdbApiRouteShell?.(); const status = container.querySelector('.javdb-api-shell-status');
+   this._ensureApiDetailShellStyle(); container.replaceChildren(); revealJavdbApiRouteShell?.();
    try {
     const json = await Magnet.javdbApi.movieDetail(modeInfo.movieId);
     if (location.href !== href) return true;
     if (json.success !== 1) throw new Error(json.message || json.action || 'JavDB API 请求失败');
     const movie = json?.data?.movie;
     if (!movie?.number) throw new Error('没有查询到详情数据');
-    container.innerHTML = this._renderApiDetailPage(movie); const avid = normalizeAvid(movie.number); const numberLabel = container.querySelector('.movie-panel-info .first-block strong');
+    container.innerHTML = this._renderApiDetailPage(movie); revealJavdbApiRouteShell?.(); const avid = normalizeAvid(movie.number); const numberLabel = container.querySelector('.movie-panel-info .first-block strong');
     if (numberLabel) numberLabel.textContent = '\u756a\u53f7:';
     const magnetTitle = container.querySelector('.javdb-fc2-detail-magnet-title');
     if (magnetTitle) magnetTitle.textContent = '\u78c1\u529b\u805a\u5408';
@@ -3609,7 +3609,8 @@
     Runtime.refresh({ detailPreview: true, infiniteScroll: false });
     return true;
    } catch (err) {
-    errorLog('JavDB API 详情请求失败:', err); status.classList.add('is-error'); status.textContent = err.message || 'JavDB API 详情请求失败'; return true; } }, };
+    errorLog('JavDB API 详情请求失败:', err); const errorStatus = document.createElement('div'); errorStatus.className = 'javdb-api-shell-status is-error'; errorStatus.textContent = err.message || 'JavDB API 详情请求失败'; container.replaceChildren(errorStatus);
+    revealJavdbApiRouteShell?.(); return true; } }, };
  const JavdbContent = {
   _contentUrl(kind, options = {}) {
    const params = new URLSearchParams({ laosiji_content: kind });
