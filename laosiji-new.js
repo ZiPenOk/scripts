@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.6
+// @version      2.8.6.1
 // @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
@@ -97,7 +97,7 @@
   } }
  function revealJavdbApiRouteShell() {
   document.getElementById('javdb-api-route-startup-guard')?.remove(); }
- installJavdbApiRouteStartupGuard(); const SCRIPT_VERSION = '2.8.6'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ installJavdbApiRouteStartupGuard(); const SCRIPT_VERSION = '2.8.6.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const JAVDB_REVIEW_INITIAL_LIMIT = 6; const JAVDB_REVIEW_MORE_LIMIT = 20;
@@ -203,9 +203,6 @@
   } catch (_) {
   } }
  installPageZoomStartupStyle();
- // Match the final detail flex proportions before JavDB's native columns paint.
- // The detail DOM is moved into .jav-flex-container shortly after DOMContentLoaded;
- // this selector only applies while the cover is still a direct child of the native row.
  function installJavdbDetailStartupStyle() {
   try {
    const url = new URL(location.href);
@@ -792,7 +789,7 @@
    document.getElementById('jav-settings-overlay')?.remove(); injectSettingsPanelStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-settings-overlay';
    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
    const panel = document.createElement('div'); panel.id = 'jav-settings-panel';
-   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 原生FC2/TOP250页面</strong><small>JavDB 会员可开启此功能</small></span><span class="sp-toggle"><input id="sp-javdb-native-pages" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整视频播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放开关</strong><small>详情区封面加载完整视频播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>所选版本不可用时回落有码</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">默认有码</option><option value="uncensored">无码优先</option><option value="subtitle">中字优先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片使用代理播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 原生FC2/TOP250页面</strong><small>JavDB 会员可开启此功能</small></span><span class="sp-toggle"><input id="sp-javdb-native-pages" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整视频播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放开关</strong><small>详情区封面加载完整视频播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>所选版本不可用时回落有码</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">默认有码</option><option value="uncensored">无码优先</option><option value="subtitle">中字优先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片中转播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
    overlay.appendChild(panel); document.body.appendChild(overlay); const navItems = [...panel.querySelectorAll('[data-sp-section]')]; const sectionPanels = [...panel.querySelectorAll('[data-sp-panel]')];
    navItems.forEach(item => item.addEventListener('click', () => {
     const section = item.dataset.spSection;
@@ -1355,7 +1352,6 @@
    const json = parseJson(r.responseText);
    if (!json) throw new Error('JavDB API 返回异常');
    return json; }
-  // The mobile app uses the first article image from jdbstatic as the cover.
   function javdbArticleImageURL(value) {
    try {
     const imageURL = new URL(String(value || ''));
@@ -3564,7 +3560,7 @@
    "'": '&#39;',
   }[ch]));
   function installStyles() {
-   injectStyle('javdb-fc2-detail-renderer-style',`.javdb-123av-fc2-unified-detail,.javdb-123av-fc2-detail-shell{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;padding:0!important;color:#1f2937!important;font-family:Arial,sans-serif!important;font-size:16px!important;line-height:1.5!important}.javdb-123av-fc2-unified-detail .javdb-api-detail-title{margin:0 0 12px!important;color:#363636!important;font-size:1.5rem!important;line-height:1.25!important;overflow-wrap:anywhere!important}.javdb-123av-fc2-unified-detail[data-laosiji-123av-fc2-detail-site="javbus"]{padding-top:16px!important}.javdb-123av-fc2-unified-detail[data-laosiji-123av-fc2-detail-site="javbus"] .javdb-api-detail-title{margin:0 0 16px!important;font-size:20px!important;line-height:1.45!important}.javdb-123av-fc2-unified-detail .javdb-123av-fc2-overview{width:100%!important;max-width:100%!important;min-width:0!important;padding:8px!important;border:1px solid #dbdbdb!important;border-radius:7px!important;background:#fff!important;box-shadow:0 .5em 1em -.125em rgba(10,10,10,.08),0 0 0 1px rgba(10,10,10,.02)!important;box-sizing:border-box!important;overflow:hidden!important}.javdb-123av-fc2-unified-detail .jav-flex-container{display:flex!important;align-items:flex-start!important;gap:20px!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:16px 0 0!important;padding:0!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .jav-flex-container>.column-video-cover{flex:var(--jav-detail-cover-flex,1.35) 1 0!important;width:auto!important;max-width:none!important;min-width:0!important;padding:.75rem!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .jav-flex-container>.column-video-info{flex:var(--jav-detail-info-flex,1.05) 1 0!important;width:auto!important;max-width:none!important;min-width:0!important;padding:.75rem!important;overflow:hidden!important;word-break:break-word!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .jav-flex-container>.column-video-info{flex:calc(var(--jav-detail-info-flex,1.05)+var(--jav-detail-magnet-flex,1.25)) 1 0!important}.javdb-123av-fc2-unified-detail .column-video-cover>a,.javdb-123av-fc2-unified-detail .column-video-cover .video-cover{display:block!important;width:100%!important;height:auto!important;max-width:100%!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .movie-panel-info{display:block!important;width:100%!important;max-width:100%!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block{display:flex!important;align-items:center!important;justify-content:flex-start!important;min-height:40px!important;padding:.5em .75em!important;border-bottom:1px solid #ededed!important;color:#363636!important;font-size:16px!important;line-height:1.5!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block:last-child{border-bottom:0!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block>strong,.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block .value{font-size:16px!important;line-height:1.5!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block>strong{flex:0 0 auto!important;color:#363636!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block .value{min-width:0!important;overflow-wrap:anywhere!important}.javdb-fc2-detail-samples-section,.javdb-fc2-detail-magnet{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin-top:20px!important;overflow:visible!important}.javdb-fc2-detail-sample-heading,.javdb-fc2-detail-magnet-title{margin:0 0 12px!important;color:#0f172a!important;font-size:17px!important;font-weight:900!important}.javdb-fc2-detail-magnet-body{width:100%!important;min-width:0!important}.javdb-fc2-detail-magnet-body>.jav-nong-wrapper{max-width:100%!important}.javdb-123av-fc2-detail-chip{display:inline-block!important;margin:0 5px 4px 0!important;padding:2px 7px!important;border-radius:4px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:12px!important}.javdb-123av-fc2-detail-empty{color:#94a3b8!important;font-size:12px!important}html[data-theme="dark"] .javdb-123av-fc2-unified-detail{color:#e5e7eb!important}html[data-theme="dark"] .javdb-123av-fc2-unified-detail .javdb-api-detail-title,html[data-theme="dark"] .javdb-123av-fc2-unified-detail .movie-panel-info .panel-block>strong,html[data-theme="dark"] .javdb-fc2-detail-sample-heading,html[data-theme="dark"] .javdb-fc2-detail-magnet-title{color:#f8fafc!important}html[data-theme="dark"] .javdb-123av-fc2-unified-detail .javdb-123av-fc2-overview{border-color:#475569!important;background:#252525!important}html[data-theme="dark"] .javdb-123av-fc2-unified-detail .movie-panel-info .panel-block{border-color:#3f3f46!important;color:#e5e7eb!important}@media (max-width:768px){.javdb-123av-fc2-unified-detail .jav-flex-container{display:block!important;margin-top:0!important}.javdb-123av-fc2-unified-detail .jav-flex-container>.column-video-cover,.javdb-123av-fc2-unified-detail .jav-flex-container>.column-video-info{width:100%!important;max-width:100%!important;padding:.75rem 0!important}.javdb-123av-fc2-unified-detail[data-laosiji-123av-fc2-detail-site="javbus"]{padding-top:12px!important}.javdb-123av-fc2-unified-detail[data-laosiji-123av-fc2-detail-site="javbus"] .javdb-api-detail-title{font-size:18px!important;line-height:1.45!important}}`);
+   injectStyle('javdb-fc2-detail-renderer-style',`.javdb-123av-fc2-unified-detail,.javdb-123av-fc2-detail-shell{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin:0!important;padding:0!important;color:#1f2937!important;font-family:Arial,sans-serif!important;font-size:16px!important;line-height:1.5!important}.javdb-123av-fc2-unified-detail .javdb-api-detail-title{margin:0 0 12px!important;color:#363636!important;font-size:1.5rem!important;line-height:1.25!important;overflow-wrap:anywhere!important}.javdb-123av-fc2-unified-detail[data-laosiji-123av-fc2-detail-site="javbus"]{padding-top:16px!important}.javdb-123av-fc2-unified-detail[data-laosiji-123av-fc2-detail-site="javbus"] .javdb-api-detail-title{margin:0 0 16px!important;font-size:20px!important;line-height:1.45!important}.javdb-123av-fc2-unified-detail .javdb-123av-fc2-overview{width:100%!important;max-width:100%!important;min-width:0!important;padding:0 1rem!important;margin-bottom:1.5rem!important;border:0!important;border-radius:0!important;background:#fff!important;box-shadow:none!important;box-sizing:border-box!important;overflow:visible!important}.javdb-123av-fc2-unified-detail .jav-flex-container{display:flex!important;align-items:flex-start!important;flex-wrap:nowrap!important;gap:20px!important;width:100%!important;max-width:100%!important;min-width:0!important;margin:16px -.75rem 0!important;padding:0!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .jav-flex-container>.column-video-cover{flex:var(--jav-detail-cover-flex,1.35) 1 0!important;width:auto!important;max-width:none!important;min-width:clamp(160px,24vw,320px)!important;padding:.75rem!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .jav-flex-container>.column-video-info{flex:var(--jav-detail-info-flex,1.05) 1 0!important;width:auto!important;max-width:none!important;min-width:0!important;padding:.75rem!important;overflow:hidden!important;word-break:break-word!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .column-video-cover>a,.javdb-123av-fc2-unified-detail .column-video-cover .video-cover{display:block!important;width:100%!important;height:auto!important;max-width:100%!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .javdb-fc2-cover-column>a,.javdb-123av-fc2-unified-detail .javdb-fc2-cover-column .video-cover{height:min(420px,58vh)!important}.javdb-123av-fc2-unified-detail .javdb-fc2-cover-column>a{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}.javdb-123av-fc2-unified-detail .javdb-fc2-cover-column .video-cover{height:100%!important;object-fit:contain!important}.javdb-123av-fc2-unified-detail .movie-panel-info{display:block!important;width:100%!important;max-width:100%!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block{display:flex!important;align-items:center!important;justify-content:flex-start!important;min-height:40px!important;padding:.5em .75em!important;border-bottom:1px solid #ededed!important;color:#363636!important;font-size:16px!important;line-height:1.5!important;box-sizing:border-box!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block:last-child{border-bottom:0!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block>strong,.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block .value{font-size:16px!important;line-height:1.5!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block>strong{flex:0 0 auto!important;color:#363636!important}.javdb-123av-fc2-unified-detail .movie-panel-info .panel-block .value{min-width:0!important;overflow-wrap:anywhere!important}.javdb-fc2-detail-samples-section,.javdb-fc2-detail-magnet{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin-top:20px!important;overflow:visible!important}.javdb-fc2-detail-sample-heading,.javdb-fc2-detail-magnet-title{margin:0 0 12px!important;color:#0f172a!important;font-size:17px!important;font-weight:900!important}.javdb-fc2-detail-magnet-body{width:100%!important;min-width:0!important}.javdb-fc2-detail-magnet-body>.jav-nong-wrapper{max-width:100%!important}.javdb-123av-fc2-detail-chip{display:inline-block!important;margin:0 5px 4px 0!important;padding:2px 7px!important;border-radius:4px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:12px!important}.javdb-123av-fc2-detail-empty{color:#94a3b8!important;font-size:12px!important}html[data-theme="dark"] .javdb-123av-fc2-unified-detail{color:#e5e7eb!important}html[data-theme="dark"] .javdb-123av-fc2-unified-detail .javdb-api-detail-title,html[data-theme="dark"] .javdb-123av-fc2-unified-detail .movie-panel-info .panel-block>strong,html[data-theme="dark"] .javdb-fc2-detail-sample-heading,html[data-theme="dark"] .javdb-fc2-detail-magnet-title{color:#f8fafc!important}html[data-theme="dark"] .javdb-123av-fc2-unified-detail .javdb-123av-fc2-overview{background:#252525!important}html[data-theme="dark"] .javdb-123av-fc2-unified-detail .movie-panel-info{border:0!important;background:transparent!important;box-shadow:none!important}html[data-theme="dark"] .javdb-123av-fc2-unified-detail .movie-panel-info .panel-block{border-color:#3f3f46!important;color:#e5e7eb!important}@media (max-width:900px){.javdb-123av-fc2-unified-detail .jav-flex-container{display:block!important;margin:0 -.75rem!important}.javdb-123av-fc2-unified-detail .jav-flex-container>.column-video-cover,.javdb-123av-fc2-unified-detail .jav-flex-container>.column-video-info{width:100%!important;max-width:100%!important;padding:.75rem 0!important}.javdb-123av-fc2-unified-detail .javdb-fc2-cover-column>a{height:min(360px,84vw,58vh)!important}.javdb-123av-fc2-unified-detail[data-laosiji-123av-fc2-detail-site="javbus"]{padding-top:12px!important}.javdb-123av-fc2-unified-detail[data-laosiji-123av-fc2-detail-site="javbus"] .javdb-api-detail-title{font-size:18px!important;line-height:1.45!important}}`);
   }
   function render(detail, { site = 'javdb', samplesHtml = '' } = {}) {
    const rows = Array.isArray(detail.rows) ? detail.rows : [];
@@ -3575,7 +3571,7 @@
    const cover = detail.cover
     ? `<a data-fancybox="gallery" href="${escapeHtml(detail.cover)}"><img src="${escapeHtml(detail.cover)}" class="video-cover" alt="${escapeHtml(detail.title)}"></a>`
     : '<span class="javdb-123av-fc2-detail-empty">未找到封面</span>';
-   return `<div class="video-detail javdb-api-detail javdb-123av-fc2-unified-detail" data-javdb-api-detail="1" data-laosiji-code="${escapeHtml(detail.code)}" data-laosiji-123av-fc2-detail-site="${escapeHtml(site)}"><h2 class="title is-4 javdb-api-detail-title" data-laosiji-code="${escapeHtml(detail.code)}"><strong>${escapeHtml(detail.code)}</strong><span class="javdb-api-detail-title-separator" aria-hidden="true"> - </span><strong class="current-title">${escapeHtml(detail.title)}</strong></h2><div class="javdb-123av-fc2-overview"><div class="columns is-desktop jav-flex-container" data-laosiji-123av-fc2-layout-site="${escapeHtml(site)}"><div class="column column-video-cover">${cover}</div><div class="column column-video-info"><nav class="panel movie-panel-info"><div class="panel-block first-block"><strong>番号:</strong>&nbsp;<span class="value">${escapeHtml(detail.code)}</span></div> ${rowsHtml}${tags} </nav></div></div></div> ${samplesHtml} <section class="javdb-fc2-detail-magnet"><h2 class="javdb-fc2-detail-magnet-title">磁力聚合</h2><div class="javdb-fc2-detail-magnet-body"></div></section></div>`;
+   return `<div class="video-detail javdb-api-detail javdb-123av-fc2-unified-detail" data-javdb-api-detail="1" data-laosiji-code="${escapeHtml(detail.code)}" data-laosiji-123av-fc2-detail-site="${escapeHtml(site)}"><h2 class="title is-4 javdb-api-detail-title" data-laosiji-code="${escapeHtml(detail.code)}"><strong>${escapeHtml(detail.code)}</strong><span class="javdb-api-detail-title-separator" aria-hidden="true"> - </span><strong class="current-title">${escapeHtml(detail.title)}</strong></h2><div class="javdb-123av-fc2-overview"><div class="columns is-desktop jav-flex-container" data-laosiji-123av-fc2-layout-site="${escapeHtml(site)}"><div class="column column-video-cover javdb-fc2-cover-column">${cover}</div><div class="column column-video-info"><nav class="panel movie-panel-info"><div class="panel-block first-block"><strong>番号:</strong>&nbsp;<span class="value">${escapeHtml(detail.code)}</span></div> ${rowsHtml}${tags} </nav></div></div></div> ${samplesHtml} <section class="javdb-fc2-detail-magnet"><h2 class="javdb-fc2-detail-magnet-title">磁力聚合</h2><div class="javdb-fc2-detail-magnet-body"></div></section></div>`;
   }
   return { installStyles, render, escapeHtml };
  })();
@@ -4499,9 +4495,9 @@
    return true; }
   function installLink() {
    injectStyle('javdb-123av-fc2-nav-style',`li.javdb-123av-fc2-nav-item{display:flex!important;align-items:stretch!important;gap:0!important}li.javdb-123av-fc2-nav-item>a{flex:0 0 auto!important}`);
-   const links = [...document.querySelectorAll('a[href]')].filter(link => {
+   const links = [...document.querySelectorAll('.navbar a[href], .tabs.main-tabs a[href], .tabs.is-boxed a[href]')].filter(link => {
     try {
-     const url = new URL(link.getAttribute('href'), location.href); return /javdb/i.test(url.hostname) && /(?:^|\/)fc2\/?$/i.test(url.pathname);
+     const url = new URL(link.getAttribute('href'), location.href); return url.origin === location.origin && /^\/(?:tags\/)?fc2\/?$/i.test(url.pathname);
     } catch { return false; }
    });
    links.forEach(link => {
@@ -4549,7 +4545,7 @@
    return [`${slug}-${preference === 'uncensored' ? 'uncensored-leak' : 'chinese-subtitle'}`, slug];
   }
   function unpackPlayerScript(script) {
-   const packed = String(script || '').match(/eval\(function\(p,a,c,k,e,d\)[\s\S]*?\}\('((?:\\.|[^'\\])*)',\s*(\d+),\s*(\d+),\s*'((?:\\.|[^'\\])*)'\.split\('\|'\)/);
+   const packed = String(script || '').match(/\}\('((?:\\.|[^'\\])*)',\s*(\d+),\s*(\d+),\s*'((?:\\.|[^'\\])*)'\.split\('\|'\)/);
    if (!packed) return script;
    const radix = Number(packed[2]); const count = Number(packed[3]);
    if (radix < 2 || radix > 36 || count > 500) return script;
@@ -4570,7 +4566,6 @@
     try {
      sources[name.toLowerCase()] = new URL(value).href;
     } catch {
-     // Ignore malformed alternatives and keep parsing the valid ones.
     } }
    const primary = sources.source1280 || sources.source842 || sources.source;
    if (!primary) return null;
@@ -4728,8 +4723,8 @@
     return; }
    if (mounted?.cover === cover && mounted.player?.isConnected) return;
    const javlib = isJavLibraryHost(); let anchor = cover?.querySelector(':scope > a'); const image = javlib ? cover?.querySelector(':scope > img#video_jacket_img, :scope > img') : anchor?.querySelector('img.video-cover, img');
-   const resolvedCode = code || cover?.closest('[data-laosiji-code]')?.getAttribute('data-laosiji-code') || document.querySelector('.movie-panel-info .first-block .value')?.textContent?.trim() || (isJavLibraryHost() ? SiteJavLib.getVid()
-     : (/javbus/i.test(location.hostname) ? SiteJavBus.getVid() : SiteJavDB.getVid()));
+   const resolvedCode = code || cover?.closest('[data-laosiji-code]')?.getAttribute('data-laosiji-code') || (isJavLibraryHost() ? SiteJavLib.getVid() : (/javbus/i.test(location.hostname) ? SiteJavBus.getVid() : SiteJavDB.getVid()))
+    || document.querySelector('.movie-panel-info .first-block .value')?.textContent?.trim();
    if (!cover || !image || (!javlib && !anchor) || !candidates(resolvedCode).length) {
     if (javlib && mounted?.cover === cover) return;
     if (mounted) cleanup();
@@ -4789,8 +4784,8 @@
     return; }
    if (!location.pathname.startsWith('/v/')) { this._initListPage(); this._insertResourceNav(); return; }
    this._hideDownloadCorrectionBlock();
-   GM_addStyle(`.container{max-width:100%!important}.movie-panel-info{overflow:hidden;word-break:break-word}.movie-panel-info .panel-block{flex-wrap:wrap}.movie-panel-info .value{overflow:hidden;word-break:break-word}.review-buttons>.panel-block:has(a[href="#magnet-links"]),.review-buttons>.panel-block:has(a[href*="/corrections/new"]){display:none!important}`);
-   this._ensureDetailLayout(); JavdbFullVideo.sync(avid); this._insertMagnet(avid); this._initApiMovieTabs(); },
+   GM_addStyle(`.container{max-width:100%!important}.movie-panel-info{overflow:hidden;word-break:break-word}.movie-panel-info .panel-block{flex-wrap:wrap}.movie-panel-info .value{overflow:hidden;word-break:break-word}.review-buttons>.panel-block:has(a[href="#magnet-links"]),.review-buttons>.panel-block:has(a[href*="/corrections/new"]){display:none!important}.javdb-fc2-cover-column>a{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:min(420px,58vh)!important;overflow:hidden!important}.javdb-fc2-cover-column img.video-cover,.javdb-fc2-cover-column>a>img{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;object-fit:contain!important}@media (max-width:900px){.javdb-fc2-cover-column>a{height:min(360px,84vw,58vh)!important}}`);
+   this._ensureDetailLayout(avid); JavdbFullVideo.sync(avid); this._insertMagnet(avid); this._initApiMovieTabs(); },
   _hideDownloadCorrectionBlock() {
    document.querySelectorAll('.review-buttons > .panel-block').forEach(block => {
     if (block.querySelector('a[href="#magnet-links"], a[href*="/corrections/new"]')) { block.remove(); }
@@ -4853,10 +4848,7 @@
    injectStyle('javdb-native-layout-style',`.toolbar>.button-group[data-laosiji-hidden-native-layout="1"]{display:none!important}`);
   },
   _insertResourceNav() {
-   const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__; const hasListContent = document.querySelector('.movie-list, .masonry, .items, .item.jav-card, .jav-card');
-   // JavDB uses `.tabs.is-boxed` on category/tag pages, while older
-   // list pages use `.tabs.main-tabs`; support both DOM variants.
-   const mainTabs = document.querySelector('.tabs.main-tabs, .tabs.is-boxed');
+   const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__; const hasListContent = document.querySelector('.movie-list, .masonry, .items, .item.jav-card, .jav-card'); const mainTabs = document.querySelector('.tabs.main-tabs, .tabs.is-boxed');
    const navList = mainTabs?.querySelector('ul') || [...document.querySelectorAll('ul')].find(list => {
     const hrefs = [...list.querySelectorAll('a[href]')].map(anchor => anchor.getAttribute('href') || ''); const hasCodedTabs = hrefs.some(href => /\/censored(?:\?|$)/i.test(href)) && hrefs.some(href => /\/uncensored(?:\?|$)/i.test(href));
     const hasTagTabs = hrefs.some(href => /^\/tags(?:\?|$)/i.test(href)) && hrefs.some(href => /^\/tags\/uncensored(?:\?|$)/i.test(href)); return (hasCodedTabs || hasTagTabs) && hrefs.some(href => /(?:\/western|\/tags\/western)(?:\?|$)/i.test(href));
@@ -4959,12 +4951,13 @@
    const userMenu = navbarEnd.querySelector('a[href="/users/profile"]')?.closest('.navbar-item.has-dropdown'); navbarEnd.insertBefore(btn, userMenu || null);
    injectStyle('javdb-top-settings-style',`#navbar-menu-user .javdb-top-settings-btn{color:#2563eb!important;font-weight:700!important}#navbar-menu-user .javdb-top-settings-btn:hover{color:#1d4ed8!important;background:rgba(37,99,235,.08)!important}`);
   },
-  _ensureDetailLayout() {
+  _ensureDetailLayout(avid = '') {
    const coverCol  = document.querySelector('.column.column-video-cover'); const infoPanel = document.querySelector('.movie-panel-info');
    if (!coverCol || !infoPanel) return null;
    const infoCol = infoPanel.closest('.column') || infoPanel; const currentContainer = coverCol.closest('.jav-flex-container'); const parent = currentContainer || coverCol.parentElement;
    if (!parent) return null;
-   let flexContainer = currentContainer || parent.querySelector(':scope > .jav-flex-container');
+   const isFc2 = /^FC2[-_\s]?(?:PPV[-_\s]?)?\d{6,9}$/i.test(String(avid || this.getVid() || '').trim());
+   coverCol.classList.toggle('javdb-fc2-cover-column', isFc2); let flexContainer = currentContainer || parent.querySelector(':scope > .jav-flex-container');
    if (!flexContainer) {
     flexContainer = document.createElement('div'); flexContainer.className = 'jav-flex-container'; flexContainer.appendChild(coverCol); flexContainer.appendChild(infoCol); parent.appendChild(flexContainer);
    } else {
@@ -4993,15 +4986,23 @@
    const coverImg = coverCol.querySelector('img');
    if (coverImg) {
     coverImg.removeAttribute('width'); coverImg.removeAttribute('height'); const coverLink = coverImg.closest('a');
-    if (coverLink) { coverLink.style.setProperty('display', 'block', 'important'); coverLink.style.setProperty('width', '100%', 'important'); coverLink.style.setProperty('height', 'auto', 'important'); }
-    coverImg.style.setProperty('display', 'block', 'important'); coverImg.style.setProperty('width', '100%', 'important'); coverImg.style.setProperty('height', 'auto', 'important'); coverImg.style.setProperty('aspect-ratio', 'auto', 'important');
+    if (coverLink) {
+     coverLink.style.setProperty('display', 'block', 'important'); coverLink.style.setProperty('width', '100%', 'important');
+     if (isFc2) coverLink.style.removeProperty('height');
+     else coverLink.style.setProperty('height', 'auto', 'important');
+    }
+    coverImg.style.setProperty('display', 'block', 'important'); coverImg.style.setProperty('width', '100%', 'important');
+    if (isFc2) {
+     coverImg.style.removeProperty('height'); coverImg.style.removeProperty('aspect-ratio');
+    } else {
+     coverImg.style.setProperty('height', 'auto', 'important'); coverImg.style.setProperty('aspect-ratio', 'auto', 'important'); }
     coverImg.style.setProperty('object-fit', 'contain', 'important'); }
    return flexContainer; },
   _insertMagnet(avid) {
    if (MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace') { document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); NativeMagnetPanel.scheduleMount('javdb', avid); return; }
    NativeMagnetPanel.remove('javdb');
    if (!MobilePolicy.usesDesktopMagnetTable()) return;
-   document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); const flexContainer = this._ensureDetailLayout();
+   document.querySelectorAll('.jav-nong-slot').forEach(el => el.remove()); const flexContainer = this._ensureDetailLayout(avid);
    if (!flexContainer) return;
    const slot = document.createElement('div'); slot.className = 'jav-nong-slot'; slot.style.setProperty('flex', 'var(--javdb-magnet-flex) 1 0', 'important'); slot.style.setProperty('min-width', '0', 'important');
    slot.style.setProperty('align-self', 'flex-start', 'important'); slot.style.setProperty('overflow', 'hidden', 'important'); const widget = Magnet.createMagnetWidget(avid); slot.appendChild(widget); flexContainer.appendChild(slot); }, };
@@ -5743,10 +5744,7 @@
     const rawDelta = Math.abs(deltaY) >= Math.abs(deltaX) ? deltaY : deltaX;
     if (!rawDelta) return noNavigation(true);
     if (now < wheelLockedUntil) return noNavigation(true);
-    const direction = rawDelta > 0 ? 1 : -1;
-    // Scroll distance does not affect navigation. One accepted
-    // wheel event advances one still, with a fixed rate limit.
-    const result = step(direction); wheelLockedUntil = now + 150; return result; };
+    const direction = rawDelta > 0 ? 1 : -1; const result = step(direction); wheelLockedUntil = now + 150; return result; };
    const startTouch = ({ x, y, points = 1 } = {}) => {
     touchStart = !destroyed && size >= 2 && !zoomed && points === 1 ? { x, y } : null;
     return !!touchStart; };
@@ -6385,10 +6383,6 @@
     this.loader = GM_xmlhttpRequest({
      method: 'GET',
      url: requestUrl,
-     // JavDB preview playlists use AES-128 encryption.  Read
-     // keys and MPEG-TS fragments as real binary data; the old
-     // x-user-defined text workaround could corrupt bytes in
-     // some userscript managers and made the stream unplayable.
      responseType: wantsArrayBuffer ? 'arraybuffer' : 'text',
      timeout: Number.isFinite(requestTimeout) && requestTimeout > 0 ? requestTimeout : 20000,
      headers: {
@@ -6410,10 +6404,7 @@
         data = responseText;
        } else if (ArrayBuffer.isView(responseText)) {
         data = responseText.buffer.slice( responseText.byteOffset, responseText.byteOffset + responseText.byteLength );
-       } else {
-        // Older GM implementations may ignore
-        // responseType. Keep a safe compatibility path.
-        data = binaryTextToArrayBuffer(responseText); } }
+       } else { data = binaryTextToArrayBuffer(responseText); } }
       stats.loaded = data?.byteLength || data?.length || stats.loaded || 0; stats.total = stats.total || stats.loaded;
       stats.bwEstimate = stats.loading.end > stats.loading.first ? Math.round((stats.total * 8000) / (stats.loading.end - stats.loading.first)) : 0;
       callbacks.onSuccess?.({ data, url: response.url }, stats, context, response); },
@@ -6648,7 +6639,6 @@
    const handlePlaybackFailure = async (reason = 'error') => {
     if (overlayClosed || !video || sourceFallbackInProgress) return;
     if (playbackStarted && reason !== 'timeout' && reason !== 'hls') return;
-    // JavTrailers 的多个地址只是同一来源的清晰度，不再逐级等待，失败后直接请求下一个来源。
     if (normalizedSourceName() !== 'JavTrailers' && fallbackIndex < fallbackUrls.length - 1) {
      fallbackIndex += 1; activeUrl = fallbackUrls[fallbackIndex]; sourceLink.href = activeUrl; destroyActiveHls(); setFallbackStatus('当前画质加载失败，正在切换备用画质...'); attachVideoSrc(activeUrl); video.load?.();
      video.play().catch(() => {});
@@ -6695,8 +6685,6 @@
     if (!HlsClass) { attachNativeM3u8Src(src); return; }
     const hls = new HlsClass({
      enableWorker: false,
-     // Trailer streams are VOD. LL-HLS mode makes normal playlists
-     // request parts unnecessarily and can slow down startup.
      lowLatencyMode: false,
      loader: createHlsLoader(),
      autoStartLoad: true,
@@ -6755,10 +6743,7 @@
     });
     const markHlsStartupActivity = () => {
      if (hlsStartupActivity || playbackStarted || overlayClosed || video?._hls !== hls) return;
-     hlsStartupActivity = true;
-     // A first byte means the source is reachable, but it does not
-     // mean the media element has decoded enough to start playing.
-     schedulePlaybackGuard('hls-buffering'); };
+     hlsStartupActivity = true; schedulePlaybackGuard('hls-buffering'); };
     [HlsClass.Events.FRAG_LOAD_PROGRESS, HlsClass.Events.FRAG_LOADED].forEach(eventName => {
      if (eventName) hls.on(eventName, markHlsStartupActivity);
     });
@@ -6809,9 +6794,6 @@
     schedulePlaybackGuard('timeout');
     if (generation !== sourceLoadGeneration) return;
     if (!isHlsSource(src)) { attachMp4Src(src); return; }
-    // Prefer the browser's native HLS path on mobile Safari and other
-    // clients that expose native M3U8 support. Load hls.js only when
-    // native playback is unavailable.
     if (isNativeHlsClient()) { attachNativeM3u8Src(src); return; }
     const HlsClass = getHlsClass();
     if (HlsClass) { attachM3u8Src(src, false); return; }
@@ -7019,9 +7001,6 @@
        const cachedAt = Number(value.cachedAt || 0);
        if (!cachedAt || Date.now() - cachedAt >= CACHE_TTL_MS) { resolve(null); return; }
        resolve(CACHE_MISS); return; }
-      // Complete profiles never expire locally. Partial profiles use
-      // the timestamped 24-hour cache path below. Birthplace is not
-      // part of the public API and is intentionally ignored.
       const profile = value?.profile || (value?.name ? value : null);
       if (!profile?.name) { resolve(null); return; }
       if (!isCompleteProfile(profile)) {
@@ -7049,8 +7028,6 @@
   async function clearCache() {
    const db = await getCacheDb();
    if (!db) return false;
-   // Invalidate active work so a response that started before the user
-   // cleared the cache cannot repopulate it afterward.
    cacheGeneration += 1; renderToken += 1;
    return new Promise(resolve => {
     try {
@@ -8019,8 +7996,6 @@
     return; }
    state = { code, status: 'loaded' };
    wrap.dataset.state = 'loaded'; wrap.innerHTML = ''; const img = document.createElement('img'); img.className = 'jav-detail-preview-inline'; img.dataset.code = code; img.src = result.url; img.alt = code; img.loading = 'lazy';
-   // ProjectJAV's image CDN rejects cross-site Referer headers (403).
-   // Keep the URL directly usable while suppressing JavDB's origin.
    img.referrerPolicy = 'no-referrer'; img.title = '点击查看预览图';
    img.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); Utils.showOverlay(result.url, code, result.source); });
    wrap.appendChild(img); }
@@ -8115,9 +8090,6 @@
     this.debug('已开启预告片代理播放，直接请求服务器中转', { normalized: id });
     const proxied = await this.proxyJavxyPlaybackResult(id, rawCode, { requestID });
     if (proxied?.url) return proxied;
-    // A title can legitimately lack a relayable MP4. Only reset the
-    // user setting after the capability endpoint explicitly reports
-    // that the server relay feature was switched off.
     const proxyStatus = await this.getProxyPlaybackStatus();
     if (!proxyStatus.closed) return null;
     CFG.trailerProxyPlayback = false; Utils.showToast('服务器已关闭', '预告片中转播放已关闭，已切换为普通播放', 4000);
@@ -8173,7 +8145,8 @@
    });
    result.abort = () => request.abort?.() || false; return result; },
   javxyToken() {
-   return [103,114,95,118,103,116,20,119,18,105,118,127,104,124,127,16,79,80,17,78,124,92,114,116,113,80,85,118,109,93,19,84,124,82,79,96,119,116,95,80,95,104,116] .map(v => String.fromCharCode(v ^ 0x25)) .join(''); },
+   return [103,114,95,118,103,116,20,119,18,105,118,127,104,124,127,16,79,80,17,78,124,92,114,116,113,80,85,
+118,109,93,19,84,124,82,79,96,119,116,95,80,95,104,116] .map(v => String.fromCharCode(v ^ 0x25)) .join(''); },
   javxyHeaders(authenticated = true) {
    const headers = { Accept: 'application/json,text/plain,*/*' };
    if (authenticated) headers[[[String.fromCharCode(88),String.fromCharCode(74,97,118,120,121),String.fromCharCode(84,111,107,101,110)].join('-')]] = this.javxyToken();
@@ -8380,10 +8353,6 @@
     const response = await this.request(apiUrl, {
      method: 'POST',
      data: JSON.stringify({ names: normalizedNames }),
-     // The backend waits for all five sources for every actor
-     // before publishing the merged batch. Keep this timeout
-     // above the backend budget instead of abandoning larger
-     // actor groups after the old 20-second cap.
      timeout: Math.min(360000, (55000 + normalizedNames.length * 15000)),
      headers: { ...this.javxyHeaders(endpoint.authenticated), 'Content-Type': 'application/json' }
     });
@@ -9413,8 +9382,6 @@
   function parseWorkActors(html, pageUrl) {
    const doc = parseHTML(html); const seen = new Set(); const actorLinks = doc.querySelectorAll('.movie-panel-info a[href*="/actors/"], .video-panel a[href*="/actors/"], a[href*="/actors/"]');
    return [...actorLinks].map(anchor => {
-    // JavDB now marks female actors on the link itself: <a class="actor-female">.
-    // Older pages used a following .symbol.female / .female node, or data-gender.
     const femaleMarker = anchor.matches?.('.actor-female, .female, [data-gender="female"]') || String(anchor.getAttribute('data-gender') || '').toLowerCase() === 'female' || anchor.nextElementSibling?.matches?.('.symbol.female, .female, .actor-female');
     if (!femaleMarker) return null;
     const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); let path = '';
@@ -9439,7 +9406,6 @@
    await hydrateResourceState(); const normalizedCode = String(code || '').trim(); const url = absoluteUrl(detailUrl);
    if (!normalizedCode || !url) return false;
    const current = getState().works[normalizedCode] || ensureResourceWork(normalizedCode, { code: normalizedCode, url, source: 'javdb' });
-   // Re-run enrichment after parser changes so stale non-female names are removed.
    if (!current || (current.actorInfoVersion === 3 && !options.force)) return false;
    if (actorLookupInFlight.has(normalizedCode)) return actorLookupInFlight.get(normalizedCode);
    const task = (async () => {
@@ -9447,7 +9413,6 @@
     if (!response.loadstuts || !response.responseText) return false;
     const actors = parseWorkActors(response.responseText, url); const library = getState(); const work = library.works[normalizedCode];
     if (!work) return false;
-    // Replace the snapshot instead of merging it with stale card/detail data.
     work.actorNames = normalizeActorNames(actors.map(actor => actor.name), normalizedCode); const publishTime = parseWorkPublishTime(response.responseText);
     if (publishTime) work.publishTime = publishTime;
     work.actorIds = [];
