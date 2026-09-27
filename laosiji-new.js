@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.6.1
-// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序、免VIP查看FC2、TOP250榜单；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
+// @version      2.8.7
+// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
 // @match        *://*.javlibrary.com/*
@@ -67,14 +67,11 @@
    if (!/javdb/i.test(url.hostname)) return '';
    if (url.pathname.replace(/\/+$/, '') !== '/search_advanced') return '';
    const params = url.searchParams;
-   if (params.get('laosiji_content')) return 'content';
-   if (params.get('laosiji_rank')) return 'rank';
-   if (params.get('laosiji_detail')) return 'detail';
-   if (params.get('laosiji_fc2')) return 'fc2';
+   if (params.get('laosiji_content') === 'reviews') return 'content';
    if (params.get('laosiji_123av_fc2')) return '123av';
    return '';
   } catch (_) { return ''; } }
- function isJavdbCustomSpaUrl(urlLike) { return /^(content|rank|detail|fc2)$/.test(getJavdbCustomAdvancedSearchKind(urlLike)); }
+ function isJavdbCustomSpaUrl(urlLike) { return getJavdbCustomAdvancedSearchKind(urlLike) === 'content'; }
  function is123AvFc2SpaUrl(urlLike = location.href) {
   try {
    const url = new URL(urlLike, location.href);
@@ -86,9 +83,8 @@
   try {
    const url = new URL(location.href);
    if (!/javdb/i.test(url.hostname) || url.pathname.replace(/\/+$/, '') !== '/search_advanced') return;
-   const params = url.searchParams; const isRanking = /^(top|fc2|playback)$/.test(params.get('laosiji_rank') || ''); const isFc2Detail = params.get('laosiji_detail') === 'fc2' && !!params.get('movie_id');
-   const isFc2Search = params.get('type') === '3' && params.get('laosiji_fc2') === '1';
-   if (!isRanking && !isFc2Detail && !isFc2Search) return;
+   const params = url.searchParams; const rank = params.get('laosiji_rank') || ''; const hideShell = rank === 'playback' || rank === 'top' || rank === 'fc2' || params.get('laosiji_detail') === 'fc2' || params.get('laosiji_fc2') === '1';
+   if (!hideShell) return;
    if (document.getElementById('javdb-api-route-startup-guard')) return;
    const style = document.createElement('style'); style.id = 'javdb-api-route-startup-guard';
    style.textContent = 'body > section{visibility:hidden!important}';
@@ -97,7 +93,7 @@
   } }
  function revealJavdbApiRouteShell() {
   document.getElementById('javdb-api-route-startup-guard')?.remove(); }
- installJavdbApiRouteStartupGuard(); const SCRIPT_VERSION = '2.8.6.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ installJavdbApiRouteStartupGuard(); const SCRIPT_VERSION = '2.8.7'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const JAVDB_REVIEW_INITIAL_LIMIT = 6; const JAVDB_REVIEW_MORE_LIMIT = 20;
@@ -139,7 +135,6 @@
   reviewsDefaultExpanded: { key: 'reviews_default_expanded', def: true, bool: true },
   reviewFontSize: { key: 'review_font_size', def: 'large', normalize: value => ['small', 'medium', 'large'].includes(value) ? value : 'large' },
   apiMovieDefaultTab: { key: 'javdb_api_movie_default_tab', def: 'magnets', normalize: value => ['magnets', 'reviews'].includes(value) ? value : 'magnets' },
-  javdbUseNativePages: { key: 'javdb_use_native_pages', def: false, bool: true },
   javdbFavoriteActorHighlight: { key: 'javdb_favorite_actor_highlight_enabled', def: true, bool: true },
   detailFlex: { key: 'detail_flex_settings', def: () => ({}), normalize: value => value || {} },
   btnShowNyaa: { key: 'btn_show_nyaa', def: true, bool: true },
@@ -203,6 +198,28 @@
   } catch (_) {
   } }
  installPageZoomStartupStyle();
+ function installJavdbSearchStartupStyle() {
+  try {
+   if (!/javdb/i.test(location.hostname) || document.getElementById?.('laosiji-javdb-search-startup')) return;
+   const style = document.createElement?.('style'); const target = document.head || document.documentElement;
+   if (!style || !target?.appendChild) return;
+   style.id = 'laosiji-javdb-search-startup';
+   style.textContent = '#search-bar-container{visibility:hidden!important}';
+   target.appendChild(style);
+  } catch (_) {
+  } }
+ installJavdbSearchStartupStyle();
+ function installQuickActionStartupStyle() {
+  try {
+   if (document.getElementById?.('laosiji-quick-action-startup')) return;
+   const style = document.createElement?.('style'); const target = document.head || document.documentElement;
+   if (!style || !target?.appendChild) return;
+   style.id = 'laosiji-quick-action-startup';
+   style.textContent = '.jav-card-quick-btn{width:26px!important;height:26px!important;flex:0 0 26px!important;overflow:hidden!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important}.jav-card-quick-btn svg{width:20px!important;height:20px!important;display:block!important}.jav-card-quick-menu-popover,.jav-card-resource-menu-popover{display:none!important}';
+   target.appendChild(style);
+  } catch (_) {
+  } }
+ installQuickActionStartupStyle();
  function installJavdbDetailStartupStyle() {
   try {
    const url = new URL(location.href);
@@ -235,7 +252,6 @@
   if (siteId === 'javbus') { return !/^\/(?:[a-z]{2}\/)?uncensored(?:\/|$)/i.test(path); }
   if (siteId === 'javdb') {
    const rankType = (params.get('t') || '').toLowerCase(); const tagName = (path.match(/^\/tags\/([^/]+)$/i)?.[1] || '').toLowerCase(); const isC10 = params.get('c10') === '1';
-   if (params.get('laosiji_detail') === 'fc2' || params.get('laosiji_rank') === 'fc2' || params.get('laosiji_fc2') === '1') return false;
    if (path === '/fc2') return false;
    if (path === '/uncensored' || path === '/western') return false;
    if (path === '/rankings/movies' && /^(uncensored|western|fc2)$/i.test(rankType)) return false;
@@ -281,7 +297,7 @@
  const PortraitCards = (() => {
   function enabled() { return !!CFG.portraitCards; }
   function ensureStyle() {
-   injectStyle('jav-portrait-cards-style',`html.jav-card-portrait-mode .jav-card-grid{gap:14px 6px!important}html.jav-card-portrait-mode .jav-card-cover{aspect-ratio:380 / 538!important;background:#f1f5f9!important}html.jav-card-portrait-mode .jav-card-image{left:0!important;top:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover!important;object-position:right center!important;background:transparent!important;transform:none!important;translate:none!important;scale:1!important}html.jav-card-portrait-mode .jav-card-image:hover{transform:none!important;scale:1.04!important}html.jav-card-portrait-mode .javbus-card-title{min-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+58px)!important}html.jav-card-portrait-mode .javdb-card-title{height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;max-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;min-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important}html.jav-card-portrait-mode .javlib-card-title{min-height:calc((var(--javlib-title-line-height,22px) * var(--jav-card-title-lines,2))+54px)!important}`);
+   injectStyle('jav-portrait-cards-style',`html.jav-card-portrait-mode .jav-card-grid{gap:14px 6px!important}html.jav-card-portrait-mode .jav-card-cover{aspect-ratio:380 / 538!important;background:#f1f5f9!important}html.jav-card-portrait-mode .jav-card-image{left:0!important;top:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:cover!important;object-position:right center!important;background:transparent!important;transform:none!important;translate:none!important;scale:1!important}html.jav-card-portrait-mode .jav-card-image:hover{transform:none!important;scale:1.04!important}html.jav-card-portrait-mode .javbus-card-title{min-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+58px)!important}html.jav-card-portrait-mode .javdb-card-title{height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+4px)!important;height:calc((var(--jav-card-title-lines,2) * 1lh)+4px)!important;max-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+4px)!important;max-height:calc((var(--jav-card-title-lines,2) * 1lh)+4px)!important;min-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+4px)!important;min-height:calc((var(--jav-card-title-lines,2) * 1lh)+4px)!important}html.jav-card-portrait-mode .javlib-card-title{min-height:calc((var(--javlib-title-line-height,22px) * var(--jav-card-title-lines,2))+54px)!important}`);
   }
   function javbusCoverFromThumb(src) {
    let full = String(src || '').replace(/\/(imgs|pics)\/(thumb|thumbs)\//i, '/$1/cover/');
@@ -424,7 +440,7 @@
    const host = location.hostname;
    const is123AvDetailRoute = (() => {
     try {
-     const url = new URL(location.href); const params = url.searchParams; return params.has('laosiji_123av_fc2_detail') || (params.get('laosiji_detail') === 'fc2' && params.has('movie_id'));
+     const url = new URL(location.href); const params = url.searchParams; return params.has('laosiji_123av_fc2_detail');
     } catch { return false; }
    })();
    if (is123AvDetailRoute) {
@@ -744,7 +760,7 @@
  })();
  Core.expose('__LAOSIJI_MOBILE_POLICY__', MobilePolicy);
  function injectSettingsPanelStyles() {
-  GM_addStyle(`#jav-settings-overlay{position:fixed;inset:0;z-index:10000020;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(7px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#jav-settings-panel{width:min(800px,94vw);max-height:88vh;background:linear-gradient(180deg,#f8fbff 0%,#f6f3ff 46%,#fff7ed 100%);color:#111827;border:1px solid rgba(148,163,184,.38);border-radius:16px;box-shadow:0 26px 76px rgba(15,23,42,.36);display:flex;flex-direction:column;overflow:hidden}#jav-settings-panel *{box-sizing:border-box}#jav-settings-panel .sp-header{padding:18px 22px;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 54%,#7c2d12 100%);border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between;flex:0 0 auto}#jav-settings-panel .sp-title{font-size:18px;font-weight:750;color:#fff}#jav-settings-panel .sp-close{width:32px;height:32px;border:1px solid rgba(255,255,255,.24);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:18px;line-height:1}#jav-settings-panel .sp-close:hover{background:rgba(255,255,255,.18)}#jav-settings-panel .sp-body{padding:18px 22px;overflow:auto;display:grid;gap:14px;flex:1 1 auto;min-height:0;overscroll-behavior:contain;scrollbar-gutter:stable}#jav-settings-panel .sp-card{position:relative;background:rgba(255,255,255,.92);border:1px solid rgba(203,213,225,.88);border-radius:10px;padding:15px;box-shadow:0 10px 24px rgba(15,23,42,.06);overflow:hidden}#jav-settings-panel .sp-card::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#2563eb}#jav-settings-panel .sp-card-magnet::before{background:#16a34a}#jav-settings-panel .sp-card-features::before{background:#00a85a}#jav-settings-panel .sp-card-order::before{background:#dc2626}#jav-settings-panel .sp-card-title{font-size:13px;font-weight:750;color:#1e293b;margin-bottom:12px}#jav-settings-panel .sp-card-jump::before{background:#6366f1}#jav-settings-panel .sp-card-jump .sp-grid{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}#jav-settings-panel .sp-feature-order-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:stretch}#jav-settings-panel .sp-feature-order-row>.sp-card{height:100%}#jav-settings-panel .sp-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#jav-settings-panel .sp-feature-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-item .sp-desc{margin-top:2px;font-size:11px}#jav-settings-panel .sp-feature-select{order:1;grid-column:2;display:grid;grid-template-columns:1fr 64px;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-select .sp-select{height:28px;padding:3px 2px 3px 4px;font-size:12px;text-align:left}#jav-settings-panel .sp-feature-magnet-display{order:1;grid-column:1;grid-template-columns:minmax(0,1fr) 100px}#jav-settings-panel .sp-feature-select:has(#sp-pan115-player){grid-template-columns:minmax(0,1fr) 100px}#jav-settings-panel .sp-feature-restore-toggle{order:4;grid-column:1 / -1;cursor:pointer}#jav-settings-panel .sp-feature-item:has(#sp-javdb-native-pages){order:3;grid-column:1 / -1;cursor:pointer}#jav-settings-panel .sp-feature-checkbox{width:18px;height:18px;flex:0 0 auto;accent-color:#4f46e5;cursor:pointer}#jav-settings-panel .sp-cache-clean{background:linear-gradient(135deg,#fff 0%,#f8fbff 58%,#f0f9ff 100%)}#jav-settings-panel .sp-cache-clear-btn{position:relative;width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border:1px solid #bae6fd;border-radius:10px;background:linear-gradient(180deg,#f0f9ff,#fff);color:#0284c7;cursor:pointer;overflow:hidden;transition:transform .16s,border-color .16s,background .16s,color .16s,box-shadow .16s}#jav-settings-panel .sp-cache-clear-btn::after{content:'';position:absolute;inset:-8px;border-radius:inherit;background:radial-gradient(circle,rgba(14,165,233,.22),transparent 62%);opacity:0;transform:scale(.45);transition:opacity .22s,transform .22s}#jav-settings-panel .sp-cache-clear-btn:hover{transform:translateY(-1px);border-color:#38bdf8;color:#0369a1;box-shadow:0 8px 18px rgba(14,165,233,.18)}#jav-settings-panel .sp-cache-clear-btn:active{transform:translateY(0) scale(.96)}#jav-settings-panel .sp-cache-clear-btn.is-clearing::after{opacity:1;transform:scale(1)}#jav-settings-panel .sp-cache-clear-btn.is-done{border-color:#86efac;background:linear-gradient(180deg,#ecfdf5,#fff);color:#15803d}#jav-settings-panel .sp-cache-clear-icon{position:relative;z-index:1;display:inline-block;font-size:15px;line-height:1}#jav-settings-panel .sp-cache-clear-btn.is-clearing .sp-cache-clear-icon{animation:spCacheSpin .48s ease}@keyframes spCacheSpin{to{transform:rotate(360deg)}}#jav-settings-panel .sp-field{display:flex;flex-direction:column;gap:6px;min-width:0}#jav-settings-panel .sp-label{font-size:12px;font-weight:650;color:#475569}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{width:100%;min-width:0;height:34px;padding:6px 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:13px;outline:none}#jav-settings-panel .sp-input:focus,#jav-settings-panel .sp-select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.13)}#jav-settings-panel .sp-engine-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:end}#jav-settings-panel .sp-cache-actions{display:flex;align-items:center;gap:8px;margin-right:auto}#jav-settings-panel .sp-cache-feedback{min-width:64px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-footer-links{display:flex;align-items:center;gap:8px;margin-right:4px}#jav-settings-panel .sp-footer-link{color:#475569;font-size:12px;font-weight:700;text-decoration:none;padding:6px 8px;border-radius:7px}#jav-settings-panel .sp-footer-link:hover{color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-footer-sep{width:1px;height:16px;background:#cbd5e1}#jav-settings-panel .sp-desc{font-size:12px;color:#64748b;line-height:1.45}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;width:44px;height:26px;flex:0 0 auto}#jav-settings-panel .sp-toggle input{opacity:0;width:0;height:0}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#aeb4bc;border:1px solid rgba(71,85,105,.28);box-shadow:inset 0 2px 4px rgba(15,23,42,.18),inset 0 -1px 1px rgba(255,255,255,.38);cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;width:20px;height:20px;left:2px;top:2px;border-radius:50%;background:linear-gradient(145deg,#fff 0%,#f1f3f5 100%);border:1px solid rgba(148,163,184,.42);box-shadow:0 2px 5px rgba(15,23,42,.28),0 1px 1px rgba(255,255,255,.86) inset;transition:transform .2s cubic-bezier(.2,.8,.2,1)}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#35b96f;border-color:#238653;box-shadow:inset 0 2px 4px rgba(20,91,55,.24),inset 0 -1px 1px rgba(255,255,255,.34)}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-toggle input:focus-visible+.sp-toggle-track{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}#jav-settings-panel .sp-order-list{display:flex;flex-direction:column;gap:8px}#jav-settings-panel .sp-order-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(90deg,#fff 0%,#f8fafc 100%);user-select:none}#jav-settings-panel .sp-order-name{font-size:13px;font-weight:700;color:#1e293b}#jav-settings-panel .sp-dot{width:9px;height:9px;border-radius:50%}#jav-settings-panel .sp-order-actions{display:flex;gap:5px}#jav-settings-panel .sp-order-btn{width:28px;height:28px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;cursor:pointer;font-size:14px;line-height:1}#jav-settings-panel .sp-order-btn:hover:not(:disabled){border-color:#2563eb;color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-order-btn:disabled{opacity:.36;cursor:not-allowed}#jav-settings-panel .sp-footer{padding:14px 22px;background:rgba(255,255,255,.92);border-top:1px solid rgba(203,213,225,.86);display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:0 0 auto}#jav-settings-panel .sp-btn{height:34px;padding:0 16px;border-radius:8px;border:1px solid transparent;font-size:13px;font-weight:700;cursor:pointer}#jav-settings-panel .sp-btn-cancel{background:#fff;color:#475569;border-color:#cbd5e1}#jav-settings-panel .sp-btn-clear{background:#fff7ed;color:#9a3412;border-color:#fed7aa}#jav-settings-panel .sp-btn-clear:hover{background:#ffedd5}#jav-settings-panel .sp-btn-save{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;box-shadow:0 8px 20px rgba(79,70,229,.25)}@media (max-width:640px){#jav-settings-panel .sp-grid,#jav-settings-panel .sp-engine-row,#jav-settings-panel .sp-feature-grid,#jav-settings-panel .sp-feature-order-row{grid-template-columns:1fr}#jav-settings-panel .sp-feature-item{grid-column:auto!important}#jav-settings-panel .sp-cache-actions{margin-right:0}#jav-settings-panel .sp-footer{flex-wrap:wrap}}#jav-settings-panel .sp-chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}#jav-settings-panel .sp-chip input{display:none}#jav-settings-panel .sp-chip-label{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:999px;border:.5px solid var(--color-border-secondary,#cbd5e1);background:var(--color-background-secondary,#f8fafc);color:var(--color-text-secondary,#64748b);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;user-select:none}#jav-settings-panel .sp-chip input:checked+.sp-chip-label{border-color:#6366f1;background:#eef2ff;color:#4338ca}#jav-settings-panel .sp-chip-label:hover{border-color:#a5b4fc;background:#f0f4ff;color:#4338ca}#jav-settings-panel .sp-chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex:0 0 auto}@media (max-width:720px){#jav-settings-overlay{align-items:flex-start;padding:6px}#jav-settings-panel{width:100%;max-height:calc(100dvh - 12px);border-radius:12px}#jav-settings-panel .sp-header{padding:14px 16px}#jav-settings-panel .sp-body{padding:12px;gap:10px}#jav-settings-panel .sp-card{padding:12px}#jav-settings-panel .sp-footer{padding:10px 12px;gap:8px}#jav-settings-panel .sp-btn{min-height:40px}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{min-height:40px;height:40px}#jav-settings-panel .sp-chip-label{min-height:36px;padding:7px 10px}}html[data-laosiji-mobile] #jav-settings-overlay{align-items:center;padding:6px}html[data-laosiji-mobile] #jav-settings-panel{width:min(800px,calc(100vw - 12px));height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);min-height:0;box-sizing:border-box}html[data-laosiji-mobile] #jav-settings-panel .sp-body{display:flex;flex-direction:column;align-items:stretch;scroll-padding-block:12px;-webkit-overflow-scrolling:touch}html[data-laosiji-mobile] #jav-settings-panel .sp-grid,html[data-laosiji-mobile] #jav-settings-panel .sp-engine-row,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-grid,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-order-row{grid-template-columns:minmax(0,1fr)}html[data-laosiji-mobile] #jav-settings-panel .sp-feature-item,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-magnet-display,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-restore-toggle,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-item:has(#sp-javdb-native-pages){grid-column:auto!important}html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-magnet-display,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select:has(#sp-pan115-player){grid-template-columns:minmax(0,1fr) 108px}html[data-laosiji-mobile] #jav-settings-panel .sp-card,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-order-row{flex:0 0 auto}html[data-laosiji-mobile] #jav-settings-panel .sp-footer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}html[data-laosiji-mobile] #jav-settings-panel .sp-cache-actions{display:grid;grid-column:1 / -1;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;width:100%;margin:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer-links{min-width:0;gap:2px;margin:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer-link{padding:6px 5px;white-space:nowrap}html[data-laosiji-mobile] #jav-settings-panel .sp-cache-feedback{grid-column:1 / -1;min-width:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer>.sp-btn{width:100%}#jav-settings-panel{width:min(1040px,calc(100vw - 32px));height:min(780px,calc(100dvh - 32px));min-height:0;max-height:none;background:#f8fafc}#jav-settings-panel .sp-body{padding:0;display:block;background:#f8fafc}#jav-settings-panel .sp-layout{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:0;height:100%}#jav-settings-panel .sp-nav{display:flex;flex-direction:column;gap:4px;padding:16px 10px;border-right:1px solid #e2e8f0;background:#f1f5f9}#jav-settings-panel .sp-nav-item{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:11px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:#475569;text-align:left;cursor:pointer}#jav-settings-panel .sp-nav-item:hover{background:#e2e8f0;color:#1e3a8a}#jav-settings-panel .sp-nav-item.is-active{border-color:#bfdbfe;background:#fff;color:#1d4ed8;box-shadow:0 2px 5px rgba(15,23,42,.06)}#jav-settings-panel .sp-nav-label{font-size:13px;font-weight:800}#jav-settings-panel .sp-nav-item small{color:#64748b;font-size:10px;line-height:1.35}#jav-settings-panel .sp-nav-item.is-active small{color:#64748b}#jav-settings-panel .sp-content{min-width:0;min-height:0;overflow:auto;padding:20px 22px;overscroll-behavior:contain;scrollbar-gutter:stable}#jav-settings-panel .sp-section{display:block}#jav-settings-panel .sp-section[hidden]{display:none!important}#jav-settings-panel .sp-section-head{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-section-title{color:#0f172a;font-size:17px;font-weight:850}#jav-settings-panel .sp-section-desc{margin-top:4px;color:#64748b;font-size:12px}#jav-settings-panel .sp-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px}#jav-settings-panel .sp-setting-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.8fr);align-items:center;gap:14px;min-width:0;min-height:58px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-setting-row:focus-within{border-color:#93c5fd;box-shadow:0 0 0 2px rgba(59,130,246,.1)}#jav-settings-panel .sp-setting-copy{display:flex;flex-direction:column;gap:3px;min-width:0}#jav-settings-panel .sp-setting-copy strong{color:#1e293b;font-size:13px;font-weight:750}#jav-settings-panel .sp-setting-copy small{color:#64748b;font-size:11px;line-height:1.35}#jav-settings-panel .sp-setting-row>.sp-select,#jav-settings-panel .sp-setting-row>.sp-input{height:32px}#jav-settings-panel .sp-setting-row>.sp-select:disabled{opacity:.5;cursor:not-allowed}#jav-settings-panel .sp-range{width:100%;min-width:0;accent-color:#2563eb}#jav-settings-panel output{min-width:42px;color:#1d4ed8;font-size:12px;font-weight:800;text-align:right}#jav-settings-panel .sp-setting-row:has(.sp-range){grid-template-columns:minmax(0,1fr) minmax(90px,1fr) 42px}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;justify-self:end;width:44px;height:26px}#jav-settings-panel .sp-toggle input{position:absolute;inset:0;z-index:2;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#aeb4bc;border:1px solid rgba(71,85,105,.28);box-shadow:inset 0 2px 4px rgba(15,23,42,.18),inset 0 -1px 1px rgba(255,255,255,.38);transition:background .18s,border-color .18s,box-shadow .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:linear-gradient(145deg,#fff 0%,#f1f3f5 100%);border:1px solid rgba(148,163,184,.42);box-shadow:0 2px 5px rgba(15,23,42,.28),0 1px 1px rgba(255,255,255,.86) inset;transition:transform .2s cubic-bezier(.2,.8,.2,1)}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#35b96f;border-color:#238653;box-shadow:inset 0 2px 4px rgba(20,91,55,.24),inset 0 -1px 1px rgba(255,255,255,.34)}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-toggle input:focus-visible+.sp-toggle-track{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}#jav-settings-panel .sp-engine-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1.3fr)}#jav-settings-panel .sp-engine-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:7px;min-width:0}#jav-settings-panel .sp-button-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#jav-settings-panel .sp-subsection-title{grid-column:1 / -1;margin-top:4px;padding:3px 2px 1px;color:#334155;font-size:12px;font-weight:800;letter-spacing:.02em}#jav-settings-panel .sp-full-video-block{grid-column:1 / -1;display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-full-video-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;min-width:0}#jav-settings-panel .sp-full-video-controls .sp-setting-row{min-height:54px;padding:8px 0;border:0;border-radius:0;background:transparent}#jav-settings-panel .sp-full-video-controls .sp-setting-row:focus-within{border:0;border-radius:4px;box-shadow:inset 0 0 0 1px #93c5fd}#jav-settings-panel .sp-full-video-controls .sp-setting-row+.sp-setting-row{border-left:1px solid #e2e8f0;padding-left:16px}#jav-settings-panel .sp-button-grid .sp-chip{position:relative;margin:0;width:auto;min-height:58px;padding:10px 12px;cursor:pointer}#jav-settings-panel .sp-button-grid .sp-chip input{display:block;position:absolute;inset:0;z-index:2;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}#jav-settings-panel .sp-button-grid .sp-chip input:checked~.sp-toggle .sp-toggle-track{background:#35b96f;border-color:#238653}#jav-settings-panel .sp-button-grid .sp-chip input:checked~.sp-toggle .sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-order-block{grid-column:1 / -1;padding:12px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-cache-panel{grid-column:1 / -1;padding:12px;border:1px solid #dbeafe;border-radius:8px;background:linear-gradient(180deg,#f8fbff 0%,#fff 100%)}#jav-settings-panel .sp-cache-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-cache-panel-head strong,#jav-settings-panel .sp-cache-copy strong{display:block;color:#1e293b;font-size:13px;font-weight:750}#jav-settings-panel .sp-cache-panel-head small,#jav-settings-panel .sp-cache-copy small{display:block;margin-top:3px;color:#64748b;font-size:11px;line-height:1.4}#jav-settings-panel .sp-cache-all-btn,#jav-settings-panel .sp-cache-clear-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;padding:0 10px;border:1px solid #bae6fd;border-radius:7px;background:#f0f9ff;color:#0369a1;font-size:12px;font-weight:700;cursor:pointer;transition:background .16s,border-color .16s,color .16s,transform .16s}#jav-settings-panel .sp-cache-clear-btn{width:auto;height:32px;flex:0 0 auto;overflow:visible}#jav-settings-panel .sp-cache-clear-btn::after{display:none}#jav-settings-panel .sp-cache-all-btn{border-color:#93c5fd;background:#dbeafe;color:#1d4ed8;white-space:nowrap}#jav-settings-panel .sp-cache-all-btn:hover,#jav-settings-panel .sp-cache-clear-btn:hover{border-color:#38bdf8;background:#e0f2fe;color:#075985;transform:translateY(-1px)}#jav-settings-panel .sp-cache-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}#jav-settings-panel .sp-cache-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:9px 10px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-cache-copy{min-width:0}#jav-settings-panel .sp-cache-clear-btn span:last-child{white-space:nowrap}#jav-settings-panel .sp-cache-feedback{min-height:18px;margin-top:8px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-order-block .sp-order-list{margin-top:10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#jav-settings-panel .sp-order-block .sp-order-item{min-width:0;padding:8px 9px;border-radius:6px;background:#f8fafc}@media (max-width:720px){#jav-settings-panel{width:calc(100vw - 12px);height:calc(100dvh - 12px);min-height:0;max-height:none}#jav-settings-panel .sp-layout{display:flex;flex-direction:column}#jav-settings-panel .sp-nav{flex-direction:row;overflow-x:auto;padding:8px;border-right:0;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-nav-item{flex:0 0 112px;min-height:52px;padding:8px 9px}#jav-settings-panel .sp-nav-item small{display:none}#jav-settings-panel .sp-content{padding:14px 12px}#jav-settings-panel .sp-settings-grid,#jav-settings-panel .sp-button-grid{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-full-video-controls{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-full-video-controls .sp-setting-row+.sp-setting-row{border-top:1px solid #e2e8f0;border-left:0;padding-left:0}#jav-settings-panel .sp-setting-row,#jav-settings-panel .sp-setting-row:has(.sp-range),#jav-settings-panel .sp-engine-editor{grid-template-columns:minmax(0,1fr) minmax(105px,.8fr)}#jav-settings-panel .sp-setting-row:has(.sp-range){grid-template-columns:minmax(0,1fr) minmax(90px,1fr) 42px}#jav-settings-panel .sp-engine-editor{display:grid}#jav-settings-panel .sp-engine-controls{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-cache-list{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-cache-panel-head{align-items:flex-start;flex-direction:column}#jav-settings-panel .sp-order-block .sp-order-list{grid-template-columns:minmax(0,1fr)}}`);
+  GM_addStyle(`#jav-settings-overlay{position:fixed;inset:0;z-index:10000020;background:rgba(15,23,42,.62);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(7px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#jav-settings-panel{width:min(800px,94vw);max-height:88vh;background:linear-gradient(180deg,#f8fbff 0%,#f6f3ff 46%,#fff7ed 100%);color:#111827;border:1px solid rgba(148,163,184,.38);border-radius:16px;box-shadow:0 26px 76px rgba(15,23,42,.36);display:flex;flex-direction:column;overflow:hidden}#jav-settings-panel *{box-sizing:border-box}#jav-settings-panel .sp-header{padding:18px 22px;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 54%,#7c2d12 100%);border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between;flex:0 0 auto}#jav-settings-panel .sp-title{font-size:18px;font-weight:750;color:#fff}#jav-settings-panel .sp-close{width:32px;height:32px;border:1px solid rgba(255,255,255,.24);border-radius:8px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:18px;line-height:1}#jav-settings-panel .sp-close:hover{background:rgba(255,255,255,.18)}#jav-settings-panel .sp-body{padding:18px 22px;overflow:auto;display:grid;gap:14px;flex:1 1 auto;min-height:0;overscroll-behavior:contain;scrollbar-gutter:stable}#jav-settings-panel .sp-card{position:relative;background:rgba(255,255,255,.92);border:1px solid rgba(203,213,225,.88);border-radius:10px;padding:15px;box-shadow:0 10px 24px rgba(15,23,42,.06);overflow:hidden}#jav-settings-panel .sp-card::before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#2563eb}#jav-settings-panel .sp-card-magnet::before{background:#16a34a}#jav-settings-panel .sp-card-features::before{background:#00a85a}#jav-settings-panel .sp-card-order::before{background:#dc2626}#jav-settings-panel .sp-card-title{font-size:13px;font-weight:750;color:#1e293b;margin-bottom:12px}#jav-settings-panel .sp-card-jump::before{background:#6366f1}#jav-settings-panel .sp-card-jump .sp-grid{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}#jav-settings-panel .sp-feature-order-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:stretch}#jav-settings-panel .sp-feature-order-row>.sp-card{height:100%}#jav-settings-panel .sp-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#jav-settings-panel .sp-feature-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-item .sp-desc{margin-top:2px;font-size:11px}#jav-settings-panel .sp-feature-select{order:1;grid-column:2;display:grid;grid-template-columns:1fr 64px;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(180deg,#fff 0%,#f8fafc 100%)}#jav-settings-panel .sp-feature-select .sp-select{height:28px;padding:3px 2px 3px 4px;font-size:12px;text-align:left}#jav-settings-panel .sp-feature-magnet-display{order:1;grid-column:1;grid-template-columns:minmax(0,1fr) 100px}#jav-settings-panel .sp-feature-select:has(#sp-pan115-player){grid-template-columns:minmax(0,1fr) 100px}#jav-settings-panel .sp-feature-restore-toggle{order:4;grid-column:1 / -1;cursor:pointer}#jav-settings-panel .sp-feature-checkbox{width:18px;height:18px;flex:0 0 auto;accent-color:#4f46e5;cursor:pointer}#jav-settings-panel .sp-cache-clean{background:linear-gradient(135deg,#fff 0%,#f8fbff 58%,#f0f9ff 100%)}#jav-settings-panel .sp-cache-clear-btn{position:relative;width:34px;height:34px;flex:0 0 auto;display:grid;place-items:center;border:1px solid #bae6fd;border-radius:10px;background:linear-gradient(180deg,#f0f9ff,#fff);color:#0284c7;cursor:pointer;overflow:hidden;transition:transform .16s,border-color .16s,background .16s,color .16s,box-shadow .16s}#jav-settings-panel .sp-cache-clear-btn::after{content:'';position:absolute;inset:-8px;border-radius:inherit;background:radial-gradient(circle,rgba(14,165,233,.22),transparent 62%);opacity:0;transform:scale(.45);transition:opacity .22s,transform .22s}#jav-settings-panel .sp-cache-clear-btn:hover{transform:translateY(-1px);border-color:#38bdf8;color:#0369a1;box-shadow:0 8px 18px rgba(14,165,233,.18)}#jav-settings-panel .sp-cache-clear-btn:active{transform:translateY(0) scale(.96)}#jav-settings-panel .sp-cache-clear-btn.is-clearing::after{opacity:1;transform:scale(1)}#jav-settings-panel .sp-cache-clear-btn.is-done{border-color:#86efac;background:linear-gradient(180deg,#ecfdf5,#fff);color:#15803d}#jav-settings-panel .sp-cache-clear-icon{position:relative;z-index:1;display:inline-block;font-size:15px;line-height:1}#jav-settings-panel .sp-cache-clear-btn.is-clearing .sp-cache-clear-icon{animation:spCacheSpin .48s ease}@keyframes spCacheSpin{to{transform:rotate(360deg)}}#jav-settings-panel .sp-field{display:flex;flex-direction:column;gap:6px;min-width:0}#jav-settings-panel .sp-label{font-size:12px;font-weight:650;color:#475569}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{width:100%;min-width:0;height:34px;padding:6px 9px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#0f172a;font-size:13px;outline:none}#jav-settings-panel .sp-input:focus,#jav-settings-panel .sp-select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.13)}#jav-settings-panel .sp-engine-row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:end}#jav-settings-panel .sp-cache-actions{display:flex;align-items:center;gap:8px;margin-right:auto}#jav-settings-panel .sp-cache-feedback{min-width:64px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-footer-links{display:flex;align-items:center;gap:8px;margin-right:4px}#jav-settings-panel .sp-footer-link{color:#475569;font-size:12px;font-weight:700;text-decoration:none;padding:6px 8px;border-radius:7px}#jav-settings-panel .sp-footer-link:hover{color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-footer-sep{width:1px;height:16px;background:#cbd5e1}#jav-settings-panel .sp-desc{font-size:12px;color:#64748b;line-height:1.45}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;width:44px;height:26px;flex:0 0 auto}#jav-settings-panel .sp-toggle input{opacity:0;width:0;height:0}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#aeb4bc;border:1px solid rgba(71,85,105,.28);box-shadow:inset 0 2px 4px rgba(15,23,42,.18),inset 0 -1px 1px rgba(255,255,255,.38);cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;width:20px;height:20px;left:2px;top:2px;border-radius:50%;background:linear-gradient(145deg,#fff 0%,#f1f3f5 100%);border:1px solid rgba(148,163,184,.42);box-shadow:0 2px 5px rgba(15,23,42,.28),0 1px 1px rgba(255,255,255,.86) inset;transition:transform .2s cubic-bezier(.2,.8,.2,1)}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#35b96f;border-color:#238653;box-shadow:inset 0 2px 4px rgba(20,91,55,.24),inset 0 -1px 1px rgba(255,255,255,.34)}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-toggle input:focus-visible+.sp-toggle-track{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}#jav-settings-panel .sp-order-list{display:flex;flex-direction:column;gap:8px}#jav-settings-panel .sp-order-item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:8px;background:linear-gradient(90deg,#fff 0%,#f8fafc 100%);user-select:none}#jav-settings-panel .sp-order-name{font-size:13px;font-weight:700;color:#1e293b}#jav-settings-panel .sp-dot{width:9px;height:9px;border-radius:50%}#jav-settings-panel .sp-order-actions{display:flex;gap:5px}#jav-settings-panel .sp-order-btn{width:28px;height:28px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;cursor:pointer;font-size:14px;line-height:1}#jav-settings-panel .sp-order-btn:hover:not(:disabled){border-color:#2563eb;color:#1d4ed8;background:#eff6ff}#jav-settings-panel .sp-order-btn:disabled{opacity:.36;cursor:not-allowed}#jav-settings-panel .sp-footer{padding:14px 22px;background:rgba(255,255,255,.92);border-top:1px solid rgba(203,213,225,.86);display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:0 0 auto}#jav-settings-panel .sp-btn{height:34px;padding:0 16px;border-radius:8px;border:1px solid transparent;font-size:13px;font-weight:700;cursor:pointer}#jav-settings-panel .sp-btn-cancel{background:#fff;color:#475569;border-color:#cbd5e1}#jav-settings-panel .sp-btn-clear{background:#fff7ed;color:#9a3412;border-color:#fed7aa}#jav-settings-panel .sp-btn-clear:hover{background:#ffedd5}#jav-settings-panel .sp-btn-save{background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;box-shadow:0 8px 20px rgba(79,70,229,.25)}@media (max-width:640px){#jav-settings-panel .sp-grid,#jav-settings-panel .sp-engine-row,#jav-settings-panel .sp-feature-grid,#jav-settings-panel .sp-feature-order-row{grid-template-columns:1fr}#jav-settings-panel .sp-feature-item{grid-column:auto!important}#jav-settings-panel .sp-cache-actions{margin-right:0}#jav-settings-panel .sp-footer{flex-wrap:wrap}}#jav-settings-panel .sp-chip-group{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}#jav-settings-panel .sp-chip input{display:none}#jav-settings-panel .sp-chip-label{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:999px;border:.5px solid var(--color-border-secondary,#cbd5e1);background:var(--color-background-secondary,#f8fafc);color:var(--color-text-secondary,#64748b);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;user-select:none}#jav-settings-panel .sp-chip input:checked+.sp-chip-label{border-color:#6366f1;background:#eef2ff;color:#4338ca}#jav-settings-panel .sp-chip-label:hover{border-color:#a5b4fc;background:#f0f4ff;color:#4338ca}#jav-settings-panel .sp-chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.6;flex:0 0 auto}@media (max-width:720px){#jav-settings-overlay{align-items:flex-start;padding:6px}#jav-settings-panel{width:100%;max-height:calc(100dvh - 12px);border-radius:12px}#jav-settings-panel .sp-header{padding:14px 16px}#jav-settings-panel .sp-body{padding:12px;gap:10px}#jav-settings-panel .sp-card{padding:12px}#jav-settings-panel .sp-footer{padding:10px 12px;gap:8px}#jav-settings-panel .sp-btn{min-height:40px}#jav-settings-panel .sp-input,#jav-settings-panel .sp-select{min-height:40px;height:40px}#jav-settings-panel .sp-chip-label{min-height:36px;padding:7px 10px}}html[data-laosiji-mobile] #jav-settings-overlay{align-items:center;padding:6px}html[data-laosiji-mobile] #jav-settings-panel{width:min(800px,calc(100vw - 12px));height:calc(100dvh - 12px);max-height:calc(100dvh - 12px);min-height:0;box-sizing:border-box}html[data-laosiji-mobile] #jav-settings-panel .sp-body{display:flex;flex-direction:column;align-items:stretch;scroll-padding-block:12px;-webkit-overflow-scrolling:touch}html[data-laosiji-mobile] #jav-settings-panel .sp-grid,html[data-laosiji-mobile] #jav-settings-panel .sp-engine-row,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-grid,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-order-row{grid-template-columns:minmax(0,1fr)}html[data-laosiji-mobile] #jav-settings-panel .sp-feature-item,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-magnet-display,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-restore-toggle{grid-column:auto!important}html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-magnet-display,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-select:has(#sp-pan115-player){grid-template-columns:minmax(0,1fr) 108px}html[data-laosiji-mobile] #jav-settings-panel .sp-card,html[data-laosiji-mobile] #jav-settings-panel .sp-feature-order-row{flex:0 0 auto}html[data-laosiji-mobile] #jav-settings-panel .sp-footer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}html[data-laosiji-mobile] #jav-settings-panel .sp-cache-actions{display:grid;grid-column:1 / -1;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;width:100%;margin:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer-links{min-width:0;gap:2px;margin:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer-link{padding:6px 5px;white-space:nowrap}html[data-laosiji-mobile] #jav-settings-panel .sp-cache-feedback{grid-column:1 / -1;min-width:0}html[data-laosiji-mobile] #jav-settings-panel .sp-footer>.sp-btn{width:100%}#jav-settings-panel{width:min(1040px,calc(100vw - 32px));height:min(780px,calc(100dvh - 32px));min-height:0;max-height:none;background:#f8fafc}#jav-settings-panel .sp-body{padding:0;display:block;background:#f8fafc}#jav-settings-panel .sp-layout{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:0;height:100%}#jav-settings-panel .sp-nav{display:flex;flex-direction:column;gap:4px;padding:16px 10px;border-right:1px solid #e2e8f0;background:#f1f5f9}#jav-settings-panel .sp-nav-item{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;padding:11px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:#475569;text-align:left;cursor:pointer}#jav-settings-panel .sp-nav-item:hover{background:#e2e8f0;color:#1e3a8a}#jav-settings-panel .sp-nav-item.is-active{border-color:#bfdbfe;background:#fff;color:#1d4ed8;box-shadow:0 2px 5px rgba(15,23,42,.06)}#jav-settings-panel .sp-nav-label{font-size:13px;font-weight:800}#jav-settings-panel .sp-nav-item small{color:#64748b;font-size:10px;line-height:1.35}#jav-settings-panel .sp-nav-item.is-active small{color:#64748b}#jav-settings-panel .sp-content{min-width:0;min-height:0;overflow:auto;padding:20px 22px;overscroll-behavior:contain;scrollbar-gutter:stable}#jav-settings-panel .sp-section{display:block}#jav-settings-panel .sp-section[hidden]{display:none!important}#jav-settings-panel .sp-section-head{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-section-title{color:#0f172a;font-size:17px;font-weight:850}#jav-settings-panel .sp-section-desc{margin-top:4px;color:#64748b;font-size:12px}#jav-settings-panel .sp-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px}#jav-settings-panel .sp-setting-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.8fr);align-items:center;gap:14px;min-width:0;min-height:58px;padding:10px 12px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-setting-row:focus-within{border-color:#93c5fd;box-shadow:0 0 0 2px rgba(59,130,246,.1)}#jav-settings-panel .sp-setting-copy{display:flex;flex-direction:column;gap:3px;min-width:0}#jav-settings-panel .sp-setting-copy strong{color:#1e293b;font-size:13px;font-weight:750}#jav-settings-panel .sp-setting-copy small{color:#64748b;font-size:11px;line-height:1.35}#jav-settings-panel .sp-setting-row>.sp-select,#jav-settings-panel .sp-setting-row>.sp-input{height:32px}#jav-settings-panel .sp-setting-row>.sp-select:disabled{opacity:.5;cursor:not-allowed}#jav-settings-panel .sp-range{width:100%;min-width:0;accent-color:#2563eb}#jav-settings-panel output{min-width:42px;color:#1d4ed8;font-size:12px;font-weight:800;text-align:right}#jav-settings-panel .sp-setting-row:has(.sp-range){grid-template-columns:minmax(0,1fr) minmax(90px,1fr) 42px}#jav-settings-panel .sp-toggle{position:relative;display:inline-block;justify-self:end;width:44px;height:26px}#jav-settings-panel .sp-toggle input{position:absolute;inset:0;z-index:2;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}#jav-settings-panel .sp-toggle-track{position:absolute;inset:0;border-radius:999px;background:#aeb4bc;border:1px solid rgba(71,85,105,.28);box-shadow:inset 0 2px 4px rgba(15,23,42,.18),inset 0 -1px 1px rgba(255,255,255,.38);transition:background .18s,border-color .18s,box-shadow .18s}#jav-settings-panel .sp-toggle-track::before{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:linear-gradient(145deg,#fff 0%,#f1f3f5 100%);border:1px solid rgba(148,163,184,.42);box-shadow:0 2px 5px rgba(15,23,42,.28),0 1px 1px rgba(255,255,255,.86) inset;transition:transform .2s cubic-bezier(.2,.8,.2,1)}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track{background:#35b96f;border-color:#238653;box-shadow:inset 0 2px 4px rgba(20,91,55,.24),inset 0 -1px 1px rgba(255,255,255,.34)}#jav-settings-panel .sp-toggle input:checked+.sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-toggle input:focus-visible+.sp-toggle-track{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}#jav-settings-panel .sp-engine-editor{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,1.3fr)}#jav-settings-panel .sp-engine-controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:7px;min-width:0}#jav-settings-panel .sp-button-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#jav-settings-panel .sp-subsection-title{grid-column:1 / -1;margin-top:4px;padding:3px 2px 1px;color:#334155;font-size:12px;font-weight:800;letter-spacing:.02em}#jav-settings-panel .sp-full-video-block{grid-column:1 / -1;display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-full-video-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;min-width:0}#jav-settings-panel .sp-full-video-controls .sp-setting-row{min-height:54px;padding:8px 0;border:0;border-radius:0;background:transparent}#jav-settings-panel .sp-full-video-controls .sp-setting-row:focus-within{border:0;border-radius:4px;box-shadow:inset 0 0 0 1px #93c5fd}#jav-settings-panel .sp-full-video-controls .sp-setting-row+.sp-setting-row{border-left:1px solid #e2e8f0;padding-left:16px}#jav-settings-panel .sp-button-grid .sp-chip{position:relative;margin:0;width:auto;min-height:58px;padding:10px 12px;cursor:pointer}#jav-settings-panel .sp-button-grid .sp-chip input{display:block;position:absolute;inset:0;z-index:2;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}#jav-settings-panel .sp-button-grid .sp-chip input:checked~.sp-toggle .sp-toggle-track{background:#35b96f;border-color:#238653}#jav-settings-panel .sp-button-grid .sp-chip input:checked~.sp-toggle .sp-toggle-track::before{transform:translateX(18px)}#jav-settings-panel .sp-order-block{grid-column:1 / -1;padding:12px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-cache-panel{grid-column:1 / -1;padding:12px;border:1px solid #dbeafe;border-radius:8px;background:linear-gradient(180deg,#f8fbff 0%,#fff 100%)}#jav-settings-panel .sp-cache-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-cache-panel-head strong,#jav-settings-panel .sp-cache-copy strong{display:block;color:#1e293b;font-size:13px;font-weight:750}#jav-settings-panel .sp-cache-panel-head small,#jav-settings-panel .sp-cache-copy small{display:block;margin-top:3px;color:#64748b;font-size:11px;line-height:1.4}#jav-settings-panel .sp-cache-all-btn,#jav-settings-panel .sp-cache-clear-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;padding:0 10px;border:1px solid #bae6fd;border-radius:7px;background:#f0f9ff;color:#0369a1;font-size:12px;font-weight:700;cursor:pointer;transition:background .16s,border-color .16s,color .16s,transform .16s}#jav-settings-panel .sp-cache-clear-btn{width:auto;height:32px;flex:0 0 auto;overflow:visible}#jav-settings-panel .sp-cache-clear-btn::after{display:none}#jav-settings-panel .sp-cache-all-btn{border-color:#93c5fd;background:#dbeafe;color:#1d4ed8;white-space:nowrap}#jav-settings-panel .sp-cache-all-btn:hover,#jav-settings-panel .sp-cache-clear-btn:hover{border-color:#38bdf8;background:#e0f2fe;color:#075985;transform:translateY(-1px)}#jav-settings-panel .sp-cache-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}#jav-settings-panel .sp-cache-item{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:9px 10px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}#jav-settings-panel .sp-cache-copy{min-width:0}#jav-settings-panel .sp-cache-clear-btn span:last-child{white-space:nowrap}#jav-settings-panel .sp-cache-feedback{min-height:18px;margin-top:8px;color:#059669;font-size:12px;font-weight:650}#jav-settings-panel .sp-order-block .sp-order-list{margin-top:10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}#jav-settings-panel .sp-order-block .sp-order-item{min-width:0;padding:8px 9px;border-radius:6px;background:#f8fafc}@media (max-width:720px){#jav-settings-panel{width:calc(100vw - 12px);height:calc(100dvh - 12px);min-height:0;max-height:none}#jav-settings-panel .sp-layout{display:flex;flex-direction:column}#jav-settings-panel .sp-nav{flex-direction:row;overflow-x:auto;padding:8px;border-right:0;border-bottom:1px solid #e2e8f0}#jav-settings-panel .sp-nav-item{flex:0 0 112px;min-height:52px;padding:8px 9px}#jav-settings-panel .sp-nav-item small{display:none}#jav-settings-panel .sp-content{padding:14px 12px}#jav-settings-panel .sp-settings-grid,#jav-settings-panel .sp-button-grid{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-full-video-controls{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-full-video-controls .sp-setting-row+.sp-setting-row{border-top:1px solid #e2e8f0;border-left:0;padding-left:0}#jav-settings-panel .sp-setting-row,#jav-settings-panel .sp-setting-row:has(.sp-range),#jav-settings-panel .sp-engine-editor{grid-template-columns:minmax(0,1fr) minmax(105px,.8fr)}#jav-settings-panel .sp-setting-row:has(.sp-range){grid-template-columns:minmax(0,1fr) minmax(90px,1fr) 42px}#jav-settings-panel .sp-engine-editor{display:grid}#jav-settings-panel .sp-engine-controls{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-cache-list{grid-template-columns:minmax(0,1fr)}#jav-settings-panel .sp-cache-panel-head{align-items:flex-start;flex-direction:column}#jav-settings-panel .sp-order-block .sp-order-list{grid-template-columns:minmax(0,1fr)}}`);
  }
  const SettingsPanel = (() => {
   const MAGNET_ENGINES = [
@@ -789,7 +805,7 @@
    document.getElementById('jav-settings-overlay')?.remove(); injectSettingsPanelStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-settings-overlay';
    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
    const panel = document.createElement('div'); panel.id = 'jav-settings-panel';
-   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 原生FC2/TOP250页面</strong><small>JavDB 会员可开启此功能</small></span><span class="sp-toggle"><input id="sp-javdb-native-pages" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整视频播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放开关</strong><small>详情区封面加载完整视频播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>所选版本不可用时回落有码</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">默认有码</option><option value="uncensored">无码优先</option><option value="subtitle">中字优先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片中转播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整视频播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放开关</strong><small>详情区封面加载完整视频播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>所选版本不可用时回落有码</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">默认有码</option><option value="uncensored">无码优先</option><option value="subtitle">中字优先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片中转播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
    overlay.appendChild(panel); document.body.appendChild(overlay); const navItems = [...panel.querySelectorAll('[data-sp-section]')]; const sectionPanels = [...panel.querySelectorAll('[data-sp-panel]')];
    navItems.forEach(item => item.addEventListener('click', () => {
     const section = item.dataset.spSection;
@@ -800,11 +816,11 @@
    const videoEngineSelect = panel.querySelector('#sp-video-engine'); const magnetDisplaySelect = panel.querySelector('#sp-magnet-display'); const pan115PlayerSelect = panel.querySelector('#sp-pan115-player');
    const fullVideoPlaybackCheckbox = panel.querySelector('#sp-full-video-playback'); const fullVideoPreferenceSelect = panel.querySelector('#sp-full-video-preference'); const trailerProxyPlaybackCheckbox = panel.querySelector('#sp-trailer-proxy-playback');
    const trailerMultiQualityCheckbox = panel.querySelector('#sp-trailer-multi-quality'); const infiniteScrollRestoreCheckbox = panel.querySelector('#sp-infinite-scroll-restore'); const infiniteScrollCheckbox = panel.querySelector('#sp-infinite-scroll');
-   const javdbNativePagesCheckbox = panel.querySelector('#sp-javdb-native-pages'); const listPreviewCheckbox = panel.querySelector('#sp-list-preview'); const titleTranslateCheckbox = panel.querySelector('#sp-title-translate');
-   const listNewTabCheckbox = panel.querySelector('#sp-list-new-tab'); const portraitCardsCheckbox = panel.querySelector('#sp-portrait-cards'); const cardFxCheckbox = panel.querySelector('#sp-card-fx');
-   const coverHoverPreviewCheckbox = panel.querySelector('#sp-cover-hover-preview'); const detailPreviewCheckbox = panel.querySelector('#sp-detail-preview'); const reviewsExpandedCheckbox = panel.querySelector('#sp-reviews-expanded');
-   const actorHighlightCheckbox = panel.querySelector('#sp-actor-highlight'); const reviewFontSelect = panel.querySelector('#sp-review-font'); const apiTabSelect = panel.querySelector('#sp-api-tab');
-   const nativeMagnetTabSelect = panel.querySelector('#sp-native-magnet-tab'); const magnetSortSelect = panel.querySelector('#sp-magnet-sort');
+   const listPreviewCheckbox = panel.querySelector('#sp-list-preview'); const titleTranslateCheckbox = panel.querySelector('#sp-title-translate'); const listNewTabCheckbox = panel.querySelector('#sp-list-new-tab');
+   const portraitCardsCheckbox = panel.querySelector('#sp-portrait-cards'); const cardFxCheckbox = panel.querySelector('#sp-card-fx'); const coverHoverPreviewCheckbox = panel.querySelector('#sp-cover-hover-preview');
+   const detailPreviewCheckbox = panel.querySelector('#sp-detail-preview'); const reviewsExpandedCheckbox = panel.querySelector('#sp-reviews-expanded'); const actorHighlightCheckbox = panel.querySelector('#sp-actor-highlight');
+   const reviewFontSelect = panel.querySelector('#sp-review-font'); const apiTabSelect = panel.querySelector('#sp-api-tab'); const nativeMagnetTabSelect = panel.querySelector('#sp-native-magnet-tab');
+   const magnetSortSelect = panel.querySelector('#sp-magnet-sort');
    const btnToggles = Object.fromEntries(BUTTON_TOGGLE_META.map(({ key }) => (
     [key, panel.querySelector(`#sp-btn-${key}`)]
    ))); let proxyPlaybackValidation = null;
@@ -857,7 +873,6 @@
    });
    if (infiniteScrollRestoreCheckbox) infiniteScrollRestoreCheckbox.checked = CFG.infiniteScrollRestore;
    if (infiniteScrollCheckbox) infiniteScrollCheckbox.checked = CFG.infiniteScroll;
-   if (javdbNativePagesCheckbox) javdbNativePagesCheckbox.checked = CFG.javdbUseNativePages;
    if (listPreviewCheckbox) listPreviewCheckbox.checked = CFG.listPreviewQuick;
    if (titleTranslateCheckbox) titleTranslateCheckbox.checked = CFG.titleTranslate;
    if (listNewTabCheckbox) listNewTabCheckbox.checked = CFG.listOpenNewTab;
@@ -934,7 +949,6 @@
      magnetSort: CFG.magnetSort,
      infiniteScroll: CFG.infiniteScroll,
      infiniteScrollRestore: CFG.infiniteScrollRestore,
-     javdbUseNativePages: CFG.javdbUseNativePages,
      buttons: Object.fromEntries(BUTTON_TOGGLE_META.map(({ key, cfgKey }) => [key, CFG[cfgKey]])),
      thumbOrder: GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']),
     });
@@ -946,7 +960,6 @@
     CFG.coverHoverPreview = !!coverHoverPreviewCheckbox?.checked; CFG.detailPreviewInline = !!detailPreviewCheckbox?.checked; CFG.reviewsDefaultExpanded = !!reviewsExpandedCheckbox?.checked; CFG.reviewFontSize = reviewFontSelect?.value || 'large';
     CFG.apiMovieDefaultTab = apiTabSelect?.value || 'magnets'; CFG.javdbFavoriteActorHighlight = !!actorHighlightCheckbox?.checked; CFG.magnetDisplayMode = magnetDisplaySelect.value; CFG.magnetTable = CFG.magnetDisplayMode === 'sidebar';
     CFG.nativeMagnetDefaultTab = nativeMagnetTabSelect?.value || 'aggregate'; CFG.magnetSort = magnetSortSelect?.value || 'size'; CFG.infiniteScroll = !!infiniteScrollCheckbox?.checked; CFG.infiniteScrollRestore = !!infiniteScrollRestoreCheckbox?.checked;
-    CFG.javdbUseNativePages = !!javdbNativePagesCheckbox?.checked;
     BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { CFG[cfgKey] = btnToggles[key].checked; });
     GM_setValue('thumb_source_order', currentOrder); const pan115Changed = beforePan115Player !== nextPan115Player; const nonPan115Changed = beforeNonPan115 !== snapshotNonPan115(); closePanel();
     if (nonPan115Changed) { location.reload(); return; }
@@ -1330,11 +1343,6 @@
    if (!json) throw new Error('JavDB App API 登录返回异常');
    if (json.success !== 1 || !json?.data?.token) { debugLog('JavDB App API 登录失败返回:', json); throw new Error(json?.message || json?.action || 'JavDB App API 登录失败'); }
    return setJavdbApiToken(json.data.token); }
-  function javdbAuthHeader() {
-   const token = javdbApiToken();
-   if (!token) return {};
-   return { authorization: /^bearer\s+/i.test(token) ? token :`Bearer ${token}` };
-  }
   async function javdbApiRequest(path, params = {}, extraHeaders = {}) {
    const query = new URLSearchParams(params).toString();
    const url =`${JAVDB_API_BASE}${path}${query ? `?${query}` : ''}`;
@@ -1352,20 +1360,6 @@
    const json = parseJson(r.responseText);
    if (!json) throw new Error('JavDB API 返回异常');
    return json; }
-  function javdbArticleImageURL(value) {
-   try {
-    const imageURL = new URL(String(value || ''));
-    if (imageURL.hostname === 'tp.spfcas.com') { imageURL.hostname = 'c0.jdbstatic.com'; imageURL.pathname = imageURL.pathname.replace(/^\/[^/]+(\/articles\/images\/)/, '$1'); }
-    return imageURL.href;
-   } catch (_) { return value || ''; } }
-  function normalizeJavdbArticles(json) {
-   const articles = json?.data?.articles;
-   if (!Array.isArray(articles)) return json;
-   return { ...json,
-    data: { ...json.data,
-     articles: articles.map(article => ({ ...article,
-      cover_url: javdbArticleImageURL(article?.cover_url),
-     })), }, }; }
   function javdbMovieThumbURL(movie) {
    const id = String(movie?.id || '');
    return id.length >= 2
@@ -1383,40 +1377,6 @@
    token: javdbApiToken,
    setToken: setJavdbApiToken,
    login: javdbApiLogin,
-   async top250({ category = 'all', year = '', page = 1, limit = 50 } = {}) {
-    const params = { start_rank: 1, ignore_watched: 'false', page, limit };
-    if (category && category !== 'all') {
-     params.type = 'video_type'; params.type_value = category;
-     if (year) params.year = year;
-    } else if (year) {
-     params.type = 'year'; params.type_value = year;
-    } else {
-     params.type = 'all'; params.type_value = ''; }
-    return javdbApiRequest('/v1/movies/top', params, javdbAuthHeader()); },
-   async fc2({ period = 'daily', page = 1, limit = 40 } = {}) {
-    const json = await javdbApiRequest('/v1/rankings', {
-     period,
-     type: '3',
-    });
-    if (json.success !== 1) return json;
-    const movies = Array.isArray(json?.data?.movies) ? json.data.movies : []; const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit; const items = movies.slice(start, start + limit);
-    return {
-     success: 1,
-     data: {
-      movies: items,
-      total: items.length, }, }; },
-   async playback({ period = 'daily', filterBy = 'high_score', page = 1, limit = 40 } = {}) {
-    const json = await javdbApiRequest('/v1/rankings/playback', {
-     period,
-     filter_by: filterBy,
-    });
-    if (json.success !== 1) return json;
-    const movies = Array.isArray(json?.data?.movies) ? json.data.movies : []; const start = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit; const items = movies.slice(start, start + limit);
-    return {
-     success: 1,
-     data: {
-      movies: items,
-      total: movies.length, }, }; },
    async movieDetail(movieId) {
     return javdbApiRequest(`/v4/movies/${encodeURIComponent(movieId)}`);
    },
@@ -1431,11 +1391,6 @@
      limit,
      sort_by: sortBy,
     }); },
-   async articles({ page = 1, limit = 20 } = {}) {
-    return normalizeJavdbArticles(await javdbApiRequest('/v1/articles', { page, limit })); },
-   async articleDetail(articleId) {
-    return javdbApiRequest(`/v1/articles/${encodeURIComponent(articleId)}`);
-   },
    async hotReviews({ period = 'weekly', page = 1, limit = JAVDB_REVIEW_MORE_LIMIT } = {}) {
     return normalizeJavdbReviews(await javdbApiRequest('/v1/reviews/hotly', { period, page, limit })); },
    async relatedLists(movieId, { page = 1, limit = 20 } = {}) {
@@ -2256,7 +2211,7 @@
  function openJavdbApiLoginDialog(nextUrl = '') {
   if (!document.body) { setTimeout(() => openJavdbApiLoginDialog(nextUrl), 50); return; }
   addJavdbApiLoginStyles(); document.querySelector('#javdb-api-login-overlay')?.remove(); const overlay = document.createElement('div'); overlay.id = 'javdb-api-login-overlay';
-  overlay.innerHTML =`<div id="jm-login-box"><div id="jm-login-head">👑 JavDB 账号验证（免VIP功能）<span id="jm-login-close" role="button" tabindex="0" aria-label="关闭">×</span></div><div id="jm-login-body"><div>账号密码仅用于向 JavDB 官方手机接口换取 token，验证一次后长期有效。</div><input id="jm-login-user" type="text" autocomplete="off" placeholder="JavDB 用户名或邮箱"><input id="jm-login-pass" type="password" autocomplete="off" placeholder="JavDB 密码"><div id="jm-login-err" role="alert"></div><button id="jm-login-submit" type="button">验证登录</button></div></div>`;
+  overlay.innerHTML =`<div id="jm-login-box"><div id="jm-login-head">👑 JavDB 账号验证<span id="jm-login-close" role="button" tabindex="0" aria-label="关闭">×</span></div><div id="jm-login-body"><div>账号密码仅用于向 JavDB 官方手机接口换取 token，验证一次后长期有效。</div><input id="jm-login-user" type="text" autocomplete="off" placeholder="JavDB 用户名或邮箱"><input id="jm-login-pass" type="password" autocomplete="off" placeholder="JavDB 密码"><div id="jm-login-err" role="alert"></div><button id="jm-login-submit" type="button">验证登录</button></div></div>`;
   document.body.appendChild(overlay); const close = () => overlay.remove(); const submit = overlay.querySelector('#jm-login-submit'); const accountInput = overlay.querySelector('#jm-login-user'); const passwordInput = overlay.querySelector('#jm-login-pass');
   const error = overlay.querySelector('#jm-login-err');
   const showError = message => {
@@ -2281,7 +2236,7 @@
    } catch (err) { showError(err?.message || '验证失败，请检查账号和密码'); submit.disabled = false; submit.textContent = '验证登录'; }
   });
   setTimeout(() => accountInput.focus(), 0); }
- function renderJavdbApiLoginRequired(status, message = 'Top250 需要登录 JavDB API。可使用 JavDB 账号密码登录一次，脚本会在本地保存授权。', nextUrl = location.href) {
+ function renderJavdbApiLoginRequired(status, message = '需要登录 JavDB API。可使用 JavDB 账号密码登录一次，脚本会在本地保存授权。', nextUrl = location.href) {
   addJavdbApiLoginStyles();
   if (!status) { scheduleJavdbApiLoginDialog(nextUrl); return; }
   status.classList.add('is-error');
@@ -2930,7 +2885,7 @@
    if (pathHit) return decodeURIComponent(pathHit[1]);
    const tabUrl = document.querySelector('.review-tab[data-url*="/v/"], .list-tab[data-url*="/v/"]')?.dataset?.url || ''; const tabHit = tabUrl.match(/\/v\/([^/]+)/);
    if (tabHit) return decodeURIComponent(tabHit[1]);
-   return this._getApiDetailShellMode()?.movieId || ''; },
+   return ''; },
   _formatApiDate(value) { return JavdbApiTabRenderer.formatDate.call(this, value); },
   _formatApiSize(size) { return JavdbApiTabRenderer.formatSize.call(this, size); },
   _renderApiLinkedText(value) { return JavdbApiTabRenderer.renderLinkedText.call(this, value); },
@@ -3122,130 +3077,26 @@
     host.appendChild(form); (list || nav).appendChild(host);
    }); }, };
  const JavdbApiShellStyles = {
-  installFc2AdvancedSearch() {
-   injectStyle('javdb-fc2-advanced-search-style',`html[data-laosiji-fc2-advanced-search="1"] h2.section-title,html[data-laosiji-fc2-advanced-search="1"] .section .container>.box,html[data-laosiji-fc2-advanced-search="1"] body>section>div>.box{display:none!important}`);
-  },
-  installRankingShell() {
-   injectStyle('javdb-api-shell-style',`.javdb-api-shell{margin-top:10px!important}.javdb-api-shell-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin:8px 0 12px!important;flex-wrap:wrap!important}.javdb-api-shell-title{font-size:18px!important;font-weight:850!important;color:#1e293b!important}.javdb-api-shell-toolbar,.javdb-api-shell-pagination{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important}.javdb-api-shell-toolbar{margin:8px 0 12px!important}.javdb-api-shell-pagination{justify-content:center!important;margin:16px 0 8px!important}.javdb-api-shell-toolbar-group{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;width:100%!important}.javdb-api-shell-toolbar-label{color:#64748b!important;font-size:12px!important;font-weight:850!important;min-width:34px!important}.javdb-api-shell-toolbar a,.javdb-api-shell-pagination a,.javdb-api-shell-pagination span{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:30px!important;padding:5px 12px!important;border:1px solid #dbe3ef!important;border-radius:7px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;text-decoration:none!important}.javdb-api-shell-toolbar a.is-active,.javdb-api-shell-pagination a.is-active{border-color:#60a5fa!important;background:#eff6ff!important;color:#1d4ed8!important}.javdb-api-shell-status{margin:10px 0!important;padding:10px 12px!important;border:1px solid #e2e8f0!important;border-radius:8px!important;background:#f8fafc!important;color:#475569!important;font-size:13px!important;font-weight:700!important}.javdb-api-shell-status.is-error{border-color:#fecaca!important;background:#fff1f2!important;color:#be123c!important}`);
-  },
   installDetailShell() {
    injectStyle('javdb-api-detail-style',`.javdb-fc2-detail-samples-section{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin-top:20px!important;overflow:hidden!important}.javdb-fc2-detail-sample-heading{margin:0 0 12px!important;color:#0f172a!important;font-size:17px!important;font-weight:900!important}.javdb-fc2-detail-magnet{margin-top:20px!important;box-sizing:border-box!important;overflow:visible!important}.javdb-fc2-detail-magnet-title{margin:0 0 12px!important;color:#0f172a!important;font-size:17px!important;font-weight:900!important}.javdb-fc2-detail-magnet-body{width:100%!important;min-width:0!important}.javdb-fc2-detail-magnet-body>.jav-nong-wrapper{max-width:100%!important}html[data-theme="dark"] .javdb-fc2-detail-sample-heading,html[data-theme="dark"] .javdb-fc2-detail-magnet-title{color:#f8fafc!important}`);
   }, };
  const JavdbApiShell = {
-  _apiRankingShellUrl(mode, next = {}) {
-   const params = new URLSearchParams(); params.set('laosiji_rank', mode);
-   if (mode === 'top') {
-    params.set('lsj_category', next.category || 'all');
-    if (next.year) params.set('lsj_year', next.year);
-   } else if (mode === 'playback') {
-    params.set('lsj_period', next.period || 'daily'); params.set('lsj_filter_by', next.filterBy || 'high_score');
-   } else { params.set('lsj_period', next.period || 'daily'); }
-   if (next.page && next.page > 1) params.set('lsj_page', String(next.page));
-   return `/search_advanced?${params.toString()}`;
-  },
-  _apiDetailShellUrl(movieId) {
-   const id = String(movieId || '').trim();
-   if (!id) return '';
-   return `/search_advanced?laosiji_detail=fc2&movie_id=${encodeURIComponent(id)}`;
-  },
-  _getApiDetailShellMode() {
-   const path = location.pathname.replace(/\/+$/, '');
-   if (path !== '/search_advanced') return null;
-   const params = new URLSearchParams(location.search);
-   if (params.get('laosiji_detail') !== 'fc2') return null;
-   const movieId = params.get('movie_id') || '';
-   if (!movieId) return null;
-   return { movieId }; },
-  _apiTopTypeFromRankingParams(params) {
-   const t = params.get('t') || '';
-   if (/^y\d{4}$/i.test(t)) return { category: 'all', year: t.slice(1) };
-   if (t) return { category: t, year: '' };
-   return { category: 'all', year: '' }; },
-  _apiRankingShellUrlFromHref(href) {
+  _retiredCustomPageUrl(href) {
    try {
     const url = new URL(href, location.href);
     if (!/javdb/i.test(url.hostname)) return '';
     const path = url.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(url.search);
-    if (path === '/search_advanced' && /^(top|fc2|playback)$/.test(params.get('laosiji_rank') || '')) {
-     return `${url.pathname}${url.search}`;
-    }
-    if (path === '/rankings/top') {
-     const topType = this._apiTopTypeFromRankingParams(params);
-     return this._apiRankingShellUrl('top', {
-      category: topType.category,
-      year: topType.year,
-      page: parseInt(params.get('page') || '1', 10) || 1,
-     }); }
-    if (path === '/rankings/movies' && params.get('t') === 'fc2') {
-     return this._apiRankingShellUrl('fc2', {
-      period: params.get('p') || 'daily',
-      page: parseInt(params.get('page') || '1', 10) || 1,
-     }); }
-    if (path === '/rankings/playback') {
-     return this._apiRankingShellUrl('playback', {
-      period: params.get('p') || params.get('period') || 'daily',
-      filterBy: params.get('filter_by') || 'high_score',
-      page: parseInt(params.get('page') || '1', 10) || 1,
-     }); }
-    if (path === '/fc2' || path === '/tags/fc2') { return '/search_advanced?type=3&score_min=0&d=1&laosiji_fc2=1'; }
-   } catch {}
-   return ''; },
-  _isTopRankingShellUrl(href) {
-   try {
-    const url = new URL(href, location.href); return url.pathname.replace(/\/+$/, '') === '/search_advanced' && new URLSearchParams(url.search).get('laosiji_rank') === 'top';
-   } catch {}
-   return false; },
-  _movieIdFromJavdbHref(href) {
-   try {
-    const url = new URL(href, location.href);
-    if (!/javdb/i.test(url.hostname)) return '';
-    const m = url.pathname.match(/^\/v\/([^/?#]+)/); return m ? decodeURIComponent(m[1]) : '';
-   } catch {}
-   return ''; },
-  _isFc2ListContext() {
-   const path = location.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(location.search);
-   if (path === '/search_advanced' && params.get('type') === '3') return true;
-   const mode = this._getApiRankingShellMode(); return mode?.mode === 'fc2'; },
-  _isScriptFc2AdvancedSearch() {
-   const path = location.pathname.replace(/\/+$/, '');
-   if (path !== '/search_advanced') return false;
-   const params = new URLSearchParams(location.search); return params.get('type') === '3' && params.get('laosiji_fc2') === '1'; },
-  _hideScriptFc2AdvancedSearchBox() {
-   if (!this._isScriptFc2AdvancedSearch()) return;
-   document.documentElement.dataset.laosijiFc2AdvancedSearch = '1'; JavdbApiShellStyles.installFc2AdvancedSearch(); this._rewriteFc2AdvancedSearchPagination(); revealJavdbApiRouteShell?.(); },
-  _rewriteFc2AdvancedSearchPagination(root = document) {
-   root.querySelectorAll?.('.pagination a[href]').forEach(link => {
-    try {
-     const url = new URL(link.getAttribute('href') || '', location.href);
-     if (url.origin !== location.origin || url.pathname.replace(/\/+$/, '') !== '/search_advanced') return;
-     url.searchParams.set('type', '3'); url.searchParams.set('laosiji_fc2', '1');
-     link.href = `${url.pathname}${url.search}${url.hash}`;
-    } catch (_) {
-    }
-   }); },
-  _fc2DetailShellUrlFromLink(link) {
-   if (CFG.javdbUseNativePages) return '';
-   const movieId = this._movieIdFromJavdbHref(link?.getAttribute?.('href') || link?.href || '');
-   if (!movieId) return '';
-   const text = link.closest?.('.item, .movie-list .item, .box')?.textContent || link.textContent || '';
-   if (!this._isFc2ListContext() && !/FC2[-_]/i.test(text)) return '';
-   return this._apiDetailShellUrl(movieId); },
-  _nativeUrlFromApiShellHref(href) {
-   try {
-    const url = new URL(href, location.href);
-    if (!/javdb/i.test(url.hostname)) return '';
-    const path = url.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(url.search); const page = Math.max(1, parseInt(params.get('lsj_page') || '1', 10) || 1);
     if (path !== '/search_advanced') return '';
     if (params.get('laosiji_detail') === 'fc2') {
      const movieId = params.get('movie_id') || '';
-     return movieId ? `/v/${encodeURIComponent(movieId)}` : '';
+     return movieId ? `/v/${encodeURIComponent(movieId)}` : '/fc2';
     }
     if (params.get('laosiji_fc2') === '1') return '/fc2';
-    const mode = params.get('laosiji_rank') || '';
+    const mode = params.get('laosiji_rank') || ''; const page = Math.max(1, parseInt(params.get('lsj_page') || '1', 10) || 1);
     if (mode === 'top') {
-     const native = new URL('/rankings/top', url.origin); const category = params.get('lsj_category') || 'all'; const year = params.get('lsj_year') || '';
+     const native = new URL('/rankings/top', url.origin); const category = params.get('lsj_category') || params.get('lsj_type_value') || 'all'; const year = params.get('lsj_year') || '';
      if (year) native.searchParams.set('t', `y${year}`);
-     else if (category !== 'all') native.searchParams.set('t', category);
+     else if (category && category !== 'all') native.searchParams.set('t', category);
      if (page > 1) native.searchParams.set('page', String(page));
      return `${native.pathname}${native.search}`;
     }
@@ -3261,70 +3112,12 @@
     }
    } catch {}
    return ''; },
-  _isNativeFc2OrTopRankingUrl(href) {
-   try {
-    const url = new URL(href, location.href);
-    if (!/javdb/i.test(url.hostname)) return false;
-    const path = url.pathname.replace(/\/+$/, '');
-    if (path === '/fc2' || path === '/tags/fc2' || path === '/rankings/top') return true;
-    return path === '/rankings/movies' && url.searchParams.get('t') === 'fc2';
-   } catch (_) { return false; } },
-  _rewriteFc2DetailLinks(root = document) {
-   root.querySelectorAll?.('a[href*="/v/"]').forEach(link => {
-    const shellUrl = this._fc2DetailShellUrlFromLink(link);
-    if (!shellUrl) return;
-    link.dataset.laosijiFc2DetailShell = '1'; link.href = shellUrl;
-   }); },
-  _redirectCurrentApiRankingEntry() {
-   const shellUrl = this._apiRankingShellUrlFromHref(location.href);
-   if (!shellUrl) return false;
-   const currentPath = location.pathname.replace(/\/+$/, '');
-   if (currentPath === '/search_advanced') return false;
-   if (this._navigateCustomSpa(shellUrl, { replace: true })) return true;
-   location.replace(shellUrl); return true; },
-  _redirectCurrentNativeEntry() {
-   const nativeUrl = this._nativeUrlFromApiShellHref(location.href);
+  _redirectRetiredCustomEntry() {
+   const nativeUrl = this._retiredCustomPageUrl(location.href);
    if (!nativeUrl) return false;
    location.replace(nativeUrl); return true; },
-  _rewriteApiRankingLinks(root = document) {
-   root.querySelectorAll?.('a[href]').forEach(link => {
-    const shellUrl = this._apiRankingShellUrlFromHref(link.getAttribute('href'));
-    if (!shellUrl) return;
-    link.dataset.laosijiApiRankingShell = '1'; link.href = shellUrl;
-   });
-   this._rewriteFc2DetailLinks(root); },
   _customPageSpaToken: 0,
   _customPageSpaActive: false,
-  _fc2AdvancedSearchSnapshot: null,
-  _captureFc2AdvancedSearchSnapshot() {
-   if (!this._isScriptFc2AdvancedSearch()) return;
-   const container = document.querySelector('body > section > div, .section .container');
-   if (!container) return;
-   this._fc2AdvancedSearchSnapshot = {
-    href: `${location.pathname}${location.search}${location.hash}`,
-    html: container.innerHTML, };
-   history.replaceState({ ...(history.state || {}), laosijiFc2AdvancedSearchSnapshot: true }, '', location.href); },
-  _restoreFc2AdvancedSearchSnapshot() {
-   const snapshot = this._fc2AdvancedSearchSnapshot;
-   const current = `${location.pathname}${location.search}${location.hash}`;
-   if (!snapshot || snapshot.href !== current || !this._isScriptFc2AdvancedSearch()) return false;
-   const container = document.querySelector('body > section > div, .section .container');
-   if (!container) return false;
-   container.innerHTML = snapshot.html; this._customPageSpaToken += 1; this._customPageSpaActive = false; this._hideScriptFc2AdvancedSearchBox(); this._initListPage(); this._insertResourceNav(); Runtime.refreshListPage?.(); return true; },
-  async _initFc2AdvancedSearchSpa() {
-   const href = location.href; const container = document.querySelector('body > section > div, .section .container');
-   if (!container) { location.reload(); return false; }
-   container.innerHTML = '<div class="javdb-api-shell-status">正在加载 FC2 分类...</div>'; this._hideScriptFc2AdvancedSearchBox();
-   try {
-    const response = await fetch(href, { credentials: 'include' });
-    if (!response.ok) throw new Error(`FC2 分类请求失败 (${response.status})`);
-    const page = new DOMParser().parseFromString(await response.text(), 'text/html'); const source = page.querySelector('body > section > div, .section .container');
-    if (!source) throw new Error('FC2 分类页面结构无效');
-    if (location.href !== href) return true;
-    container.innerHTML = source.innerHTML; this._hideScriptFc2AdvancedSearchBox(); this._initListPage(); this._insertResourceNav(); Runtime.refreshListPage?.(); return true;
-   } catch (_) {
-    if (location.href === href) location.reload();
-    return false; } },
   _getCustomSpaHref(href) {
    try {
     const url = new URL(href, location.href);
@@ -3354,7 +3147,6 @@
     else location.assign(next);
     return true; }
    if (!replace && next === current) return true;
-   this._captureFc2AdvancedSearchSnapshot();
    this._paintCustomSpa(() => {
     if (replace) history.replaceState(history.state, '', next);
     else history.pushState({ laosijiCustomPage: 1 }, '', next);
@@ -3362,8 +3154,7 @@
    });
    return true; },
   _renderCustomSpa(options = {}) {
-   const token = ++this._customPageSpaToken; this._customPageSpaActive = true; document.documentElement.classList.remove('laosiji-content-route'); delete document.documentElement.dataset.laosijiFc2AdvancedSearch;
-   const is123Av = typeof Javdb123AvFc2?.parseRoute === 'function' && Javdb123AvFc2.parseRoute();
+   const token = ++this._customPageSpaToken; this._customPageSpaActive = true; document.documentElement.classList.remove('laosiji-content-route'); const is123Av = typeof Javdb123AvFc2?.parseRoute === 'function' && Javdb123AvFc2.parseRoute();
    if (is123Av) document.documentElement.dataset.laosiji123avFc2 = '1';
    else delete document.documentElement.dataset.laosiji123avFc2;
    const run = promise => {
@@ -3376,18 +3167,9 @@
     run(Javdb123AvFc2.init()); painted = true;
    } else {
     Javdb123AvFc2?.cancelRender?.();
-    if (this._getContentMode?.()) {
-     run(this._initContentPage()); painted = true;
-    } else if (CFG.javdbUseNativePages) {
-     const nativeUrl = this._nativeUrlFromApiShellHref(location.href);
-     if (nativeUrl) { location.replace(nativeUrl); return true; }
-     return false;
-    } else if (this._isScriptFc2AdvancedSearch()) {
-     run(this._initFc2AdvancedSearchSpa()); painted = true;
-    } else if (this._getApiRankingShellMode()) {
-     run(this._initApiRankingShellPage()); painted = true;
-    } else if (this._getApiDetailShellMode()) {
-     run(this._initApiDetailShellPage()); painted = true; } }
+    if (this._redirectRetiredCustomEntry()) return true;
+    if (this._getContentMode?.()) { run(this._initContentPage()); painted = true; }
+   }
    if (options.scroll !== false && painted) window.scrollTo(0, 0);
    return painted; },
   _installCustomPageSpa() {
@@ -3396,21 +3178,17 @@
    document.addEventListener('click', event => {
     const link = event.target?.closest?.('a[href]');
     if (!link || event.defaultPrevented) return;
-    if (CFG.javdbUseNativePages && this._isNativeFc2OrTopRankingUrl(link.href)) return;
-    const rewritten = this._fc2DetailShellUrlFromLink(link) || this._apiRankingShellUrlFromHref(link.href); const nativeHref = CFG.javdbUseNativePages ? this._nativeUrlFromApiShellHref(rewritten || link.href) : '';
-    const navigationHref = nativeHref || rewritten || link.href;
+    const retired = this._retiredCustomPageUrl(link.href); const navigationHref = retired || link.href;
     if (navigationHref !== link.href) link.href = navigationHref;
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     if (link.target === '_blank') return;
     const spaHref = this._getCustomSpaHref(navigationHref);
     if (!spaHref) return;
-    event.preventDefault(); event.stopPropagation(); this._closeNativeNavigationMenus(link);
-    if (this._isTopRankingShellUrl(spaHref) && !Magnet.javdbApi.token()) { openJavdbApiLoginDialog(spaHref); return; }
-    this._navigateCustomSpa(spaHref);
+    event.preventDefault(); event.stopPropagation(); this._closeNativeNavigationMenus(link); this._navigateCustomSpa(spaHref);
    }, true);
    window.addEventListener('popstate', () => {
     if (!/(?:jav(?:db|bus|library|lib)|r86m|s87n)/i.test(location.hostname)) return;
-    if (this._isScriptFc2AdvancedSearch() && this._restoreFc2AdvancedSearchSnapshot()) return;
+    if (this._redirectRetiredCustomEntry()) return;
     if (this._getCustomSpaHref(location.href)) {
      this._paintCustomSpa(() => this._renderCustomSpa({ scroll: false }));
      return; }
@@ -3421,136 +3199,7 @@
    document.querySelectorAll('.navbar-item.has-dropdown.is-active').forEach(item => { item.classList.remove('is-active'); });
    document.querySelectorAll('.navbar-menu.is-active, .navbar-burger.is-active').forEach(item => {
     item.classList.remove('is-active'); item.setAttribute('aria-expanded', 'false');
-   }); },
-  _installApiRankingShell() {
-   this._installCustomPageSpa();
-   if (document.documentElement.dataset.laosijiJavdbApiShell === '1') { this._rewriteApiRankingLinks(); return; }
-   document.documentElement.dataset.laosijiJavdbApiShell = '1'; this._rewriteApiRankingLinks(); setTimeout(() => this._rewriteApiRankingLinks(), 500); setTimeout(() => this._rewriteApiRankingLinks(), 1500);
-   if (document.body) { new MutationObserver(() => this._rewriteApiRankingLinks()).observe(document.body, { childList: true, subtree: true }); }
-  },
-  _getApiRankingShellMode() {
-   const path = location.pathname.replace(/\/+$/, '');
-   if (path !== '/search_advanced') return null;
-   const params = new URLSearchParams(location.search); const mode = params.get('laosiji_rank') || '';
-   if (!/^(top|fc2|playback)$/.test(mode)) return null;
-   const legacyType = params.get('lsj_type') || ''; const legacyValue = params.get('lsj_type_value') || ''; let category = params.get('lsj_category') || ''; let year = params.get('lsj_year') || '';
-   if (!category && legacyType === 'video_type') category = legacyValue;
-   if (!year && legacyType === 'year') year = legacyValue;
-   if (!category) category = 'all';
-   return { mode, params, page: Math.max(1, parseInt(params.get('lsj_page') || '1', 10) || 1), category, year, period: params.get('lsj_period') || 'daily', filterBy: params.get('lsj_filter_by') || 'high_score' }; }, };
- const JavdbApiRanking = {
-  _ensureApiRankingShellStyle() { return JavdbApiShellStyles.installRankingShell(); },
-  _renderApiRankingToolbar(modeInfo) {
-   if (modeInfo.mode === 'top') {
-    const items = [ ['all', '全部'], ['0', '有码'], ['1', '无码'], ['2', '欧美'], ['3', 'FC2'] ];
-    const categoryLinks = items.map(([category, label]) => {
-     const active = modeInfo.category === category;
-     const href = this._apiRankingShellUrl('top', { category, year: modeInfo.year, page: 1 });
-     return `<a class="${active ? 'is-active' : ''}" href="${href}">${label}</a>`;
-    }).join('');
-    const currentYear = new Date().getFullYear(); const allYearActive = !modeInfo.year;
-    const allYearLink = `<a class="${allYearActive ? 'is-active' : ''}" href="${this._apiRankingShellUrl('top', { category: modeInfo.category, year: '', page: 1 })}">全部年份</a>`;
-    const yearLinks = Array.from({ length: Math.max(0, currentYear - 2008 + 1) }, (_, i) => currentYear - i) .map(year => {
-      const value = String(year); const active = modeInfo.year === value;
-      const href = this._apiRankingShellUrl('top', { category: modeInfo.category, year: value, page: 1 });
-      return `<a class="${active ? 'is-active' : ''}" href="${href}">${value}</a>`;
-     }).join('');
-    return `<div class="javdb-api-shell-toolbar-group"><span class="javdb-api-shell-toolbar-label">分类</span> ${categoryLinks} </div><div class="javdb-api-shell-toolbar-group"><span class="javdb-api-shell-toolbar-label">年份</span> ${allYearLink}${yearLinks} </div>`;
-   }
-   const items = [ ['daily', '日榜'], ['weekly', '周榜'], ['monthly', '月榜'] ];
-   const periodLinks = items.map(([period, label]) => {
-    const active = modeInfo.period === period;
-    const href = this._apiRankingShellUrl(modeInfo.mode, {
-     period,
-     filterBy: modeInfo.filterBy,
-     page: 1,
-    });
-    return `<a class="${active ? 'is-active' : ''}" href="${href}">${label}</a>`;
-   }).join('');
-   if (modeInfo.mode !== 'playback') return periodLinks;
-   const filters = [ ['high_score', '高评分'] ];
-   const filterLinks = filters.map(([filterBy, label]) => {
-    const active = modeInfo.filterBy === filterBy;
-    const href = this._apiRankingShellUrl('playback', {
-     period: modeInfo.period,
-     filterBy,
-     page: 1,
-    });
-    return `<a class="${active ? 'is-active' : ''}" href="${href}">${label}</a>`;
-   }).join('');
-   return `<div class="javdb-api-shell-toolbar-group"><span class="javdb-api-shell-toolbar-label">周期</span> ${periodLinks} </div><div class="javdb-api-shell-toolbar-group"><span class="javdb-api-shell-toolbar-label">排序</span> ${filterLinks} </div>`;
-  },
-  _renderApiRankingPagination(modeInfo, hasNext) {
-   const page = modeInfo.page;
-   const href = nextPage => {
-    if (modeInfo.mode === 'top') { return this._apiRankingShellUrl('top', { category: modeInfo.category, year: modeInfo.year, page: nextPage }); }
-    if (modeInfo.mode === 'playback') { return this._apiRankingShellUrl('playback', { period: modeInfo.period, filterBy: modeInfo.filterBy, page: nextPage }); }
-    return this._apiRankingShellUrl('fc2', { period: modeInfo.period, page: nextPage }); };
-   const pages = modeInfo.mode === 'top'
-    ? [1, 2, 3, 4, 5].map(item => `<a class="${item === page ? 'is-active' : ''}" href="${href(item)}">${item}</a>`).join('')
-    : `<span>第 ${page} 页</span>`;
-   return `<div class="javdb-api-shell-pagination"> ${page > 1 ? `<a href="${href(page - 1)}">上一页</a>` : ''}${pages}${hasNext ? `<a href="${href(page + 1)}">下一页</a>` : ''} </div>`;
-  },
-  _renderApiRankingMovies(movies) {
-   const updateCover = value => String(value || '').replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
-   return movies.map(raw => {
-    const item = raw?.movie || raw; const title = item?.origin_title || item?.title || '';
-    const score = item?.score ? `<span class="value">${this._escapeHtml(item.score)}分${item?.watched_count ? `, 由${this._escapeHtml(item.watched_count)}人評價` : ''}</span>` : '';
-    const tags = [
-     item?.has_cnsub ? '<span class="tag is-warning">中文字幕</span>' : '',
-     Number(item?.magnets_count || 0) > 0 ? '<span class="tag is-success">含磁鏈</span>' : '',
-     Number(item?.magnets_count || 0) <= 0 ? '<span class="tag">無磁鏈</span>' : '',
-     item?.new_magnets ? '<span class="tag is-info">今日新種</span>' : '',
-    ].filter(Boolean).join('');
-    const href = /^FC2[-_]/i.test(String(item?.number || '')) ? this._apiDetailShellUrl(item?.id || '')
-     : `/v/${this._escapeHtml(item?.id || '')}`;
-    return `<div class="item" data-javdb-api-shell-item="1"><a href="${this._escapeHtml(href)}" class="box" title="${this._escapeHtml(title)}"><div class="cover "><img loading="lazy" src="${this._escapeHtml(updateCover(item?.cover_url || item?.thumb_url || ''))}" alt=""></div><div class="video-title"><strong>${this._escapeHtml(item?.number || '')}</strong> ${this._escapeHtml(title)}</div><div class="score">${score}</div><div class="meta">${this._escapeHtml(item?.release_date || '')}</div><div class="tags has-addons">${tags}</div></a></div>`;
-   }).join(''); },
-  async _initApiRankingShellPage() {
-   const href = location.href; const modeInfo = this._getApiRankingShellMode();
-   if (!modeInfo) { return false; }
-   const container = document.querySelector('body > section > div, .section .container');
-   if (!container) { revealJavdbApiRouteShell?.(); return false; }
-   this._ensureApiRankingShellStyle(); const title = modeInfo.mode === 'top' ? 'Top250' : modeInfo.mode === 'playback' ? '热播' : 'FC2 排行榜';
-   container.innerHTML = `<div class="javdb-api-shell"><div class="javdb-api-shell-head"><div class="javdb-api-shell-title"> ${title} </div></div><div class="javdb-api-shell-toolbar"> ${this._renderApiRankingToolbar(modeInfo)} </div><div class="javdb-api-shell-status">正在加载 API 数据...</div><div class="movie-list h cols-4 vcols-8"></div><div class="javdb-api-shell-pagination-wrap"></div></div>`;
-   revealJavdbApiRouteShell?.(); this._insertResourceNav?.(); const status = container.querySelector('.javdb-api-shell-status'); const list = container.querySelector('.movie-list');
-   const pagination = container.querySelector('.javdb-api-shell-pagination-wrap');
-   try {
-    let json;
-    if (modeInfo.mode === 'top') {
-     if (!Magnet.javdbApi.token()) { renderJavdbApiLoginRequired(status); scheduleJavdbApiLoginDialog(location.href); return true; }
-     json = await Magnet.javdbApi.top250({
-      category: modeInfo.category,
-      year: modeInfo.year,
-      page: modeInfo.page,
-      limit: 50,
-     });
-    } else if (modeInfo.mode === 'playback') {
-     json = await Magnet.javdbApi.playback({
-      period: modeInfo.period,
-      filterBy: modeInfo.filterBy,
-      page: modeInfo.page,
-      limit: 40,
-     });
-    } else {
-     json = await Magnet.javdbApi.fc2({
-      period: modeInfo.period,
-      page: modeInfo.page,
-      limit: 40,
-     }); }
-    if (location.href !== href) return true;
-    if (json.success !== 1) throw new Error(json.message || json.action || 'JavDB API 请求失败');
-    const movies = Array.isArray(json?.data?.movies) ? json.data.movies : [];
-    if (!movies.length) { status.textContent = '没有查询到数据。'; return true; }
-    const total = Number(json?.data?.total || 0); list.innerHTML = this._renderApiRankingMovies(movies);
-    status.textContent = total ? `已加载 ${movies.length} 条数据，共 ${total} 条匹配` : `已加载 ${movies.length} 条数据`;
-    const hasNext = modeInfo.mode === 'top' ? modeInfo.page < 5 : (total ? modeInfo.page * 40 < total : movies.length >= 40); pagination.innerHTML = this._renderApiRankingPagination(modeInfo, hasNext); this._initListPage(); PageZoom.apply('javdb');
-    Runtime.refreshListPage(); return true;
-   } catch (err) {
-    errorLog('JavDB API 榜单请求失败:', err);
-    if (isJavdbApiAuthError(err)) {
-     Magnet.javdbApi.setToken(''); renderJavdbApiLoginRequired(status, 'JavDB API 登录状态已失效，请重新登录一次。'); delete document.documentElement.dataset.laosijiJavdbApiLoginPrompted; scheduleJavdbApiLoginDialog(location.href); return true; }
-    status.classList.add('is-error'); status.textContent = err.message || 'JavDB API 请求失败'; return true; } }, };
+   }); }, };
  const JavdbFc2DetailRenderer = (() => {
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
    '&': '&amp;',
@@ -3576,123 +3225,57 @@
   return { installStyles, render, escapeHtml };
  })();
  Core.expose('__LAOSIJI_FC2_DETAIL_RENDERER__', JavdbFc2DetailRenderer);
- const JavdbApiDetail = {
-  _ensureApiDetailShellStyle() {
-   JavdbFc2DetailRenderer.installStyles(); return JavdbApiShellStyles.installDetailShell(); },
-  _mountStandaloneMagnet(root, avid, siteId = 'javdb') {
-   const body = root?.querySelector?.('.javdb-fc2-detail-magnet-body');
-   if (!body || !avid || typeof Magnet === 'undefined') return null;
-   const useEnhancedPanel = CFG.magnetDisplayMode === 'native-replace' && typeof NativeMagnetPanel !== 'undefined' && typeof NativeMagnetPanel.createAggregatePanel === 'function';
-   const widget = useEnhancedPanel ? NativeMagnetPanel.createAggregatePanel(avid) : typeof Magnet.createMagnetWidget === 'function' ? Magnet.createMagnetWidget(avid) : null;
-   if (!widget) return null;
-   body.replaceChildren(widget); const section = useEnhancedPanel ? widget : body.closest('.javdb-fc2-detail-magnet'); section?.setAttribute('data-javdb-standalone-magnet', '1'); section?.setAttribute('data-javdb-standalone-magnet-site', siteId);
-   DetailFlex.apply?.(siteId); setTimeout(() => DetailFlex.apply?.(siteId), 0); return body.firstElementChild; },
-  _renderApiDetailImages(images) {
-   const list = Array.isArray(images) ? images : Array.isArray(images?.items) ? images.items : [];
-   const updateCover = value => String(value || '').replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
-   const html = list.map((item, index) => {
-    const large = updateCover(typeof item === 'string' ? item : item?.large_url || item?.largeUrl || item?.image_url || item?.url || item?.src || item?.thumb_url || item?.thumbUrl || '');
-    const thumb = updateCover(typeof item === 'string' ? item : item?.thumb_url || item?.thumbUrl || item?.thumbnail_url || item?.thumbnailUrl || item?.large_url || item?.largeUrl || item?.image_url || item?.url || item?.src || '');
-    if (!large || !thumb) return '';
-    return`<a class="tile-item" href="${JavdbFc2DetailRenderer.escapeHtml(large)}" data-fancybox="gallery" data-caption="预览图${index + 1}"><img src="${JavdbFc2DetailRenderer.escapeHtml(thumb)}" loading="lazy" alt="预览图${index + 1}"></a>`;
-   }).filter(Boolean).join('');
-   return html ?`
-                <section class="javdb-fc2-detail-samples-section">
-                    <h2 class="javdb-fc2-detail-sample-heading">剧照</h2>
-                    <div class="tile-images preview-images">${html}</div>
-                </section>` : '';
-  },
-  _renderApiDetailPage(movie) {
-   const updateCover = value => String(value || '').replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
-   const number = String(movie?.number || ''); const title = movie?.origin_title || movie?.title || ''; const actors = (Array.isArray(movie?.actors) ? movie.actors : []).map(item => item?.name || item).filter(Boolean);
-   const cover = updateCover(movie?.cover_url || movie?.thumb_url || ''); const previewImages = movie?.preview_images || movie?.previewImages || movie?.samples || movie?.images || [];
-   return JavdbFc2DetailRenderer.render({
-    code: number,
-    title,
-    cover,
-    rows: [
-     { label: '标题', value: title },
-     { label: '日期', value: movie?.release_date },
-     { label: '时长', value: movie?.duration ?`${movie.duration} 分钟` : '' },
-     { label: '评分', value: movie?.score ?`${movie.score} / ${movie?.watched_count || 0} 人` : '' },
-     { label: '片商', value: movie?.maker_name || movie?.publisher_name },
-     { label: '系列', value: movie?.series_name },
-     { label: '导演', value: movie?.director_name },
-     { label: '演员', value: actors }, ],
-    tags: (Array.isArray(movie?.tags) ? movie.tags : []).map(item => item?.name || item?.title || item).filter(Boolean),
-   }, {
-    site: 'javdb',
-    samplesHtml: this._renderApiDetailImages(previewImages),
-   }); },
-  async _initApiDetailShellPage() {
-   const href = location.href; const modeInfo = this._getApiDetailShellMode();
-   if (!modeInfo) { return false; }
-   const container = document.querySelector('body > section > div, .section .container');
-   if (!container) { revealJavdbApiRouteShell?.(); return false; }
-   this._ensureApiDetailShellStyle(); container.replaceChildren(); revealJavdbApiRouteShell?.();
-   try {
-    const json = await Magnet.javdbApi.movieDetail(modeInfo.movieId);
-    if (location.href !== href) return true;
-    if (json.success !== 1) throw new Error(json.message || json.action || 'JavDB API 请求失败');
-    const movie = json?.data?.movie;
-    if (!movie?.number) throw new Error('没有查询到详情数据');
-    container.innerHTML = this._renderApiDetailPage(movie); revealJavdbApiRouteShell?.(); const avid = normalizeAvid(movie.number); const numberLabel = container.querySelector('.movie-panel-info .first-block strong');
-    if (numberLabel) numberLabel.textContent = '\u756a\u53f7:';
-    const magnetTitle = container.querySelector('.javdb-fc2-detail-magnet-title');
-    if (magnetTitle) magnetTitle.textContent = '\u78c1\u529b\u805a\u5408';
-    this._mountStandaloneMagnet(container, avid); PageZoom.apply('javdb'); DetailFlex.apply('javdb'); JavdbFullVideo.sync(avid);
-    Runtime.refresh({ detailPreview: true, infiniteScroll: false });
-    return true;
-   } catch (err) {
-    errorLog('JavDB API 详情请求失败:', err); const errorStatus = document.createElement('div'); errorStatus.className = 'javdb-api-shell-status is-error'; errorStatus.textContent = err.message || 'JavDB API 详情请求失败'; container.replaceChildren(errorStatus);
-    revealJavdbApiRouteShell?.(); return true; } }, };
  const JavdbContent = {
   _contentUrl(kind, options = {}) {
    const params = new URLSearchParams({ laosiji_content: kind });
    if (options.page > 1) params.set('laosiji_page', String(options.page));
    if (options.period && options.period !== 'latest') params.set('laosiji_period', options.period);
-   if (options.articleId) params.set('laosiji_article_id', options.articleId);
-   return`/search_advanced?${params.toString()}`;
+   return `/search_advanced?${params.toString()}`;
   },
   _getContentMode() {
    if (location.pathname.replace(/\/+$/, '') !== '/search_advanced') return null;
    const params = new URLSearchParams(location.search); const kind = params.get('laosiji_content') || '';
-   if (!/^(articles|article|reviews)$/.test(kind)) return null;
-   return { kind, page: Math.max(1, parseInt(params.get('laosiji_page') || '1', 10) || 1), period: params.get('laosiji_period') || 'latest', articleId: params.get('laosiji_article_id') || '' }; },
+   if (kind !== 'reviews') return null;
+   return { kind, page: Math.max(1, parseInt(params.get('laosiji_page') || '1', 10) || 1), period: params.get('laosiji_period') || 'latest' }; },
   _imageUrl(value) {
    try {
     const image = new URL(String(value || ''));
-    if (image.hostname === 'tp.spfcas.com') { image.hostname = 'c0.jdbstatic.com'; image.pathname = image.pathname.replace(/^\/[^/]+(\/articles\/images\/)/, '$1'); image.pathname = image.pathname.replace(/^\/[^/]+(\/small_covers\/)/, '$1'); }
+    if (image.hostname === 'tp.spfcas.com') { image.hostname = 'c0.jdbstatic.com'; image.pathname = image.pathname.replace(/^\/[^/]+(\/small_covers\/)/, '$1'); }
     return image.href;
    } catch (_) { return String(value || ''); } },
   _movieThumbUrl(movie) {
    const id = String(movie?.id || '').trim();
    return id.length >= 2
-    ?`https://c0.jdbstatic.com/thumbs/${id.slice(0, 2).toLowerCase()}/${encodeURIComponent(id)}.jpg`                : this._imageUrl(movie?.thumb_url);
-  },
-  _safeArticleHtml(value) {
-   const html = String(value || '');
-   if (!html || typeof DOMParser !== 'function') return html;
-   const doc = new DOMParser().parseFromString(html, 'text/html'); doc.querySelectorAll('script,style,iframe,object,embed,form').forEach(node => node.remove());
-   doc.querySelectorAll('*').forEach(node => {
-    [...node.attributes].forEach(attribute => {
-     if (/^on/i.test(attribute.name)) node.removeAttribute(attribute.name);
-     if (/^(href|src|action)$/i.test(attribute.name) && /^\s*javascript:/i.test(attribute.value)) node.removeAttribute(attribute.name);
-    });
-   });
-   doc.querySelectorAll('img[src]').forEach(image => { image.setAttribute('src', this._imageUrl(image.getAttribute('src'))); });
-   return doc.body.innerHTML; },
+    ? `https://c0.jdbstatic.com/thumbs/${id.slice(0, 2).toLowerCase()}/${encodeURIComponent(id)}.jpg`
+    : this._imageUrl(movie?.thumb_url); },
   _renderNavLinks(active = '') {
-   return`<a class="javdb-content-nav-link ${active === 'articles' ? 'is-active' : ''}" href="${this._contentUrl('articles')}">AV资讯</a><a class="javdb-content-nav-link ${active === 'reviews' ? 'is-active' : ''}" href="${this._contentUrl('reviews')}">看短评</a>`;
+   return `<a class="javdb-content-nav-link ${active === 'reviews' ? 'is-active' : ''}" href="${this._contentUrl('reviews')}">看短评</a>`;
   },
   _installStyle() {
-   injectStyle('javdb-content-shell-style',`.javdb-content-nav-link{display:inline-flex!important;align-items:center!important;min-height:40px!important;padding:0 12px!important;border-bottom:2px solid transparent!important;color:#4b5563!important;text-decoration:none!important;white-space:nowrap!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#0f766e!important;color:#0f766e!important;background:rgba(13,148,136,.06)!important}#navbar-menu-user .javdb-content-nav-link{min-height:52px!important;color:#38bdf8!important;font-weight:800!important}#navbar-menu-user .javdb-content-nav-link:hover,#navbar-menu-user .javdb-content-nav-link.is-active{color:#facc15!important;background:rgba(255,255,255,.12)!important}.javdb-content-mobile-nav-link{display:none!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#eef3f4!important}html.laosiji-content-route body>section .container{max-width:1024px!important;margin:0 auto!important;padding:32px 42px 64px!important;background:#fbfcfd!important}.javdb-content-shell{--javdb-content-ink:#182230;--javdb-content-muted:#5f6b7a;--javdb-content-line:#d9e0e7;max-width:940px!important;margin:32px auto 56px!important;color:var(--javdb-content-ink)!important}.javdb-content-shell-head{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:16px!important;flex-wrap:wrap!important;margin:0 0 24px!important;padding:0 0 18px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-shell-title{color:var(--javdb-content-ink)!important;font-size:31px!important;font-weight:800!important;line-height:1.2!important;letter-spacing:0!important}.javdb-content-shell-nav,.javdb-content-toolbar{display:flex!important;align-items:center!important;gap:4px!important;flex-wrap:wrap!important}.javdb-content-toolbar{gap:8px!important;margin:-6px 0 18px!important}.javdb-content-toolbar a,.javdb-content-pagination a,.javdb-content-pagination span{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:40px!important;padding:0 13px!important;border:1px solid var(--javdb-content-line)!important;border-radius:6px!important;background:transparent!important;color:#334155!important;font-size:14px!important;font-weight:700!important;line-height:1!important;text-decoration:none!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#0f766e!important;background:#ecfdf5!important;color:#0f766e!important}.javdb-content-pagination span{border-color:transparent!important;color:var(--javdb-content-muted)!important}.javdb-content-status{margin:0 0 18px!important;color:var(--javdb-content-muted)!important;font-size:14px!important;line-height:1.5!important}.javdb-content-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:0!important}.javdb-content-card{display:grid!important;grid-template-columns:152px minmax(0,1fr)!important;gap:20px!important;min-width:0!important;padding:24px 0!important;border-bottom:1px solid var(--javdb-content-line)!important;background:transparent!important;color:var(--javdb-content-ink)!important;text-decoration:none!important}.javdb-content-card:hover{color:#0f766e!important}.javdb-content-card-cover{width:152px!important;height:188px!important;object-fit:cover!important;border-radius:4px!important;background:#dfe7e7!important}.javdb-content-card-copy{min-width:0!important;padding-top:2px!important}.javdb-content-card-kicker{display:block!important;margin:0 0 8px!important;color:#0f766e!important;font-size:12px!important;font-weight:800!important;letter-spacing:.06em!important;line-height:1.3!important;text-transform:uppercase!important}.javdb-content-card-title{display:block!important;overflow:visible!important;font-size:22px!important;line-height:1.45!important;font-weight:750!important}.javdb-content-card-meta{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important;margin-top:14px!important;color:var(--javdb-content-muted)!important;font-size:14px!important;line-height:1.65!important}.javdb-content-card-meta span+span::before{content:'·';margin-right:8px;color:#94a3ad}.javdb-content-pagination{display:flex!important;justify-content:center!important;align-items:center!important;gap:8px!important;margin:28px 0 8px!important}.javdb-content-review-list{max-width:none!important;margin:0!important}.javdb-content-review{padding:0 0 28px!important;margin:0 0 28px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-review:last-child{border-bottom:0!important}.javdb-content-review-movie{display:flex!important;align-items:flex-start!important;gap:12px!important;margin-bottom:13px!important;color:var(--javdb-content-ink)!important;text-decoration:none!important}.javdb-content-review-movie img{width:58px!important;height:76px!important;flex:0 0 58px!important;object-fit:cover!important;border-radius:4px!important;background:#dfe7e7!important}.javdb-content-review-movie-copy{min-width:0!important;padding-top:2px!important}.javdb-content-review-movie-code{display:block!important;color:#0f766e!important;font-size:12px!important;font-weight:800!important;line-height:1.3!important}.javdb-content-review-movie strong{display:block!important;margin-top:3px!important;font-size:16px!important;line-height:1.5!important;font-weight:750!important}.javdb-content-review-movie small{display:block!important;margin-top:5px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.4!important}.javdb-content-review-head{display:flex!important;align-items:center!important;gap:9px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.45!important}.javdb-content-review-user{color:#334155!important;font-weight:800!important}.javdb-content-review-stars{margin-left:auto!important;color:#a16207!important;font-size:15px!important;letter-spacing:2px!important;white-space:nowrap!important}.javdb-content-review-text{margin:13px 0 0!important;color:#273444!important;font-size:16px!important;line-height:1.85!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important}.javdb-content-article{max-width:780px!important;margin:0 auto!important}.javdb-content-back{display:inline-flex!important;min-height:40px!important;align-items:center!important;margin:0 0 18px!important;color:#0f766e!important;font-size:14px!important;font-weight:750!important;text-decoration:none!important}.javdb-content-article-head{margin:0 0 24px!important;padding:0 0 20px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-article-title{margin:0!important;color:var(--javdb-content-ink)!important;font-size:30px!important;line-height:1.35!important;font-weight:800!important;letter-spacing:0!important}.javdb-content-article-meta{margin:12px 0 0!important;color:var(--javdb-content-muted)!important;font-size:14px!important;line-height:1.55!important}.javdb-content-article-body{color:#273444!important;font-size:17px!important;line-height:1.85!important;overflow-wrap:anywhere!important}.javdb-content-article-body>*{max-width:100%!important}.javdb-content-article-body p,.javdb-content-article-body ul,.javdb-content-article-body ol{margin:0 0 1.25em!important}.javdb-content-article-body h2,.javdb-content-article-body h3{margin:1.7em 0 .65em!important;color:var(--javdb-content-ink)!important;line-height:1.35!important}.javdb-content-article-body blockquote{margin:1.5em 0!important;padding:0 0 0 18px!important;border-left:3px solid #0f766e!important;color:#425466!important}.javdb-content-article-body img{display:block!important;max-width:100%!important;height:auto!important;margin:1.5em auto!important;border-radius:4px!important}.javdb-content-related{margin-top:40px!important;padding-top:22px!important;border-top:1px solid var(--javdb-content-line)!important}.javdb-content-related-title{margin:0 0 18px!important;color:var(--javdb-content-ink)!important;font-size:19px!important;font-weight:800!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f1f5f9;--javdb-content-muted:#b0becd;--javdb-content-line:#344252}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#101820!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#17212b!important}html[data-theme="dark"] .javdb-content-toolbar a,html[data-theme="dark"] .javdb-content-pagination a,html[data-theme="dark"] .javdb-content-pagination span{color:#e2e8f0!important}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#163a36!important;color:#b9f5e7!important}html[data-theme="dark"] .javdb-content-review-user,html[data-theme="dark"] .javdb-content-review-text,html[data-theme="dark"] .javdb-content-article-body{color:#e2e8f0!important}html[data-theme="dark"] .javdb-content-article-body blockquote{color:#cbd5e1!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#f3f1ed!important}html.laosiji-content-route body>section .container{max-width:1024px!important;padding:32px 42px 64px!important;background:#faf9f6!important}.javdb-content-shell{--javdb-content-ink:#28221f;--javdb-content-muted:#736b63;--javdb-content-line:#d8d0c7;max-width:940px!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#a63b2c!important;color:#a63b2c!important;background:#f9ece8!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#a63b2c!important;background:#f9ece8!important;color:#8c3024!important}.javdb-content-card:hover,.javdb-content-card-kicker,.javdb-content-review-movie-code,.javdb-content-back{color:#a63b2c!important}.javdb-content-card-cover,.javdb-content-review-movie img{background:#ddd7cf!important}.javdb-content-article-body blockquote{border-left-color:#a63b2c!important}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#1d1a18!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#25211e!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f3eee8;--javdb-content-muted:#c3b9ae;--javdb-content-line:#4a423c}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#442720!important;color:#ffd8cf!important}@media (max-width:760px){html.laosiji-content-route body>section .container{padding:20px 18px 44px!important}.javdb-content-shell{margin:18px 0 32px!important}.javdb-content-shell-head{align-items:flex-start!important;margin-bottom:18px!important}.javdb-content-shell-title{font-size:27px!important}.javdb-content-grid{grid-template-columns:1fr!important}.javdb-content-card{grid-template-columns:100px minmax(0,1fr)!important;gap:14px!important;padding:18px 0!important}.javdb-content-card-cover{width:100px!important;height:128px!important}.javdb-content-card-kicker{margin-bottom:6px!important;font-size:11px!important}.javdb-content-card-title{font-size:17px!important;line-height:1.5!important}.javdb-content-card-meta{gap:5px!important;margin-top:8px!important;font-size:13px!important}.javdb-content-card-meta span+span::before{margin-right:5px}.javdb-content-toolbar{gap:6px!important;margin-bottom:16px!important}.javdb-content-toolbar a{min-height:40px!important;padding:0 10px!important}.javdb-content-review{padding-bottom:24px!important;margin-bottom:24px!important}.javdb-content-review-text{font-size:16px!important}.javdb-content-article-title{font-size:25px!important}.javdb-content-article-body{font-size:16px!important;line-height:1.8!important}}html[data-laosiji-mobile] #navbar-menu-user .javdb-content-nav-link{display:none!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link{display:flex!important;min-height:48px!important;padding:0 18px!important;color:#334155!important;font-weight:800!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link:hover,html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link.is-active{color:#a63b2c!important;background:#f9ece8!important}`);
+   injectStyle('javdb-content-shell-style',`.javdb-content-nav-link{display:inline-flex!important;align-items:center!important;min-height:40px!important;padding:0 12px!important;border-bottom:2px solid transparent!important;color:#4b5563!important;text-decoration:none!important;white-space:nowrap!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#0f766e!important;color:#0f766e!important;background:rgba(13,148,136,.06)!important}#navbar-menu-user .javdb-content-nav-link{display:flex!important;align-items:center!important;height:52px!important;min-height:52px!important;border-bottom:0!important;color:#38bdf8!important;font-weight:400!important;line-height:1.5!important;box-sizing:border-box!important;position:relative!important}#navbar-menu-user .javdb-content-nav-link::after{content:''!important;position:absolute!important;left:12px!important;right:12px!important;bottom:0!important;height:2px!important;background:transparent!important}#navbar-menu-user .javdb-content-nav-link:hover,#navbar-menu-user .javdb-content-nav-link.is-active{color:#facc15!important;background:rgba(255,255,255,.12)!important}#navbar-menu-user .javdb-content-nav-link:hover::after,#navbar-menu-user .javdb-content-nav-link.is-active::after{background:#facc15!important}.javdb-content-mobile-nav-link{display:none!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#eef3f4!important}html.laosiji-content-route body>section .container{max-width:1024px!important;margin:0 auto!important;padding:32px 42px 64px!important;background:#fbfcfd!important}.javdb-content-shell{--javdb-content-ink:#182230;--javdb-content-muted:#5f6b7a;--javdb-content-line:#d9e0e7;max-width:940px!important;margin:32px auto 56px!important;color:var(--javdb-content-ink)!important}.javdb-content-shell-head{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:16px!important;flex-wrap:wrap!important;margin:0 0 24px!important;padding:0 0 18px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-shell-title{color:var(--javdb-content-ink)!important;font-size:31px!important;font-weight:800!important;line-height:1.2!important;letter-spacing:0!important}.javdb-content-shell-nav,.javdb-content-toolbar{display:flex!important;align-items:center!important;gap:4px!important;flex-wrap:wrap!important}.javdb-content-toolbar{gap:8px!important;margin:-6px 0 18px!important}.javdb-content-toolbar a,.javdb-content-pagination a,.javdb-content-pagination span{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:40px!important;padding:0 13px!important;border:1px solid var(--javdb-content-line)!important;border-radius:6px!important;background:transparent!important;color:#334155!important;font-size:14px!important;font-weight:700!important;line-height:1!important;text-decoration:none!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#0f766e!important;background:#ecfdf5!important;color:#0f766e!important}.javdb-content-pagination span{border-color:transparent!important;color:var(--javdb-content-muted)!important}.javdb-content-status{margin:0 0 18px!important;color:var(--javdb-content-muted)!important;font-size:14px!important;line-height:1.5!important}.javdb-content-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:0!important}.javdb-content-pagination{display:flex!important;justify-content:center!important;align-items:center!important;gap:8px!important;margin:28px 0 8px!important}.javdb-content-review-list{max-width:none!important;margin:0!important}.javdb-content-review{padding:0 0 28px!important;margin:0 0 28px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-review:last-child{border-bottom:0!important}.javdb-content-review-movie{display:flex!important;align-items:flex-start!important;gap:12px!important;margin-bottom:13px!important;color:var(--javdb-content-ink)!important;text-decoration:none!important}.javdb-content-review-movie img{width:58px!important;height:76px!important;flex:0 0 58px!important;object-fit:cover!important;border-radius:4px!important;background:#dfe7e7!important}.javdb-content-review-movie-copy{min-width:0!important;padding-top:2px!important}.javdb-content-review-movie-code{display:block!important;color:#0f766e!important;font-size:12px!important;font-weight:800!important;line-height:1.3!important}.javdb-content-review-movie strong{display:block!important;margin-top:3px!important;font-size:16px!important;line-height:1.5!important;font-weight:750!important}.javdb-content-review-movie small{display:block!important;margin-top:5px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.4!important}.javdb-content-review-head{display:flex!important;align-items:center!important;gap:9px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.45!important}.javdb-content-review-user{color:#334155!important;font-weight:800!important}.javdb-content-review-stars{margin-left:auto!important;color:#a16207!important;font-size:15px!important;letter-spacing:2px!important;white-space:nowrap!important}.javdb-content-review-text{margin:13px 0 0!important;color:#273444!important;font-size:16px!important;line-height:1.85!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f1f5f9;--javdb-content-muted:#b0becd;--javdb-content-line:#344252}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#101820!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#17212b!important}html[data-theme="dark"] .javdb-content-toolbar a,html[data-theme="dark"] .javdb-content-pagination a,html[data-theme="dark"] .javdb-content-pagination span{color:#e2e8f0!important}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#163a36!important;color:#b9f5e7!important}html[data-theme="dark"] .javdb-content-review-user,html[data-theme="dark"] .javdb-content-review-text{color:#e2e8f0!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#f3f1ed!important}html.laosiji-content-route body>section .container{max-width:1024px!important;padding:32px 42px 64px!important;background:#faf9f6!important}.javdb-content-shell{--javdb-content-ink:#28221f;--javdb-content-muted:#736b63;--javdb-content-line:#d8d0c7;max-width:940px!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#a63b2c!important;color:#a63b2c!important;background:#f9ece8!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#a63b2c!important;background:#f9ece8!important;color:#8c3024!important}.javdb-content-review-movie-code{color:#a63b2c!important}.javdb-content-review-movie img{background:#ddd7cf!important}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#1d1a18!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#25211e!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f3eee8;--javdb-content-muted:#c3b9ae;--javdb-content-line:#4a423c}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#442720!important;color:#ffd8cf!important}@media (max-width:760px){html.laosiji-content-route body>section .container{padding:20px 18px 44px!important}.javdb-content-shell{margin:18px 0 32px!important}.javdb-content-shell-head{align-items:flex-start!important;margin-bottom:18px!important}.javdb-content-shell-title{font-size:27px!important}.javdb-content-toolbar{gap:6px!important;margin-bottom:16px!important}.javdb-content-toolbar a{min-height:40px!important;padding:0 10px!important}.javdb-content-review{padding-bottom:24px!important;margin-bottom:24px!important}.javdb-content-review-text{font-size:16px!important}}html[data-laosiji-mobile] #navbar-menu-user .javdb-content-nav-link{display:none!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link{display:flex!important;min-height:48px!important;padding:0 18px!important;color:#334155!important;font-weight:800!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link:hover,html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link.is-active{color:#a63b2c!important;background:#f9ece8!important}`);
   },
+  _installOtherNavigation() {
+   const navStart = document.querySelector('#navbar-menu-hero .navbar-start');
+   if (!navStart) return;
+   const existingMenus = [...document.querySelectorAll('[data-laosiji-other-nav="1"]')]; const links = existingMenus.flatMap(menu => [...menu.querySelectorAll(':scope > .navbar-dropdown > a.navbar-item[href]')]);
+   const sourceLinks = [...(navStart?.children || [])].filter(child => {
+    if (!child.matches?.('a.navbar-item[href]')) return false;
+    const href = child.getAttribute('href') || ''; return href === '/feedbacks/new' || /theporndude\.com/i.test(href);
+   });
+   sourceLinks.forEach(link => {
+    if (!links.includes(link)) links.push(link);
+   });
+   if (!links.length) return;
+   existingMenus.forEach(menu => menu.remove()); const menu = document.createElement('div'); menu.className = 'navbar-item has-dropdown is-hoverable'; menu.dataset.laosijiOtherNav = '1';
+   menu.innerHTML = '<a class="navbar-link" href="javascript:void(0)">其他</a><div class="navbar-dropdown is-boxed"></div>'; const dropdown = menu.querySelector('.navbar-dropdown');
+   links.forEach(link => {
+    link.classList.remove('has-text-white-bis'); dropdown.appendChild(link);
+   });
+   navStart.appendChild(menu); },
   installNavigation() {
-   this._installStyle(); const active = this._getContentMode()?.kind === 'article' ? 'articles' : this._getContentMode()?.kind;
+   this._installStyle(); const active = this._getContentMode()?.kind;
    const syncActive = link => {
-    const href = link.getAttribute('href') || ''; const isArticles = /[?&]laosiji_content=articles(?:&|$)/.test(href); const isReviews = /[?&]laosiji_content=reviews(?:&|$)/.test(href);
-    link.classList.toggle('is-active', (active === 'articles' && isArticles) || (active === 'reviews' && isReviews)); };
+    const href = link.getAttribute('href') || ''; const isReviews = /[?&]laosiji_content=reviews(?:&|$)/.test(href); link.classList.toggle('is-active', active === 'reviews' && isReviews); };
    const navEnd = document.querySelector('#navbar-menu-user .navbar-end');
    if (navEnd && !navEnd.querySelector('[data-laosiji-content-nav="1"]')) {
     const holder = document.createElement('div'); holder.innerHTML = this._renderNavLinks(active); const theme = navEnd.querySelector('.navbar-item.has-dropdown');
@@ -3701,66 +3284,40 @@
    if (mobileNavStart && !mobileNavStart.querySelector('[data-laosiji-content-mobile-nav="1"]')) {
     const mobileHolder = document.createElement('div'); mobileHolder.innerHTML = this._renderNavLinks(active);
     [...mobileHolder.children].reverse().forEach(link => { link.classList.add('navbar-item', 'javdb-content-mobile-nav-link'); link.dataset.laosijiContentMobileNav = '1'; mobileNavStart.insertBefore(link, mobileNavStart.firstChild); }); }
-   mobileNavStart?.querySelectorAll('[data-laosiji-content-mobile-nav="1"]').forEach(syncActive); },
+   mobileNavStart?.querySelectorAll('[data-laosiji-content-mobile-nav="1"]').forEach(syncActive); this._installOtherNavigation(); },
   _renderShell(mode, inner) {
-   const active = mode.kind === 'article' ? 'articles' : mode.kind; const title = active === 'articles' ? 'AV资讯' : '看短评';
-   return`<main class="javdb-content-shell"><header class="javdb-content-shell-head"><div class="javdb-content-shell-title">${this._escapeHtml(title)}</div><nav class="javdb-content-shell-nav" aria-label="内容导航">${this._renderNavLinks(active)}</nav></header>${inner}</main>`;
-  },
-  _formatDate(value) { return String(value || '').replace('T', ' ').replace(/\.000Z$/, '').slice(0, 16); },
-  _renderArticleCards(items) {
-   return (Array.isArray(items) ? items : []).map(item =>`<a class="javdb-content-card" href="${this._contentUrl('article', { articleId: item?.id || '' })}"><img class="javdb-content-card-cover" loading="lazy" src="${this._escapeHtml(this._imageUrl(item?.cover_url))}" alt=""><span class="javdb-content-card-copy"><span class="javdb-content-card-kicker">${this._escapeHtml(item?.category?.name || '资讯')}</span><strong class="javdb-content-card-title">${this._escapeHtml(item?.title || item?.id || '')}</strong><span class="javdb-content-card-meta"><span>${this._escapeHtml(item?.author?.name || 'JavDB')}</span><span>${this._escapeHtml(this._formatDate(item?.released_at))}</span></span></span></a>`).join('');
+   const title = '看短评';
+   return `<main class="javdb-content-shell"><header class="javdb-content-shell-head"><div class="javdb-content-shell-title">${this._escapeHtml(title)}</div><nav class="javdb-content-shell-nav" aria-label="内容导航">${this._renderNavLinks(mode.kind)}</nav></header>${inner}</main>`;
   },
   _renderReviews(items) {
-   const stars = score => { const n = Math.max(0, Math.min(5, Math.round(Number(score) || 0))); return`${'★'.repeat(n)}${'☆'.repeat(5 - n)}`; };
-   return (Array.isArray(items) ? items : []).map(item => { const movie = item?.movie || {}; return`<article class="javdb-content-review"><a class="javdb-content-review-movie" href="/v/${encodeURIComponent(movie.id || '')}" target="_blank" rel="noopener"><img loading="lazy" src="${this._escapeHtml(this._movieThumbUrl(movie))}" alt=""><span class="javdb-content-review-movie-copy"><span class="javdb-content-review-movie-code">${this._escapeHtml(movie.number || '')}</span><strong>${this._escapeHtml(movie.title || '')}</strong><small>${this._escapeHtml(movie.release_date || '')}</small></span></a><div class="javdb-content-review-head"><span class="javdb-content-review-user">${this._escapeHtml(item?.username || '匿名')}</span><span>看过 ${this._escapeHtml(item?.watched_count || 0)} 部</span><span class="javdb-content-review-stars" aria-label="${this._escapeHtml(item?.score || 0)}分">${stars(item?.score)}</span></div><p class="javdb-content-review-text">${this._escapeHtml(item?.content || '')}</p></article>`; }).join('');
+   const stars = score => { const n = Math.max(0, Math.min(5, Math.round(Number(score) || 0))); return `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`; };
+   return (Array.isArray(items) ? items : []).map(item => { const movie = item?.movie || {}; return `<article class="javdb-content-review"><a class="javdb-content-review-movie" href="/v/${encodeURIComponent(movie.id || '')}" target="_blank" rel="noopener"><img loading="lazy" src="${this._escapeHtml(this._movieThumbUrl(movie))}" alt=""><span class="javdb-content-review-movie-copy"><span class="javdb-content-review-movie-code">${this._escapeHtml(movie.number || '')}</span><strong>${this._escapeHtml(movie.title || '')}</strong><small>${this._escapeHtml(movie.release_date || '')}</small></span></a><div class="javdb-content-review-head"><span class="javdb-content-review-user">${this._escapeHtml(item?.username || '匿名')}</span><span>看过 ${this._escapeHtml(item?.watched_count || 0)} 部</span><span class="javdb-content-review-stars" aria-label="${this._escapeHtml(item?.score || 0)}分">${stars(item?.score)}</span></div><p class="javdb-content-review-text">${this._escapeHtml(item?.content || '')}</p></article>`; }).join('');
   },
   _pagination(mode, hasNext) {
-   const previous = mode.page > 1 ?`<a href="${this._contentUrl(mode.kind, { page: mode.page - 1, period: mode.period })}">上一页</a>` : '';
-   const next = hasNext ?`<a href="${this._contentUrl(mode.kind, { page: mode.page + 1, period: mode.period })}">下一页</a>` : '';
-   return`<div class="javdb-content-pagination">${previous}<span>第 ${mode.page} 页</span>${next}</div>`;
+   const previous = mode.page > 1 ? `<a href="${this._contentUrl(mode.kind, { page: mode.page - 1, period: mode.period })}">上一页</a>` : '';
+   const next = hasNext ? `<a href="${this._contentUrl(mode.kind, { page: mode.page + 1, period: mode.period })}">下一页</a>` : '';
+   return `<div class="javdb-content-pagination">${previous}<span>第 ${mode.page} 页</span>${next}</div>`;
   },
-  async _renderArticleDetail(container, mode) {
-   const href = location.href; const status = '正在读取资讯详情...';
-   container.innerHTML = this._renderShell(mode,`<div class="javdb-content-status">${status}</div>`);
-   try {
-    const json = await Magnet.javdbApi.articleDetail(mode.articleId);
-    if (location.href !== href) return;
-    if (json.success !== 1) throw new Error(json.message || json.action || '资讯详情读取失败');
-    const article = json?.data || {};
-    const movies = Array.isArray(article.related_movies) ? article.related_movies : [];
-    const related = movies.length ?`<section class="javdb-content-related"><h2 class="javdb-content-related-title">关联影片</h2>${movies.map(movie => `<a class="javdb-content-review-movie" href="/v/${encodeURIComponent(movie.id || '')}" target="_blank" rel="noopener"><img loading="lazy" src="${this._escapeHtml(this._movieThumbUrl(movie))}" alt=""><span class="javdb-content-review-movie-copy"><span class="javdb-content-review-movie-code">${this._escapeHtml(movie.number || '')}</span><strong>${this._escapeHtml(movie.title || '')}</strong><small>${this._escapeHtml(movie.release_date || '')}</small></span></a>`).join('')}</section>` : '';
-    const body =`<article class="javdb-content-article"><a class="javdb-content-back" href="${this._contentUrl('articles')}">返回资讯列表</a><header class="javdb-content-article-head"><h1 class="javdb-content-article-title">${this._escapeHtml(article.title || mode.articleId)}</h1><div class="javdb-content-article-meta">${this._escapeHtml(article.author?.name || '')} · ${this._escapeHtml(article.category?.name || '')} · ${this._escapeHtml(this._formatDate(article.released_at))}</div></header><div class="javdb-content-article-body">${this._safeArticleHtml(article.content || '<p>没有详情内容。</p>')}</div>${related}</article>`;
-    container.innerHTML = this._renderShell(mode, body);
-   } catch (error) {
-    if (location.href !== href) return;
-    container.innerHTML = this._renderShell(mode,`<div class="javdb-content-status">${this._escapeHtml(error.message || '资讯详情读取失败')}</div>`);
-   } },
   async _initContentPage() {
    const href = location.href; const mode = this._getContentMode();
    if (!mode) return false;
    const container = document.querySelector('body > section > div, .section .container');
    if (!container) return false;
-   document.documentElement.classList.add('laosiji-content-route'); this._installStyle();
-   if (mode.kind === 'article' && mode.articleId) { await this._renderArticleDetail(container, mode); return true; }
-   if (mode.kind === 'article') {
-    const articlesUrl = this._contentUrl('articles');
-    if (typeof this._navigateCustomSpa === 'function' && this._navigateCustomSpa(articlesUrl, { replace: true })) return true;
-    location.replace(articlesUrl); return true; }
-   const title = mode.kind === 'articles' ? 'AV资讯' : '看短评';
-   const periodLinks = mode.kind === 'reviews' ? ['latest', 'weekly', 'monthly', 'quarterly', 'yearly', 'all'].map(period =>`<a class="${mode.period === period ? 'is-active' : ''}" href="${this._contentUrl('reviews', { period })}">${period === 'latest' ? '最新' : period === 'weekly' ? '上周热评' : period === 'monthly' ? '月度热评' : period === 'quarterly' ? '季度热评' : period === 'yearly' ? '年度热评' : '全部热评'}</a>`).join('') : '';
-   const toolbar = periodLinks ?`<nav class="javdb-content-toolbar" aria-label="短评筛选">${periodLinks}</nav>` : '';
-   container.innerHTML = this._renderShell(mode,`${toolbar}<div class="javdb-content-status" aria-live="polite">正在读取${title}...</div><div class="javdb-content-grid"></div><div class="javdb-content-list"></div><div class="javdb-content-pagination"></div>`);
+   document.documentElement.classList.add('laosiji-content-route'); this._installStyle(); const title = '看短评';
+   const periodLinks = ['latest', 'weekly', 'monthly', 'quarterly', 'yearly', 'all'].map(period => `<a class="${mode.period === period ? 'is-active' : ''}" href="${this._contentUrl('reviews', { period })}">${period === 'latest' ? '最新' : period === 'weekly' ? '上周热评' : period === 'monthly' ? '月度热评' : period === 'quarterly' ? '季度热评' : period === 'yearly' ? '年度热评' : '全部热评'}</a>`).join('');
+   const toolbar = periodLinks ? `<nav class="javdb-content-toolbar" aria-label="短评筛选">${periodLinks}</nav>` : '';
+   container.innerHTML = this._renderShell(mode, `${toolbar}<div class="javdb-content-status" aria-live="polite">正在读取${title}...</div><div class="javdb-content-grid"></div><div class="javdb-content-list"></div><div class="javdb-content-pagination"></div>`);
    const status = container.querySelector('.javdb-content-status');
    try {
-    const json = mode.kind === 'articles' ? await Magnet.javdbApi.articles({ page: mode.page, limit: 20 }) : await Magnet.javdbApi.hotReviews({ period: mode.period, page: mode.page, limit: 20 });
+    const json = await Magnet.javdbApi.hotReviews({ period: mode.period, page: mode.page, limit: 20 });
     if (location.href !== href) return true;
-    if (json.success !== 1) throw new Error(json.message || json.action ||`${title}读取失败`);
-    const items = json?.data?.[mode.kind === 'articles' ? 'articles' : 'reviews'] || []; const grid = container.querySelector('.javdb-content-grid'); const list = container.querySelector('.javdb-content-list');
-    if (mode.kind === 'articles') grid.innerHTML = this._renderArticleCards(items); else { grid.remove(); list.innerHTML =`<section class="javdb-content-review-list">${this._renderReviews(items)}</section>`; }
-    status.textContent = items.length ?`已加载 ${items.length} 条${title}` :`暂无${title}`;
+    if (json.success !== 1) throw new Error(json.message || json.action || `${title}读取失败`);
+    const items = json?.data?.reviews || []; const grid = container.querySelector('.javdb-content-grid'); const list = container.querySelector('.javdb-content-list'); grid.remove();
+    list.innerHTML = `<section class="javdb-content-review-list">${this._renderReviews(items)}</section>`;
+    status.textContent = items.length ? `已加载 ${items.length} 条${title}` : `暂无${title}`;
     container.querySelector('.javdb-content-pagination').outerHTML = this._pagination(mode, items.length >= 20);
    } catch (error) {
-    status.textContent = error.message ||`${title}读取失败`;
+    status.textContent = error.message || `${title}读取失败`;
     status.classList.add('is-error'); }
    this.installNavigation(); return true; }, };
  const JavdbList = {
@@ -3791,16 +3348,13 @@
   _initListPage() {
    this._stripNativeLayoutParam(); const lists = this._getListCandidates();
    if (!lists.length) return;
-   const mainList = this._getMainList(); mainList?.setAttribute('data-laosiji-main-list', '1'); const needStyle = lists.some(list => list.dataset.laosijiGrid !== '1');
+   const mainList = this._getMainList(); mainList?.setAttribute('data-laosiji-main-list', '1'); ListPreview.ensureStyle?.();
    lists.forEach(list => {
     this._neutralizeNativeListLayout(list); const cards = [...list.querySelectorAll(':scope > .item')]; list.dataset.laosijiGrid = '1'; list.classList.add('jav-card-grid', 'javdb-card-grid'); cards.forEach(card => this._decorateCard(card));
     if (list === mainList) JavdbListScoreSort.sync(list, cards);
-    this._rewriteFc2DetailLinks(list);
    });
    CardColumns.apply('javdb'); PortraitCards.syncImages();
-   if (needStyle) {
-    GM_addStyle(`.jav-card-link:visited .jav-card-title,.jav-card-link:visited .javdb-card-headline,.jav-card-link:visited .jav-card-title strong{color:#64748b!important}.jav-card-title{display:block!important;height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;max-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;flex:0 0 auto!important;min-height:calc((var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)+16px)!important;padding:7px 8px 9px!important;overflow:hidden!important;line-height:var(--jav-card-title-line-height,1.5)!important}.javdb-card-headline{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--jav-card-title-lines,2)!important;line-clamp:var(--jav-card-title-lines,2)!important;max-height:calc(var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:normal!important;word-break:break-word!important}.jav-card-title strong{color:inherit!important;font-size:16px!important;font-weight:800!important}.javdb-card-grid{--jav-card-columns:5}.javdb-card-grid .item.javdb-grid-card{position:relative!important;width:auto!important;float:none!important;margin:0!important}.javdb-card-grid .item .javdb-card-link.box{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;border-radius:0!important;overflow:visible!important}.javdb-card-grid .item .javdb-cover-frame.cover{margin:0!important;height:auto!important;padding:0!important}.javdb-card-grid .item .javdb-card-image{margin:0!important}html:not(.jav-card-portrait-mode) .javdb-card-grid .item .javdb-card-image{object-fit:contain!important;object-position:center center!important;background:transparent!important}.javdb-card-grid .item .javdb-card-title .jav-pan115-badge{display:inline-flex!important;width:auto!important;max-width:max-content!important;float:none!important;vertical-align:middle!important;margin:0 6px 4px 0!important}.javdb-card-score,.javdb-card-meta,.javdb-card-tags{padding-left:8px!important;padding-right:8px!important}.javdb-card-score{margin-top:2px!important;color:#64748b!important;font-size:12px!important;line-height:1.45!important}.javdb-card-score .value{color:inherit!important;font-size:inherit!important}.javdb-card-meta{margin-top:4px!important;color:#94a3b8!important;font-size:12px!important;line-height:1.45!important}.javdb-card-tags{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-top:auto!important;padding-top:8px!important;padding-bottom:10px!important}.javdb-card-tags .tag{margin:0!important}.javdb-card-tools{display:flex!important;align-items:center!important;justify-content:flex-end!important;margin-top:auto!important;min-height:34px!important;padding:2px 8px 8px!important}@media (max-width:1100px){.javdb-card-grid{--jav-card-columns:4}}@media (max-width:820px){.javdb-card-grid{--jav-card-columns:3}}@media (max-width:560px){.javdb-card-grid{--jav-card-columns:2;gap:10px 6px!important}}`);
-   }
+   injectStyle('javdb-list-card-style',`.jav-card-link:visited .jav-card-title,.jav-card-link:visited .javdb-card-headline,.jav-card-link:visited .jav-card-title strong{color:#64748b!important}.javdb-card-grid .item .video-title.javdb-card-title{box-sizing:border-box!important;display:block!important;flex:0 0 auto!important;height:49px!important;max-height:49px!important;min-height:49px!important;padding:2px 8px!important;overflow:hidden!important;white-space:normal!important;word-break:break-word!important;line-height:var(--jav-card-title-line-height,1.5)!important}.javdb-card-grid .item .javdb-card-headline{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--jav-card-title-lines,2)!important;line-clamp:var(--jav-card-title-lines,2)!important;max-height:45px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:normal!important;word-break:break-word!important;line-height:inherit!important;font-size:inherit!important}.jav-card-title strong{color:inherit!important;font-size:1em!important;line-height:inherit!important;font-weight:800!important}.javdb-card-grid{--jav-card-columns:5}.javdb-card-grid .item.javdb-grid-card{position:relative!important;width:auto!important;float:none!important;margin:0!important}.javdb-card-grid .item .javdb-card-link.box{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;border-radius:0!important;overflow:visible!important}.javdb-card-grid .item .javdb-cover-frame.cover{margin:0!important;height:auto!important;padding:0!important}.javdb-card-grid .item .javdb-card-image{margin:0!important}html:not(.jav-card-portrait-mode) .javdb-card-grid .item .javdb-card-image{object-fit:contain!important;object-position:center center!important;background:transparent!important}.javdb-card-grid .item .javdb-card-title .jav-pan115-badge{display:inline-flex!important;width:auto!important;max-width:max-content!important;float:none!important;vertical-align:middle!important;margin:0 6px 4px 0!important}.javdb-card-score,.javdb-card-meta,.javdb-card-tags{padding-left:8px!important;padding-right:8px!important}.javdb-card-score{margin-top:2px!important;color:#64748b!important;font-size:12px!important;line-height:1.45!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.javdb-card-score .value{color:inherit!important;font-size:inherit!important}.javdb-card-meta{margin-top:4px!important;color:#94a3b8!important;font-size:12px!important;line-height:1.45!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.javdb-card-tags{display:flex!important;flex-wrap:wrap!important;align-items:center!important;align-content:flex-start!important;gap:6px!important;margin-top:8px!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:8px!important;min-height:0!important}.javdb-card-tags .tag{flex:0 1 auto!important;min-width:0!important;margin:0!important}.javdb-card-tags>.jav-card-quick-actions{flex:0 0 auto!important;height:26px!important;min-height:0!important;max-height:26px!important;margin-left:auto!important;overflow:hidden!important}.javdb-card-tools{display:flex!important;align-items:center!important;justify-content:flex-end!important;margin-top:8px!important;margin-bottom:0!important;min-height:0!important;padding:0 8px 8px!important}.movie-list.javdb-card-grid>.item>a.box{padding:0!important}.movie-list.javdb-card-grid>.item .score,.movie-list.javdb-card-grid>.item .meta{margin-bottom:0!important;padding-bottom:0!important}.movie-list.javdb-card-grid>.item .tags{margin-bottom:0!important}@media (max-width:1100px){.javdb-card-grid{--jav-card-columns:4}}@media (max-width:820px){.javdb-card-grid{--jav-card-columns:3}}@media (max-width:560px){.javdb-card-grid{--jav-card-columns:2;gap:10px 6px!important}}`, true);
    injectStyle('javdb-recommend-collapse-style',`#recommend-container[data-laosiji-recommend-collapsed="1"]{display:none!important}`);
    this._syncRecommendCollapse();
    setTimeout(() => {
@@ -3922,7 +3476,8 @@
   function updateButton(button, active, mode) {
    button.classList.toggle('is-selected', active); button.setAttribute('aria-pressed', String(active));
    button.title = active
-    ?`当前已按${mode}排序；再次点击恢复网站顺序`                :`按${mode}排序当前页；无限滚动的新内容仅在本批内排序`;
+    ? `当前已按${mode}排序；再次点击恢复网站顺序`
+    : `按${mode}排序当前页；无限滚动的新内容仅在本批内排序`;
   }
   function canReorderLoaded(list, state) {
    return !!state.mode && InfiniteScroll?.state?.site === 'javdb' && InfiniteScroll.state.container === list && !!list.querySelector(':scope > .item[data-laosiji-infinite-item="1"]'); }
@@ -3938,7 +3493,7 @@
      window.scrollTo({ top, behavior: 'auto' });
     }); }
    const control = activeControl(state.mode); floatButtons.insertBefore(button, floatButtons.querySelector('.material-scrolltop'));
-   button.title =`按${control?.text || '当前'}排序重排所有已加载内容，并返回列表顶部`;
+   button.title = `按${control?.text || '当前'}排序重排所有已加载内容，并返回列表顶部`;
   }
   function installControl(list, state) {
    const buttons = ensureSortButtons(list);
@@ -3948,7 +3503,7 @@
     let button = buttons.querySelector(`[data-laosiji-${control.key}-sort]`);
     if (!button) {
      button = document.createElement('button'); button.type = 'button';
-     button.className =`button is-small is-primary javdb-${control.key}-sort-btn`;
+     button.className = `button is-small is-primary javdb-${control.key}-sort-btn`;
      button.dataset[`laosiji${control.key[0].toUpperCase()}${control.key.slice(1)}Sort`] = '1';
     button.textContent = control.text;
     button.addEventListener('click', event => {
@@ -4406,6 +3961,15 @@
    const magnetTitle = root?.querySelector('.javdb-fc2-detail-magnet-title');
    if (magnetTitle) magnetTitle.textContent = '\u78c1\u529b\u805a\u5408';
   }
+  function mountStandaloneMagnet(root, avid, site = 'javdb') {
+   const body = root?.querySelector('.javdb-fc2-detail-magnet-body');
+   if (!body || !avid) return null;
+   const useEnhancedPanel = MobilePolicy.effectiveMagnetDisplayMode() === 'native-replace' && typeof NativeMagnetPanel !== 'undefined' && typeof NativeMagnetPanel.createAggregatePanel === 'function';
+   const widget = useEnhancedPanel ? NativeMagnetPanel.createAggregatePanel(avid) : typeof Magnet !== 'undefined' && typeof Magnet.createMagnetWidget === 'function' ? Magnet.createMagnetWidget(avid) : null;
+   if (!widget) return null;
+   body.replaceChildren(widget); const section = useEnhancedPanel ? widget : body.closest('.javdb-fc2-detail-magnet'); section?.setAttribute('data-javdb-standalone-magnet', '1'); section?.setAttribute('data-javdb-standalone-magnet-site', site);
+   if (typeof DetailFlex !== 'undefined') { DetailFlex.apply?.(site); setTimeout(() => DetailFlex.apply?.(site), 0); }
+   return widget; }
   async function initDetail(route, site) {
    const shell = renderDetailShell(route, site);
    if (!shell) return true;
@@ -4417,8 +3981,7 @@
     if (typeof DetailFlex !== 'undefined') DetailFlex.apply?.(site);
     normalizeDetailInfoLabels(shell.container);
     if (typeof JumpButtons !== 'undefined') JumpButtons.render?.();
-    if (typeof SiteJavDB !== 'undefined') SiteJavDB._mountStandaloneMagnet?.(shell.container, detail.code, site);
-    const info = shell.container.querySelector('.movie-panel-info');
+    mountStandaloneMagnet(shell.container, detail.code, site); const info = shell.container.querySelector('.movie-panel-info');
     fetchSupplementBundle(detail.code, generation).then(data => {
      if (generation !== renderGeneration || !info?.isConnected) return;
      info.querySelectorAll('[data-123av-supplement-info="1"]').forEach(row => row.remove()); const infoHtml = renderSupplementInfoHtml(data); const jumpGroup = info.querySelector('.jav-jump-btn-group[data-laosiji-jump="1"]');
@@ -4494,19 +4057,24 @@
    })();
    return true; }
   function installLink() {
-   injectStyle('javdb-123av-fc2-nav-style',`li.javdb-123av-fc2-nav-item{display:flex!important;align-items:stretch!important;gap:0!important}li.javdb-123av-fc2-nav-item>a{flex:0 0 auto!important}`);
-   const links = [...document.querySelectorAll('.navbar a[href], .tabs.main-tabs a[href], .tabs.is-boxed a[href]')].filter(link => {
+   injectStyle('javdb-123av-fc2-nav-style',`.tabs li.javdb-123av-fc2-nav-item{display:flex!important;align-items:stretch!important;gap:0!important}.tabs li.javdb-123av-fc2-nav-item>a{flex:0 0 auto!important}`);
+   const isFc2Link = link => {
     try {
      const url = new URL(link.getAttribute('href'), location.href); return url.origin === location.origin && /^\/(?:tags\/)?fc2\/?$/i.test(url.pathname);
-    } catch { return false; }
-   });
-   links.forEach(link => {
-    const parent = link.parentElement;
-    if (!parent || parent.querySelector('[data-laosiji123av-fc2-link="1"]')) return;
-    parent.classList.add('javdb-123av-fc2-nav-item'); const clone = link.cloneNode(true); clone.removeAttribute('data-laosiji-api-ranking-shell'); clone.dataset.laosiji123avFc2Link = '1'; const label = clone.querySelector('span') || clone;
-    label.textContent = '123AV-FC2';
+    } catch { return false; } };
+   const decorate = (link, className = '') => {
+    const clone = link.cloneNode(true); clone.removeAttribute('data-laosiji-api-ranking-shell'); clone.dataset.laosiji123avFc2Link = '1';
+    if (className) clone.className = className;
+    const label = clone.querySelector('span') || clone; label.textContent = '123AV-FC2';
     clone.href = routeUrl({ page: 1 });
-    clone.title = '使用 123AV-FC2 来源'; link.insertAdjacentElement('afterend', clone);
+    clone.title = '使用 123AV-FC2 来源'; return clone; };
+   const category = document.querySelector('#navbar-menu-hero .navbar-start > .navbar-item.has-dropdown'); const categoryTrigger = category?.querySelector(':scope > a.navbar-link[href="/tags?c10=1"]');
+   const dropdown = category?.querySelector(':scope > .navbar-dropdown.is-boxed'); const source = [...(dropdown?.children || [])].find(child => child.matches?.('a.navbar-item[href]') && isFc2Link(child));
+   document.querySelectorAll('.main-nav [data-laosiji123av-fc2-link="1"]').forEach(link => link.remove());
+   if (categoryTrigger && source && dropdown) { const clone = decorate(source, 'navbar-item'); source.insertAdjacentElement('afterend', clone); }
+   document.querySelectorAll('.tabs.main-tabs, .tabs.is-boxed').forEach(root => {
+    const tabSource = [...root.querySelectorAll('a[href]')].find(isFc2Link);
+    if (tabSource && !root.querySelector('[data-laosiji123av-fc2-link="1"]')) { tabSource.parentElement?.classList.add('javdb-123av-fc2-nav-item'); tabSource.insertAdjacentElement('afterend', decorate(tabSource)); }
    }); }
   return {
    init,
@@ -4522,6 +4090,7 @@
    renderPagination,
    renderItems,
    renderDetailHtml,
+   mountStandaloneMagnet,
    parseDetailDocument,
    parseOfficialSupplementDocument,
    parsePpvDbSupplementDocument,
@@ -4714,8 +4283,7 @@
    if (/javbus/i.test(location.hostname)) { return document.querySelector('.row.movie .col-md-9.screencap'); }
    if (!/javdb/i.test(location.hostname)) return null;
    if (/^\/v\//i.test(location.pathname)) return document.querySelector('.column.column-video-cover');
-   if (location.pathname.replace(/\/+$/, '') !== '/search_advanced' || new URLSearchParams(location.search).get('laosiji_detail') !== 'fc2') return null;
-   return document.querySelector('.javdb-api-detail[data-javdb-api-detail="1"] .column.column-video-cover'); }
+   return null; }
   function sync(code = '') {
    const cover = CFG.fullVideoPlayback ? detailCover() : null;
    if (!cover) {
@@ -4762,26 +4330,56 @@
   match() { return location.hostname.includes('javdb'); },
   getVid() {
    const el = document.querySelector('a.button.is-white.copy-to-clipboard'); return normalizeAvid(el?.dataset?.clipboardText || '') || Utils.extractCode(document.querySelector('h2.title, .javdb-api-detail-title')?.textContent || ''); },
+  _removePromoAndMoveSearch() {
+   document.querySelectorAll('nav.sub-header').forEach(node => node.remove()); const search = document.querySelector('#search-bar-container'); const mainNav = document.querySelector('.main-nav'); const heroMenu = document.querySelector('#navbar-menu-hero');
+   if (!search || !mainNav || !heroMenu) return;
+   if (!search.__laosijiSearchAnchor && search.parentNode) { search.__laosijiSearchAnchor = document.createComment('javdb native search position'); search.parentNode.insertBefore(search.__laosijiSearchAnchor, search); }
+   let searchMenu = mainNav.querySelector('#javdb-search-box');
+   if (!searchMenu) {
+    searchMenu = document.createElement('div'); searchMenu.id = 'javdb-search-box'; searchMenu.className = 'navbar-menu javdb-search-menu'; const searchStart = document.createElement('div'); searchStart.className = 'navbar-start';
+    searchMenu.appendChild(searchStart); heroMenu.insertAdjacentElement('afterend', searchMenu); }
+   const searchStart = searchMenu.querySelector('.navbar-start');
+   if (!search.dataset.laosijiTopSearch) { search.dataset.laosijiTopSearch = '1'; search.classList.add('javdb-top-search'); }
+   const searchInput = search.querySelector('#video-search');
+   if (searchInput) searchInput.placeholder = '输入番号，演员名等关键字进行搜索';
+   const searchTooltips = [ ['#button-advanced-search', '进阶检索'], ['#button-search-image', '以图片识别演员或影片'] ];
+   searchTooltips.forEach(([selector, title]) => {
+    const button = search.querySelector(selector);
+    if (!button) return;
+    button.classList.remove('tooltip'); button.removeAttribute('data-tooltip'); button.setAttribute('title', title);
+   });
+   search.querySelectorAll('.is-info').forEach(node => node.classList.remove('is-info'));
+   if (search.parentElement !== searchStart) searchStart.appendChild(search);
+   mainNav.querySelector('.navbar-search[data-target="search-bar-container"]')?.setAttribute('data-target', 'javdb-search-box');
+   injectStyle('javdb-top-search-style',`#javdb-search-box.javdb-search-menu{display:flex!important;flex:1 1 auto!important;min-width:0!important;height:52px!important;min-height:52px!important;align-items:center!important;justify-content:center!important;padding:0!important;margin:0!important;background:transparent!important;box-shadow:none!important}#javdb-search-box.javdb-search-menu>.navbar-start{display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;width:100%!important;height:100%!important;min-width:0!important;padding:0!important;margin:0!important;background:transparent!important}#javdb-search-box .javdb-top-search{display:flex!important;flex:0 1 clamp(320px,32vw,440px)!important;width:clamp(320px,32vw,440px)!important;min-width:320px!important;max-width:440px!important;margin:0!important;padding:0!important;align-self:center!important;background:transparent!important;box-shadow:none!important}#javdb-search-box .javdb-top-search>.column,#javdb-search-box .javdb-top-search .search-bar-wrap,#javdb-search-box .javdb-top-search .search-panel{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;align-self:center!important;background:transparent!important;box-shadow:none!important}#javdb-search-box .javdb-top-search .search-panel{display:flex!important;align-items:center!important;gap:4px!important;height:34px!important;min-width:0!important;min-height:34px!important;line-height:34px!important}#javdb-search-box .javdb-top-search .search-recent-keywords{display:none!important}#javdb-search-box .javdb-top-search .search-panel>.control{margin:0!important}#javdb-search-box .javdb-top-search .search-type,#javdb-search-box .javdb-top-search .search-type .select{display:flex!important;align-items:center!important;height:34px!important;min-height:34px!important}#javdb-search-box .javdb-top-search .search-type{flex:0 0 82px!important}#javdb-search-box .javdb-top-search .search-type .select,#javdb-search-box .javdb-top-search .search-type select{width:100%!important}#javdb-search-box .javdb-top-search .search-type select,#javdb-search-box .javdb-top-search #video-search,#javdb-search-box .javdb-top-search .button{height:34px!important;min-height:34px!important;font-size:14px!important;border:1px solid #555!important;border-radius:4px!important;box-shadow:none!important;line-height:32px!important}#javdb-search-box .javdb-top-search .search-panel .control,#javdb-search-box .javdb-top-search .search-panel .select,#javdb-search-box .javdb-top-search .search-panel input,#javdb-search-box .javdb-top-search .search-panel button,#javdb-search-box .javdb-top-search .search-panel a.button{align-self:center!important;margin-top:0!important;margin-bottom:0!important}#javdb-search-box .javdb-top-search .search-type select,#javdb-search-box .javdb-top-search #video-search{padding:0 10px!important;border:1px solid #555!important;border-radius:4px!important;background:#333!important;color:#eee!important;font-size:14px!important;outline:none!important;box-shadow:none!important;line-height:32px!important}#javdb-search-box .javdb-top-search .search-type select{background:#333!important;color:#eee!important;outline:none!important}#javdb-search-box .javdb-top-search .search-input{flex:1 1 180px!important;min-width:0!important}#javdb-search-box .javdb-top-search #video-search{width:100%!important}#javdb-search-box .javdb-top-search #video-search::placeholder{color:#aeb7c2!important;opacity:1!important;font-size:12px!important}#javdb-search-box .javdb-top-search .advanced-search,#javdb-search-box .javdb-top-search .search-image,#javdb-search-box .javdb-top-search .search-submit{flex:0 0 auto!important}#javdb-search-box .javdb-top-search .advanced-search .button,#javdb-search-box .javdb-top-search .search-image .button,#javdb-search-box .javdb-top-search .search-submit .button{display:inline-flex!important;align-items:center!important;justify-content:center!important;line-height:1!important;padding:0 10px!important;background:#444!important;color:#ddd!important}#javdb-search-box .javdb-top-search .button:hover{background:#555!important;color:#fff!important}#javdb-search-box .javdb-top-search .has-left-sep{padding-left:0!important;border-left:0!important}@media screen and (max-width:1023px){#javdb-search-box.javdb-search-menu{display:none!important}#javdb-search-box.javdb-search-menu.is-active{display:flex!important}#javdb-search-box .javdb-top-search{flex-basis:100%!important;width:100%!important;min-width:0!important;max-width:none!important;margin:8px 0!important}}`);
+   const searchAnchor = search.__laosijiSearchAnchor;
+   const syncSearchPlacement = () => {
+    if (!searchMenu || !searchStart || !searchAnchor?.parentNode) return;
+    const needsMeasurementMove = search.parentNode !== searchStart;
+    if (needsMeasurementMove) { searchStart.appendChild(search); searchMenu.style.setProperty('display', 'flex', 'important'); searchMenu.style.setProperty('visibility', 'hidden', 'important'); }
+    const navWidth = mainNav.getBoundingClientRect().width || window.innerWidth || 0; const leftWidth = heroMenu.getBoundingClientRect().width || 0; const userMenu = document.querySelector('#navbar-menu-user');
+    const rightWidth = userMenu?.getBoundingClientRect().width || 0; const requiredWidth = leftWidth + rightWidth + 320 + 24; const actualSearchWidth = searchMenu.getBoundingClientRect().width || 0;
+    const hasRoom = navWidth > 1023 && navWidth >= requiredWidth && actualSearchWidth >= 300;
+    if (!hasRoom) {
+     searchMenu.style.setProperty('display', 'none', 'important'); searchMenu.style.removeProperty('visibility'); search.style.removeProperty('display');
+     if (search.parentNode !== searchAnchor.parentNode) { searchAnchor.parentNode.insertBefore(search, searchAnchor.nextSibling); }
+     mainNav.querySelector('.navbar-search')?.setAttribute('data-target', 'search-bar-container'); return; }
+    searchMenu.style.removeProperty('display'); searchMenu.style.removeProperty('visibility');
+    if (search.parentNode !== searchStart) searchStart.appendChild(search);
+    mainNav.querySelector('.navbar-search')?.setAttribute('data-target', 'javdb-search-box'); };
+   if (this._javdbSearchPlacementHandler) { window.removeEventListener('resize', this._javdbSearchPlacementHandler); }
+   this._javdbSearchPlacementHandler = syncSearchPlacement;
+   window.addEventListener('resize', syncSearchPlacement, { passive: true });
+   syncSearchPlacement(); document.getElementById('laosiji-javdb-search-startup')?.remove(); },
   initPage(avid) {
-   document.querySelector('.app-desktop-banner')?.remove(); this._dismissOver18Modal(); this._insertTopSettingsButton(); this._ensureDarkThemeStyle(); this._hideNativeLayoutSwitcher(); this._stripNativeLayoutParam(); this._insertResourceNav();
-   JavdbContent.installNavigation(); this._installCustomPageSpa(); this._initFavoriteActorHighlight(); this._insertActorBlacklistButton(); Javdb123AvFc2.installLink();
+   if (this._redirectRetiredCustomEntry()) return;
+   document.querySelector('.app-desktop-banner')?.remove(); this._dismissOver18Modal(); this._insertTopSettingsButton(); JavdbContent.installNavigation(); this._removePromoAndMoveSearch(); this._ensureDarkThemeStyle(); this._hideNativeLayoutSwitcher();
+   this._stripNativeLayoutParam(); this._insertResourceNav(); this._installCustomPageSpa(); this._initFavoriteActorHighlight(); this._insertActorBlacklistButton(); Javdb123AvFc2.installLink();
    if (Javdb123AvFc2.init()) return;
    if (this._getContentMode?.()) {
     this._initContentPage().catch(err => { errorLog('JavDB 资讯/短评自造页渲染失败:', err); });
     return; }
-   if (CFG.javdbUseNativePages) {
-    if (this._redirectCurrentNativeEntry()) return;
-   } else {
-    this._installApiRankingShell(); this._hideScriptFc2AdvancedSearchBox();
-    if (this._redirectCurrentApiRankingEntry()) return;
-   }
    this._initPaginationJump();
-   if (!CFG.javdbUseNativePages && this._getApiRankingShellMode()) {
-    this._initApiRankingShellPage().catch(err => { errorLog('JavDB API 榜单渲染失败:', err); });
-    return; }
-   if (!CFG.javdbUseNativePages && this._getApiDetailShellMode()) {
-    this._initApiDetailShellPage().catch(err => { errorLog('JavDB API 详情渲染失败:', err); });
-    return; }
    if (!location.pathname.startsWith('/v/')) { this._initListPage(); this._insertResourceNav(); return; }
    this._hideDownloadCorrectionBlock();
    GM_addStyle(`.container{max-width:100%!important}.movie-panel-info{overflow:hidden;word-break:break-word}.movie-panel-info .panel-block{flex-wrap:wrap}.movie-panel-info .value{overflow:hidden;word-break:break-word}.review-buttons>.panel-block:has(a[href="#magnet-links"]),.review-buttons>.panel-block:has(a[href*="/corrections/new"]){display:none!important}.javdb-fc2-cover-column>a{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:min(420px,58vh)!important;overflow:hidden!important}.javdb-fc2-cover-column img.video-cover,.javdb-fc2-cover-column>a>img{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;object-fit:contain!important}@media (max-width:900px){.javdb-fc2-cover-column>a{height:min(360px,84vw,58vh)!important}}`);
@@ -4855,8 +4453,9 @@
    });
    const customShell = document.querySelector('.javdb-api-shell, .javdb-123av-fc2-shell'); const isFc2AdvancedSearch = this._isScriptFc2AdvancedSearch?.();
    if (!resourceApi?.open || (!navList && !customShell && !isFc2AdvancedSearch) || (!hasListContent && !customShell && !isFc2AdvancedSearch)) return;
-   injectStyle('javdb-resource-nav-style',`.javdb-resource-nav-item{display:flex!important;align-items:center!important;gap:6px;margin-left:auto!important;padding-left:14px;white-space:nowrap}.javdb-resource-nav-item>a{display:flex!important;align-items:center!important;min-height:36px;color:#fff!important;background:#334155!important;font-size:.9rem;font-weight:700;line-height:1;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2);border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.18)}.javdb-resource-nav-item>a:hover,.javdb-resource-nav-item>a:focus{color:#fff!important;background:#0f172a!important;box-shadow:0 2px 5px rgba(15,23,42,.26)}.javdb-resource-nav-item>a.javdb-resource-nav-main{background:#0f766e!important}.javdb-resource-nav-item>a.javdb-resource-nav-main:hover,.javdb-resource-nav-item>a.javdb-resource-nav-main:focus{background:#115e59!important}.javdb-resource-nav-item>a[data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-nav-item>a[data-resource-entry="history"]:hover,.javdb-resource-nav-item>a[data-resource-entry="history"]:focus{background:#1d4ed8!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:focus{background:#92400e!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:focus{background:#9f1239!important}.javdb-resource-work-shortcuts{display:flex;align-items:center;flex:0 0 auto;float:right}.javdb-resource-tabs-shortcuts{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:0 0 4px!important;padding:2px 0 0!important}.tabs.javdb-resource-tabs-with-shortcuts{margin-bottom:0!important}.toolbar>.javdb-resource-work-shortcuts .buttons{margin-bottom:0}.javdb-resource-custom-links,.javdb-resource-custom-shortcuts{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:8px 0 12px!important}.javdb-resource-custom-links>button,.javdb-resource-custom-shortcuts>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:auto!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font:700 .9rem/1 inherit!important;appearance:none!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important;white-space:nowrap!important}.javdb-resource-custom-links>button:hover,.javdb-resource-custom-links>button:focus,.javdb-resource-custom-shortcuts>button:hover,.javdb-resource-custom-shortcuts>button:focus{color:#fff!important;filter:brightness(.92)}.javdb-resource-custom-links [data-resource-entry="manager"]{background:#0f766e!important}.javdb-resource-custom-links [data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-custom-links [data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-custom-links [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-downloaded"]{background:#10b981!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:900px){.javdb-resource-nav-item{width:100%;margin-left:0!important;padding:8px 0 0}.javdb-resource-nav-item>a{flex:0 0 auto}}`);
-   if (navList && !navList.querySelector('.javdb-resource-nav-item')) {
+   injectStyle('javdb-resource-nav-style',`.javdb-resource-nav-item{display:flex!important;align-items:center!important;gap:6px;flex:0 0 auto!important;width:max-content!important;margin-left:0!important;padding-left:14px;white-space:nowrap}.javdb-resource-nav-rail{display:flex!important;align-items:center!important;flex:0 0 auto!important;min-width:max-content!important;margin-left:8px!important}.main-tabs-wrap>.tabs.main-tabs,.main-tabs-wrap>.tabs.is-boxed{min-width:0!important;flex:1 1 auto!important}.tabs.javdb-resource-tabs-with-rail{margin-bottom:.5rem!important}.javdb-resource-nav-item>a{display:flex!important;align-items:center!important;min-height:36px;color:#fff!important;background:#334155!important;font-size:.9rem;font-weight:700;line-height:1;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2);border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.18)}.javdb-resource-nav-item>a:hover,.javdb-resource-nav-item>a:focus{color:#fff!important;background:#0f172a!important;box-shadow:0 2px 5px rgba(15,23,42,.26)}.javdb-resource-nav-item>a.javdb-resource-nav-main{background:#0f766e!important}.javdb-resource-nav-item>a.javdb-resource-nav-main:hover,.javdb-resource-nav-item>a.javdb-resource-nav-main:focus{background:#115e59!important}.javdb-resource-nav-item>a[data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-nav-item>a[data-resource-entry="history"]:hover,.javdb-resource-nav-item>a[data-resource-entry="history"]:focus{background:#1d4ed8!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:focus{background:#92400e!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:focus{background:#9f1239!important}.javdb-resource-work-shortcuts{display:inline-flex!important;align-items:center;flex:0 0 auto;float:right;margin:0 0 .1rem .4rem!important}.javdb-resource-tabs-shortcuts{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;flex-wrap:wrap!important;flex:0 0 auto!important;width:auto!important;max-width:100%!important;margin:0 0 4px!important;padding:2px 0 0!important}.tabs.javdb-resource-tabs-with-shortcuts{margin-bottom:0!important}.toolbar>.javdb-resource-work-shortcuts .buttons{margin-bottom:0}.javdb-resource-custom-links,.javdb-resource-custom-shortcuts{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:8px 0 12px!important}.javdb-resource-custom-links>button,.javdb-resource-custom-shortcuts>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:auto!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font:700 .9rem/1 inherit!important;appearance:none!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important;white-space:nowrap!important}.javdb-resource-custom-links>button:hover,.javdb-resource-custom-links>button:focus,.javdb-resource-custom-shortcuts>button:hover,.javdb-resource-custom-shortcuts>button:focus{color:#fff!important;filter:brightness(.92)}.javdb-resource-custom-links [data-resource-entry="manager"]{background:#0f766e!important}.javdb-resource-custom-links [data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-custom-links [data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-custom-links [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-downloaded"]{background:#10b981!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:900px){.javdb-resource-nav-rail{margin-left:4px!important}.javdb-resource-nav-item{width:max-content!important;margin-left:0!important;padding-left:0}.javdb-resource-nav-item>a{flex:0 0 auto}}`);
+   const existingResourceNavItem = document.querySelector('.javdb-resource-nav-item');
+   if (navList && !existingResourceNavItem) {
     const item = document.createElement('li'); item.className = 'javdb-resource-nav-item';
     item.innerHTML = `<a href="javascript:void(0)" class="javdb-resource-nav-main" data-resource-entry="manager" title="打开资源管理"><span>资源管理</span></a><a href="javascript:void(0)" data-resource-entry="history" title="打开鉴定记录"><span>鉴定记录</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-works" title="打开作品黑名单"><span>屏蔽列表</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-actors" title="打开演员黑名单"><span>演员黑名单</span></a>`;
     item.querySelector('[data-resource-entry="manager"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('actors'); });
@@ -4864,8 +4463,29 @@
     item.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('blacklist', 'works'); });
     item.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('blacklist', 'actors'); });
     navList.appendChild(item); }
-   const resourceTabs = navList?.closest('.tabs.main-tabs, .tabs.is-boxed'); const toolbar = resourceTabs?.nextElementSibling?.matches('.toolbar') ? resourceTabs.nextElementSibling : null; const resourceTabsParent = resourceTabs?.parentElement;
-   const hasWorkShortcuts = !!resourceTabsParent?.querySelector('.javdb-resource-work-shortcuts, .javdb-resource-tabs-shortcuts');
+   const resourceTabs = navList?.closest('.tabs.main-tabs, .tabs.is-boxed'); const resourceTabsParent = resourceTabs?.parentElement; const tabsWrap = resourceTabsParent?.matches('.main-tabs-wrap') ? resourceTabsParent : null;
+   const resourceNavItems = [...document.querySelectorAll('.javdb-resource-nav-item')]; const resourceNavItem = resourceNavItems[0] || null; resourceNavItems.slice(1).forEach(item => item.remove()); const resourceHost = tabsWrap || resourceTabs;
+   if (resourceHost && resourceNavItem) {
+    resourceTabs?.classList.add('javdb-resource-tabs-with-rail'); const rails = [...document.querySelectorAll('.javdb-resource-nav-rail')]; let resourceRail = resourceHost.querySelector(':scope > .javdb-resource-nav-rail') || rails[0] || null;
+    rails.filter(rail => rail !== resourceRail).forEach(rail => rail.remove());
+    if (!resourceRail) {
+     resourceRail = document.createElement('div'); resourceRail.className = 'javdb-resource-nav-rail'; const moreButton = tabsWrap?.querySelector(':scope > .main-tabs-more');
+     if (moreButton) moreButton.insertAdjacentElement('afterend', resourceRail);
+     else resourceHost.appendChild(resourceRail);
+    }
+    if (resourceNavItem.parentElement !== resourceRail) resourceRail.appendChild(resourceNavItem);
+    resourceHost.querySelectorAll(':scope > .main-tabs-panel .main-tabs-panel-item').forEach(panelItem => {
+     const href = panelItem.getAttribute('href') || ''; const label = panelItem.textContent?.trim() || '';
+     if (href === 'javascript:void(0)' || ['资源管理', '鉴定记录', '屏蔽列表', '演员黑名单'].includes(label)) panelItem.remove();
+    }); }
+   const toolbarCandidate = tabsWrap?.nextElementSibling || resourceTabs?.nextElementSibling; const toolbar = toolbarCandidate?.matches('.toolbar') ? toolbarCandidate : null;
+   const shortcutSelector = '.javdb-resource-work-shortcuts, .javdb-resource-tabs-shortcuts';
+   if (tabsWrap) {
+    resourceTabsParent.querySelectorAll(shortcutSelector).forEach(shortcuts => shortcuts.remove()); tabsWrap.nextElementSibling?.matches(shortcutSelector) && tabsWrap.nextElementSibling.remove();
+    toolbar?.querySelectorAll('.javdb-resource-work-shortcuts').forEach((shortcuts, index) => {
+     if (index > 0) shortcuts.remove();
+    }); }
+   const hasWorkShortcuts = !!toolbar?.querySelector('.javdb-resource-work-shortcuts') || (!tabsWrap && (!!resourceTabsParent?.nextElementSibling?.matches(shortcutSelector) || !!resourceTabsParent?.querySelector(shortcutSelector)));
    const createWorkShortcuts = className => {
     const shortcuts = document.createElement('div');
     shortcuts.className = `button-group ${className}`;
@@ -4874,9 +4494,9 @@
     shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'downloaded'); });
     shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'watched'); });
     return shortcuts; };
-   if (!hasWorkShortcuts && toolbar && !toolbar.querySelector('.javdb-resource-work-shortcuts')) {
+   if (!hasWorkShortcuts && toolbar) {
     toolbar.appendChild(createWorkShortcuts('javdb-resource-work-shortcuts'));
-   } else if (!hasWorkShortcuts && resourceTabs) {
+   } else if (!hasWorkShortcuts && resourceTabs && !tabsWrap) {
     resourceTabs.classList.add('javdb-resource-tabs-with-shortcuts'); resourceTabs.insertAdjacentElement('afterend', createWorkShortcuts('javdb-resource-tabs-shortcuts')); }
    if (customShell) {
     const customHead = customShell.querySelector('.javdb-123av-fc2-head, .javdb-api-shell-head'); const hasNativeResourceNav = !!navList?.querySelector('.javdb-resource-nav-item');
@@ -4973,10 +4593,12 @@
     });
     return flexContainer; }
    flexContainer.style.setProperty('display', 'flex', 'important'); flexContainer.style.setProperty('gap', '20px', 'important'); flexContainer.style.setProperty('align-items', 'flex-start', 'important');
-   flexContainer.style.setProperty('width', '100%', 'important'); flexContainer.style.setProperty('margin-top', '16px', 'important'); const detailDefaults = DetailFlex.defaultCss('javdb');
-   flexContainer.style.setProperty('--javdb-cover-flex', flexContainer.style.getPropertyValue('--javdb-cover-flex') || detailDefaults.cover);
-   flexContainer.style.setProperty('--javdb-info-flex', flexContainer.style.getPropertyValue('--javdb-info-flex') || detailDefaults.info);
-   flexContainer.style.setProperty('--javdb-magnet-flex', flexContainer.style.getPropertyValue('--javdb-magnet-flex') || detailDefaults.magnet); coverCol.style.setProperty('flex', 'var(--javdb-cover-flex) 1 0', 'important');
+   flexContainer.style.setProperty('width', '100%', 'important'); flexContainer.style.setProperty('margin-top', '16px', 'important'); const detailDefaults = DetailFlex.defaultCss('javdb'); const detailValues = DetailFlex.get('javdb');
+   const toFlex = value => Number.isFinite(Number(value)) ? (Number(value) / 100).toFixed(2).replace(/\.?0+$/, '') : '';
+   const savedFlex = { cover: toFlex(detailValues?.cover) || detailDefaults.cover, info: toFlex(detailValues?.info) || detailDefaults.info, magnet: toFlex(detailValues?.magnet) || detailDefaults.magnet };
+   flexContainer.style.setProperty('--javdb-cover-flex', flexContainer.style.getPropertyValue('--javdb-cover-flex') || savedFlex.cover);
+   flexContainer.style.setProperty('--javdb-info-flex', flexContainer.style.getPropertyValue('--javdb-info-flex') || savedFlex.info);
+   flexContainer.style.setProperty('--javdb-magnet-flex', flexContainer.style.getPropertyValue('--javdb-magnet-flex') || savedFlex.magnet); coverCol.style.setProperty('flex', 'var(--javdb-cover-flex) 1 0', 'important');
    coverCol.style.setProperty('width', 'auto', 'important'); coverCol.style.setProperty('max-width', 'none', 'important'); coverCol.style.setProperty('min-width', '0', 'important'); coverCol.style.setProperty('align-self', 'flex-start', 'important');
    infoCol.style.setProperty('flex', 'var(--javdb-info-flex) 1 0', 'important'); infoCol.style.setProperty('width', 'auto', 'important'); infoCol.style.setProperty('max-width', 'none', 'important'); infoCol.style.setProperty('min-width', '0', 'important');
    infoCol.style.setProperty('overflow', 'hidden', 'important'); infoCol.style.setProperty('word-break', 'break-word', 'important'); infoPanel.style.setProperty('width', '100%', 'important'); infoPanel.style.setProperty('max-width', '100%', 'important');
@@ -5006,7 +4628,7 @@
    if (!flexContainer) return;
    const slot = document.createElement('div'); slot.className = 'jav-nong-slot'; slot.style.setProperty('flex', 'var(--javdb-magnet-flex) 1 0', 'important'); slot.style.setProperty('min-width', '0', 'important');
    slot.style.setProperty('align-self', 'flex-start', 'important'); slot.style.setProperty('overflow', 'hidden', 'important'); const widget = Magnet.createMagnetWidget(avid); slot.appendChild(widget); flexContainer.appendChild(slot); }, };
- Object.assign( SiteJavDB, JavdbFavorites, JavdbApiTabs, JavdbPagination, JavdbApiShell, JavdbApiRanking, JavdbApiDetail, JavdbContent, JavdbList );
+ Object.assign( SiteJavDB, JavdbFavorites, JavdbApiTabs, JavdbPagination, JavdbApiShell, JavdbContent, JavdbList );
  const JavdbReviews = {
   ensureStyle() { return SiteJavDB._ensureApiMovieTabStyle(); },
   escapeHtml(value) { return SiteJavDB._escapeHtml(value); },
@@ -7347,7 +6969,7 @@
    { key: 'trailer', name: 'trailer', title: '预告片', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="tool-svg" viewBox="0 0 16 16"><path d="M2 2.8A1.8 1.8 0 0 1 3.8 1h8.4A1.8 1.8 0 0 1 14 2.8v10.4a1.8 1.8 0 0 1-1.8 1.8H3.8A1.8 1.8 0 0 1 2 13.2V2.8zm1 1.7h10V2.8a.8.8 0 0 0-.8-.8H3.8a.8.8 0 0 0-.8.8v1.7zm10 1H3v5h10v-5zm0 6H3v1.7c0 .44.36.8.8.8h8.4c.44 0 .8-.36.8-.8v-1.7zM6.4 6.45a.45.45 0 0 1 .47.02l2.35 1.35a.45.45 0 0 1 0 .78L6.87 9.95A.45.45 0 0 1 6.2 9.56V6.84c0-.17.08-.32.2-.39z"/></svg>' },
    { key: 'preview', name: 'picture', title: '预览图', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="tool-svg" viewBox="0 0 16 16"><path d="M6 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"></path><path d="M2 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2H2zm12 1a1 1 0 0 1 1 1v6.5l-3.78-1.95a.5.5 0 0 0-.57.1l-3.71 3.7-2.66-1.77a.5.5 0 0 0-.63.06L1 12V3a1 1 0 0 1 1-1h12z"></path></svg>' },
   ];
-  const QUICK_MENU_ICON = '<svg xmlns="http://www.w3.org/2000/svg" class="tool-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M0 0h1024v1024H0z" fill="none"/><path fill="currentColor" d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8m-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8m0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8M142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7"/></svg>';
+  const QUICK_MENU_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="tool-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M0 0h1024v1024H0z" fill="none"/><path fill="currentColor" d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8m-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8m0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8M142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7"/></svg>';
   const QUICK_MENU_ITEMS = [
    { key: 'copy-code', label: '\u590d\u5236\u756a\u53f7', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M20 2H10c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m0 12H10V4h10zM14 20H4V10h2V8H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-2h-2zM12 6h6v2h-6zm0 4h6v2h-6z"/></svg>' },
    { key: 'download-cover', label: '\u4e0b\u8f7d\u9ad8\u6e05\u5c01\u9762', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M0 0h12v12H0z" fill="none"/><path fill="currentColor" d="M8.5 5C6.57 5 5 6.57 5 8.5S6.57 12 8.5 12 12 10.43 12 8.5 10.43 5 8.5 5m1.85 4.35-1.5 1.5s-.1.08-.16.11c-.06.02-.12.04-.19.04s-.13-.01-.19-.04a.4.4 0 0 1-.16-.11l-1.5-1.5c-.2-.2-.2-.51 0-.71s.51-.2.71 0l.65.65V6.5c0-.28.22-.5.5-.5s.5.22.5.5v2.79l.65-.65c.2-.2.51-.2.71 0s.2.51 0 .71zM4.05 9c.04.35.11.68.23 1 .12-.32.19-.65.23-1H3c-1.65 0-3-1.35-3-3 0-1.49 1.1-2.74 2.53-2.96C2.76 2.33 4.23 1 6 1s3.24 1.32 3.47 3.04v.08A4.4 4.4 0 0 0 8.5 4h-.05A2.51 2.51 0 0 0 6 1.99a2.5 2.5 0 0 0-2.5 2.5c0 .28-.22.5-.5.5-1.1 0-2 .9-2 2s.9 2 2 2h1.05z"/></svg>' },
@@ -7355,7 +6977,7 @@
   ]; QUICK_MENU_ITEMS.find(item => item.key === 'download-portrait-cover').icon = QUICK_MENU_ITEMS.find(item => item.key === 'download-cover').icon;
   function enabled() { return GM_getValue('list_preview_quick_enabled', true); }
   function ensureStyle() {
-   injectStyle('jav-list-preview-style',`.jav-card-quick-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;margin-left:auto!important}.jav-card-quick-btn{width:26px;height:26px;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 24px!important;border:0!important;border-radius:4px!important;background:transparent!important;color:#64748b!important;box-shadow:none!important;fill:currentColor!important;line-height:1!important;text-decoration:none!important;cursor:pointer!important;user-select:none!important;opacity:.74!important;transition:transform .14s ease,color .14s ease,opacity .14s ease!important}.jav-card-quick-btn:hover{transform:translateY(-1px)!important;background:transparent!important;color:#2563eb!important;opacity:1!important}.jav-card-quick-btn:active{transform:scale(.96)!important}.jav-card-quick-btn:focus-visible{outline:2px solid rgba(37,99,235,.35)!important;outline-offset:2px!important}.jav-card-quick-btn .tool-svg{width:20px!important;height:20px!important;display:block!important;fill:currentColor!important}.jav-card-quick-menu{position:relative;display:inline-flex;z-index:30}.jav-card-quick-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-quick-menu-trigger .tool-svg{width:24px!important;height:24px!important}.jav-card-quick-menu-popover{display:none;position:fixed;z-index:10000120;min-width:164px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-card-quick-menu.is-open .jav-card-quick-menu-popover,.jav-card-quick-menu-popover.is-open{display:grid;gap:3px}.jav-card-quick-menu-item{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-quick-menu-item:hover{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.quick-menu-item-icon{width:18px;height:18px;flex:none;fill:currentColor}html[data-theme="dark"] .jav-card-quick-menu-popover,html[data-theme="dark"] .jav-card-quick-menu-item{border-color:#52525b;background:#18181b;color:#e4e4e7}.jav-card-resource-menu{position:relative;display:inline-flex;z-index:30}.jav-card-resource-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-resource-menu-trigger:hover,.jav-card-resource-menu-trigger:active{transform:none!important}.jav-card-resource-menu-trigger .resource-menu-icon{width:24px!important;height:24px!important;display:block!important;fill:currentColor!important}.jav-card-resource-menu-popover{display:none;position:fixed;z-index:10000120;min-width:128px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-detail-quick-actions{position:static!important;z-index:auto!important}.jav-detail-quick-actions .jav-card-resource-menu{position:relative!important;z-index:0!important}.jav-detail-quick-actions .jav-card-resource-menu-popover{position:absolute;top:calc(100%+6px);left:0;z-index:1!important}.jav-card-resource-menu-popover.is-open{display:grid;gap:3px}.jav-card-resource-menu-item{display:block;width:100%;min-height:32px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-resource-menu-item:hover,.jav-card-resource-menu-item.is-active{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.jav-card-resource-markers{position:absolute;top:6px;left:6px;z-index:3;display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 12px);pointer-events:none}.jav-card-resource-marker{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid rgba(255,255,255,.72);border-radius:4px;box-shadow:0 1px 3px rgba(15,23,42,.25);color:#fff;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap}.jav-card-resource-marker-favorite{background:#d97706}.jav-card-resource-marker-watched{background:#2563eb}.jav-card-resource-marker-downloaded{background:#059669}.jav-card-resource-marker-blocked{background:#dc2626}.javdb-grid-card[data-javdb-blacklist-hidden="1"]{display:none!important}.javbus-card-title .item-tag,.javdb-card-tags,.javlib-card-footer{align-items:center!important}.javbus-card-title .item-tag,.javdb-card-tags{display:flex!important}.javlib-card-footer .jav-card-quick-actions{margin-left:auto!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{display:inline-flex!important;align-items:center!important;gap:3px!important;vertical-align:middle!important;white-space:nowrap!important;float:right!important;margin:0!important}.torrent-list>tbody>tr>td:nth-child(2){display:table-cell!important;min-width:0!important;overflow:visible!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-btn{width:24px!important;height:24px!important;flex-basis:24px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .tool-svg{width:17px!important;height:17px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-menu-trigger .tool-svg{width:20px!important;height:20px!important}.torrent-list>tbody>tr>td:nth-child(2)>a[href^="/view/"]{display:inline-block!important;max-width:calc(100% - 150px)!important;overflow:hidden!important;text-overflow:ellipsis!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list .jav-card-quick-magnet{order:1}.torrent-list .jav-card-quick-trailer{order:2}.torrent-list .jav-card-quick-preview{order:3}.torrent-list .jav-card-quick-menu{order:4}.torrent-list .jav-sukebei-offline-115{margin-left:4px!important}.torrent-list .jav-sukebei-offline-115[data-loading="1"]{pointer-events:none!important;opacity:.55!important}html.jav-card-portrait-mode .javdb-card-meta{display:flex!important;align-items:center!important;gap:6px!important}.jav-card-magnet-overlay{position:fixed;inset:0;z-index:10000035;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px)}.jav-card-magnet-panel{width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:10px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-card-magnet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e5e7eb}.jav-card-magnet-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:15px;font-weight:850}.jav-card-magnet-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-card-magnet-body{padding:12px;overflow:auto}.jav-card-magnet-body .jav-nong-wrapper{width:100%!important;display:block!important;box-sizing:border-box!important}`);
+   injectStyle('jav-list-preview-style',`.jav-card-quick-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;margin-left:auto!important}.jav-card-quick-btn{width:26px!important;height:26px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 26px!important;overflow:hidden!important;border:0!important;border-radius:4px!important;background:transparent!important;color:#64748b!important;box-shadow:none!important;fill:currentColor!important;line-height:1!important;text-decoration:none!important;cursor:pointer!important;user-select:none!important;opacity:.74!important;transition:transform .14s ease,color .14s ease,opacity .14s ease!important}.jav-card-quick-btn:hover{transform:translateY(-1px)!important;background:transparent!important;color:#2563eb!important;opacity:1!important}.jav-card-quick-btn:active{transform:scale(.96)!important}.jav-card-quick-btn:focus-visible{outline:2px solid rgba(37,99,235,.35)!important;outline-offset:2px!important}.jav-card-quick-btn .tool-svg{width:20px!important;height:20px!important;display:block!important;fill:currentColor!important}.jav-card-quick-menu{position:relative;display:inline-flex;z-index:30}.jav-card-quick-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-quick-menu-trigger .tool-svg{width:24px!important;height:24px!important}.jav-card-quick-menu-popover{display:none!important;position:fixed;z-index:10000120;min-width:164px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-card-quick-menu.is-open .jav-card-quick-menu-popover,.jav-card-quick-menu-popover.is-open{display:grid!important;gap:3px}.jav-card-quick-menu-item{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-quick-menu-item:hover{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.quick-menu-item-icon{width:18px;height:18px;flex:none;fill:currentColor}html[data-theme="dark"] .jav-card-quick-menu-popover,html[data-theme="dark"] .jav-card-quick-menu-item{border-color:#52525b;background:#18181b;color:#e4e4e7}.jav-card-resource-menu{position:relative;display:inline-flex;z-index:30}.jav-card-resource-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-resource-menu-trigger:hover,.jav-card-resource-menu-trigger:active{transform:none!important}.jav-card-resource-menu-trigger .resource-menu-icon{width:24px!important;height:24px!important;display:block!important;fill:currentColor!important}.jav-card-resource-menu-popover{display:none!important;position:fixed;z-index:10000120;min-width:128px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-detail-quick-actions{position:static!important;z-index:auto!important}.jav-detail-quick-actions .jav-card-resource-menu{position:relative!important;z-index:0!important}.jav-detail-quick-actions .jav-card-resource-menu-popover{position:absolute;top:calc(100%+6px);left:0;z-index:1!important}.jav-card-resource-menu-popover.is-open{display:grid!important;gap:3px}.jav-card-resource-menu-item{display:block;width:100%;min-height:32px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-resource-menu-item:hover,.jav-card-resource-menu-item.is-active{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.jav-card-resource-markers{position:absolute;top:6px;left:6px;z-index:3;display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 12px);pointer-events:none}.jav-card-resource-marker{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid rgba(255,255,255,.72);border-radius:4px;box-shadow:0 1px 3px rgba(15,23,42,.25);color:#fff;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap}.jav-card-resource-marker-favorite{background:#d97706}.jav-card-resource-marker-watched{background:#2563eb}.jav-card-resource-marker-downloaded{background:#059669}.jav-card-resource-marker-blocked{background:#dc2626}.javdb-grid-card[data-javdb-blacklist-hidden="1"]{display:none!important}.javbus-card-title .item-tag,.javdb-card-tags,.javlib-card-footer{align-items:center!important}.javbus-card-title .item-tag,.javdb-card-tags{display:flex!important}.javlib-card-footer .jav-card-quick-actions{margin-left:auto!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{display:inline-flex!important;align-items:center!important;gap:3px!important;vertical-align:middle!important;white-space:nowrap!important;float:right!important;margin:0!important}.torrent-list>tbody>tr>td:nth-child(2){display:table-cell!important;min-width:0!important;overflow:visible!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-btn{width:24px!important;height:24px!important;flex-basis:24px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .tool-svg{width:17px!important;height:17px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-menu-trigger .tool-svg{width:20px!important;height:20px!important}.torrent-list>tbody>tr>td:nth-child(2)>a[href^="/view/"]{display:inline-block!important;max-width:calc(100% - 150px)!important;overflow:hidden!important;text-overflow:ellipsis!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list .jav-card-quick-magnet{order:1}.torrent-list .jav-card-quick-trailer{order:2}.torrent-list .jav-card-quick-preview{order:3}.torrent-list .jav-card-quick-menu{order:4}.torrent-list .jav-sukebei-offline-115{margin-left:4px!important}.torrent-list .jav-sukebei-offline-115[data-loading="1"]{pointer-events:none!important;opacity:.55!important}html.jav-card-portrait-mode .javdb-card-meta{display:flex!important;align-items:center!important;gap:6px!important}.jav-card-magnet-overlay{position:fixed;inset:0;z-index:10000035;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px)}.jav-card-magnet-panel{width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:10px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-card-magnet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e5e7eb}.jav-card-magnet-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:15px;font-weight:850}.jav-card-magnet-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-card-magnet-body{padding:12px;overflow:auto}.jav-card-magnet-body .jav-nong-wrapper{width:100%!important;display:block!important;box-sizing:border-box!important}`);
   }
   function isListPage() { return !SiteManager.isDetailPage(); }
   function cardSite(card) {
@@ -7491,7 +7113,7 @@
   }
   function createDetailCoverMenu(code, host = null) {
    const menu = document.createElement('span'); menu.className = 'jav-card-quick-menu jav-detail-cover-menu'; menu.dataset.code = code;
-   menu.innerHTML =`<button type="button" class="jav-card-quick-btn jav-detail-quick-btn jav-card-quick-menu-trigger" title="\u4e0b\u8f7d\u9ad8\u6e05\u5c01\u9762" aria-label="\u4e0b\u8f7d\u9ad8\u6e05\u5c01\u9762" aria-haspopup="menu" aria-expanded="false">${QUICK_MENU_ITEMS.find(item => item.key === 'download-cover').icon}</button><span class="jav-card-quick-menu-popover" role="menu"></span>`;
+   menu.innerHTML =`<button type="button" class="jav-card-quick-btn jav-detail-quick-btn jav-card-quick-menu-trigger" title="\u4e0b\u8f7d\u9ad8\u6e05\u5c01\u9762" aria-label="\u4e0b\u8f7d\u9ad8\u6e05\u5c01\u9762" aria-haspopup="menu" aria-expanded="false">${QUICK_MENU_ITEMS.find(item => item.key === 'download-cover').icon}</button><span class="jav-card-quick-menu-popover" hidden role="menu"></span>`;
    const popover = menu.querySelector('.jav-card-quick-menu-popover'); menu.__quickMenuPopover = popover;
    QUICK_MENU_ITEMS.filter(item => item.key === 'download-cover' || item.key === 'download-portrait-cover').forEach(item => {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-card-quick-menu-item'; button.dataset.quickAction = item.key;
@@ -7519,7 +7141,7 @@
     existing.querySelectorAll('[data-quick-action="download-cover"], [data-quick-action="download-portrait-cover"]').forEach(coverItem => { coverItem.hidden = !Utils.isEligibleDmmCoverCode(code); });
     actions.appendChild(existing); return existing; }
    const menu = document.createElement('span'); menu.className = 'jav-card-quick-menu'; menu.dataset.code = code;
-   menu.innerHTML =`<button type="button" class="jav-card-quick-btn jav-card-quick-menu-trigger" title="\u9996\u9875\u5feb\u6377\u529f\u80fd" aria-label="\u9996\u9875\u5feb\u6377\u529f\u80fd" aria-haspopup="menu" aria-expanded="false">${QUICK_MENU_ICON}</button><span class="jav-card-quick-menu-popover" role="menu"></span>`;
+   menu.innerHTML =`<button type="button" class="jav-card-quick-btn jav-card-quick-menu-trigger" title="\u9996\u9875\u5feb\u6377\u529f\u80fd" aria-label="\u9996\u9875\u5feb\u6377\u529f\u80fd" aria-haspopup="menu" aria-expanded="false">${QUICK_MENU_ICON}</button><span class="jav-card-quick-menu-popover" hidden role="menu"></span>`;
    const popover = menu.querySelector('.jav-card-quick-menu-popover'); menu.__quickMenuPopover = popover;
    QUICK_MENU_ITEMS.forEach(item => {
     const button = document.createElement('button');
@@ -7635,7 +7257,7 @@
    if (!menu || menu.dataset.resourceMenuVersion !== '3') {
     if (menu) { closeResourceMenu(menu); menu.remove(); }
     menu = document.createElement('span'); menu.className = 'jav-card-resource-menu'; menu.dataset.resourceMenuVersion = '3';
-    menu.innerHTML = '<button type="button" class="jav-card-quick-btn jav-card-resource-menu-trigger" title="鉴定处理" aria-label="鉴定处理" aria-haspopup="menu" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="resource-menu-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M42.238 6.426c4.8 0 7.238 2.34 7.333 6.979l.003.286V42.31c0 4.731-2.34 7.167-7.045 7.262l-.29.003H13.784c-4.777 0-7.259-2.318-7.356-6.977l-.003-.288V13.69c0-4.754 2.386-7.168 7.07-7.262l.29-.003zm-.07 3.773H13.855c-2.268 0-3.57 1.164-3.652 3.448l-.004.232V42.12c0 2.359 1.23 3.598 3.433 3.676l.223.004h28.313c2.245 0 3.547-1.164 3.629-3.448l.004-.232V13.88c0-2.359-1.23-3.676-3.412-3.676zM33 38a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zm8-7a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zM14.1 14.239c1.465-1.645 3.856-1.652 5.31-.02l.24.277l.198.248l.162.216l.18.259l.156.262l.073-.13l.127-.2l.126-.18l.077-.103l.182-.234l.107-.13l.246-.285c1.448-1.627 3.844-1.625 5.31.02s1.42 4.202.017 5.961l-.304.367l-.376.43l-.432.477l-.716.77l-.75.787l-.958.985l-.677.679l-.512.497l-.125.114c-1.043.921-1.761.897-2.72.096l-.18-.158l-.237-.225l-.808-.799l-.891-.904l-.962-1l-.378-.403l-.535-.581l-.475-.534l-.27-.319q-.124-.15-.223-.279c-1.444-1.875-1.447-4.316.018-5.961"/></svg></button><span class="jav-card-resource-menu-popover" role="menu"></span>';
+    menu.innerHTML = '<button type="button" class="jav-card-quick-btn jav-card-resource-menu-trigger" title="鉴定处理" aria-label="鉴定处理" aria-haspopup="menu" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="resource-menu-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M42.238 6.426c4.8 0 7.238 2.34 7.333 6.979l.003.286V42.31c0 4.731-2.34 7.167-7.045 7.262l-.29.003H13.784c-4.777 0-7.259-2.318-7.356-6.977l-.003-.288V13.69c0-4.754 2.386-7.168 7.07-7.262l.29-.003zm-.07 3.773H13.855c-2.268 0-3.57 1.164-3.652 3.448l-.004.232V42.12c0 2.359 1.23 3.598 3.433 3.676l.223.004h28.313c2.245 0 3.547-1.164 3.629-3.448l.004-.232V13.88c0-2.359-1.23-3.676-3.412-3.676zM33 38a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zm8-7a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zM14.1 14.239c1.465-1.645 3.856-1.652 5.31-.02l.24.277l.198.248l.162.216l.18.259l.156.262l.073-.13l.127-.2l.126-.18l.077-.103l.182-.234l.107-.13l.246-.285c1.448-1.627 3.844-1.625 5.31.02s1.42 4.202.017 5.961l-.304.367l-.376.43l-.432.477l-.716.77l-.75.787l-.958.985l-.677.679l-.512.497l-.125.114c-1.043.921-1.761.897-2.72.096l-.18-.158l-.237-.225l-.808-.799l-.891-.904l-.962-1l-.378-.403l-.535-.581l-.475-.534l-.27-.319q-.124-.15-.223-.279c-1.444-1.875-1.447-4.316.018-5.961"/></svg></button><span class="jav-card-resource-menu-popover" hidden role="menu"></span>';
     const popover = menu.querySelector('.jav-card-resource-menu-popover'); menu.__resourcePopover = popover;
     Object.entries(RESOURCE_FLAG_LABELS).forEach(([flag, labels]) => { const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-card-resource-menu-item'; button.dataset.resourceWorkFlag = flag; button.textContent = labels[0]; popover.appendChild(button); });
     menu.querySelector('.jav-card-resource-menu-trigger').addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); toggleResourceMenu(menu); }, true);
@@ -7662,6 +7284,7 @@
   window.addEventListener('scroll', window.__LAOSIJI_RESOURCE_SCROLL_EVENTS__, true); window.addEventListener('resize', window.__LAOSIJI_RESOURCE_SCROLL_EVENTS__); window.__LAOSIJI_RESOURCE_STATE_EVENTS__ = syncAllResourceMenus;
   window.addEventListener('laosiji-resource-state-changed', window.__LAOSIJI_RESOURCE_STATE_EVENTS__); window.addEventListener('laosiji-resource-state-ready', window.__LAOSIJI_RESOURCE_STATE_EVENTS__);
   function attachToCard(card) {
+   ensureStyle();
    if (!card) return;
    card.querySelectorAll('.jav-list-preview-btn').forEach(el => el.remove()); const existing = card.querySelector('.jav-card-quick-actions');
    if (enabled()) syncSukebeiOfflineButton(card);
@@ -8020,7 +7643,9 @@
    if (numberBlock && numberValue) return { anchor: numberValue, host: numberBlock };
    const javbusInfo = document.querySelector('div.col-md-3.info');
    const javbusCode = [...(javbusInfo?.querySelectorAll('p span, h3 span') || [])].find(el => { return el.textContent.trim().toUpperCase() === code.toUpperCase(); });
-   if (javbusCode) return { anchor: javbusCode, host: javbusInfo };
+   if (javbusCode) {
+    const favorite = javbusCode.closest('p')?.querySelector(':scope > .favicon');
+    return { anchor: javbusCode, host: javbusInfo, insertAfter: favorite || javbusCode }; }
    const javbusAnchor = [...(javbusInfo?.querySelectorAll('p, h3, span') || [])].find(el => { return el.textContent.trim().toUpperCase().includes(code.toUpperCase()); });
    if (javbusAnchor) return { anchor: javbusAnchor, host: javbusInfo };
    const javlibAnchor = document.querySelector('#video_id .text');
@@ -8031,14 +7656,17 @@
    if (!code) { remove(); return; }
    const target = getTarget(code);
    if (!target) { remove(); return; }
+   const insertAfter = target.insertAfter || target.anchor;
    const existing = target.anchor.querySelector(':scope > .jav-detail-quick-actions') || target.anchor.parentElement?.querySelector(':scope > .jav-detail-quick-actions')
-    || target.anchor.nextElementSibling?.classList.contains('jav-detail-quick-actions') && target.anchor.nextElementSibling;
-   if (existing?.dataset.code === code) return;
+    || (target.anchor.nextElementSibling?.classList.contains('jav-detail-quick-actions') ? target.anchor.nextElementSibling : null);
+   if (existing?.dataset?.code === code) {
+    if (insertAfter.nextElementSibling !== existing) insertAfter.insertAdjacentElement('afterend', existing);
+    return; }
    remove(); ensureStyle(); const actions = ListPreview.createDetailActions(code, target.host);
    if (!actions) return;
    actions.dataset.code = code;
    if (target.inside) target.anchor.appendChild(actions);
-   else target.anchor.insertAdjacentElement('afterend', actions);
+   else insertAfter.insertAdjacentElement('afterend', actions);
   }
   return { sync, remove };
  })();
@@ -10285,11 +9913,14 @@
    id: 'javbus',
    name: 'JavBus',
    match: (url) => /javbus\.com/.test(url) && !/search|genre|actresses|uncensored|forum|page|series|studio|label|director|star/.test(url),
-   titleSelector: 'h3' },
+   titleSelector: 'h3',
+   getCode(titleElem) {
+    const infoCode = [...document.querySelectorAll('.col-md-3.info p, .info p')] .find(node => /(?:識別碼|識別码|识别码|番号|番號)/i.test(node.textContent || '')) ?.textContent || '';
+    const keywordCode = document.querySelector('meta[name="keywords"]')?.content?.split(',')[0] || ''; return [titleElem?.textContent, infoCode, keywordCode] .map(value => Utils.extractCode(value || '')) .find(Boolean) || ''; } },
   {
    id: 'javdb',
    name: 'JavDB',
-   match: (url) => /javdb\d*\.com/.test(url) && (/\/v\/\w+/.test(url) || /[?&](?:laosiji_detail=fc2\b|laosiji_123av_fc2_detail=)/.test(url)),
+   match: (url) => /javdb\d*\.com/.test(url) && (/\/v\/\w+/.test(url) || /[?&]laosiji_123av_fc2_detail=/.test(url)),
    titleSelector: 'h2.title, .javdb-api-detail-title',
    getCode(titleElem) {
     const explicitCode = titleElem?.dataset?.laosijiCode || titleElem?.closest?.('[data-laosiji-code]')?.dataset?.laosijiCode || ''; return explicitCode ? Utils.normalizeCode(explicitCode) : Utils.extractCode(titleElem?.textContent || ''); } },
@@ -10967,7 +10598,9 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
  Core.expose('__LAOSIJI_TITLE_TRANSLATE__', TitleTranslate);
  function isCurrentDetailPage() {
   if (typeof Javdb123AvFc2 !== 'undefined' && Javdb123AvFc2.isDetailRoute?.()) return true;
-  if (/javbus\.com/i.test(location.hostname)) { return /^\/(?:[a-z]{2}\/)?(?:[A-Z]{2,15}-?\d{2,10}(?:-\d{1,3})?|[A-Z]{2,10}\d{3,6}|FC2(?:-PPV)?-\d{6,9})\/?$/i.test(location.pathname); }
+  if (/javbus\.com/i.test(location.hostname)) {
+   if (document.querySelector('.row.movie')) { return !document.querySelector('#waterfall div.item'); }
+   return /^\/(?:[a-z]{2}\/)?(?:[A-Z]{2,15}-?\d{2,10}(?:-\d{1,3})?|[A-Z]{2,10}\d{3,6}|FC2(?:-PPV)?-\d{6,9})\/?$/i.test(location.pathname); }
   return JumpSites.some(site => site.match(window.location.href)); }
  function isElemVisible(el) {
   if (!el) return false;
@@ -11534,7 +11167,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    MobilePolicy.start(); MobileSettingsEntry.install(); Pan115SettingsEntry.install(); CardFx.apply(MobilePolicy.featureEnabled('cardFx', CFG.cardFx)); Trailer.installFallbackDebugHelper(); this.initRuntimeObserver(); this.initNavigationHooks();
    SiteManager.setupJavDbGuards(); StillsGallery.start?.();
    if (location.hostname.includes('javdb') && location.pathname.startsWith('/v/')) {
-    setTimeout(mainRun, 600);
+    SiteJavDB._insertTopSettingsButton?.(); JavdbContent.installNavigation?.(); SiteJavDB._removePromoAndMoveSearch?.(); setTimeout(mainRun, 600);
    } else { mainRun(); }
    if (SiteManager.isEmbyPage()) {
     embyRenderWithRetry();
