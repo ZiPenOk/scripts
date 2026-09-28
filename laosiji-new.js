@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.7.1
-// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、改名与删除操作、多画质预告片与预览图、高清2K封面下载、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
+// @version      2.8.8
+// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、115改名与删除操作、完整正片播放、多画质预告片与预览图、高清2K封面下载、JavDB 无水印封面、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
 // @match        *://*.javlibrary.com/*
@@ -90,7 +90,7 @@
    (document.head || document.documentElement).appendChild(style);
   } catch (_) {
   } }
- installJavdbApiRouteStartupGuard(); const SCRIPT_VERSION = '2.8.7.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ installJavdbApiRouteStartupGuard(); const SCRIPT_VERSION = '2.8.8'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const JAVDB_REVIEW_INITIAL_LIMIT = 6; const JAVDB_REVIEW_MORE_LIMIT = 20;
@@ -145,7 +145,7 @@
   btnShowTrailer: { key: 'btn_show_trailer', def: true, bool: true },
   trailerProxyPlayback: { key: 'trailer_proxy_playback_enabled', def: false, bool: true },
   trailerMultiQuality: { key: 'trailer_multi_quality_enabled', def: true, bool: true },
-  fullVideoPlayback: { key: 'full_video_playback_enabled', def: false, bool: true },
+  fullVideoPlayback: { key: 'full_video_playback_enabled', def: true, bool: true },
   fullVideoPreference: { key: 'full_video_preference', def: 'censored', normalize: value => ['censored', 'uncensored', 'subtitle'].includes(value) ? value : 'censored' },
   btnShowPreview: { key: 'btn_show_preview', def: true, bool: true },
   btnShowPan115: { key: 'btn_show_pan115', def: false, bool: true },
@@ -535,7 +535,9 @@
   gmFetch,
   injectStyle,
   expose(name, value) {
-   window[name] = value; return value; }, };
+   window[name] = value;
+   if (typeof unsafeWindow !== 'undefined' && unsafeWindow && unsafeWindow !== window) { unsafeWindow[name] = value; }
+   return value; }, };
  Core.expose('__LAOSIJI_CORE__', Core);
  const VIDEO_ENGINES = [
   { key: 'missav', label: 'MissAV', host: /(?:missav\.(com|ai|ws|live)|missav123\.com|njavtv\.com)/i, color: '#ec4899' },
@@ -815,7 +817,7 @@
    document.getElementById('jav-settings-overlay')?.remove(); injectSettingsPanelStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-settings-overlay';
    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
    const panel = document.createElement('div'); panel.id = 'jav-settings-panel';
-   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整视频播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放开关</strong><small>详情区封面加载完整视频播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>所选版本不可用时回落有码</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">默认有码</option><option value="uncensored">无码优先</option><option value="subtitle">中字优先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片中转播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整视频播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放开关</strong><small>详情区封面加载完整视频播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>优先选择，没有则回落普通</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">默认有码</option><option value="uncensored">无码优先</option><option value="subtitle">中字优先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片中转播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
    overlay.appendChild(panel); document.body.appendChild(overlay); const navItems = [...panel.querySelectorAll('[data-sp-section]')]; const sectionPanels = [...panel.querySelectorAll('[data-sp-panel]')];
    navItems.forEach(item => item.addEventListener('click', () => {
     const section = item.dataset.spSection;
@@ -3239,6 +3241,130 @@
     status.textContent = error.message || `${title}读取失败`;
     status.classList.add('is-error'); }
    this.installNavigation(); return true; }, };
+ const JavdbAppCover = (() => {
+  const APP_HOST = 'tp.spfcas.com'; const WEB_HOST = 'c0.jdbstatic.com'; const APP_PREFIX = '/rhe951l4q'; const IMAGE_ATTRIBUTES = ['src', 'data-src', 'data-original', 'data-lazy-src', 'data-image']; const objectUrls = new Map(); const pending = new Map();
+  const failed = new Set(); let started = false; let observer = null;
+  function isJavdbPage() { return /(?:^|\.)javdb(?:\.|$)/i.test(location.hostname); }
+  function appUrlFrom(value) {
+   let url;
+   try {
+    url = new URL(String(value || ''), location.href);
+   } catch (_) { return ''; }
+   const host = url.hostname.toLowerCase();
+   if (host !== APP_HOST && host !== WEB_HOST) return '';
+   const match = url.pathname.match(/^\/(?:rhe951l4q\/)?(covers|small_covers|thumbs)\/([^/]+)\/([^/]+)\.jpg$/i);
+   if (!match) return '';
+   const kind = match[1].toLowerCase() === 'covers' ? 'covers' : 'small_covers'; let prefix; let id;
+   try {
+    prefix = decodeURIComponent(match[2]).toLowerCase(); id = decodeURIComponent(match[3]);
+   } catch (_) { return ''; }
+   if (!/^[a-z0-9_-]+$/i.test(prefix) || !/^[a-z0-9._~-]+$/i.test(id)) return '';
+   return `https://${APP_HOST}${APP_PREFIX}/${kind}/${encodeURIComponent(prefix)}/${encodeURIComponent(id)}.jpg`;
+  }
+  function asBytes(value) {
+   if (value instanceof Uint8Array) return value;
+   if (value instanceof ArrayBuffer) return new Uint8Array(value);
+   if (ArrayBuffer.isView(value)) return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+   return null; }
+  function decode(encryptedValue) {
+   const encrypted = asBytes(encryptedValue);
+   if (!encrypted || encrypted.length < 4) throw new Error('Invalid encrypted image');
+   const key = encrypted[0]; const decoded = new Uint8Array(encrypted.length - 1);
+   for (let i = 1; i < encrypted.length; i++) decoded[i - 1] = encrypted[i] ^ key;
+   if (decoded[0] !== 0xff || decoded[1] !== 0xd8 || decoded[2] !== 0xff) { throw new Error('Decoded image is not a JPEG'); }
+   return decoded; }
+  function responseBytes(response) {
+   const bytes = asBytes(response?.response);
+   if (bytes) return bytes;
+   const text = response?.responseText;
+   if (typeof text !== 'string' || !text) return null;
+   const fallback = new Uint8Array(text.length);
+   for (let i = 0; i < text.length; i++) fallback[i] = text.charCodeAt(i) & 0xff;
+   return fallback; }
+  async function load(url) {
+   if (objectUrls.has(url)) return objectUrls.get(url);
+   if (pending.has(url)) return pending.get(url);
+   if (failed.has(url)) throw new Error('JavDB App cover previously failed');
+   const task = (async () => {
+    const response = await gmFetch(url, {
+     responseType: 'arraybuffer',
+     timeout: 20000,
+     headers: { Accept: 'image/jpeg' },
+    });
+    if (!response?.loadstuts || response.status < 200 || response.status >= 400) {
+     throw new Error(`JavDB App cover HTTP ${response?.status || 0}`);
+    }
+    const bytes = responseBytes(response); const decoded = decode(bytes);
+    const objectUrl = URL.createObjectURL(new Blob([decoded], { type: 'image/jpeg' }));
+    objectUrls.set(url, objectUrl); return objectUrl;
+   })();
+   pending.set(url, task);
+   try {
+    return await task;
+   } catch (error) {
+    failed.add(url); throw error;
+   } finally {
+    pending.delete(url); } }
+  function imageSource(image) {
+   for (const attribute of IMAGE_ATTRIBUTES) {
+    const value = image.getAttribute(attribute) || ''; const appUrl = appUrlFrom(value);
+    if (appUrl) return { attribute, value, appUrl };
+   }
+   return null; }
+  function apply(image, source, objectUrl) {
+   image.dataset.javdbAppCover = source.appUrl; image.dataset.javdbAppCoverOriginal = image.dataset.javdbAppCoverOriginal || source.value;
+   if (!image.dataset.laosijiCoverSrc) image.dataset.laosijiCoverSrc = source.value;
+   IMAGE_ATTRIBUTES.forEach(attribute => {
+    if (image.getAttribute(attribute) === source.value) image.setAttribute(attribute, objectUrl);
+   });
+   image.src = objectUrl; const link = image.closest?.('a[href]'); const linkUrl = appUrlFrom(link?.getAttribute('href') || '');
+   if (link && linkUrl === source.appUrl) link.href = objectUrl;
+  }
+  function process(image) {
+   if (!image || image.nodeType !== 1) return;
+   const source = imageSource(image);
+   if (!source) return;
+   const cached = objectUrls.get(source.appUrl);
+   if (cached) {
+    if (image.src !== cached) apply(image, source, cached);
+    return; }
+   if (failed.has(source.appUrl) || image.dataset.javdbAppCoverPending === source.appUrl) return;
+   image.dataset.javdbAppCoverPending = source.appUrl;
+   load(source.appUrl).then(objectUrl => {
+    delete image.dataset.javdbAppCoverPending;
+    if (!image.isConnected) return;
+    const current = imageSource(image);
+    if (current && current.appUrl !== source.appUrl) return;
+    apply(image, source, objectUrl);
+   }).catch(error => {
+    delete image.dataset.javdbAppCoverPending; errorLog('JavDB App cover decode failed:', source.appUrl, error);
+   }); }
+  function scan(root = document) {
+   if (root.matches?.('img')) process(root);
+   root.querySelectorAll?.('img').forEach(process); }
+  function start() {
+   if (started || !isJavdbPage()) return;
+   started = true;
+   const run = () => {
+    scan(); const target = document.documentElement || document;
+    if (!target || typeof MutationObserver !== 'function') return;
+    observer = new MutationObserver(records => {
+     records.forEach(record => {
+      if (record.type === 'attributes') process(record.target);
+      else record.addedNodes.forEach(scan);
+     });
+    });
+    observer.observe(target, {
+     childList: true,
+     subtree: true,
+     attributes: true,
+     attributeFilter: IMAGE_ATTRIBUTES,
+    }); };
+   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
+   else run();
+  }
+  return { appUrlFrom, decode, responseBytes, start };
+ })();
  const JavdbList = {
   _syncRecommendCollapse() {
    const container = document.querySelector('#recommend-container');
@@ -3445,164 +3571,46 @@
   }
   return { sync };
  })();
- const Javdb123AvFc2 = (() => {
+ const Javdb123AvPlayer = (() => {
   const BASE_URL = 'https://123av.com';
-  const ROUTE_KEY = 'laosiji_123av_fc2'; const DETAIL_KEY = 'laosiji_123av_fc2_detail';
-  const TYPES = [ { value: '', label: '\u5168\u90e8' }, { value: 'censored', label: '\u6709\u7801' }, { value: 'uncensored', label: '\u65e0\u7801' }, { value: 'uncensored-leaked', label: '\u65e0\u7801\u6cc4\u9732' } ];
-  const ACTRESS_MODES = [ { value: '', label: '\u5168\u90e8' }, { value: 'single', label: '\u5355\u4eba' }, { value: 'multi', label: '\u591a\u4eba' } ];
-  const SORTS = {
-   release_date: { label: '\u53d1\u5e03\u65e5\u671f' },
-   recent: { label: '\u6700\u8fd1\u6dfb\u52a0' },
-   hot: { label: '\u70ed\u95e8' },
-   today: { label: '\u4eca\u65e5\u89c2\u770b' },
-   week: { label: '\u6bcf\u5468\u89c2\u770b' },
-   month: { label: '\u6bcf\u6708\u89c2\u770b' },
-   views: { label: '\u6700\u53d7\u6b22\u8fce' },
-   follows: { label: '\u6700\u591a\u5173\u6ce8' },
-   longest: { label: '\u6700\u957f' }, };
-  const CURRENT_YEAR = new Date().getFullYear();
-  const YEARS = Array.from( { length: Math.max(0, CURRENT_YEAR - 2000 + 1) }, (_, index) => String(CURRENT_YEAR - index) );
-  const CACHE_PREFIX = 'javdb_123av_fc2_cache_v4_'; const CACHE_TTL = 90 * 1000; const activeRequests = new Set(); let renderGeneration = 0;
-  function installJavdbRouteStartupGuard() {
+  function getFc2Number(code) { return String(code || '').trim().match(/^FC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})$/i)?.[1] || ''; }
+  function getSlug(code) {
+   const codeLower = String(code || '').trim().toLowerCase(); const fc2Number = getFc2Number(code);
+   const dateNumberMatch = codeLower.match(/^(\d{6})([_-])(\d{2,3})$/);
+   const dateNumberPrefix = dateNumberMatch ? dateNumberMatch[3].length === 2 ? '10musume' : dateNumberMatch[3] === '100' ? 'pacopacomama' : dateNumberMatch[2] === '_' ? '1pondo' : '' : '';
+   const caribbeanCode = codeLower.match(/^(\d{6}-\d{3})$/)?.[1];
+   const caribbeanSlug = codeLower.match(/^(caribbeancom-\d{6}-\d{3})$/)?.[1];
+   const knownBrandedSlug = codeLower.match(/^10musume-\d{6}[_-]\d{2}$/)?.[0] || codeLower.match(/^1pondo-\d{6}[_-]\d{3}$/)?.[0] || codeLower.match(/^pacopacomama-\d{6}[_-]\d{3}$/)?.[0]
+    || codeLower.match(/^heyzo[-_]?\d{4}$/)?.[0]?.replace(/^heyzo(?=[_\d])/, 'heyzo-').replace('heyzo-_', 'heyzo-') || codeLower.match(/^tokyo-hot-(?:n-?\d{4}|k-?\d{4}|kb-?\d{4}|s2mbd-?\d{3})$/)?.[0]
+    || codeLower.match(/^(?:n-?\d{4}|k-?\d{4}|kb-?\d{4}|s2mbd-?\d{3})$/)?.[0]?.replace(/^/, 'tokyo-hot-') || codeLower.match(/^fc2-ppv-\d+$/)?.[0] || '';
+   const dateNumberSlug = dateNumberPrefix
+    ?`${dateNumberPrefix}-${dateNumberMatch[1]}${dateNumberMatch[2]}${dateNumberMatch[3]}`                : '';
+   return knownBrandedSlug || caribbeanSlug
+    || (caribbeanCode ?`caribbeancom-${caribbeanCode}` : '')
+    || dateNumberSlug
+    || (fc2Number ?`fc2-ppv-${fc2Number}` : '')
+    || codeLower; }
+  function getLocalePrefix(referenceUrl = location.href) {
    try {
-    const url = new URL(location.href);
-    if (!/javdb/i.test(url.hostname) || url.searchParams.get(ROUTE_KEY) !== '1') return;
-    if (document.getElementById('javdb-123av-fc2-route-startup-guard')) return;
-    const style = document.createElement('style'); style.id = 'javdb-123av-fc2-route-startup-guard';
-    style.textContent = 'body > section{visibility:hidden!important}';
-    (document.head || document.documentElement).appendChild(style);
-   } catch (_) {
-   } }
-  function revealJavdbRouteShell() {
-   document.getElementById('javdb-123av-fc2-route-startup-guard')?.remove(); }
-  installJavdbRouteStartupGuard();
-  function cancelRender() { renderGeneration += 1; activeRequests.forEach(item => item.abort?.()); activeRequests.clear(); }
-  function navigateRoute(href) {
-   if (typeof SiteJavDB?._navigateCustomSpa === 'function' && SiteJavDB._navigateCustomSpa(href)) return;
-   location.assign(href); }
-  function escapeHtml(value) {
-   return SiteJavDB?._escapeHtml?.(value) || String(value ?? '').replace(/[&<>"']/g, ch => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-   }[ch])); }
-  function parseRoute(href = location.href) {
-   try {
-    const url = new URL(href, location.href); const params = url.searchParams;
-    if (!/(?:jav(?:db|bus|library|lib)|r86m|s87n)/i.test(url.hostname) || params.get(ROUTE_KEY) !== '1') return null;
-    const type = TYPES.some(item => item.value === params.get('laosiji_type')) ? params.get('laosiji_type') : ''; const year = YEARS.includes(params.get('laosiji_year')) ? params.get('laosiji_year') : '';
-    const actress = ACTRESS_MODES.some(item => item.value === params.get('laosiji_actress')) ? params.get('laosiji_actress') : ''; const sort = SORTS[params.get('laosiji_sort')] ? params.get('laosiji_sort') : 'release_date';
-    const detail = String(params.get(DETAIL_KEY) || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-    return { page: Math.max(1, parseInt(params.get('laosiji_page') || '1', 10) || 1), query: (params.get('laosiji_query') || '').trim(), type, year, actress, sort, ...(detail ? { detail } : {}) };
-   } catch { return null; } }
-  function routeUrl(next = {}) {
-   const params = new URLSearchParams(); params.set(ROUTE_KEY, '1'); const query = String(next.query ?? '').trim(); const type = TYPES.some(item => item.value === next.type) ? next.type : '';
-   const year = YEARS.includes(String(next.year || '')) ? String(next.year) : ''; const actress = ACTRESS_MODES.some(item => item.value === next.actress) ? next.actress : ''; const sort = SORTS[next.sort] ? next.sort : 'release_date';
-   const page = Math.max(1, parseInt(next.page || '1', 10) || 1); const detail = String(next.detail || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
-   if (query) params.set('laosiji_query', query);
-   if (type) params.set('laosiji_type', type);
-   if (year) params.set('laosiji_year', year);
-   if (actress) params.set('laosiji_actress', actress);
-   if (sort !== 'release_date') params.set('laosiji_sort', sort);
-   if (page > 1) params.set('laosiji_page', String(page));
-   if (detail) params.set(DETAIL_KEY, detail);
-   const host = location.hostname || ''; const path = /javbus/i.test(host) ? '/' : /(?:javlibrary|javlib|r86m|s87n)/i.test(host) ? '/cn/main.php' : '/';
-   return `${path}?${params.toString()}`;
-  }
-  function sourceUrl(route, sourcePage = route.page) {
-   const url = new URL(route.query ? '/cn/search' : '/cn/makers/fc2', BASE_URL);
-   if (route.query) url.searchParams.set('keyword', route.query);
-   url.searchParams.set('page', String(Math.max(1, sourcePage))); url.searchParams.set('type', route.type || ''); url.searchParams.set('year', route.year || ''); url.searchParams.set('actress', route.actress || '');
-   url.searchParams.set('sort', route.sort || 'release_date'); return url.href; }
-  function renderOptions(items, selected) {
-   return items.map(item => `<option value="${escapeHtml(item.value)}"${item.value === selected ? ' selected' : ''}>${escapeHtml(item.label)}</option>`).join('');
-  }
-  function renderYearOptions(selected) {
-   return renderOptions([
-    { value: '', label: '\u5168\u90e8' }, ...YEARS.map(value => ({ value, label: value })),
-   ], selected); }
-  function normalizeCode(value) {
-   const raw = String(value || '').trim().toUpperCase();
-   const match = raw.match(/FC2[-_\s]?PPV[-_\s]?(\d{6,9})/i) || raw.match(/\b(\d{6,9})\b/);
-   return match ? `FC2-PPV-${match[1]}` : '';
-  }
-  function detailSlug(href) {
-   try {
-    const path = new URL(href, BASE_URL).pathname.replace(/\/+$/, ''); const match = path.match(/\/v\/([^/]+)$/i); return match ? decodeURIComponent(match[1]).toLowerCase() : '';
-   } catch { return ''; } }
-  function localDetailUrl(href) {
-   const slug = detailSlug(href);
-   return slug ? routeUrl({ detail: slug }) : href; }
-  function parseCard(card, baseUrl = BASE_URL) {
-   if (!card) return null;
-   const link = card.querySelector('.card__cover[href], .card__title a[href]'); const titleLink = card.querySelector('.card__title a[href]') || link; const rawTitle = (titleLink?.textContent || '').replace(/\s+/g, ' ').trim();
-   const code = normalizeCode(rawTitle || link?.getAttribute('href')); const href = link?.getAttribute('href') || titleLink?.getAttribute('href') || ''; const image = card.querySelector('.card__img[src], img[src]');
-   if (!code || !href) return null;
-   return {
-    code,
-    title: rawTitle.replace(/^FC2[-_\s]?PPV[-_\s]?\d{6,9}\s*(?:[-—:]\s*)?/i, '').trim() || rawTitle,
-    href: new URL(href, baseUrl).href,
-    cover: image?.getAttribute('src') || '',
-    preview: card.querySelector('.card__poster[data-preview]')?.getAttribute('data-preview') || '',
-    meta: (card.querySelector('.card__meta')?.textContent || '').replace(/\s+/g, ' ').trim(), }; }
-  function parseDocument(doc, baseUrl = BASE_URL) {
-   const seen = new Set();
-   const items = [...doc.querySelectorAll('.card')].map(card => parseCard(card, baseUrl)).filter(item => {
-    if (!item || seen.has(item.code)) return false;
-    seen.add(item.code); return true;
-   });
-   const next = doc.querySelector('.pager__nav[rel="next"][href], a[rel="next"][href]'); const last = doc.querySelector('.pager__pages a[rel="last"][href], a[rel="last"][href]'); const totalText = doc.querySelector('.pager__total')?.textContent || '';
-   const totalPages = Math.max( parseInt(totalText.replace(/[^\d]/g, ''), 10) || 0, parseInt(last?.textContent?.replace(/[^\d]/g, '') || '0', 10) || 0 ); const visibleBody = doc.body?.cloneNode?.(true);
-   visibleBody?.querySelectorAll?.('script,style,noscript,template').forEach(el => el.remove()); const visibleText = visibleBody?.textContent || doc.body?.textContent || '';
-   const challengeText = `${doc.title || ''} ${visibleText}`;
-   return { items, nextUrl: next ? new URL(next.getAttribute('href'), baseUrl).href : '', totalPages, blocked: !items.length && /cloudflare|challenge|checking your browser|captcha|验证|驗證/i.test(challengeText) }; }
-  function mergePages(pages) {
-   const seen = new Set();
-   const items = pages.flatMap(page => page?.items || []).filter(item => {
-    if (!item?.code || seen.has(item.code)) return false;
-    seen.add(item.code); return true;
-   });
-   const sourceTotalPages = Math.max(...pages.map(page => Number(page?.totalPages) || 0), 0); const hasNext = pages.some(page => !!page?.nextUrl);
-   return { items, nextUrl: hasNext ? '1' : '', totalPages: Math.ceil(sourceTotalPages / 2), sourceTotalPages }; }
-  function responseError(response) {
-   if (!response?.ok) {
-    const status = Number(response?.status) || 0;
-    if (status === 403) return new Error('123AV 请求被拒绝（403），请稍后重试。');
-    if (status === 429) return new Error('123AV 请求过于频繁（429），请稍后重试。');
-    if (response?.error?.kind === 'timeout') return new Error('123AV 请求超时。');
-    if (response?.error?.kind === 'abort') return new Error('请求已取消。');
-    return new Error(`123AV 请求失败${status ? `（${status}）` : ''}。`);
-   }
-   return null; }
-  function cacheKey(url) {
-   return `${CACHE_PREFIX}${url}`;
-  }
-  function readCache(url) {
-   try {
-    const value = JSON.parse(sessionStorage.getItem(cacheKey(url)) || 'null');
-    if (!value || Date.now() - Number(value.savedAt) > CACHE_TTL) return null;
-    return value.data || null;
-   } catch { return null; } }
-  function writeCache(url, data) {
-   try {
-    sessionStorage.setItem(cacheKey(url), JSON.stringify({ savedAt: Date.now(), data }));
+    const url = new URL(referenceUrl, location.href);
+    if (/(?:^|\.)123av\.com$/i.test(url.hostname)) {
+     const locale = url.pathname.match(/^\/([a-z]{2}(?:-[a-z]{2})?)\//i)?.[1];
+     if (locale) return`/${locale.toLowerCase()}`;
+    }
    } catch {
-   } }
-  async function fetchPage(url, generation) {
-   const cached = readCache(url);
-   if (cached) return cached;
-   const request = gmFetch(url, { timeout: 20000, headers: { accept: 'text/html' } });
-   activeRequests.add(request); const response = await request; activeRequests.delete(request);
-   if (generation !== renderGeneration) throw new Error('请求已被新页面替换。');
-   const error = responseError(response);
-   if (error) throw error;
-   const data = parseDocument(parseHTML(response.responseText || ''), url);
-   if (data.blocked) throw new Error('123AV 返回了验证页面，请稍后重试。');
-   writeCache(url, data); return data; }
-  async function fetchPageBundle(route, generation) {
-   activeRequests.forEach(item => item.abort?.()); activeRequests.clear(); const firstSourcePage = (route.page - 1) * 2 + 1; const first = await fetchPage(sourceUrl(route, firstSourcePage), generation);
-   const second = first.nextUrl ? await fetchPage(sourceUrl(route, firstSourcePage + 1), generation) : null; return mergePages([first, second]); }
-  function textOf(node) { return (node?.textContent || '').replace(/\s+/g, ' ').trim(); }
-  function styleUrl(value) {
-   const match = String(value || '').match(/url\(['"]?([^'")]+)['"]?\)/i); return match ? match[1] : ''; }
+   }
+   return '/cn'; }
+  function detailUrl(code, referenceUrl = location.href) {
+   const slug = getSlug(code);
+   return slug ?`${BASE_URL}${getLocalePrefix(referenceUrl)}/v/${slug}` : '';
+  }
+  function detailCandidates(code, preference = 'censored', referenceUrl = location.href, explicitDetailUrl = '') {
+   const normalUrl = normalizeHttpUrl(explicitDetailUrl || detailUrl(code, referenceUrl)); const slug = getSlug(code);
+   const ordinary = slug === String(code || '').trim().toLowerCase() && /^[a-z]{2,10}-\d{2,5}$/.test(slug) && !slug.startsWith('heyzo-');
+   if (!normalUrl || preference !== 'uncensored' || !ordinary || new URL(normalUrl).hostname !== '123av.com') return normalUrl ? [normalUrl] : [];
+   const versionedUrl = new URL(normalUrl);
+   versionedUrl.pathname = versionedUrl.pathname.replace(/\/v\/[^/]+\/?$/i,`/v/${slug}-uncensored-leaked`);
+   const preferredUrl = versionedUrl.href; return preferredUrl === normalUrl ? [normalUrl] : [preferredUrl, normalUrl]; }
   function decodePlayerJson(value) {
    const match = String(value || '').match(/player\(JSON\.parse\('([\s\S]*?)'\)/i);
    if (!match) return [];
@@ -3612,188 +3620,766 @@
      .replace(/\\\\/g, '\\') .replace(/\\'/g, "'");
     const episodes = JSON.parse(json); return Array.isArray(episodes) ? episodes : [];
    } catch { return []; } }
-  function parseDetailDocument(doc, baseUrl = BASE_URL) {
-   const titleNode = doc?.querySelector?.('.watch__title, h1'); const rawTitle = textOf(titleNode) || textOf(doc?.querySelector?.('title')); const rows = [...(doc?.querySelectorAll?.('.watch__info-row') || [])];
-   const fields = {};
-   rows.forEach(row => {
-    const label = textOf(row.querySelector?.('dt')).replace(/[：:]/g, '').toLowerCase(); const valueNode = row.querySelector?.('dd'); const value = textOf(valueNode);
-    if (label) fields[label] = {
-     value,
-     links: [...(valueNode?.querySelectorAll?.('a') || [])].map(textOf).filter(Boolean), };
-   });
-   const player = doc?.querySelector?.('.watch__main[x-data], .watch__main'); const playerConfig = decodePlayerJson(player?.getAttribute?.('x-data')); const cover = styleUrl(doc?.querySelector?.('.player')?.getAttribute?.('style'));
-   const sourceUrl = new URL(baseUrl, BASE_URL).href; const code = normalizeCode(fields['代码']?.value || fields.code?.value || rawTitle);
-   const title = rawTitle.replace(/^FC2[-_\s]?PPV[-_\s]?\d{6,9}\s*[—-]?\s*/i, '').trim() || rawTitle;
-   const field = (...labels) => labels.map(label => fields[label]) .find(Boolean) || { value: '', links: [] };
-   const type = field('类型', 'type'); const release = field('发布日期', '发行日期', 'release date', 'released'); const maker = field('制作商', 'maker', 'studio'); const genres = field('类别', '分类', 'genres', 'genre');
-   const metaStats = [...(doc?.querySelectorAll?.('.watch__meta--stats .watch__metaitem') || [])].map(textOf).filter(Boolean);
-   return {
-    code,
-    title,
-    rawTitle,
-    cover,
-    playerUrl: playerConfig[0]?.url || '',
-    type: type.links.join(' / ') || type.value,
-    releaseDate: release.value,
-    maker: maker.links.join(' / ') || maker.value,
-    genres: genres.links.length ? genres.links : genres.value ? [genres.value] : [],
-    stats: metaStats,
-    sourceUrl, }; }
-  async function fetchDetail(slug, generation) {
-   const url = new URL(`/cn/v/${encodeURIComponent(slug)}`, BASE_URL).href;
-   const cached = readCache(url);
-   if (cached) return cached;
-   const request = gmFetch(url, { timeout: 20000, headers: { accept: 'text/html' } });
-   activeRequests.add(request); const response = await request; activeRequests.delete(request);
-   if (generation !== renderGeneration) throw new Error('request replaced');
-   const error = responseError(response);
-   if (error) throw error;
-   const doc = parseHTML(response.responseText || ''); const detail = parseDetailDocument(doc, url);
-   if (!detail.code || !detail.rawTitle) throw new Error('\u0031\u0032\u0033AV \u8fd4\u56de\u4e86\u9a8c\u8bc1\u9875\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002');
-   writeCache(url, detail); return detail; }
-  function httpUrl(value, baseUrl) {
+  function normalizeHttpUrl(value, baseUrl = BASE_URL) {
+   const raw = String(value || '').trim();
+   if (!raw) return '';
    try {
-    const url = new URL(String(value || '').trim(), baseUrl); return /^https?:$/i.test(url.protocol) ? url.href : '';
+    const url = new URL(raw, baseUrl); return /^https?:$/i.test(url.protocol) ? url.href : '';
    } catch { return ''; } }
-  function codeNumber(code) { return String(code || '').match(/FC2-PPV-(\d{6,9})/i)?.[1] || ''; }
-  function metaContent(doc, selector) { return doc?.querySelector?.(selector)?.getAttribute?.('content') || ''; }
-  function recordLink(node, baseUrl, label = '') {
-   const url = httpUrl(node?.getAttribute?.('href') || node?.getAttribute?.('src'), baseUrl); const name = textOf(node) || label;
-   return url && name ? { name, url } : null; }
-  function sampleRecord(anchor, image, baseUrl) {
-   const url = httpUrl(anchor?.getAttribute?.('href') || image?.getAttribute?.('src'), baseUrl); const thumb = httpUrl(image?.getAttribute?.('src') || anchor?.getAttribute?.('href'), baseUrl);
-   return url ? { url, thumb: thumb || url } : null; }
-  function parseOfficialSupplementDocument(doc, baseUrl) {
-   const title = metaContent(doc, 'meta[property="og:title"]') || textOf(doc?.querySelector?.('.items_article_headerInfo h3'));
-   const cover = httpUrl(
-    doc?.querySelector?.('.items_article_MainitemThumb img')?.getAttribute?.('src') || metaContent(doc, 'meta[property="og:image"]'),
-    baseUrl,
-   ); const sellerNode = doc?.querySelector?.('.items_article_writer a[href*="/users/"]'); const seller = recordLink(sellerNode, baseUrl); const sellerId = doc?.querySelector?.('.items_article_writer [data-userid]')?.getAttribute?.('data-userid') || '';
-   const samples = [...(doc?.querySelectorAll?.('.items_article_SampleImagesArea a[data-image-slideshow], .items_article_SampleImagesArea a') || [])] .map(anchor => sampleRecord(anchor, anchor.querySelector?.('img'), baseUrl)) .filter(Boolean);
-   const tags = [...(doc?.querySelectorAll?.('.items_article_TagArea a.tagTag, .items_article_TagArea a[data-tag]') || [])] .map(node => textOf(node) || node.getAttribute?.('data-tag') || '') .filter(Boolean);
-   return { title, cover, seller: seller ? { ...seller, id: sellerId } : null, actresses: [], samples, tags: [...new Set(tags)] }; }
-  function parsePpvCmaInertiaPage(doc) {
-   const pageScript = doc?.querySelector?.('script[data-page="app"]');
-   if (!pageScript) return null;
-   try {
-    return JSON.parse(pageScript.textContent || pageScript.innerHTML || '');
-   } catch { return null; } }
-  function parsePpvDbSupplementDocument(doc, baseUrl) {
-   const inertiaPage = parsePpvCmaInertiaPage(doc); const structured = inertiaPage?.props?.article || null; const structuredWriter = structured?.writer;
-   const structuredSeller = structuredWriter?.name ? {
-     name: textOf({ textContent: structuredWriter.name }),
-     url: httpUrl(`/users/${encodeURIComponent(structuredWriter.slug || structuredWriter.id || '')}`, baseUrl),
-     id: String(structuredWriter.id || ''),
-    } : null;
-   const structuredTags = Array.isArray(structured?.tags) ? structured.tags.map(tag => typeof tag === 'string' ? tag : tag?.name || '').filter(Boolean) : [];
-   const structuredSamples = [ ...(Array.isArray(structured?.samples) ? structured.samples : []), ...(Array.isArray(structured?.sample_images) ? structured.sample_images : []), ...(Array.isArray(structured?.preview_images) ? structured.preview_images : []),
-   ].map(sample => {
-    const url = typeof sample === 'string' ? sample : sample?.url || sample?.image_url || sample?.src || ''; const thumb = typeof sample === 'string' ? sample : sample?.thumb || sample?.thumbnail || sample?.thumbnail_url || sample?.src || '';
-    const safeUrl = httpUrl(url, baseUrl); const safeThumb = httpUrl(thumb, baseUrl);
-    return safeUrl ? { url: safeUrl, thumb: safeThumb || safeUrl } : null;
-   }).filter(Boolean);
-   const structuredActresses = Array.isArray(structured?.actresses) ? structured.actresses.map(actress => {
-     const name = typeof actress === 'string' ? actress : actress?.name || ''; const slug = typeof actress === 'string' ? '' : actress?.slug || actress?.id || '';
-     const url = httpUrl(
-      typeof actress === 'object' ? actress?.url || (slug ? `/actresses/${encodeURIComponent(slug)}` : '') : '',
-      baseUrl,
-     );
-     return name && url ? { name: textOf({ textContent: name }), url } : null;
-    }).filter(Boolean) : [];
-   const title = structured?.title || metaContent(doc, 'meta[property="og:title"]') || textOf(doc?.querySelector?.('h1, .title, [class*="title"]'));
-   const cover = httpUrl(
-    structured?.image_url || metaContent(doc, 'meta[property="og:image"]') || doc?.querySelector?.('[class*="cover"] img, [class*="poster"] img, img[src*="cover"]')?.getAttribute?.('src'),
-    baseUrl,
-   ); const links = [...(doc?.querySelectorAll?.('a[href]') || [])];
-   const collectByHint = hints => links.map(link => {
-    const href = link.getAttribute?.('href') || '';
-    const context = `${href} ${textOf(link)} ${textOf(link.parentElement)}`.toLowerCase();
-    return hints.some(hint => context.includes(hint)) ? recordLink(link, baseUrl) : null;
-   }).filter(Boolean);
-   const collectBySelector = selector => [...(doc?.querySelectorAll?.(selector) || [])].map(link => recordLink(link, baseUrl)).filter(Boolean);
-   const directActresses = [...(doc?.querySelectorAll?.('a[href*="/actresses/"]') || [])].map(link => {
-    const url = httpUrl(link.getAttribute?.('href'), baseUrl);
-    const name = textOf({
-     textContent: link.getAttribute?.('title') || link.querySelector?.('h2, .card-title')?.textContent || link.textContent,
-    });
-    return url && name ? { name, url } : null;
-   }).filter(Boolean);
-   const sampleAnchors = [...(doc?.querySelectorAll?.('[class*="sample"] a, [class*="preview"] a, [class*="sample"] img, [class*="preview"] img') || [])];
-   const htmlSamples = sampleAnchors.map(node => {
-    const image = node.matches?.('img') ? node : node.querySelector?.('img'); const anchor = node.matches?.('a') ? node : node.closest?.('a'); return sampleRecord(anchor, image, baseUrl);
-   }).filter(Boolean);
-   const actresses = [ ...directActresses, ...structuredActresses, ...collectByHint(['actress', 'actor', 'performer', '\u5973\u512a', '\u5973\u6f14\u5458']),
-    ...collectBySelector('[class*="actress"] a, [class*="actor"] a, [class*="performer"] a, [data-actress] a'), ];
-   const sellers = [ ...(structuredSeller ? [structuredSeller] : []), ...collectByHint(['seller', 'maker', 'author', 'uploader', '\u8ca9\u58f2\u8005', '\u9500\u552e\u8005']),
-    ...collectBySelector('[class*="seller"] a, [class*="maker"] a, [class*="author"] a, [data-seller] a'), ];
-   return {
-    title,
-    cover,
-    seller: sellers[0] || null,
-    actresses: [...actresses.reduce((map, item) => {
-     const key = String(item.name || '').trim().toLowerCase() || item.url; const previous = map.get(key);
-     if (!previous || (!previous.url && item.url)) map.set(key, item);
-     return map;
-    }, new Map()).values()],
-    samples: [...new Map([...structuredSamples, ...htmlSamples].map(item => [item.url, item])).values()],
-    tags: [...new Set(structuredTags)], }; }
-  function parsePpvDbDeferredResponse(responseText, baseUrl) {
-   let payload;
-   try {
-    payload = JSON.parse(String(responseText || ''));
-   } catch { return []; }
-   return (Array.isArray(payload?.props?.actresses) ? payload.props.actresses : []).map(actress => {
-    const name = String(actress?.name || '').trim(); const id = String(actress?.id || '').trim();
-    const url = httpUrl(actress?.url || (id ? `/actresses/${encodeURIComponent(id)}` : ''), baseUrl);
-    return name && url ? { name, url } : null;
+  function extractPlayerEntries(value, baseUrl = BASE_URL) {
+   return decodePlayerJson(value).map((item, index) => {
+    const url = normalizeHttpUrl(item?.url || item?.src || item?.file, baseUrl);
+    if (!url) return null;
+    return { url, number: item?.number ?? item?.episode ?? index + 1, title: String(item?.title || item?.name || '').trim() };
    }).filter(Boolean); }
-  function mergeActresses(...groups) {
-   return [...groups.flat().reduce((map, item) => {
-    const key = String(item?.name || '').trim().toLowerCase() || item?.url; const previous = map.get(key);
-    if (!previous || (!previous.url && item?.url)) map.set(key, item);
-    return map;
-   }, new Map()).values()]; }
-  async function fetchSupplementSource(source, generation) {
-   const cached = readCache(source.url);
-   if (cached) return cached;
-   let request;
-   try {
-    request = gmFetch(source.url, { timeout: 20000, headers: { accept: 'text/html' } });
-    activeRequests.add(request); const response = await request;
-    if (generation !== renderGeneration || !response?.ok) return null;
-    const document = parseHTML(response.responseText || ''); const parsed = source.parser(document, source.url);
-    if (source.deferred === 'actresses') {
-     const page = parsePpvCmaInertiaPage(document);
-     if (page?.version) {
-      let deferredRequest;
-      try {
-       deferredRequest = gmFetch(source.url, {
-        timeout: 20000,
-        headers: {
-         accept: 'text/html, application/xhtml+xml',
-         'X-Inertia': 'true',
-         'X-Inertia-Partial-Component': page.component || 'Articles/Show',
-         'X-Inertia-Partial-Data': 'actresses',
-         'X-Inertia-Version': page.version,
-         'X-Requested-With': 'XMLHttpRequest', },
-       });
-       activeRequests.add(deferredRequest); const deferredResponse = await deferredRequest;
-       if (deferredResponse?.ok) {
-        parsed.actresses = mergeActresses( parsed.actresses || [], parsePpvDbDeferredResponse(deferredResponse.responseText, source.url) ); }
-      } catch {
-      } finally {
-       activeRequests.delete(deferredRequest); } } }
-    if (generation !== renderGeneration) return null;
-    writeCache(source.url, parsed); return parsed;
-   } catch {
-    return null;
-   } finally {
-    activeRequests.delete(request); } }
-  async function fetchSupplementBundle(code, generation) {
-   const number = codeNumber(code);
-   if (!number) return { actresses: [], sellers: [], samples: [], tags: [] };
-   const officialUrl = `https://adult.contents.fc2.com/article/${number}/?lang=cn`;
-   const dbUrl = `https://fc2cmadb.com/articles/${number}`;
+  function extractPlayerEntriesFromDocument(doc, baseUrl = BASE_URL) {
+   const player = doc?.querySelector?.('.watch__main[x-data], .watch__main'); return extractPlayerEntries(player?.getAttribute?.('x-data'), baseUrl); }
+  function pickPlayerEntry(entries, code = '') {
+   if (!Array.isArray(entries) || !entries.length) return null;
+   const number = getFc2Number(code); return entries.find(item => number && String(item.number || '') === number) || entries.find(item => String(item.number || '') === '1') || entries[0]; }
+  function parseDetailPlayer(doc, baseUrl = BASE_URL, code = '') {
+   const entries = extractPlayerEntriesFromDocument(doc, baseUrl); const selected = pickPlayerEntry(entries, code);
+   return { playerUrl: selected?.url || '', playerEntries: entries }; }
+  function directMediaSource(url, pageUrl = url) {
+   const normalized = normalizeHttpUrl(url, pageUrl);
+   if (!normalized) return null;
+   if (/\.m3u8(?:[?#]|$)/i.test(normalized)) { return { source: '123av', type: 'hls', hls: normalized, alternatives: [], pageUrl, headers: { Referer: pageUrl } }; }
+   if (/\.(?:mp4|webm)(?:[?#]|$)/i.test(normalized)) { return { source: '123av', type: 'video', url: normalized, alternatives: [], pageUrl }; }
+   return null; }
+  function collectMediaUrls(doc, text, baseUrl) {
+   const values = [];
+   doc?.querySelectorAll?.('video[src], video source[src], source[src], [data-src], [data-url]')?.forEach?.(node => { values.push(node.getAttribute?.('src'), node.getAttribute?.('data-src'), node.getAttribute?.('data-url')); });
+   const decoded = String(text || '') .replace(/\\u002f/gi, '/')
+    .replace(/\\\//g, '/')
+    .replace(/\\u0026/gi, '&') .replace(/\\u003f/gi, '?');
+   const pattern = /https?:\/\/[^\s"'<>`\\]+\.(?:m3u8|mp4|webm)(?:\?[^\s"'<>`\\]*)?/gi;
+            values.push(...(decoded.match(pattern) || []));
+            return [...new Set(values.map(value => normalizeHttpUrl(value, baseUrl)).filter(Boolean))];
+        }
+
+        function parsePlayerDocument(doc, pageUrl = BASE_URL) {
+            const text = doc?.documentElement?.outerHTML
+                || doc?.body?.innerHTML
+                || doc?.textContent
+                || '';
+            const mediaUrls = collectMediaUrls(doc, text, pageUrl);
+            const hls = mediaUrls.find(url => /\.m3u8(?:[?#]|$)/i.test(url));
+            const video = mediaUrls.find(url => /\.(?:mp4|webm)(?:[?#]|$)/i.test(url));
+            if (hls) {
+                return {
+                    source: '123av',
+                    type: 'hls',
+                    hls,
+                    alternatives: mediaUrls.filter(url => url !== hls),
+                    pageUrl,
+                    headers: { Referer: pageUrl },
+                };
+            }
+            if (video) {
+                return {
+                    source: '123av',
+                    type: 'video',
+                    url: video,
+                    alternatives: mediaUrls.filter(url => url !== video),
+                    pageUrl,
+                    headers: { Referer: pageUrl },
+                };
+            }
+            const iframe = normalizeHttpUrl(pageUrl);
+            return iframe ? { source: '123av', type: 'iframe', iframe, url: iframe, alternatives: [], pageUrl } : null;
+        }
+
+        function requestText(url, options = {}) {
+            const request = gmFetch(url, {
+                timeout: options.timeout || 10000,
+                headers: {
+                    Accept: 'text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8',
+                    ...(options.referer ? { Referer: options.referer } : {}),
+                    ...(options.headers || {}),
+                },
+            });
+            options.onRequest?.(request, options.pageUrl || '');
+            return request;
+        }
+
+        async function resolvePlayerUrl(playerUrl, options = {}) {
+            const pageUrl = normalizeHttpUrl(playerUrl, options.detailUrl || BASE_URL);
+            if (!pageUrl) return null;
+            const direct = directMediaSource(pageUrl, pageUrl);
+            if (direct) return direct;
+            if (options.isActive && !options.isActive()) return null;
+            const request = requestText(pageUrl, {
+                timeout: options.getTimeout?.() ?? options.timeout,
+                referer: options.detailUrl || BASE_URL,
+                pageUrl,
+                onRequest: options.onRequest,
+            });
+            const response = await request;
+            if (options.isActive && !options.isActive()) return null;
+            if (Number(response?.status) === 404) return null;
+            if (!response?.ok) return { source: '123av', type: 'iframe', iframe: pageUrl, url: pageUrl, alternatives: [], pageUrl };
+            return parsePlayerDocument(parseHTML(response.responseText || ''), pageUrl)
+                || { source: '123av', type: 'iframe', iframe: pageUrl, url: pageUrl, alternatives: [], pageUrl };
+        }
+
+        async function resolve(code, options = {}) {
+            const normalDetailUrl = normalizeHttpUrl(options.detailUrl || detailUrl(code, options.referenceUrl));
+            const detailPages = detailCandidates(
+                code,
+                options.preference || 'censored',
+                options.referenceUrl,
+                normalDetailUrl,
+            );
+            const explicitPlayerUrl = normalizeHttpUrl(options.playerUrl, normalDetailUrl);
+            for (const detailPageUrl of detailPages) {
+                if (options.isActive && !options.isActive()) return null;
+                options.onCandidate?.(detailPageUrl, detailPageUrl !== normalDetailUrl);
+                let playerUrl = detailPageUrl === normalDetailUrl ? explicitPlayerUrl : '';
+                if (!playerUrl && detailPageUrl) {
+                    const request = requestText(detailPageUrl, {
+                        timeout: options.getTimeout?.() ?? options.timeout,
+                        referer: options.referenceUrl || BASE_URL,
+                        pageUrl: detailPageUrl,
+                        onRequest: options.onRequest,
+                    });
+                    const response = await request;
+                    if (options.isActive && !options.isActive()) return null;
+                    if (!response?.ok) continue;
+                    if (response.finalUrl && detailPageUrl !== normalDetailUrl) {
+                        const finalUrl = normalizeHttpUrl(response.finalUrl, detailPageUrl);
+                        if (!finalUrl || new URL(finalUrl).pathname !== new URL(detailPageUrl).pathname) continue;
+                    }
+                    const doc = parseHTML(response.responseText || '');
+                    const parsed = parseDetailPlayer(doc, detailPageUrl, code);
+                    playerUrl = parsed.playerUrl;
+                }
+                if (!playerUrl) continue;
+                const result = await resolvePlayerUrl(playerUrl, { ...options, detailUrl: detailPageUrl });
+                if (options.isActive && !options.isActive()) return null;
+                if (result) return result;
+            }
+            return null;
+        }
+
+        return {
+            baseUrl: BASE_URL,
+            getFc2Number,
+            getSlug,
+            detailUrl,
+            detailCandidates,
+            getLocalePrefix,
+            decodePlayerJson,
+            extractPlayerEntries,
+            extractPlayerEntriesFromDocument,
+            parseDetailPlayer,
+            parsePlayerDocument,
+            resolvePlayerUrl,
+            resolve,
+        };
+    })();
+    Core.expose('__LAOSIJI_JAVDB_123AV_PLAYER__', Javdb123AvPlayer);
+
+    const Javdb123AvFc2 = (() => {
+        const BASE_URL = 'https://123av.com';
+        const ROUTE_KEY = 'laosiji_123av_fc2';
+        const DETAIL_KEY = 'laosiji_123av_fc2_detail';
+        const TYPES = [
+            { value: '', label: '\u5168\u90e8' },
+            { value: 'censored', label: '\u6709\u7801' },
+            { value: 'uncensored', label: '\u65e0\u7801' },
+            { value: 'uncensored-leaked', label: '\u65e0\u7801\u6cc4\u9732' },
+        ];
+        const ACTRESS_MODES = [
+            { value: '', label: '\u5168\u90e8' },
+            { value: 'single', label: '\u5355\u4eba' },
+            { value: 'multi', label: '\u591a\u4eba' },
+        ];
+        const SORTS = {
+            release_date: { label: '\u53d1\u5e03\u65e5\u671f' },
+            recent: { label: '\u6700\u8fd1\u6dfb\u52a0' },
+            hot: { label: '\u70ed\u95e8' },
+            today: { label: '\u4eca\u65e5\u89c2\u770b' },
+            week: { label: '\u6bcf\u5468\u89c2\u770b' },
+            month: { label: '\u6bcf\u6708\u89c2\u770b' },
+            views: { label: '\u6700\u53d7\u6b22\u8fce' },
+            follows: { label: '\u6700\u591a\u5173\u6ce8' },
+            longest: { label: '\u6700\u957f' },
+        };
+        const CURRENT_YEAR = new Date().getFullYear();
+        const YEARS = Array.from(
+            { length: Math.max(0, CURRENT_YEAR - 2000 + 1) },
+            (_, index) => String(CURRENT_YEAR - index),
+        );
+        const CACHE_PREFIX = 'javdb_123av_fc2_cache_v4_';
+        const CACHE_TTL = 90 * 1000;
+        const activeRequests = new Set();
+        let renderGeneration = 0;
+
+        function installJavdbRouteStartupGuard() {
+            try {
+                const url = new URL(location.href);
+                if (!/javdb/i.test(url.hostname) || url.searchParams.get(ROUTE_KEY) !== '1') return;
+                if (document.getElementById('javdb-123av-fc2-route-startup-guard')) return;
+                const style = document.createElement('style');
+                style.id = 'javdb-123av-fc2-route-startup-guard';
+                style.textContent = 'body > section{visibility:hidden!important}';
+                (document.head || document.documentElement).appendChild(style);
+            } catch (_) {
+            }
+        }
+
+        function revealJavdbRouteShell() {
+            document.getElementById('javdb-123av-fc2-route-startup-guard')?.remove();
+        }
+
+        installJavdbRouteStartupGuard();
+
+        function cancelRender() {
+            renderGeneration += 1;
+            activeRequests.forEach(item => item.abort?.());
+            activeRequests.clear();
+            if (typeof JavdbFullVideo !== 'undefined') JavdbFullVideo.cleanup?.();
+        }
+
+        function navigateRoute(href) {
+            if (typeof SiteJavDB?._navigateCustomSpa === 'function' && SiteJavDB._navigateCustomSpa(href)) return;
+            location.assign(href);
+        }
+
+        function escapeHtml(value) {
+            return SiteJavDB?._escapeHtml?.(value) || String(value ?? '').replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+            }[ch]));
+        }
+
+        function parseRoute(href = location.href) {
+            try {
+                const url = new URL(href, location.href);
+                const params = url.searchParams;
+
+                if (!/(?:jav(?:db|bus|library|lib)|r86m|s87n)/i.test(url.hostname) || params.get(ROUTE_KEY) !== '1') return null;
+                const type = TYPES.some(item => item.value === params.get('laosiji_type')) ? params.get('laosiji_type') : '';
+                const year = YEARS.includes(params.get('laosiji_year')) ? params.get('laosiji_year') : '';
+                const actress = ACTRESS_MODES.some(item => item.value === params.get('laosiji_actress')) ? params.get('laosiji_actress') : '';
+                const sort = SORTS[params.get('laosiji_sort')] ? params.get('laosiji_sort') : 'release_date';
+                const detail = String(params.get(DETAIL_KEY) || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+                return {
+                    page: Math.max(1, parseInt(params.get('laosiji_page') || '1', 10) || 1),
+                    query: (params.get('laosiji_query') || '').trim(),
+                    type,
+                    year,
+                    actress,
+                    sort,
+                    ...(detail ? { detail } : {}),
+                };
+            } catch {
+                return null;
+            }
+        }
+
+        function routeUrl(next = {}) {
+            const params = new URLSearchParams();
+            params.set(ROUTE_KEY, '1');
+            const query = String(next.query ?? '').trim();
+            const type = TYPES.some(item => item.value === next.type) ? next.type : '';
+            const year = YEARS.includes(String(next.year || '')) ? String(next.year) : '';
+            const actress = ACTRESS_MODES.some(item => item.value === next.actress) ? next.actress : '';
+            const sort = SORTS[next.sort] ? next.sort : 'release_date';
+            const page = Math.max(1, parseInt(next.page || '1', 10) || 1);
+            const detail = String(next.detail || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+
+            if (query) params.set('laosiji_query', query);
+            if (type) params.set('laosiji_type', type);
+            if (year) params.set('laosiji_year', year);
+            if (actress) params.set('laosiji_actress', actress);
+            if (sort !== 'release_date') params.set('laosiji_sort', sort);
+            if (page > 1) params.set('laosiji_page', String(page));
+            if (detail) params.set(DETAIL_KEY, detail);
+            const host = location.hostname || '';
+            const path = /javbus/i.test(host)
+                ? '/'
+                : /(?:javlibrary|javlib|r86m|s87n)/i.test(host)
+                    ? '/cn/main.php'
+                    : '/';
+            return `${path}?${params.toString()}`;
+        }
+
+        function sourceUrl(route, sourcePage = route.page) {
+            const url = new URL(route.query ? '/cn/search' : '/cn/makers/fc2', BASE_URL);
+
+            if (route.query) url.searchParams.set('keyword', route.query);
+            url.searchParams.set('page', String(Math.max(1, sourcePage)));
+            url.searchParams.set('type', route.type || '');
+            url.searchParams.set('year', route.year || '');
+            url.searchParams.set('actress', route.actress || '');
+            url.searchParams.set('sort', route.sort || 'release_date');
+            return url.href;
+        }
+
+        function renderOptions(items, selected) {
+            return items.map(item => `<option value="${escapeHtml(item.value)}"${item.value === selected ? ' selected' : ''}>${escapeHtml(item.label)}</option>`).join('');
+        }
+
+        function renderYearOptions(selected) {
+            return renderOptions([
+                { value: '', label: '\u5168\u90e8' },
+                ...YEARS.map(value => ({ value, label: value })),
+            ], selected);
+        }
+
+        function normalizeCode(value) {
+            const raw = String(value || '').trim().toUpperCase();
+            const match = raw.match(/FC2[-_\s]?PPV[-_\s]?(\d{6,9})/i) || raw.match(/\b(\d{6,9})\b/);
+            return match ? `FC2-PPV-${match[1]}` : '';
+        }
+
+        function detailSlug(href) {
+            try {
+                const path = new URL(href, BASE_URL).pathname.replace(/\/+$/, '');
+                const match = path.match(/\/v\/([^/]+)$/i);
+                return match ? decodeURIComponent(match[1]).toLowerCase() : '';
+            } catch {
+                return '';
+            }
+        }
+
+        function localDetailUrl(href) {
+            const slug = detailSlug(href);
+            return slug ? routeUrl({ detail: slug }) : href;
+        }
+
+        function parseCard(card, baseUrl = BASE_URL) {
+            if (!card) return null;
+            const link = card.querySelector('.card__cover[href], .card__title a[href]');
+            const titleLink = card.querySelector('.card__title a[href]') || link;
+            const rawTitle = (titleLink?.textContent || '').replace(/\s+/g, ' ').trim();
+            const code = normalizeCode(rawTitle || link?.getAttribute('href'));
+            const href = link?.getAttribute('href') || titleLink?.getAttribute('href') || '';
+            const image = card.querySelector('.card__img[src], img[src]');
+
+            if (!code || !href) return null;
+            return {
+                code,
+                title: rawTitle.replace(/^FC2[-_\s]?PPV[-_\s]?\d{6,9}\s*(?:[-—:]\s*)?/i, '').trim() || rawTitle,
+                href: new URL(href, baseUrl).href,
+                cover: image?.getAttribute('src') || '',
+                preview: card.querySelector('.card__poster[data-preview]')?.getAttribute('data-preview') || '',
+                meta: (card.querySelector('.card__meta')?.textContent || '').replace(/\s+/g, ' ').trim(),
+            };
+        }
+
+        function parseDocument(doc, baseUrl = BASE_URL) {
+            const seen = new Set();
+            const items = [...doc.querySelectorAll('.card')].map(card => parseCard(card, baseUrl)).filter(item => {
+                if (!item || seen.has(item.code)) return false;
+                seen.add(item.code);
+                return true;
+            });
+            const next = doc.querySelector('.pager__nav[rel="next"][href], a[rel="next"][href]');
+            const last = doc.querySelector('.pager__pages a[rel="last"][href], a[rel="last"][href]');
+            const totalText = doc.querySelector('.pager__total')?.textContent || '';
+            const totalPages = Math.max(
+                parseInt(totalText.replace(/[^\d]/g, ''), 10) || 0,
+                parseInt(last?.textContent?.replace(/[^\d]/g, '') || '0', 10) || 0,
+            );
+            const visibleBody = doc.body?.cloneNode?.(true);
+
+            visibleBody?.querySelectorAll?.('script,style,noscript,template').forEach(el => el.remove());
+            const visibleText = visibleBody?.textContent || doc.body?.textContent || '';
+            const challengeText = `${doc.title || ''} ${visibleText}`;
+            return {
+                items,
+                nextUrl: next ? new URL(next.getAttribute('href'), baseUrl).href : '',
+                totalPages,
+                blocked: !items.length && /cloudflare|challenge|checking your browser|captcha|验证|驗證/i.test(challengeText),
+            };
+        }
+
+        function mergePages(pages) {
+            const seen = new Set();
+            const items = pages.flatMap(page => page?.items || []).filter(item => {
+                if (!item?.code || seen.has(item.code)) return false;
+                seen.add(item.code);
+                return true;
+            });
+            const sourceTotalPages = Math.max(...pages.map(page => Number(page?.totalPages) || 0), 0);
+            const hasNext = pages.some(page => !!page?.nextUrl);
+            return {
+                items,
+                nextUrl: hasNext ? '1' : '',
+                totalPages: Math.ceil(sourceTotalPages / 2),
+                sourceTotalPages,
+            };
+        }
+
+        function responseError(response) {
+            if (!response?.ok) {
+                const status = Number(response?.status) || 0;
+                if (status === 403) return new Error('123AV 请求被拒绝（403），请稍后重试。');
+                if (status === 429) return new Error('123AV 请求过于频繁（429），请稍后重试。');
+                if (response?.error?.kind === 'timeout') return new Error('123AV 请求超时。');
+                if (response?.error?.kind === 'abort') return new Error('请求已取消。');
+                return new Error(`123AV 请求失败${status ?`（${status}）` : ''}。`);
+            }
+            return null;
+        }
+
+        function cacheKey(url) {
+            return `${CACHE_PREFIX}${url}`;
+        }
+
+        function readCache(url) {
+            try {
+                const value = JSON.parse(sessionStorage.getItem(cacheKey(url)) || 'null');
+
+                if (!value || Date.now() - Number(value.savedAt) > CACHE_TTL) return null;
+                return value.data || null;
+            } catch {
+                return null;
+            }
+        }
+
+        function writeCache(url, data) {
+            try {
+                sessionStorage.setItem(cacheKey(url), JSON.stringify({ savedAt: Date.now(), data }));
+            } catch {
+            }
+        }
+
+        async function fetchPage(url, generation) {
+            const cached = readCache(url);
+            if (cached) return cached;
+            const request = gmFetch(url, { timeout: 20000, headers: { accept: 'text/html' } });
+            activeRequests.add(request);
+            const response = await request;
+            activeRequests.delete(request);
+
+            if (generation !== renderGeneration) throw new Error('请求已被新页面替换。');
+            const error = responseError(response);
+            if (error) throw error;
+            const data = parseDocument(parseHTML(response.responseText || ''), url);
+
+            if (data.blocked) throw new Error('123AV 返回了验证页面，请稍后重试。');
+            writeCache(url, data);
+            return data;
+        }
+
+        async function fetchPageBundle(route, generation) {
+            activeRequests.forEach(item => item.abort?.());
+            activeRequests.clear();
+            const firstSourcePage = (route.page - 1) * 2 + 1;
+            const first = await fetchPage(sourceUrl(route, firstSourcePage), generation);
+            const second = first.nextUrl
+                ? await fetchPage(sourceUrl(route, firstSourcePage + 1), generation)
+                : null;
+            return mergePages([first, second]);
+        }
+
+        function textOf(node) {
+            return (node?.textContent || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function styleUrl(value) {
+            const match = String(value || '').match(/url\(['"]?([^'")]+)['"]?\)/i);
+            return match ? match[1] : '';
+        }
+
+        function parseDetailDocument(doc, baseUrl = BASE_URL) {
+            const titleNode = doc?.querySelector?.('.watch__title, h1');
+            const rawTitle = textOf(titleNode) || textOf(doc?.querySelector?.('title'));
+            const rows = [...(doc?.querySelectorAll?.('.watch__info-row') || [])];
+            const fields = {};
+            rows.forEach(row => {
+                const label = textOf(row.querySelector?.('dt')).replace(/[：:]/g, '').toLowerCase();
+                const valueNode = row.querySelector?.('dd');
+                const value = textOf(valueNode);
+                if (label) fields[label] = {
+                    value,
+                    links: [...(valueNode?.querySelectorAll?.('a') || [])].map(textOf).filter(Boolean),
+                };
+            });
+            const cover = styleUrl(doc?.querySelector?.('.player')?.getAttribute?.('style'));
+            const sourceUrl = new URL(baseUrl, BASE_URL).href;
+            const code = normalizeCode(fields['代码']?.value || fields.code?.value || rawTitle);
+            const playerConfig = Javdb123AvPlayer.parseDetailPlayer(doc, sourceUrl, code);
+            const title = rawTitle.replace(/^FC2[-_\s]?PPV[-_\s]?\d{6,9}\s*[—-]?\s*/i, '').trim() || rawTitle;
+            const field = (...labels) => labels.map(label => fields[label]) .find(Boolean) || { value: '', links: [] };
+            const type = field('类型', 'type');
+            const release = field('发布日期', '发行日期', 'release date', 'released');
+            const maker = field('制作商', 'maker', 'studio');
+            const genres = field('类别', '分类', 'genres', 'genre');
+            const metaStats = [...(doc?.querySelectorAll?.('.watch__meta--stats .watch__metaitem') || [])].map(textOf).filter(Boolean);
+            return {
+                code,
+                title,
+                rawTitle,
+                cover,
+                playerUrl: playerConfig.playerUrl,
+                playerEntries: playerConfig.playerEntries,
+                type: type.links.join(' / ') || type.value,
+                releaseDate: release.value,
+                maker: maker.links.join(' / ') || maker.value,
+                genres: genres.links.length ? genres.links : genres.value ? [genres.value] : [],
+                stats: metaStats,
+                sourceUrl,
+            };
+        }
+
+        async function fetchDetail(slug, generation) {
+            const url = new URL(`/cn/v/${encodeURIComponent(slug)}`, BASE_URL).href;
+            const cached = readCache(url);
+            if (cached) return cached;
+            const request = gmFetch(url, { timeout: 20000, headers: { accept: 'text/html' } });
+            activeRequests.add(request);
+            const response = await request;
+            activeRequests.delete(request);
+            if (generation !== renderGeneration) throw new Error('request replaced');
+            const error = responseError(response);
+            if (error) throw error;
+            const doc = parseHTML(response.responseText || '');
+            const detail = parseDetailDocument(doc, url);
+            if (!detail.code || !detail.rawTitle) throw new Error('\u0031\u0032\u0033AV \u8fd4\u56de\u4e86\u9a8c\u8bc1\u9875\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002');
+            writeCache(url, detail);
+            return detail;
+        }
+
+        function httpUrl(value, baseUrl) {
+            try {
+                const url = new URL(String(value || '').trim(), baseUrl);
+                return /^https?:$/i.test(url.protocol) ? url.href : '';
+            } catch {
+                return '';
+            }
+        }
+
+        function codeNumber(code) {
+            return String(code || '').match(/FC2-PPV-(\d{6,9})/i)?.[1] || '';
+        }
+
+        function metaContent(doc, selector) {
+            return doc?.querySelector?.(selector)?.getAttribute?.('content') || '';
+        }
+
+        function recordLink(node, baseUrl, label = '') {
+            const url = httpUrl(node?.getAttribute?.('href') || node?.getAttribute?.('src'), baseUrl);
+            const name = textOf(node) || label;
+            return url && name ? { name, url } : null;
+        }
+
+        function sampleRecord(anchor, image, baseUrl) {
+            const url = httpUrl(anchor?.getAttribute?.('href') || image?.getAttribute?.('src'), baseUrl);
+            const thumb = httpUrl(image?.getAttribute?.('src') || anchor?.getAttribute?.('href'), baseUrl);
+            return url ? { url, thumb: thumb || url } : null;
+        }
+
+        function parseOfficialSupplementDocument(doc, baseUrl) {
+            const title = metaContent(doc, 'meta[property="og:title"]') || textOf(doc?.querySelector?.('.items_article_headerInfo h3'));
+            const cover = httpUrl(
+                doc?.querySelector?.('.items_article_MainitemThumb img')?.getAttribute?.('src')
+                    || metaContent(doc, 'meta[property="og:image"]'),
+                baseUrl,
+            );
+            const sellerNode = doc?.querySelector?.('.items_article_writer a[href*="/users/"]');
+            const seller = recordLink(sellerNode, baseUrl);
+            const sellerId = doc?.querySelector?.('.items_article_writer [data-userid]')?.getAttribute?.('data-userid') || '';
+            const samples = [...(doc?.querySelectorAll?.('.items_article_SampleImagesArea a[data-image-slideshow], .items_article_SampleImagesArea a') || [])]
+                .map(anchor => sampleRecord(anchor, anchor.querySelector?.('img'), baseUrl))
+                .filter(Boolean);
+            const tags = [...(doc?.querySelectorAll?.('.items_article_TagArea a.tagTag, .items_article_TagArea a[data-tag]') || [])]
+                .map(node => textOf(node) || node.getAttribute?.('data-tag') || '')
+                .filter(Boolean);
+            return {
+                title,
+                cover,
+                seller: seller ? { ...seller, id: sellerId } : null,
+                actresses: [],
+                samples,
+                tags: [...new Set(tags)],
+            };
+        }
+
+        function parsePpvCmaInertiaPage(doc) {
+            const pageScript = doc?.querySelector?.('script[data-page="app"]');
+            if (!pageScript) return null;
+            try {
+                return JSON.parse(pageScript.textContent || pageScript.innerHTML || '');
+            } catch {
+                return null;
+            }
+        }
+
+        function parsePpvDbSupplementDocument(doc, baseUrl) {
+            const inertiaPage = parsePpvCmaInertiaPage(doc);
+            const structured = inertiaPage?.props?.article || null;
+
+            const structuredWriter = structured?.writer;
+            const structuredSeller = structuredWriter?.name
+                ? {
+                    name: textOf({ textContent: structuredWriter.name }),
+                    url: httpUrl(`/users/${encodeURIComponent(structuredWriter.slug || structuredWriter.id || '')}`, baseUrl),
+                    id: String(structuredWriter.id || ''),
+                }
+                : null;
+            const structuredTags = Array.isArray(structured?.tags)
+                ? structured.tags.map(tag => typeof tag === 'string' ? tag : tag?.name || '').filter(Boolean)
+                : [];
+            const structuredSamples = [
+                ...(Array.isArray(structured?.samples) ? structured.samples : []),
+                ...(Array.isArray(structured?.sample_images) ? structured.sample_images : []),
+                ...(Array.isArray(structured?.preview_images) ? structured.preview_images : []),
+            ].map(sample => {
+                const url = typeof sample === 'string' ? sample : sample?.url || sample?.image_url || sample?.src || '';
+                const thumb = typeof sample === 'string' ? sample : sample?.thumb || sample?.thumbnail || sample?.thumbnail_url || sample?.src || '';
+                const safeUrl = httpUrl(url, baseUrl);
+                const safeThumb = httpUrl(thumb, baseUrl);
+                return safeUrl ? { url: safeUrl, thumb: safeThumb || safeUrl } : null;
+            }).filter(Boolean);
+            const structuredActresses = Array.isArray(structured?.actresses)
+                ? structured.actresses.map(actress => {
+                    const name = typeof actress === 'string' ? actress : actress?.name || '';
+                    const slug = typeof actress === 'string' ? '' : actress?.slug || actress?.id || '';
+                    const url = httpUrl(
+                        typeof actress === 'object' ? actress?.url || (slug ? `/actresses/${encodeURIComponent(slug)}` : '') : '',
+                        baseUrl,
+                    );
+                    return name && url ? { name: textOf({ textContent: name }), url } : null;
+                }).filter(Boolean)
+                : [];
+            const title = structured?.title || metaContent(doc, 'meta[property="og:title"]') || textOf(doc?.querySelector?.('h1, .title, [class*="title"]'));
+            const cover = httpUrl(
+                structured?.image_url
+                    || metaContent(doc, 'meta[property="og:image"]')
+                    || doc?.querySelector?.('[class*="cover"] img, [class*="poster"] img, img[src*="cover"]')?.getAttribute?.('src'),
+                baseUrl,
+            );
+            const links = [...(doc?.querySelectorAll?.('a[href]') || [])];
+            const collectByHint = hints => links.map(link => {
+                const href = link.getAttribute?.('href') || '';
+                const context = `${href} ${textOf(link)} ${textOf(link.parentElement)}`.toLowerCase();
+                return hints.some(hint => context.includes(hint)) ? recordLink(link, baseUrl) : null;
+            }).filter(Boolean);
+            const collectBySelector = selector => [...(doc?.querySelectorAll?.(selector) || [])].map(link => recordLink(link, baseUrl)).filter(Boolean);
+            const directActresses = [...(doc?.querySelectorAll?.('a[href*="/actresses/"]') || [])].map(link => {
+                const url = httpUrl(link.getAttribute?.('href'), baseUrl);
+                const name = textOf({
+                    textContent: link.getAttribute?.('title')
+                        || link.querySelector?.('h2, .card-title')?.textContent
+                        || link.textContent,
+                });
+                return url && name ? { name, url } : null;
+            }).filter(Boolean);
+            const sampleAnchors = [...(doc?.querySelectorAll?.('[class*="sample"] a, [class*="preview"] a, [class*="sample"] img, [class*="preview"] img') || [])];
+            const htmlSamples = sampleAnchors.map(node => {
+                const image = node.matches?.('img') ? node : node.querySelector?.('img');
+                const anchor = node.matches?.('a') ? node : node.closest?.('a');
+                return sampleRecord(anchor, image, baseUrl);
+            }).filter(Boolean);
+            const actresses = [
+                ...directActresses,
+                ...structuredActresses,
+                ...collectByHint(['actress', 'actor', 'performer', '\u5973\u512a', '\u5973\u6f14\u5458']),
+                ...collectBySelector('[class*="actress"] a, [class*="actor"] a, [class*="performer"] a, [data-actress] a'),
+            ];
+            const sellers = [
+                ...(structuredSeller ? [structuredSeller] : []),
+                ...collectByHint(['seller', 'maker', 'author', 'uploader', '\u8ca9\u58f2\u8005', '\u9500\u552e\u8005']),
+                ...collectBySelector('[class*="seller"] a, [class*="maker"] a, [class*="author"] a, [data-seller] a'),
+            ];
+            return {
+                title,
+                cover,
+                seller: sellers[0] || null,
+                actresses: [...actresses.reduce((map, item) => {
+                    const key = String(item.name || '').trim().toLowerCase() || item.url;
+                    const previous = map.get(key);
+                    if (!previous || (!previous.url && item.url)) map.set(key, item);
+                    return map;
+                }, new Map()).values()],
+                samples: [...new Map([...structuredSamples, ...htmlSamples].map(item => [item.url, item])).values()],
+                tags: [...new Set(structuredTags)],
+            };
+        }
+
+        function parsePpvDbDeferredResponse(responseText, baseUrl) {
+            let payload;
+            try {
+                payload = JSON.parse(String(responseText || ''));
+            } catch {
+                return [];
+            }
+            return (Array.isArray(payload?.props?.actresses) ? payload.props.actresses : []).map(actress => {
+                const name = String(actress?.name || '').trim();
+                const id = String(actress?.id || '').trim();
+                const url = httpUrl(actress?.url || (id ? `/actresses/${encodeURIComponent(id)}` : ''), baseUrl);
+                return name && url ? { name, url } : null;
+            }).filter(Boolean);
+        }
+
+        function mergeActresses(...groups) {
+            return [...groups.flat().reduce((map, item) => {
+                const key = String(item?.name || '').trim().toLowerCase() || item?.url;
+                const previous = map.get(key);
+                if (!previous || (!previous.url && item?.url)) map.set(key, item);
+                return map;
+            }, new Map()).values()];
+        }
+
+        async function fetchSupplementSource(source, generation) {
+            const cached = readCache(source.url);
+            if (cached) return cached;
+            let request;
+            try {
+                request = gmFetch(source.url, { timeout: 20000, headers: { accept: 'text/html' } });
+                activeRequests.add(request);
+                const response = await request;
+                if (generation !== renderGeneration || !response?.ok) return null;
+                const document = parseHTML(response.responseText || '');
+                const parsed = source.parser(document, source.url);
+                if (source.deferred === 'actresses') {
+                    const page = parsePpvCmaInertiaPage(document);
+                    if (page?.version) {
+                        let deferredRequest;
+                        try {
+                            deferredRequest = gmFetch(source.url, {
+                                timeout: 20000,
+                                headers: {
+                                    accept: 'text/html, application/xhtml+xml',
+                                    'X-Inertia': 'true',
+                                    'X-Inertia-Partial-Component': page.component || 'Articles/Show',
+                                    'X-Inertia-Partial-Data': 'actresses',
+                                    'X-Inertia-Version': page.version,
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                            });
+                            activeRequests.add(deferredRequest);
+                            const deferredResponse = await deferredRequest;
+                            if (deferredResponse?.ok) {
+                                parsed.actresses = mergeActresses(
+                                    parsed.actresses || [],
+                                    parsePpvDbDeferredResponse(deferredResponse.responseText, source.url),
+                                );
+                            }
+                        } catch {
+                        } finally {
+                            activeRequests.delete(deferredRequest);
+                        }
+                    }
+                }
+                if (generation !== renderGeneration) return null;
+                writeCache(source.url, parsed);
+                return parsed;
+            } catch {
+                return null;
+            } finally {
+                activeRequests.delete(request);
+            }
+        }
+
+        async function fetchSupplementBundle(code, generation) {
+            const number = codeNumber(code);
+            if (!number) return { actresses: [], sellers: [], samples: [], tags: [] };
+            const officialUrl = `https://adult.contents.fc2.com/article/${number}/?lang=cn`;
+   const dbUrl =`https://fc2cmadb.com/articles/${number}`;
    const sources = [ { url: officialUrl, parser: parseOfficialSupplementDocument }, { url: dbUrl, parser: parsePpvDbSupplementDocument, deferred: 'actresses' } ];
    const results = (await Promise.all(sources.map(source => fetchSupplementSource(source, generation)))).filter(Boolean);
    const unique = (items, key = item => item.url || item.name) => [...new Map(items.filter(Boolean).map(item => [key(item), item])).values()];
@@ -3804,12 +4390,12 @@
     tags: [...new Set(results.flatMap(item => item.tags || []))], }; }
   function renderItems(items, site = 'javdb') {
    if (site === 'javbus') {
-    return items.map(item => `<div class="item" data-javbus-123av-fc2-item="1"><a href="${escapeHtml(localDetailUrl(item.href))}" data-123av-source="${escapeHtml(item.href)}" class="movie-box" title="${escapeHtml(item.title)}"><div class="photo-frame"><img loading="lazy" src="${escapeHtml(item.cover)}" alt=""></div><div class="photo-info"><span>${escapeHtml(item.title || item.code)}<br><date>${escapeHtml(item.code)}</date></span></div></a></div>`).join('');
+    return items.map(item =>`<div class="item" data-javbus-123av-fc2-item="1"><a href="${escapeHtml(localDetailUrl(item.href))}" data-123av-source="${escapeHtml(item.href)}" class="movie-box" title="${escapeHtml(item.title)}"><div class="photo-frame"><img loading="lazy" src="${escapeHtml(item.cover)}" alt=""></div><div class="photo-info"><span>${escapeHtml(item.title || item.code)}<br><date>${escapeHtml(item.code)}</date></span></div></a></div>`).join('');
    }
    if (site === 'javlib') {
-    return items.map(item => `<div class="video" data-javlib-123av-fc2-item="1"><a href="${escapeHtml(localDetailUrl(item.href))}" data-123av-source="${escapeHtml(item.href)}" title="${escapeHtml(item.title)}"><img loading="lazy" src="${escapeHtml(item.cover)}" alt=""><div class="id">${escapeHtml(item.code)}</div><div class="title">${escapeHtml(item.title || item.code)}</div></a></div>`).join('');
+    return items.map(item =>`<div class="video" data-javlib-123av-fc2-item="1"><a href="${escapeHtml(localDetailUrl(item.href))}" data-123av-source="${escapeHtml(item.href)}" title="${escapeHtml(item.title)}"><img loading="lazy" src="${escapeHtml(item.cover)}" alt=""><div class="id">${escapeHtml(item.code)}</div><div class="title">${escapeHtml(item.title || item.code)}</div></a></div>`).join('');
    }
-   return items.map(item => `<div class="item" data-javdb-123av-fc2-item="1"><a href="${escapeHtml(localDetailUrl(item.href))}" data-123av-source="${escapeHtml(item.href)}" class="box" title="${escapeHtml(item.title)}"><div class="cover"><img loading="lazy" src="${escapeHtml(item.cover)}" alt=""></div><div class="video-title"><strong>${escapeHtml(item.code)}</strong> ${escapeHtml(item.title)}</div><div class="score"></div><div class="meta">${escapeHtml(item.meta)}</div><div class="tags has-addons"><span class="tag is-info">123AV-FC2</span></div></a></div>`).join('');
+   return items.map(item =>`<div class="item" data-javdb-123av-fc2-item="1"><a href="${escapeHtml(localDetailUrl(item.href))}" data-123av-source="${escapeHtml(item.href)}" class="box" title="${escapeHtml(item.title)}"><div class="cover"><img loading="lazy" src="${escapeHtml(item.cover)}" alt=""></div><div class="video-title"><strong>${escapeHtml(item.code)}</strong> ${escapeHtml(item.title)}</div><div class="score"></div><div class="meta">${escapeHtml(item.meta)}</div><div class="tags has-addons"><span class="tag is-info">123AV-FC2</span></div></a></div>`).join('');
   }
   function renderPagination(route, data) {
    const links = [];
@@ -3818,7 +4404,7 @@
    const start = Math.max(1, route.page - 2); const end = data.totalPages ? Math.min(data.totalPages, route.page + 2) : route.page + (data.nextUrl ? 1 : 0);
    for (let page = start; page <= end; page += 1) add(page, page, page === route.page ? 'is-active' : '');
    if (data.nextUrl) add(route.page + 1, '下一页');
-   return `<div class="javdb-123av-fc2-pagination">${links.join('')}</div>`;
+   return`<div class="javdb-123av-fc2-pagination">${links.join('')}</div>`;
   }
   function pageContainer(site) {
    if (site === 'javlib') return document.querySelector('#rightcolumn');
@@ -3837,7 +4423,7 @@
    JavdbFc2DetailRenderer.installStyles(); JavdbApiShellStyles.installDetailShell?.();
    injectStyle('javdb-123av-fc2-detail-style',`.javdb-123av-fc2-detail-status{padding:12px!important;border:1px solid #e2e8f0!important;border-radius:7px!important;background:#f8fafc!important;color:#475569!important;font-size:13px!important;font-weight:700!important}.javdb-123av-fc2-detail-status.is-error{border-color:#fecaca!important;background:#fff1f2!important;color:#be123c!important}`);
    if (site === 'javlib') injectStyle('javlib-123av-fc2-detail-layout-style', '#leftmenu{display:none!important}#rightcolumn{margin:0!important;width:100%!important;float:none!important}');
-   container.innerHTML = `<div class="javdb-123av-fc2-detail-shell" data-laosiji-123av-fc2-detail-site="${site}"><div class="javdb-123av-fc2-detail-head"><div class="javdb-123av-fc2-detail-kicker">123AV-FC2 统一详情</div><div class="javdb-123av-fc2-detail-actions"><a href="${escapeHtml(routeUrl({ ...route, detail: '' }))}">返回列表</a></div></div><div class="javdb-123av-fc2-detail-status">正在加载 123AV 详情...</div></div>`;
+   container.innerHTML =`<div class="javdb-123av-fc2-detail-shell" data-laosiji-123av-fc2-detail-site="${site}"><div class="javdb-123av-fc2-detail-head"><div class="javdb-123av-fc2-detail-kicker">123AV-FC2 统一详情</div><div class="javdb-123av-fc2-detail-actions"><a href="${escapeHtml(routeUrl({ ...route, detail: '' }))}">返回列表</a></div></div><div class="javdb-123av-fc2-detail-status">正在加载 123AV 详情...</div></div>`;
    return { container, status: container.querySelector('.javdb-123av-fc2-detail-status') }; }
   function renderSupplementInfoHtml(data) {
    const names = items => (Array.isArray(items) ? items : []).map(item => {
@@ -3845,22 +4431,21 @@
     if (!name) return '';
     const safeName = escapeHtml(name);
     return item?.url
-     ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${safeName}</a>`
-     : safeName;
+     ?`<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer">${safeName}</a>`                    : safeName;
    }).filter(Boolean).join(' / ');
    const actresses = names(data.actresses); const seller = (Array.isArray(data.sellers) ? data.sellers : []) .find(item => String(typeof item === 'object' ? item?.name || '' : item || '').trim()); const sellerHtml = seller ? names([seller]) : '';
    const tags = [...new Set((Array.isArray(data.tags) ? data.tags : []) .map(tag => String(tag || '').trim()) .filter(Boolean))]
-    .map(tag => `<span class="javdb-123av-fc2-detail-chip">${escapeHtml(tag)}</span>`)
+    .map(tag =>`<span class="javdb-123av-fc2-detail-chip">${escapeHtml(tag)}</span>`)
     .join('');
    return [
-    actresses ? `<div class="panel-block" data-123av-supplement-info="1"><strong>女优:</strong>&nbsp;<span class="value">${actresses}</span></div>` : '',
-    sellerHtml ? `<div class="panel-block" data-123av-supplement-info="1"><strong>销售者:</strong>&nbsp;<span class="value">${sellerHtml}</span></div>` : '',
-    tags ? `<div class="panel-block" data-123av-supplement-info="1"><strong>标签:</strong>&nbsp;<span class="value">${tags}</span></div>` : '',
+    actresses ?`<div class="panel-block" data-123av-supplement-info="1"><strong>女优:</strong>&nbsp;<span class="value">${actresses}</span></div>` : '',
+    sellerHtml ?`<div class="panel-block" data-123av-supplement-info="1"><strong>销售者:</strong>&nbsp;<span class="value">${sellerHtml}</span></div>` : '',
+    tags ?`<div class="panel-block" data-123av-supplement-info="1"><strong>标签:</strong>&nbsp;<span class="value">${tags}</span></div>` : '',
    ].join(''); }
   function renderSupplementHtml(data) {
    if (!Array.isArray(data.samples) || !data.samples.length) return '';
-   const samples = data.samples.map((sample, index) => `<a class="tile-item" href="${escapeHtml(sample.url)}" data-caption="${escapeHtml(`\u5267\u7167 ${index + 1}`)}"><img loading="lazy" src="${escapeHtml(sample.thumb)}" alt="\u5267\u7167 ${index + 1}"></a>`).join('');
-   return `<section class="javdb-fc2-detail-samples-section" data-123av-detail-stills="1"><h2 class="javdb-fc2-detail-sample-heading">剧照</h2><div class="tile-images preview-images">${samples}</div></section>`;
+   const samples = data.samples.map((sample, index) =>`<a class="tile-item" href="${escapeHtml(sample.url)}" data-caption="${escapeHtml(`\u5267\u7167 ${index + 1}`)}"><img loading="lazy" src="${escapeHtml(sample.thumb)}" alt="\u5267\u7167 ${index + 1}"></a>`).join('');
+   return`<section class="javdb-fc2-detail-samples-section" data-123av-detail-stills="1"><h2 class="javdb-fc2-detail-sample-heading">剧照</h2><div class="tile-images preview-images">${samples}</div></section>`;
   }
   function renderDetailHtml(detail, site = 'javdb') {
    return JavdbFc2DetailRenderer.render({
@@ -3900,7 +4485,14 @@
     if (typeof DetailFlex !== 'undefined') DetailFlex.apply?.(site);
     normalizeDetailInfoLabels(shell.container);
     if (typeof JumpButtons !== 'undefined') JumpButtons.render?.();
-    mountStandaloneMagnet(shell.container, detail.code, site); const info = shell.container.querySelector('.movie-panel-info');
+    mountStandaloneMagnet(shell.container, detail.code, site);
+    if (typeof JavdbFullVideo !== 'undefined') {
+     JavdbFullVideo.sync(detail.code, {
+      cover: shell.container.querySelector('.javdb-fc2-cover-column'),
+      javlib: false,
+      sourceHints: detail.playerUrl ? [{ playerUrl: detail.playerUrl, pageUrl: detail.sourceUrl, referenceUrl: location.href }] : [],
+     }); }
+    const info = shell.container.querySelector('.movie-panel-info');
     fetchSupplementBundle(detail.code, generation).then(data => {
      if (generation !== renderGeneration || !info?.isConnected) return;
      info.querySelectorAll('[data-123av-supplement-info="1"]').forEach(row => row.remove()); const infoHtml = renderSupplementInfoHtml(data); const jumpGroup = info.querySelector('.jav-jump-btn-group[data-laosiji-jump="1"]');
@@ -3926,9 +4518,11 @@
    if (!container) return null;
    if (isJavLib) { injectStyle('javlib-123av-fc2-layout-style', '#leftmenu{display:none!important}'); }
    injectStyle('javdb-123av-fc2-style',`html[data-laosiji-123av-fc2="1"] #search-bar-container{display:none!important}.javdb-123av-fc2-shell{margin-top:10px!important}.javdb-123av-fc2-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;margin:8px 0 12px!important}.javdb-123av-fc2-title{color:#1e293b!important;font-size:18px!important;font-weight:850!important}.javdb-123av-fc2-sort-links{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;margin:0 0 10px!important}.javdb-123av-fc2-sort-links a{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:30px!important;padding:5px 11px!important;border:1px solid #dbe3ef!important;border-radius:7px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;text-decoration:none!important;cursor:pointer!important}.javdb-123av-fc2-sort-links a.is-active{border-color:#60a5fa!important;background:#eff6ff!important;color:#1d4ed8!important}.javdb-123av-fc2-filter-form{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;margin:8px 0 12px!important}.javdb-123av-fc2-filter-form input,.javdb-123av-fc2-filter-form select{min-width:0!important;min-height:32px!important;padding:5px 9px!important;border:1px solid #cbd5e1!important;border-radius:6px!important;background:#fff!important;color:#334155!important;font-size:12px!important}.javdb-123av-fc2-filter-form input{flex:1 1 220px!important}.javdb-123av-fc2-filter-form select{flex:0 1 128px!important}.javdb-123av-fc2-filter-form button{min-height:32px!important;padding:5px 12px!important;border:1px solid #dbe3ef!important;border-radius:7px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important}.javdb-123av-fc2-pagination a{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:30px!important;padding:5px 11px!important;border:1px solid #dbe3ef!important;border-radius:7px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;text-decoration:none!important;cursor:pointer!important}.javdb-123av-fc2-pagination a.is-active{border-color:#60a5fa!important;background:#eff6ff!important;color:#1d4ed8!important}.javdb-123av-fc2-status{margin:10px 0!important;padding:10px 12px!important;border:1px solid #e2e8f0!important;border-radius:8px!important;background:#f8fafc!important;color:#475569!important;font-size:13px!important;font-weight:700!important}.javdb-123av-fc2-status.is-error{border-color:#fecaca!important;background:#fff1f2!important;color:#be123c!important}.javdb-123av-fc2-pagination{display:flex!important;justify-content:center!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;margin:16px 0 8px!important}html[data-theme="dark"] .javdb-123av-fc2-title{color:#e5e7eb!important}html[data-theme="dark"] .javdb-123av-fc2-sort-links a,html[data-theme="dark"] .javdb-123av-fc2-filter-form input,html[data-theme="dark"] .javdb-123av-fc2-filter-form select,html[data-theme="dark"] .javdb-123av-fc2-filter-form button,html[data-theme="dark"] .javdb-123av-fc2-pagination a{border-color:#475569!important;background:#252525!important;color:#e5e7eb!important}`);
-   container.innerHTML = `<div class="javdb-123av-fc2-shell"><div class="javdb-123av-fc2-head"><div class="javdb-123av-fc2-title">123AV-FC2</div></div><nav class="javdb-123av-fc2-sort-links" aria-label="排序方式"> ${Object.entries(SORTS).map(([key, value]) => `<a class="${key === route.sort ? 'is-active' : ''}" href="${routeUrl({ ...route, sort: key, page: 1 })}">${value.label}</a>`).join('')} </nav><div class="javdb-123av-fc2-status">正在加载 123AV 数据...</div><form class="javdb-123av-fc2-filter-form"><input name="query" type="search" value="${escapeHtml(route.query)}" placeholder="\u641c\u7d22 FC2 \u756a\u53f7\u6216\u6807\u9898"><select name="type" aria-label="\u7c7b\u578b">${renderOptions(TYPES, route.type)}</select><select name="year" aria-label="\u5e74\u4efd">${renderYearOptions(route.year)}</select><select name="actress" aria-label="\u5973\u6f14\u5458">${renderOptions(ACTRESS_MODES, route.actress)}</select><select name="sort" aria-label="\u6392\u5e8f">${renderOptions(Object.entries(SORTS).map(([value, item]) => ({ value, label: item.label })), route.sort)}</select><button type="submit">\u641c\u7d22</button></form> ${isJavBus
-      ? '<div id="waterfall" class="javbus-123av-fc2-list"></div>' : isJavLib ? '<div class="videothumblist"><div class="videos javlib-123av-fc2-list"></div></div>'
-       : '<div class="movie-list h cols-4 vcols-8"></div>'} <div class="javdb-123av-fc2-pagination-wrap"></div></div>`;
+   container.innerHTML =`<div class="javdb-123av-fc2-shell"><div class="javdb-123av-fc2-head"><div class="javdb-123av-fc2-title">123AV-FC2</div></div><nav class="javdb-123av-fc2-sort-links" aria-label="排序方式"> ${Object.entries(SORTS).map(([key, value]) => `<a class="${key === route.sort ? 'is-active' : ''}" href="${routeUrl({ ...route, sort: key, page: 1 })}">${value.label}</a>`).join('')} </nav><div class="javdb-123av-fc2-status">正在加载 123AV 数据...</div><form class="javdb-123av-fc2-filter-form"><input name="query" type="search" value="${escapeHtml(route.query)}" placeholder="\u641c\u7d22 FC2 \u756a\u53f7\u6216\u6807\u9898"><select name="type" aria-label="\u7c7b\u578b">${renderOptions(TYPES, route.type)}</select><select name="year" aria-label="\u5e74\u4efd">${renderYearOptions(route.year)}</select><select name="actress" aria-label="\u5973\u6f14\u5458">${renderOptions(ACTRESS_MODES, route.actress)}</select><select name="sort" aria-label="\u6392\u5e8f">${renderOptions(Object.entries(SORTS).map(([value, item]) => ({ value, label: item.label })), route.sort)}</select><button type="submit">\u641c\u7d22</button></form> ${isJavBus
+                        ? '<div id="waterfall" class="javbus-123av-fc2-list"></div>'
+                        : isJavLib
+                            ? '<div class="videothumblist"><div class="videos javlib-123av-fc2-list"></div></div>'
+                            : '<div class="movie-list h cols-4 vcols-8"></div>'} <div class="javdb-123av-fc2-pagination-wrap"></div></div>`;
    SiteJavDB._insertResourceNav?.(); const filterForm = container.querySelector('.javdb-123av-fc2-filter-form');
    filterForm?.addEventListener('submit', event => {
     event.preventDefault();
@@ -3960,8 +4554,7 @@
      if (generation !== renderGeneration) return;
      shell.list.innerHTML = renderItems(data.items, site);
      shell.status.textContent = data.items.length
-      ? `已加载 ${data.items.length} 条 123AV-FC2 数据${data.totalPages ? `，共 ${data.totalPages} 页` : ''}`
-      : '没有查询到 123AV-FC2 数据。';
+      ?`已加载 ${data.items.length} 条 123AV-FC2 数据${data.totalPages ? `，共 ${data.totalPages} 页` : ''}`                        : '没有查询到 123AV-FC2 数据。';
      shell.pagination.innerHTML = renderPagination(route, data);
      if (site === 'javbus') {
       SiteJavBus._initListPage(); PageZoom.apply('javbus');
@@ -4023,7 +4616,7 @@
  Core.expose('__LAOSIJI_JAVDB_123AV_FC2__', Javdb123AvFc2);
  const JavdbFullVideo = (() => {
   const BASE_URL = 'https://missav123.com/cn/';
-  let mounted = null; let activeRequest = null; let activeHls = null; let generation = 0;
+  const SOURCE_TIMEOUT_MS = 5000; const AVAILABILITY_TIMEOUT_MS = 2000; let mounted = null; let activeRequest = null; let activeHls = null; let generation = 0;
   function isJavLibraryHost() { return /(javlibrary|javlib|r86m|s87n)/i.test(location.hostname); }
   function candidates(code, preference = CFG.fullVideoPreference) {
    const slug = getMissavSlug(code);
@@ -4084,31 +4677,122 @@
    try {
     return Boolean(result?.hls && new URL(result.hls).href);
    } catch { return null; } }
-  async function resolve(code, preference, currentGeneration) {
+  async function resolve(code, preference, currentGeneration, deadline = Date.now() + SOURCE_TIMEOUT_MS) {
    for (const slug of candidates(code, preference)) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return null;
     const request = gmFetch(`${BASE_URL}${slug}`, {
-     timeout: 7000,
+     timeout: remaining,
      headers: { Accept: 'text/html' },
     });
     activeRequest = request; const response = await request;
     if (activeRequest === request) activeRequest = null;
-    if (currentGeneration !== generation) return null;
+    if (currentGeneration !== generation || Date.now() >= deadline) return null;
     if (!response.ok) continue;
     const url = parsePlayerDocument(parseHTML(response.responseText || ''), slug);
     if (validPlaybackResult(url)) return { ...url, slug };
    }
    return null; }
+  function valid123AvResult(result) { return Boolean(result?.hls || result?.url || result?.iframe); }
+  function getHlsRequestHeaders(sourceResult = {}) {
+   return sourceResult.headers || (sourceResult.source === '123av'
+    ? { Referer: sourceResult.pageUrl || 'https://123av.com/' }
+    : { Referer: `${BASE_URL}${sourceResult.slug || ''}`, Origin: 'https://missav123.com' });
+  }
+  async function resolve123Av(code, currentGeneration, sourceHint = null, preference = CFG.fullVideoPreference, deadline = Date.now() + SOURCE_TIMEOUT_MS) {
+   if (typeof Javdb123AvPlayer === 'undefined' || typeof Javdb123AvPlayer.resolve !== 'function') return null;
+   let request = null;
+   const result = await Javdb123AvPlayer.resolve(code, {
+    preference,
+    isActive: () => currentGeneration === generation && Date.now() < deadline,
+    getTimeout: () => Math.max(1, deadline - Date.now()),
+    playerUrl: sourceHint?.playerUrl || '',
+    detailUrl: sourceHint?.pageUrl || '',
+    referenceUrl: sourceHint?.referenceUrl || location.href,
+    onRequest: nextRequest => {
+     request = nextRequest; activeRequest = nextRequest; },
+   });
+   if (activeRequest === request) activeRequest = null;
+   if (currentGeneration !== generation || Date.now() >= deadline || !valid123AvResult(result)) return null;
+   return result; }
+  async function resolveWithFallback(code, preference, currentGeneration, sourceHints = [], onProbe = () => {}) {
+   const primary = await probeSource('片源1', deadline =>
+    resolve(code, preference, currentGeneration, deadline), onProbe, currentGeneration);
+   if (currentGeneration !== generation) return { result: null, next: null };
+   const sourceHint = Array.isArray(sourceHints) ? sourceHints[0] : sourceHints;
+   const resolveSecondSource = () => probeSource('片源2', deadline =>
+    resolve123Av(code, currentGeneration, sourceHint, preference, deadline), onProbe, currentGeneration);
+   if (primary) {
+    return { result: { ...primary, source: 'missav', type: 'hls' }, next: resolveSecondSource }; }
+   return { result: await resolveSecondSource(), next: null }; }
   function destroyPlayer() {
    activeHls?.destroy?.(); activeHls = null;
    if (mounted?.video) { mounted.video.pause(); mounted.video.removeAttribute('src'); mounted.video.load(); }
+   mounted?.iframe?.remove?.(); }
+  function clearPlaybackStatus(state) {
+   if (state.statusTimer) clearInterval(state.statusTimer);
+   state.statusTimer = null; state.statusLabel?.remove(); state.statusLabel = null; state.anchor.querySelector(':scope > .play-button')?.classList.remove('laosiji-full-video-loading'); state.anchor.setAttribute('aria-label', '播放正片'); }
+  function showPlaybackStatus(state, source, deadline) {
+   clearPlaybackStatus(state); const button = state.anchor.querySelector(':scope > .play-button');
+   if (!button) return;
+   const label = document.createElement('span'); label.className = 'laosiji-full-video-status'; button.appendChild(label); button.classList.add('laosiji-full-video-loading'); state.statusLabel = label;
+   const update = () => {
+    label.textContent = `${source} 正在加载播放器 ${Math.max(0, Math.ceil((deadline - Date.now()) / 1000))}秒`;
+    state.anchor.setAttribute('aria-label', label.textContent); };
+   update(); state.statusTimer = setInterval(update, 250); }
+  async function probeSource(source, task, onProbe, currentGeneration, timeout = SOURCE_TIMEOUT_MS) {
+   const deadline = Date.now() + timeout; onProbe(source, deadline); let timer;
+   try {
+    return await Promise.race([
+     task(deadline),
+     new Promise(resolve => {
+      timer = setTimeout(() => {
+       resolve(null);
+       if (currentGeneration === generation) activeRequest?.abort?.();
+      }, Math.max(0, deadline - Date.now()));
+     }),
+    ]);
+   } finally {
+    clearTimeout(timer); } }
+  async function probeDetailPage(url, currentGeneration) {
+   let request;
+   try {
+    request = gmFetch(url, {
+     method: 'HEAD',
+     timeout: AVAILABILITY_TIMEOUT_MS,
+     headers: { Accept: 'text/html' },
+    });
+    activeRequest = request;
+    const response = await probeSource('', () => request, () => {}, currentGeneration, AVAILABILITY_TIMEOUT_MS);
+    return Boolean(response?.ok);
+   } catch {
+    return false;
+   } finally {
+    if (activeRequest === request) activeRequest = null;
+   } }
+  async function revealIfAvailable(state, currentGeneration) {
+   if (state !== mounted || currentGeneration !== generation) return;
+   const missavSlug = candidates(state.code, 'censored')[0];
+   const urls = [
+    missavSlug ? `${BASE_URL}${missavSlug}` : '',
+    typeof Javdb123AvPlayer !== 'undefined' ? Javdb123AvPlayer.detailUrl(state.code, location.href) : '',
+   ].filter(Boolean);
+   for (const url of urls) {
+    if (await probeDetailPage(url, currentGeneration)) {
+     if (state !== mounted || currentGeneration !== generation) return;
+     state.anchor.classList.remove('laosiji-full-video-probing'); state.anchor.removeAttribute('aria-disabled'); return; }
+    if (state !== mounted || currentGeneration !== generation) return;
+   }
+   if (state === mounted) cleanup();
   }
   function restoreCover(state) {
+   clearPlaybackStatus(state);
    if (state?.player?.isConnected) state.player.replaceWith(state.anchor);
    if (state?.javlib && state.image) {
     if (state.originalImageDisplay) {
      state.image.style.setProperty('display', state.originalImageDisplay, state.originalImageDisplayPriority || '');
     } else { state.image.style.removeProperty('display'); } }
-   state.player = null; state.video = null; state.loading = false; state.anchor.removeAttribute('aria-busy'); }
+   state.player = null; state.video = null; state.iframe = null; state.loading = false; state.anchor.removeAttribute('aria-busy'); }
   function stopPlayback(state) {
    generation += 1; activeRequest?.abort?.(); activeRequest = null; destroyPlayer(); restoreCover(state); }
   function cleanup() {
@@ -4118,6 +4802,7 @@
      if (value === null) mounted.anchor.removeAttribute(name);
      else mounted.anchor.setAttribute(name, value);
     }
+    mounted.anchor.classList.remove('laosiji-full-video-probing');
     if (mounted.addedButton) mounted.addedButton.remove();
     if (mounted.removeAnchor && mounted.anchor.isConnected) mounted.anchor.remove();
     if (!mounted.hadAnchorClass) mounted.anchor.classList.remove('cover-container');
@@ -4125,46 +4810,79 @@
    mounted = null; }
   function fail(state, error) {
    if (state !== mounted || state.failed || (!state.loading && !state.player)) return;
-   state.failed = true; errorLog('完整视频播放失败:', describePlaybackError(error, state.result)); destroyPlayer(); restoreCover(state); Utils.showToast('完整视频播放失败', '无法加载视频，请稍后重试', 3500); }
+   state.failed = true; state.lastError = describePlaybackError(error, state.result); errorLog('完整视频播放失败:', describePlaybackError(error, state.result)); destroyPlayer(); restoreCover(state); Utils.showToast('完整视频播放失败', '无法加载视频，请稍后重试', 3500); }
   async function startPlayback(state) {
-   if (state.loading || state.player) return;
+   if (state.loading || state.player) return { ok: false, reason: '播放器正在加载或已经挂载' };
    state.failed = false; state.loading = true; state.anchor.setAttribute('aria-busy', 'true'); const currentGeneration = ++generation;
+   const onProbe = (source, deadline) => {
+    if (currentGeneration === generation && state === mounted && !state.player?.isConnected) { showPlaybackStatus(state, source, deadline); }
+   };
    try {
-    const result = await resolve(state.code, CFG.fullVideoPreference, currentGeneration);
-    if (currentGeneration !== generation || state !== mounted) return;
-    if (!result) throw new Error('没有可用播放地址');
-    const player = document.createElement('div'); player.className = 'laosiji-full-video-player'; const video = document.createElement('video'); video.controls = true; video.playsInline = true; video.preload = 'metadata';
-    video.poster = state.image.currentSrc || state.image.src; player.appendChild(video); const close = document.createElement('button'); close.type = 'button'; close.className = 'laosiji-full-video-close'; close.textContent = '×'; close.title = '返回封面';
-    close.setAttribute('aria-label', '返回封面');
+    const resolved = await (state.skipMissav ? probeSource('片源2', deadline =>
+      resolve123Av(state.code, currentGeneration, state.sourceHints[0], CFG.fullVideoPreference, deadline),
+      onProbe, currentGeneration) .then(result => ({ result, next: null })) : resolveWithFallback(state.code, CFG.fullVideoPreference, currentGeneration, state.sourceHints, onProbe));
+    if (currentGeneration !== generation || state !== mounted) return { ok: false, reason: '播放请求已被替换' };
+    if (!resolved?.result) throw new Error('没有可用播放地址');
+    clearPlaybackStatus(state); let result = resolved.result; state.nextSourceResolver = resolved.next; const player = document.createElement('div'); player.className = 'laosiji-full-video-player'; const video = document.createElement('video');
+    video.controls = true; video.playsInline = true; video.preload = 'metadata'; video.poster = state.image.currentSrc || state.image.src; player.appendChild(video); const close = document.createElement('button'); close.type = 'button';
+    close.className = 'laosiji-full-video-close'; close.textContent = '×'; close.title = '返回封面'; close.setAttribute('aria-label', '返回封面');
     close.addEventListener('click', () => { stopPlayback(state); });
     player.appendChild(close);
     if (state.javlib) state.image.style.setProperty('display', 'none', 'important');
-    state.anchor.replaceWith(player); state.player = player; state.video = video; state.result = result; video.addEventListener('error', () => handlePlaybackError(state, new Error('视频元素加载失败'))); const runtime = createTrailerHlsRuntime();
-    const HlsClass = await runtime.loadHlsLibrary();
+    state.anchor.replaceWith(player); state.player = player; state.video = video; state.result = result; video.addEventListener('error', () => handlePlaybackError(state, new Error('视频元素加载失败')));
+    const needsHls = result.type !== 'video' && result.type !== 'iframe' && !result.url; const runtime = createTrailerHlsRuntime(); const HlsClass = needsHls ? await runtime.loadHlsLibrary() : null;
     if (currentGeneration !== generation || state !== mounted) return;
     let alternateIndex = 0; let attachHlsSource = null;
+    const mountIframe = source => {
+     activeHls?.destroy?.(); activeHls = null; video.pause?.(); video.remove?.(); state.video = null; state.iframe?.remove?.(); const iframe = document.createElement('iframe'); iframe.src = source; iframe.title = '正片播放器';
+     iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture'); iframe.setAttribute('allowfullscreen', ''); iframe.setAttribute('referrerpolicy', 'no-referrer-when-downgrade'); iframe.className = 'laosiji-full-video-iframe';
+     player.insertBefore(iframe, close); state.iframe = iframe; state.loading = false; };
+    const mountVideo = () => {
+     state.iframe?.remove?.(); state.iframe = null;
+     if (!video.isConnected) player.insertBefore(video, close);
+     state.video = video; };
+    const attachResult = nextResult => {
+     result = nextResult; state.result = nextResult; alternateIndex = 0; state.alternateLoading = false;
+     if (nextResult.type === 'iframe' || nextResult.iframe) { mountIframe(nextResult.iframe || nextResult.url); return; }
+     mountVideo();
+     if (nextResult.type === 'video' || (!nextResult.hls && nextResult.url)) {
+      video.src = nextResult.url; video.load?.();
+      video.play?.().catch?.(() => {});
+      state.loading = false; return; }
+     if (HlsClass && attachHlsSource) { attachHlsSource(nextResult.hls, nextResult); return; }
+     if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = nextResult.hls; video.load?.();
+      video.play?.().catch?.(() => {});
+      state.loading = false; return; }
+     throw new Error('浏览器不支持 HLS 播放'); };
+    const loadNextSource = () => {
+     if (state.nextSourceLoading || typeof state.nextSourceResolver !== 'function') return false;
+     state.nextSourceLoading = true; state.loading = true; const nextResolver = state.nextSourceResolver; state.nextSourceResolver = null;
+     Promise.resolve(nextResolver()).then(nextResult => {
+      if (currentGeneration !== generation || state !== mounted) return;
+      if (!nextResult) throw new Error('123AV 没有可用播放地址');
+      state.nextSourceLoading = false; attachResult(nextResult);
+     }).catch(error => {
+      state.nextSourceLoading = false;
+      if (currentGeneration === generation && state === mounted) fail(state, error);
+     });
+     return true; };
     state.retryAlternate = error => {
      if (state.alternateLoading) return true;
      const nextSource = result.alternatives?.[alternateIndex++];
-     if (!nextSource || currentGeneration !== generation || state !== mounted) return false;
-     state.alternateLoading = true; errorLog('完整视频播放尝试备用清单:', describePlaybackError(error, result)); activeHls?.destroy?.(); activeHls = null;
-     if (HlsClass && attachHlsSource) {
-      attachHlsSource(nextSource);
-     } else {
-      video.src = nextSource; video.load?.();
-      video.play?.().catch?.(() => {}); }
-     return true; };
+     if (nextSource && currentGeneration === generation && state === mounted) {
+      state.alternateLoading = true; errorLog('完整视频播放尝试备用清单:', describePlaybackError(error, result));
+      const alternateResult = result.type === 'video' ? { ...result, url: nextSource, alternatives: [] } : { ...result, type: 'hls', hls: nextSource, alternatives: [] };
+      attachResult(alternateResult); return true; }
+     return loadNextSource(); };
     if (HlsClass) {
-     const requestHeaders = {
-      Referer: `${BASE_URL}${result.slug}`,
-      Origin: 'https://missav123.com',
-     };
-     attachHlsSource = source => {
+     attachHlsSource = (source, sourceResult = result) => {
+      activeHls?.destroy?.();
       const hls = new HlsClass({
        enableWorker: false,
        lowLatencyMode: false,
        autoStartLoad: true,
-       loader: runtime.createHlsLoader(requestHeaders),
+       loader: runtime.createHlsLoader(getHlsRequestHeaders(sourceResult)),
        maxBufferLength: 20,
        maxMaxBufferLength: 40,
       });
@@ -4173,57 +4891,58 @@
        if (data?.fatal && hls === activeHls) {
         state.alternateLoading = false;
         handlePlaybackError(state, {
-        message: data.details || 'HLS 加载失败',
-        details: data.networkDetails?.status ? `HTTP ${data.networkDetails.status}` : '',
-        type: data.type || '',
-        code: data.networkDetails?.status || '',
-        url: data.url || source,
+         message: data.details || 'HLS 加载失败',
+         details: data.networkDetails?.status ? `HTTP ${data.networkDetails.status}` : '',
+         type: data.type || '',
+         code: data.networkDetails?.status || '',
+         url: data.url || source,
         }); }
       });
       hls.on(HlsClass.Events.MANIFEST_PARSED, () => {
-       state.alternateLoading = false; selectHighestHlsLevel(hls);
+       state.alternateLoading = false; selectHighestHlsLevel(hls); state.loading = false;
        video.play().catch(() => {});
       });
-      hls.attachMedia(video); hls.loadSource(source); };
-     attachHlsSource(result.hls);
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-     video.src = result.hls;
-     video.play().catch(() => {});
-    } else { throw new Error('浏览器不支持 HLS 播放'); }
-    state.loading = false;
+      hls.attachMedia(video); hls.loadSource(source); }; }
+    attachResult(result);
+    return { ok: true, source: result.source || 'missav', type: result.type || (result.hls ? 'hls' : 'video'), url: result.iframe || result.hls || result.url || '' };
    } catch (error) {
     if (currentGeneration === generation) fail(state, error);
-   } }
+    return { ok: false, error: describePlaybackError(error, state.result) }; } }
   function installStyles() {
-   injectStyle('javdb-full-video-style',`.laosiji-full-video-cover>.cover-container{position:relative!important;cursor:pointer!important}.laosiji-full-video-cover .cover-container .play-button{z-index:10;display:inline-flex;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);align-items:center;justify-content:center;gap:5px;padding:5px 15px;border:2px solid #095fe0;border-radius:5px;background:rgba(255,255,255,.8);color:#4a4a4a;font-size:1.4em;font-weight:700;white-space:nowrap;pointer-events:none}.laosiji-full-video-cover .cover-container .play-button .icon{display:inline-flex;align-items:center}.laosiji-full-video-cover .cover-container[aria-busy="true"] .play-button{opacity:.65}#video_jacket.laosiji-full-video-cover{position:relative!important}#video_jacket>.laosiji-full-video-javlib-overlay{position:absolute!important;inset:0!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important}#video_jacket>.laosiji-full-video-javlib-overlay .play-button{position:relative!important;top:auto!important;left:auto!important;transform:none!important}.laosiji-full-video-player{position:relative;width:100%;aspect-ratio:16/9;background:#000}.laosiji-full-video-player video{display:block;width:100%;height:100%;object-fit:contain;background:#000}.laosiji-full-video-close{position:absolute;top:8px;right:8px;z-index:2;width:32px;height:32px;border:0;border-radius:4px;background:rgba(0,0,0,.68);color:#fff;font-size:23px;line-height:28px;cursor:pointer}.laosiji-full-video-close:hover{background:rgba(0,0,0,.88)}`);
+   injectStyle('javdb-full-video-style',`.laosiji-full-video-cover>.cover-container{position:relative!important;cursor:pointer!important}.laosiji-full-video-cover .cover-container .play-button{z-index:10;display:inline-flex;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);align-items:center;justify-content:center;gap:5px;padding:5px 15px;border:2px solid #095fe0;border-radius:5px;background:rgba(255,255,255,.8);color:#4a4a4a;font-size:1.4em;font-weight:700;white-space:nowrap;pointer-events:none}.laosiji-full-video-cover .laosiji-full-video-probing>.play-button{display:none!important}.laosiji-full-video-cover .cover-container .play-button .icon{display:inline-flex;align-items:center}.laosiji-full-video-cover .play-button.laosiji-full-video-loading{width:200px;max-width:calc(100% - 12px);box-sizing:border-box;padding:7px 8px!important;font-size:0!important;background:#101820!important;color:#fff!important;border-color:#fff!important;opacity:1!important;box-shadow:0 2px 10px rgba(0,0,0,.6)!important}.laosiji-full-video-cover .play-button.laosiji-full-video-loading>:not(.laosiji-full-video-status){display:none!important}.laosiji-full-video-cover .laosiji-full-video-status{color:#fff!important;font-size:13px;line-height:1.35;white-space:nowrap;text-align:center}#video_jacket.laosiji-full-video-cover{position:relative!important}#video_jacket>.laosiji-full-video-javlib-overlay{position:absolute!important;inset:0!important;z-index:10!important;display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important}#video_jacket>.laosiji-full-video-javlib-overlay .play-button{position:relative!important;top:auto!important;left:auto!important;transform:none!important}.laosiji-full-video-player{position:relative;width:100%;aspect-ratio:16/9;background:#000}.laosiji-full-video-player video,.laosiji-full-video-player iframe{display:block;width:100%;height:100%;border:0;object-fit:contain;background:#000}.laosiji-full-video-close{position:absolute;top:8px;right:8px;z-index:2;width:32px;height:32px;border:0;border-radius:4px;background:rgba(0,0,0,.68);color:#fff;font-size:23px;line-height:28px;cursor:pointer}.laosiji-full-video-close:hover{background:rgba(0,0,0,.88)}`);
   }
   function detailCover() {
+   const customDetailCover = document.querySelector('.javdb-123av-fc2-unified-detail .javdb-fc2-cover-column');
+   if (customDetailCover) return customDetailCover;
    if (isJavLibraryHost()) { return document.querySelector('#video_jacket'); }
    if (/javbus/i.test(location.hostname)) { return document.querySelector('.row.movie .col-md-9.screencap'); }
    if (!/javdb/i.test(location.hostname)) return null;
    if (/^\/v\//i.test(location.pathname)) return document.querySelector('.column.column-video-cover');
    return null; }
-  function sync(code = '') {
-   const cover = CFG.fullVideoPlayback ? detailCover() : null;
+  function sync(code = '', options = {}) {
+   const cover = CFG.fullVideoPlayback ? (options.cover || detailCover()) : null;
    if (!cover) {
     if (mounted) cleanup();
     return; }
    if (mounted?.cover === cover && mounted.player?.isConnected) return;
-   const javlib = isJavLibraryHost(); let anchor = cover?.querySelector(':scope > a'); const image = javlib ? cover?.querySelector(':scope > img#video_jacket_img, :scope > img') : anchor?.querySelector('img.video-cover, img');
+   if (mounted?.cover === cover && mounted.skipMissav && mounted.loading) return;
+   const javlib = options.javlib ?? isJavLibraryHost(); let anchor = cover?.querySelector(':scope > a'); const image = javlib ? cover?.querySelector(':scope > img#video_jacket_img, :scope > img') : anchor?.querySelector('img.video-cover, img');
    const resolvedCode = code || cover?.closest('[data-laosiji-code]')?.getAttribute('data-laosiji-code') || (isJavLibraryHost() ? SiteJavLib.getVid() : (/javbus/i.test(location.hostname) ? SiteJavBus.getVid() : SiteJavDB.getVid()))
     || document.querySelector('.movie-panel-info .first-block .value')?.textContent?.trim();
    if (!cover || !image || (!javlib && !anchor) || !candidates(resolvedCode).length) {
     if (javlib && mounted?.cover === cover) return;
     if (mounted) cleanup();
     return; }
-   if (mounted?.cover === cover && mounted.code === resolvedCode) return;
+   if (mounted?.cover === cover && String(mounted.code || '').trim().toLowerCase() === String(resolvedCode || '').trim().toLowerCase()) {
+    mounted.sourceHints = Array.isArray(options.sourceHints) ? options.sourceHints : mounted.sourceHints; mounted.skipMissav = options.skipMissav === true; return; }
    cleanup(); installStyles(); let removeAnchor = false;
    if (!anchor && javlib) {
     anchor = document.createElement('div'); anchor.className = 'laosiji-full-video-javlib-overlay'; removeAnchor = true; cover.appendChild(anchor); }
    const originalAttributes = Object.fromEntries(
-    ['href', 'target', 'rel', 'data-fancybox', 'role', 'tabindex', 'aria-label', 'aria-busy'] .map(name => [name, anchor.getAttribute(name)]),
+    ['href', 'target', 'rel', 'data-fancybox', 'role', 'tabindex', 'aria-label', 'aria-busy', 'aria-disabled'] .map(name => [name, anchor.getAttribute(name)]),
    ); const hadAnchorClass = anchor.classList.contains('cover-container'); cover.classList.add('laosiji-full-video-cover'); anchor.classList.add('cover-container'); anchor.removeAttribute('href'); anchor.removeAttribute('target');
-   anchor.removeAttribute('rel'); anchor.removeAttribute('data-fancybox'); anchor.setAttribute('role', 'button'); anchor.setAttribute('tabindex', '0'); anchor.setAttribute('aria-label', '播放正片'); let addedButton = null;
+   anchor.removeAttribute('rel'); anchor.removeAttribute('data-fancybox'); anchor.setAttribute('role', 'button'); anchor.setAttribute('tabindex', '0'); anchor.setAttribute('aria-label', '播放正片'); anchor.setAttribute('aria-disabled', 'true');
+   anchor.classList.add('laosiji-full-video-probing'); let addedButton = null;
    if (!anchor.querySelector(':scope > .play-button')) {
     const button = document.createElement('div'); button.className = 'play-button'; button.innerHTML = '<span class="icon"><img src="/packs/media/images/btn-play-b414746c.svg" alt=""></span><span class="text">播放正片</span>'; anchor.appendChild(button);
     addedButton = button; }
@@ -4232,17 +4951,32 @@
     removeAnchor,
     originalImageDisplay: javlib ? image.style.getPropertyValue('display') : '',
     originalImageDisplayPriority: javlib ? image.style.getPropertyPriority('display') : '',
-    loading: false, player: null, video: null, failed: false, };
+    loading: false, player: null, video: null, iframe: null, failed: false,
+    sourceHints: Array.isArray(options.sourceHints) ? options.sourceHints : [],
+    skipMissav: options.skipMissav === true,
+    nextSourceResolver: null,
+    nextSourceLoading: false, };
    state.onClick = event => {
-    event.preventDefault(); event.stopImmediatePropagation(); startPlayback(state); };
+    event.preventDefault(); event.stopImmediatePropagation();
+    if (state.anchor.classList.contains('laosiji-full-video-probing')) return;
+    startPlayback(state); };
    state.onKeyDown = event => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
-    event.preventDefault(); event.stopImmediatePropagation(); startPlayback(state); };
-   anchor.addEventListener('click', state.onClick, true); anchor.addEventListener('keydown', state.onKeyDown, true); }
+    event.preventDefault(); event.stopImmediatePropagation();
+    if (state.anchor.classList.contains('laosiji-full-video-probing')) return;
+    startPlayback(state); };
+   anchor.addEventListener('click', state.onClick, true); anchor.addEventListener('keydown', state.onKeyDown, true); const availabilityGeneration = generation; Promise.resolve().then(() => revealIfAvailable(state, availabilityGeneration)); }
+  async function play123Av(code = '', options = {}) {
+   if (mounted?.player?.isConnected || mounted?.loading) stopPlayback(mounted);
+   sync(code, { ...options, skipMissav: true });
+   if (!mounted) throw new Error('当前页面没有可用的正片封面');
+   const state = mounted; const result = await startPlayback(state);
+   return { ...result, code: state.code, playerConnected: Boolean(state.player?.isConnected), iframeConnected: Boolean(state.iframe?.isConnected), error: result?.error || state.lastError || '' }; }
   window.addEventListener('pagehide', cleanup);
   window.addEventListener('pageshow', event => { if (event.persisted) sync(); });
-  return { sync, candidates, parsePlayerDocument, unpackPlayerScript, resolve };
+  return { sync, cleanup, play123Av, candidates, parsePlayerDocument, unpackPlayerScript, getHlsRequestHeaders, resolve, resolve123Av, resolveWithFallback };
  })();
+ Core.expose('__LAOSIJI_JAVDB_FULL_VIDEO__', JavdbFullVideo);
  const SiteJavDB = {
   _actorBlacklistObserver: null,
   _actorBlacklistRetryTimers: [],
@@ -4373,7 +5107,7 @@
    });
    const customShell = document.querySelector('.javdb-api-shell, .javdb-123av-fc2-shell'); const isFc2AdvancedSearch = this._isScriptFc2AdvancedSearch?.();
    if (!resourceApi?.open || (!navList && !customShell && !isFc2AdvancedSearch) || (!hasListContent && !customShell && !isFc2AdvancedSearch)) return;
-   injectStyle('javdb-resource-nav-style',`.javdb-resource-nav-item{display:flex!important;align-items:center!important;gap:6px;flex:0 0 auto!important;width:max-content!important;margin-left:0!important;padding-left:14px;white-space:nowrap}.javdb-resource-nav-rail{display:flex!important;align-items:center!important;flex:0 0 auto!important;min-width:max-content!important;margin-left:8px!important}.main-tabs-wrap>.tabs.main-tabs,.main-tabs-wrap>.tabs.is-boxed{min-width:0!important;flex:1 1 auto!important}.tabs.javdb-resource-tabs-with-rail{margin-bottom:.5rem!important}.javdb-resource-nav-item>a{display:flex!important;align-items:center!important;min-height:36px;color:#fff!important;background:#334155!important;font-size:.9rem;font-weight:700;line-height:1;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2);border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.18)}.javdb-resource-nav-item>a:hover,.javdb-resource-nav-item>a:focus{color:#fff!important;background:#0f172a!important;box-shadow:0 2px 5px rgba(15,23,42,.26)}.javdb-resource-nav-item>a.javdb-resource-nav-main{background:#0f766e!important}.javdb-resource-nav-item>a.javdb-resource-nav-main:hover,.javdb-resource-nav-item>a.javdb-resource-nav-main:focus{background:#115e59!important}.javdb-resource-nav-item>a[data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-nav-item>a[data-resource-entry="history"]:hover,.javdb-resource-nav-item>a[data-resource-entry="history"]:focus{background:#1d4ed8!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:focus{background:#92400e!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:focus{background:#9f1239!important}.javdb-resource-work-shortcuts{display:inline-flex!important;align-items:center;flex:0 0 auto;float:right;margin:0 0 .1rem .4rem!important}.javdb-resource-tabs-shortcuts{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;flex-wrap:wrap!important;flex:0 0 auto!important;width:auto!important;max-width:100%!important;margin:0 0 4px!important;padding:2px 0 0!important}.tabs.javdb-resource-tabs-with-shortcuts{margin-bottom:0!important}.toolbar>.javdb-resource-work-shortcuts .buttons{margin-bottom:0}.javdb-resource-custom-links,.javdb-resource-custom-shortcuts{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:8px 0 12px!important}.javdb-resource-custom-links>button,.javdb-resource-custom-shortcuts>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:auto!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font:700 .9rem/1 inherit!important;appearance:none!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important;white-space:nowrap!important}.javdb-resource-custom-links>button:hover,.javdb-resource-custom-links>button:focus,.javdb-resource-custom-shortcuts>button:hover,.javdb-resource-custom-shortcuts>button:focus{color:#fff!important;filter:brightness(.92)}.javdb-resource-custom-links [data-resource-entry="manager"]{background:#0f766e!important}.javdb-resource-custom-links [data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-custom-links [data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-custom-links [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-downloaded"]{background:#10b981!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:900px){.javdb-resource-nav-rail{margin-left:4px!important}.javdb-resource-nav-item{width:max-content!important;margin-left:0!important;padding-left:0}.javdb-resource-nav-item>a{flex:0 0 auto}}@media (max-width:720px){.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail{flex-wrap:wrap!important;align-items:stretch!important}.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail>.tabs.main-tabs,.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail>.tabs.is-boxed{flex:1 1 0!important;min-width:0!important}.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail>.main-tabs-more{flex:0 0 auto!important;align-self:flex-start!important}.main-tabs-wrap>.javdb-resource-nav-rail{order:3!important;flex:1 0 100%!important;width:100%!important;min-width:0!important;max-width:100%!important;margin:4px 0 0!important;padding:0 0 3px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin}.javdb-resource-nav-item{min-width:max-content!important;padding:0!important}.javdb-resource-nav-item>a{min-height:40px!important;padding:0 .72rem!important}}`);
+   injectStyle('javdb-resource-nav-style',`.javdb-resource-nav-item{display:flex!important;align-items:center!important;gap:6px;flex:0 0 auto!important;width:max-content!important;margin-left:0!important;padding-left:14px;white-space:nowrap}.javdb-resource-nav-rail{display:flex!important;align-items:center!important;flex:0 0 auto!important;min-width:max-content!important;margin-left:8px!important}.main-tabs-wrap>.tabs.main-tabs,.main-tabs-wrap>.tabs.is-boxed{min-width:0!important;flex:1 1 auto!important}.tabs.javdb-resource-tabs-with-rail{margin-bottom:.5rem!important}.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail>.tabs.javdb-resource-tabs-with-rail{margin-bottom:0!important}.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail>.tabs.javdb-resource-tabs-with-rail>ul{border-bottom:0!important}.javdb-resource-nav-item>a{display:flex!important;align-items:center!important;min-height:36px;color:#fff!important;background:#334155!important;font-size:.9rem;font-weight:700;line-height:1;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2);border-radius:6px;box-shadow:0 1px 2px rgba(15,23,42,.18)}.javdb-resource-nav-item>a:hover,.javdb-resource-nav-item>a:focus{color:#fff!important;background:#0f172a!important;box-shadow:0 2px 5px rgba(15,23,42,.26)}.javdb-resource-nav-item>a.javdb-resource-nav-main{background:#0f766e!important}.javdb-resource-nav-item>a.javdb-resource-nav-main:hover,.javdb-resource-nav-item>a.javdb-resource-nav-main:focus{background:#115e59!important}.javdb-resource-nav-item>a[data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-nav-item>a[data-resource-entry="history"]:hover,.javdb-resource-nav-item>a[data-resource-entry="history"]:focus{background:#1d4ed8!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-works"]:focus{background:#92400e!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:hover,.javdb-resource-nav-item>a[data-resource-entry="blacklist-actors"]:focus{background:#9f1239!important}.javdb-resource-work-shortcuts{display:inline-flex!important;align-items:center;flex:0 0 auto;float:right;margin:0 0 .1rem .4rem!important}.javdb-resource-tabs-shortcuts{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;flex-wrap:wrap!important;flex:0 0 auto!important;width:auto!important;max-width:100%!important;margin:0 0 4px!important;padding:2px 0 0!important}.tabs.javdb-resource-tabs-with-shortcuts{margin-bottom:0!important}.toolbar>.javdb-resource-work-shortcuts .buttons{margin-bottom:0}.javdb-resource-custom-links,.javdb-resource-custom-shortcuts{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;width:100%!important;margin:8px 0 12px!important}.javdb-resource-custom-links>button,.javdb-resource-custom-shortcuts>button{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:auto!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font:700 .9rem/1 inherit!important;appearance:none!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important;white-space:nowrap!important}.javdb-resource-custom-links>button:hover,.javdb-resource-custom-links>button:focus,.javdb-resource-custom-shortcuts>button:hover,.javdb-resource-custom-shortcuts>button:focus{color:#fff!important;filter:brightness(.92)}.javdb-resource-custom-links [data-resource-entry="manager"]{background:#0f766e!important}.javdb-resource-custom-links [data-resource-entry="history"]{background:#2563eb!important}.javdb-resource-custom-links [data-resource-entry="blacklist-works"]{background:#b45309!important}.javdb-resource-custom-links [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-downloaded"]{background:#10b981!important}.javdb-resource-custom-shortcuts [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:900px){.javdb-resource-nav-rail{margin-left:4px!important}.javdb-resource-nav-item{width:max-content!important;margin-left:0!important;padding-left:0}.javdb-resource-nav-item>a{flex:0 0 auto}}@media (max-width:720px){.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail{flex-wrap:wrap!important;align-items:stretch!important}.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail>.tabs.main-tabs,.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail>.tabs.is-boxed{flex:1 1 0!important;min-width:0!important}.main-tabs-wrap.javdb-resource-tabs-wrap-with-rail>.main-tabs-more{flex:0 0 auto!important;align-self:flex-start!important}.main-tabs-wrap>.javdb-resource-nav-rail{order:3!important;flex:1 0 100%!important;width:100%!important;min-width:0!important;max-width:100%!important;margin:4px 0 0!important;padding:0 0 3px!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin}.javdb-resource-nav-item{min-width:max-content!important;padding:0!important}.javdb-resource-nav-item>a{min-height:40px!important;padding:0 .72rem!important}}`);
    const existingResourceNavItem = document.querySelector('.javdb-resource-nav-item');
    if (navList && !existingResourceNavItem) {
     const item = document.createElement('li'); item.className = 'javdb-resource-nav-item';
@@ -4512,6 +5246,9 @@
      if (!el) return;
      ['flex', 'width', 'max-width', 'min-width', 'align-self', 'overflow', 'word-break'].forEach(name => el.style.removeProperty(name));
     });
+    if (isFc2) {
+     const mobileCoverLink = coverCol.querySelector('a'); const mobileCoverImg = coverCol.querySelector('img'); mobileCoverLink?.style.setProperty('height', 'auto', 'important'); mobileCoverLink?.style.setProperty('overflow', 'visible', 'important');
+     mobileCoverImg?.style.setProperty('height', 'auto', 'important'); mobileCoverImg?.style.setProperty('max-height', 'none', 'important'); mobileCoverImg?.style.setProperty('object-fit', 'contain', 'important'); }
     return flexContainer; }
    flexContainer.style.setProperty('display', 'flex', 'important'); flexContainer.style.setProperty('gap', '20px', 'important'); flexContainer.style.setProperty('align-items', 'flex-start', 'important');
    flexContainer.style.setProperty('width', '100%', 'important'); flexContainer.style.setProperty('margin-top', '16px', 'important'); const detailDefaults = DetailFlex.defaultCss('javdb'); const detailValues = DetailFlex.get('javdb');
@@ -5563,7 +6300,7 @@
  Core.expose('__LAOSIJI_STILLS_GALLERY__', StillsGallery);
  function mainRun() {
   SiteManager.initCurrent(); }
- GM_addStyle(`.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2147483647;display:flex;overflow:auto;cursor:zoom-out;backdrop-filter:blur(5px)}.preview-img{border-radius:4px;margin:auto;cursor:zoom-in;max-width:95vw;max-height:95vh;object-fit:contain;display:block;box-shadow:0 0 20px rgba(0,0,0,0.5)}.preview-img.zoomed{max-width:none;max-height:none;cursor:zoom-out}a:focus:not(:focus-visible),button:focus:not(:focus-visible),[role="button"]:focus:not(:focus-visible),input[type="button"]:focus:not(:focus-visible),input[type="submit"]:focus:not(:focus-visible){outline:none!important}#navbar,#topmenu,#navbar-menu-user,body>.navbar{z-index:100!important}.jav-card-grid{--jav-card-title-size:15px;--jav-card-title-line-height:1.5;--jav-card-title-lines:2;position:relative!important;z-index:0!important;isolation:isolate!important;display:grid!important;grid-template-columns:repeat(var(--jav-card-columns,5),minmax(0,1fr))!important;gap:14px 6px!important;align-items:stretch!important;width:100%!important;box-sizing:border-box!important}.jav-card{float:none!important;display:block!important;width:auto!important;height:100%!important;max-height:none!important;min-width:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;text-align:left!important;position:relative!important;background:#fff!important;border:1px solid #e5e7eb!important;border-radius:0!important;overflow:visible!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important}.jav-card:hover{border-color:rgba(37,99,235,.35)!important;box-shadow:0 10px 24px rgba(15,23,42,.16)!important;transform:translateY(-4px)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important}.jav-card-link{display:flex!important;flex-direction:column!important;height:100%!important;max-height:none!important;overflow:visible!important;color:#2563eb!important;text-decoration:none!important}.jav-card-link:visited{color:#64748b!important}.jav-card-cover{display:block!important;position:relative!important;flex:0 0 auto!important;width:100%!important;height:auto!important;aspect-ratio:800 / 538!important;overflow:visible!important;background:#f1f5f9!important;border-bottom:1px solid #f1f5f9!important}.jav-card-image{display:block!important;position:absolute!important;inset:auto!important;left:50%!important;top:50%!important;width:auto!important;height:auto!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;object-position:center center!important;background:transparent!important;border:0!important;transform:none!important;translate:-50% -50%!important;scale:1!important;transform-origin:center center!important;will-change:transform,scale!important;backface-visibility:hidden!important}.jav-card-cover>:not(img){z-index:2!important}.jav-card-title{width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;text-align:left!important;white-space:normal!important;word-break:break-word!important}.jav-jump-btn-group{margin-top:8px;margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.jav-jump-btn-group.fc2cmadb-jump-group{margin-top:10px;margin-bottom:8px;position:relative!important;z-index:100001!important}.jav-jump-btn-group .jav-fc2cma-btn{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif!important;font-variant-emoji:text}.emby-fix{width:100%!important;flex-basis:100%!important;clear:both!important;margin-top:8px!important;margin-bottom:4px!important}.mini-switch{width:40px;height:20px;appearance:none;background:#e0e0e0;border-radius:20px;position:relative;cursor:pointer;outline:none;transition:background 0.2s}.mini-switch:checked{background:#4CAF50}.mini-switch::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:2px;left:2px;transition:left 0.2s}.mini-switch:checked::before{left:calc(100% - 18px)}@keyframes btnSlideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.jav-jump-btn-group a{transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;animation:btnSlideIn 0.3s ease-out}.jav-jump-btn-group a:hover{background:var(--jav-btn-hover-bg,#f8fafc)!important;transform:translateY(-1px)!important;filter:none!important;box-shadow:0 5px 14px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)!important;text-decoration:none!important}@keyframes menuFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}.search-menu{position:relative;display:inline-flex;align-items:stretch;border-radius:7px}.search-main-btn{padding-right:11px!important;border-radius:7px 0 0 7px!important}.search-toggle-btn{position:static;width:34px;height:30px;padding:0!important;margin:0 0 0 -1px!important;display:inline-flex!important;align-items:center;justify-content:center;flex-shrink:0;font-size:12px!important;line-height:1;opacity:1;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 10%,#ffffff)!important;color:var(--jav-btn-accent,#64748b)!important;border:1px solid color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important;border-radius:0 7px 7px 0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.7)!important;cursor:pointer;touch-action:manipulation}.search-toggle-btn:hover{filter:none;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 18%,#ffffff)!important}.search-toggle-btn.is-open{background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 22%,#ffffff)!important}.search-toggle-btn .search-arrow{display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;line-height:1;transform:none;transition:transform .16s ease;pointer-events:none}.search-toggle-btn.is-open .search-arrow{transform:rotate(180deg)}.search-submenu{position:absolute;top:calc(100%+4px);left:0;display:none;flex-direction:column;gap:4px;padding:4px;background:rgba(255,255,255,0.95);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:10000;min-width:120px;backdrop-filter:blur(5px)}.search-submenu.is-open{display:flex}.search-submenu a{transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.1)!important}.search-submenu a:hover{transform:translateX(5px) scale(1.02);filter:brightness(1.1)}.jav-pan115-badge{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:22px!important;padding:0 7px;margin-right:6px;position:static!important;top:auto!important;transform:none!important;border-radius:6px;background:#bbf7d0;border:1px solid #22c55e;color:#065f46;font-size:12px!important;font-weight:800;line-height:22px!important;text-decoration:none;box-sizing:border-box;vertical-align:middle;box-shadow:inset 0 1px 0 rgba(255,255,255,0.72)}.jav-pan115-badge:hover{background:#86efac;color:#064e3b;text-decoration:none;box-shadow:0 4px 12px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)}span.jav-pan115-badge{cursor:pointer}.jav-pan115-chooser-overlay{position:fixed;inset:0;z-index:10000030;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.38);backdrop-filter:blur(6px)}.jav-pan115-chooser{width:min(720px,calc(100vw - 24px));max-height:min(76vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;box-shadow:0 24px 70px rgba(15,23,42,0.22);color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-chooser-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px 16px 12px;border-bottom:1px solid #e2e8f0;background:#fff;color:#111827}.jav-pan115-chooser-title{font-size:16px;font-weight:800;line-height:1.35}.jav-pan115-chooser-desc{margin-top:4px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-chooser-close{width:30px;height:30px;flex:0 0 auto;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#475569;font-size:20px;line-height:1;cursor:pointer}.jav-pan115-candidate-list{overflow:auto;padding:10px;display:grid;gap:8px;overscroll-behavior:contain}.jav-pan115-candidate{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 4px 12px rgba(15,23,42,0.06)}.jav-pan115-candidate.is-low-priority{border-color:#e2e8f0;background:#f8fafc}.jav-pan115-candidate-name{max-width:100%;overflow:hidden;color:#0f172a;font-size:13px;font-weight:750;line-height:1.45;text-overflow:ellipsis;white-space:nowrap}.jav-pan115-candidate-meta{margin-top:3px;color:#64748b;font-size:12px;line-height:1.35}.jav-pan115-candidate-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.jav-pan115-candidate-actions button{min-width:48px;height:30px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer}.jav-pan115-candidate-play{border:1px solid #0f766e;background:#0f766e;color:#fff}.jav-pan115-candidate-rename{border:1px solid #cbd5e1;background:#f8fafc;color:#334155}.jav-pan115-candidate-delete{border:1px solid #e2e8f0;background:#fff;color:#dc2626}.jav-pan115-candidate-delete:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-candidate-actions button:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-confirm-overlay{position:fixed;inset:0;z-index:10000040;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.32);backdrop-filter:blur(5px)}.jav-pan115-confirm{width:min(420px,calc(100vw - 28px));padding:16px;border:1px solid #d8dee8;border-radius:14px;background:#fff;color:#111827;box-shadow:0 20px 54px rgba(15,23,42,0.26);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-confirm-title{font-size:16px;font-weight:900;line-height:1.35}.jav-pan115-confirm-message{margin-top:8px;color:#475569;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}.jav-pan115-confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.jav-pan115-confirm-actions button{min-width:70px;height:34px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:850;cursor:pointer}.jav-pan115-confirm-cancel{border:1px solid #e2e8f0;background:#f8fafc;color:#475569}.jav-pan115-confirm-ok{border:1px solid #dc2626;background:#dc2626;color:#fff}.jav-pan115-rename-input{width:100%;height:38px;margin-top:12px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#111827;font-size:13px;font-weight:650;outline:none}.jav-pan115-rename-input:focus{border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,0.12)}.jav-pan115-rename-hint{margin-top:7px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-rename-ok{border-color:#0f766e!important;background:#0f766e!important;color:#fff!important}html[data-laosiji-mobile] .jav-pan115-chooser-overlay{align-items:flex-end;padding:8px}html[data-laosiji-mobile] .jav-pan115-chooser{width:100%;max-height:82dvh;border-radius:14px 14px 10px 10px}html[data-laosiji-mobile] .jav-pan115-candidate{grid-template-columns:minmax(0,1fr);align-items:stretch}html[data-laosiji-mobile] .jav-pan115-candidate-actions button{flex:1 1 0;min-height:34px}html[data-laosiji-mobile] .jav-pan115-confirm-overlay{align-items:flex-end;padding:10px}html[data-laosiji-mobile] .jav-pan115-confirm{width:100%}html[data-laosiji-mobile] .jav-pan115-confirm-actions button{flex:1 1 0;min-height:38px}.jav-infinite-sentinel{width:100%;padding:14px 0;color:#64748b;font-size:13px;font-weight:700;text-align:center;clear:both}.jav-infinite-sentinel.is-loading{color:#2563eb}.jav-infinite-sentinel.is-done{color:#94a3b8}.jav-infinite-sentinel.is-error{color:#dc2626;cursor:pointer}.button.javdb-score-sort-btn,.button.javdb-votes-sort-btn{border-color:#be123c!important;background:#be123c!important;color:#fff!important}.button.javdb-score-sort-btn:hover,.button.javdb-votes-sort-btn:hover{border-color:#e11d48!important;background:#e11d48!important}.button.javdb-score-sort-btn.is-selected,.button.javdb-votes-sort-btn.is-selected{border-color:#9f1239!important;background:#9f1239!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.58)!important}.button.javdb-score-sort-btn:focus-visible,.button.javdb-votes-sort-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}.float-buttons .javdb-loaded-reorder-btn{display:block;align-items:center;justify-content:center;min-height:36px;max-width:calc(100vw - 32px);margin:0 0 8px auto;padding:7px 11px;border:1px solid #be123c;border-radius:6px;background:#be123c;color:#fff;font-size:13px;font-weight:700;line-height:1.25;letter-spacing:0;box-shadow:0 5px 16px rgba(15,23,42,.2);cursor:pointer}.float-buttons .javdb-loaded-reorder-btn:hover{background:#e11d48;border-color:#e11d48}.float-buttons .javdb-loaded-reorder-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}@media (max-width:768px){.float-buttons .javdb-loaded-reorder-btn{min-height:34px;padding:7px 10px;font-size:12px}}`);
+ GM_addStyle(`.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2147483647;display:flex;overflow:auto;cursor:zoom-out;backdrop-filter:blur(5px)}.preview-img{border-radius:4px;margin:auto;cursor:zoom-in;max-width:95vw;max-height:95vh;object-fit:contain;display:block;box-shadow:0 0 20px rgba(0,0,0,0.5)}.preview-img.zoomed{max-width:none;max-height:none;cursor:zoom-out}a:focus:not(:focus-visible),button:focus:not(:focus-visible),[role="button"]:focus:not(:focus-visible),input[type="button"]:focus:not(:focus-visible),input[type="submit"]:focus:not(:focus-visible){outline:none!important}#navbar,#topmenu,#navbar-menu-user,body>.navbar{z-index:100!important}.jav-card-grid{--jav-card-title-size:15px;--jav-card-title-line-height:1.5;--jav-card-title-lines:2;position:relative!important;z-index:0!important;isolation:isolate!important;display:grid!important;grid-template-columns:repeat(var(--jav-card-columns,5),minmax(0,1fr))!important;gap:14px 6px!important;align-items:stretch!important;width:100%!important;box-sizing:border-box!important}.jav-card{float:none!important;display:block!important;width:auto!important;height:100%!important;max-height:none!important;min-width:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;text-align:left!important;position:relative!important;background:#fff!important;border:1px solid #e5e7eb!important;border-radius:0!important;overflow:visible!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important}.jav-card:hover{border-color:rgba(37,99,235,.35)!important;box-shadow:0 10px 24px rgba(15,23,42,.16)!important;transform:translateY(-4px)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important}.jav-card-link{display:flex!important;flex-direction:column!important;height:100%!important;max-height:none!important;overflow:visible!important;color:#2563eb!important;text-decoration:none!important}.jav-card-link:visited{color:#64748b!important}.jav-card-cover{display:block!important;position:relative!important;flex:0 0 auto!important;width:100%!important;height:auto!important;aspect-ratio:800 / 538!important;overflow:visible!important;background:#f1f5f9!important;border-bottom:1px solid #f1f5f9!important}.jav-card-image{display:block!important;position:absolute!important;inset:auto!important;left:50%!important;top:50%!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center center!important;background:transparent!important;border:0!important;transform:none!important;translate:-50% -50%!important;scale:1!important;transform-origin:center center!important;will-change:transform,scale!important;backface-visibility:hidden!important}.jav-card-cover>:not(img){z-index:2!important}.jav-card-title{width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;text-align:left!important;white-space:normal!important;word-break:break-word!important}.jav-jump-btn-group{margin-top:8px;margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.jav-jump-btn-group.fc2cmadb-jump-group{margin-top:10px;margin-bottom:8px;position:relative!important;z-index:100001!important}.jav-jump-btn-group .jav-fc2cma-btn{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif!important;font-variant-emoji:text}.emby-fix{width:100%!important;flex-basis:100%!important;clear:both!important;margin-top:8px!important;margin-bottom:4px!important}.mini-switch{width:40px;height:20px;appearance:none;background:#e0e0e0;border-radius:20px;position:relative;cursor:pointer;outline:none;transition:background 0.2s}.mini-switch:checked{background:#4CAF50}.mini-switch::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:2px;left:2px;transition:left 0.2s}.mini-switch:checked::before{left:calc(100% - 18px)}@keyframes btnSlideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.jav-jump-btn-group a{transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;animation:btnSlideIn 0.3s ease-out}.jav-jump-btn-group a:hover{background:var(--jav-btn-hover-bg,#f8fafc)!important;transform:translateY(-1px)!important;filter:none!important;box-shadow:0 5px 14px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)!important;text-decoration:none!important}@keyframes menuFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}.search-menu{position:relative;display:inline-flex;align-items:stretch;border-radius:7px}.search-main-btn{padding-right:11px!important;border-radius:7px 0 0 7px!important}.search-toggle-btn{position:static;width:34px;height:30px;padding:0!important;margin:0 0 0 -1px!important;display:inline-flex!important;align-items:center;justify-content:center;flex-shrink:0;font-size:12px!important;line-height:1;opacity:1;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 10%,#ffffff)!important;color:var(--jav-btn-accent,#64748b)!important;border:1px solid color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important;border-radius:0 7px 7px 0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.7)!important;cursor:pointer;touch-action:manipulation}.search-toggle-btn:hover{filter:none;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 18%,#ffffff)!important}.search-toggle-btn.is-open{background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 22%,#ffffff)!important}.search-toggle-btn .search-arrow{display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;line-height:1;transform:none;transition:transform .16s ease;pointer-events:none}.search-toggle-btn.is-open .search-arrow{transform:rotate(180deg)}.search-submenu{position:absolute;top:calc(100%+4px);left:0;display:none;flex-direction:column;gap:4px;padding:4px;background:rgba(255,255,255,0.95);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:10000;min-width:120px;backdrop-filter:blur(5px)}.search-submenu.is-open{display:flex}.search-submenu a{transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.1)!important}.search-submenu a:hover{transform:translateX(5px) scale(1.02);filter:brightness(1.1)}.jav-pan115-badge{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:22px!important;padding:0 7px;margin-right:6px;position:static!important;top:auto!important;transform:none!important;border-radius:6px;background:#bbf7d0;border:1px solid #22c55e;color:#065f46;font-size:12px!important;font-weight:800;line-height:22px!important;text-decoration:none;box-sizing:border-box;vertical-align:middle;box-shadow:inset 0 1px 0 rgba(255,255,255,0.72)}.jav-pan115-badge:hover{background:#86efac;color:#064e3b;text-decoration:none;box-shadow:0 4px 12px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)}span.jav-pan115-badge{cursor:pointer}.jav-pan115-chooser-overlay{position:fixed;inset:0;z-index:10000030;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.38);backdrop-filter:blur(6px)}.jav-pan115-chooser{width:min(720px,calc(100vw - 24px));max-height:min(76vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;box-shadow:0 24px 70px rgba(15,23,42,0.22);color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-chooser-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px 16px 12px;border-bottom:1px solid #e2e8f0;background:#fff;color:#111827}.jav-pan115-chooser-title{font-size:16px;font-weight:800;line-height:1.35}.jav-pan115-chooser-desc{margin-top:4px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-chooser-close{width:30px;height:30px;flex:0 0 auto;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#475569;font-size:20px;line-height:1;cursor:pointer}.jav-pan115-candidate-list{overflow:auto;padding:10px;display:grid;gap:8px;overscroll-behavior:contain}.jav-pan115-candidate{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 4px 12px rgba(15,23,42,0.06)}.jav-pan115-candidate.is-low-priority{border-color:#e2e8f0;background:#f8fafc}.jav-pan115-candidate-name{max-width:100%;overflow:hidden;color:#0f172a;font-size:13px;font-weight:750;line-height:1.45;text-overflow:ellipsis;white-space:nowrap}.jav-pan115-candidate-meta{margin-top:3px;color:#64748b;font-size:12px;line-height:1.35}.jav-pan115-candidate-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.jav-pan115-candidate-actions button{min-width:48px;height:30px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer}.jav-pan115-candidate-play{border:1px solid #0f766e;background:#0f766e;color:#fff}.jav-pan115-candidate-rename{border:1px solid #cbd5e1;background:#f8fafc;color:#334155}.jav-pan115-candidate-delete{border:1px solid #e2e8f0;background:#fff;color:#dc2626}.jav-pan115-candidate-delete:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-candidate-actions button:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-confirm-overlay{position:fixed;inset:0;z-index:10000040;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.32);backdrop-filter:blur(5px)}.jav-pan115-confirm{width:min(420px,calc(100vw - 28px));padding:16px;border:1px solid #d8dee8;border-radius:14px;background:#fff;color:#111827;box-shadow:0 20px 54px rgba(15,23,42,0.26);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-confirm-title{font-size:16px;font-weight:900;line-height:1.35}.jav-pan115-confirm-message{margin-top:8px;color:#475569;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}.jav-pan115-confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.jav-pan115-confirm-actions button{min-width:70px;height:34px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:850;cursor:pointer}.jav-pan115-confirm-cancel{border:1px solid #e2e8f0;background:#f8fafc;color:#475569}.jav-pan115-confirm-ok{border:1px solid #dc2626;background:#dc2626;color:#fff}.jav-pan115-rename-input{width:100%;height:38px;margin-top:12px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#111827;font-size:13px;font-weight:650;outline:none}.jav-pan115-rename-input:focus{border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,0.12)}.jav-pan115-rename-hint{margin-top:7px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-rename-ok{border-color:#0f766e!important;background:#0f766e!important;color:#fff!important}html[data-laosiji-mobile] .jav-pan115-chooser-overlay{align-items:flex-end;padding:8px}html[data-laosiji-mobile] .jav-pan115-chooser{width:100%;max-height:82dvh;border-radius:14px 14px 10px 10px}html[data-laosiji-mobile] .jav-pan115-candidate{grid-template-columns:minmax(0,1fr);align-items:stretch}html[data-laosiji-mobile] .jav-pan115-candidate-actions button{flex:1 1 0;min-height:34px}html[data-laosiji-mobile] .jav-pan115-confirm-overlay{align-items:flex-end;padding:10px}html[data-laosiji-mobile] .jav-pan115-confirm{width:100%}html[data-laosiji-mobile] .jav-pan115-confirm-actions button{flex:1 1 0;min-height:38px}.jav-infinite-sentinel{width:100%;padding:14px 0;color:#64748b;font-size:13px;font-weight:700;text-align:center;clear:both}.jav-infinite-sentinel.is-loading{color:#2563eb}.jav-infinite-sentinel.is-done{color:#94a3b8}.jav-infinite-sentinel.is-error{color:#dc2626;cursor:pointer}.button.javdb-score-sort-btn,.button.javdb-votes-sort-btn{border-color:#be123c!important;background:#be123c!important;color:#fff!important}.button.javdb-score-sort-btn:hover,.button.javdb-votes-sort-btn:hover{border-color:#e11d48!important;background:#e11d48!important}.button.javdb-score-sort-btn.is-selected,.button.javdb-votes-sort-btn.is-selected{border-color:#9f1239!important;background:#9f1239!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.58)!important}.button.javdb-score-sort-btn:focus-visible,.button.javdb-votes-sort-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}.float-buttons .javdb-loaded-reorder-btn{display:block;align-items:center;justify-content:center;min-height:36px;max-width:calc(100vw - 32px);margin:0 0 8px auto;padding:7px 11px;border:1px solid #be123c;border-radius:6px;background:#be123c;color:#fff;font-size:13px;font-weight:700;line-height:1.25;letter-spacing:0;box-shadow:0 5px 16px rgba(15,23,42,.2);cursor:pointer}.float-buttons .javdb-loaded-reorder-btn:hover{background:#e11d48;border-color:#e11d48}.float-buttons .javdb-loaded-reorder-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}@media (max-width:768px){.float-buttons .javdb-loaded-reorder-btn{min-height:34px;padding:7px 10px;font-size:12px}}`);
  GM_addStyle(`.preview-toolbar{position:fixed;top:20px;right:20px;display:flex;gap:8px;z-index:2147483648;background:rgba(30,30,30,0.75);backdrop-filter:blur(10px);padding:6px 12px;border-radius:30px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 6px 18px rgba(0,0,0,0.25)}.preview-btn{border:none;color:#eee;font-size:13px;font-weight:450;cursor:pointer;padding:6px 14px;border-radius:24px;transition:all 0.2s ease;display:inline-flex;align-items:center;gap:6px;background:rgba(100,100,120,0.3);border:1px solid rgba(255,255,255,0.05);box-shadow:0 2px 4px rgba(0,0,0,0.1);letter-spacing:0.2px}.preview-btn:hover{background:rgba(140,140,160,0.4);transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.2)}.preview-btn.javfree.active{background:#2ecc71;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(46,204,113,0.6);font-weight:500}.preview-btn.javstore.active{background:#e74c3c;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(231,76,60,0.6);font-weight:500}.preview-btn.action{background:rgba(100,100,120,0.3)}.preview-btn.action:hover{background:rgba(140,140,160,0.5)}.preview-btn.close{display:none;position:fixed;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));z-index:2147483648;min-width:48px;min-height:48px;padding:0 12px;background:rgba(30,30,30,0.82);border-color:rgba(255,255,255,0.28);color:#fff;touch-action:manipulation}html[data-laosiji-mobile] .preview-btn.close{display:inline-flex}.preview-btn.close:hover{background:rgba(80,80,80,0.92)}.preview-btn:active{transform:translateY(0);box-shadow:0 2px 4px rgba(0,0,0,0.15)}`);
  GM_addStyle(`.trailer-overlay{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:34px;background:radial-gradient(circle at 50% 18%,rgba(56,189,248,0.16),transparent 32%),linear-gradient(180deg,rgba(5,7,12,0.88),rgba(0,0,0,0.96));backdrop-filter:none;cursor:default}.trailer-modal{width:min(1120px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;background:#05070c;border:1px solid rgba(255,255,255,0.12);border-radius:8px;box-shadow:0 30px 80px rgba(0,0,0,0.68),0 0 0 1px rgba(255,255,255,0.04) inset;cursor:default;animation:trailerFadeIn .18s ease-out}.trailer-modal.is-wide{width:min(1760px,max(1120px,90vw),calc(100vw - 68px))}@keyframes trailerFadeIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}.trailer-header{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 34px;background:linear-gradient(180deg,rgba(0,0,0,0.66),rgba(0,0,0,0));border:0;pointer-events:none;opacity:1;transition:opacity .18s ease,transform .18s ease}.trailer-title{min-width:0;display:flex;align-items:center;gap:10px;font:700 15px/1.3 Arial,"Microsoft YaHei",sans-serif;pointer-events:auto}.trailer-code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.4px}.trailer-source{flex-shrink:0;padding:3px 9px;border-radius:999px;color:rgba(255,255,255,0.82);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:500;backdrop-filter:blur(12px)}.jav-player-close{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;padding:0;border:0;border-radius:50%;color:#fff;background:transparent!important;line-height:0;cursor:pointer;pointer-events:auto;box-shadow:0 8px 20px rgba(0,0,0,0.22);transition:transform .15s ease,background .15s ease,box-shadow .15s ease}.jav-player-close:hover{transform:scale(1.08);background:transparent!important;box-shadow:0 10px 24px rgba(0,0,0,0.28)}.jav-player-close .trailer-control-icon{width:32px;height:32px}.trailer-screen{position:relative;aspect-ratio:16 / 9;width:100%;max-height:82vh;overflow:hidden;background:radial-gradient(circle at center,rgba(31,41,55,.75),#000 62%),#000}.trailer-screen:fullscreen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen:-webkit-full-screen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.52),rgba(0,0,0,0) 30%),linear-gradient(0deg,rgba(0,0,0,0.62),rgba(0,0,0,0) 36%)}.trailer-screen.is-iframe::before{display:none}.trailer-screen video,.trailer-screen iframe{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}.trailer-volume-indicator{position:absolute;top:62px;right:26px;z-index:5;color:#f8fafc;font:750 24px/1 Arial,"Microsoft YaHei",sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.82);opacity:0;pointer-events:none;transition:opacity .14s ease}.trailer-volume-indicator.is-visible{opacity:1}.trailer-fallback-status{position:absolute;left:18px;top:58px;z-index:5;max-width:min(520px,calc(100% - 36px));padding:7px 10px;border-radius:8px;color:rgba(255,255,255,0.9);background:rgba(10,14,22,0.68);border:1px solid rgba(255,255,255,0.16);box-shadow:0 12px 28px rgba(0,0,0,0.28);backdrop-filter:blur(14px);font:12px/1.45 Arial,"Microsoft YaHei",sans-serif;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}.trailer-fallback-status.is-visible{opacity:1;transform:translateY(0)}.trailer-quality-bar{display:flex;align-items:center;gap:8px;padding:0;background:transparent;border:none;border-radius:0;backdrop-filter:none}.trailer-quality-select{min-width:78px;max-width:140px;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.12);color:#f8fafc;outline:none;font-size:12px;line-height:28px;text-align:center;text-align-last:center;appearance:none;cursor:pointer}.trailer-quality-select option{background:#0b1020;color:#f8fafc}.trailer-footer{position:absolute;left:16px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;color:rgba(255,255,255,0.78);background:rgba(10,14,22,0.62);border:1px solid rgba(255,255,255,0.16);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,0.32);backdrop-filter:blur(16px) saturate(1.08);font:12px/1.4 Arial,"Microsoft YaHei",sans-serif;opacity:1;transform:translateY(0);transition:opacity .18s ease,transform .18s ease}.trailer-screen.is-controls-hidden{cursor:none}.trailer-screen.is-controls-hidden .trailer-header{opacity:0;transform:translateY(-8px);pointer-events:none}.trailer-screen.is-controls-hidden .trailer-footer{opacity:0;transform:translateY(10px);pointer-events:none}.trailer-control-left,.trailer-control-right{display:flex;align-items:center;gap:9px;min-width:0}.trailer-control-left{flex:1 1 auto}.trailer-control-right{flex:0 0 auto}.trailer-control-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;border:0;border-radius:999px;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font:700 13px/1 Arial,"Microsoft YaHei",sans-serif;transition:background .15s ease,transform .15s ease}.trailer-control-btn:hover{background:rgba(255,255,255,0.24);transform:translateY(-1px)}.trailer-size-btn[aria-pressed="true"]{color:#facc15;background:rgba(250,204,21,0.18)}.trailer-size-btn,.trailer-fullscreen-btn,.trailer-play-btn,.trailer-volume-btn{border-radius:0;color:#fff;background:transparent}.trailer-size-btn:hover,.trailer-fullscreen-btn:hover,.trailer-play-btn:hover,.trailer-volume-btn:hover{color:#fff;background:rgba(255,255,255,0.18);transform:translateY(-1px)}.trailer-size-btn[aria-pressed="true"]:hover,.trailer-fullscreen-btn[aria-pressed="true"]:hover{color:#facc15;background:rgba(250,204,21,0.28)}.trailer-fullscreen-btn[aria-pressed="true"]{color:#facc15;background:rgba(250,204,21,0.18)}.trailer-control-icon{width:28px;height:28px;display:block}.trailer-volume-wrap{position:relative;width:30px;height:30px;display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;box-sizing:border-box}.trailer-volume-wrap::before{content:"";position:absolute;left:50%;bottom:100%;width:46px;height:18px;transform:translateX(-50%)}.trailer-volume-popover{position:absolute;left:15px;bottom:42px;width:36px;height:126px;display:flex;align-items:center;justify-content:center;padding:12px 0;border-radius:999px;background:rgba(10,14,22,0.76);border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;box-shadow:0 14px 32px rgba(0,0,0,0.34);backdrop-filter:blur(16px) saturate(1.08);opacity:0;pointer-events:none;transform:translate(-50%,6px);transition:opacity .15s ease,transform .15s ease}.trailer-volume-wrap:hover .trailer-volume-popover{opacity:1;pointer-events:auto;transform:translate(-50%,0)}.trailer-volume-rail{position:absolute;left:50%;top:16px;bottom:16px;width:4px;transform:translateX(-50%);border-radius:999px;background:rgba(255,255,255,0.32);pointer-events:none}.trailer-volume-fill{position:absolute;left:0;right:0;bottom:0;height:var(--volume-percent,35%);border-radius:999px;background:#38bdf8}.trailer-volume-thumb{position:absolute;left:50%;bottom:var(--volume-percent,35%);width:16px;height:16px;transform:translate(-50%,50%);border-radius:50%;background:#38bdf8;border:2px solid rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.38)}.trailer-volume-slider{position:absolute;top:10px;bottom:10px;left:50%;width:16px;height:calc(100% - 20px);margin:0;transform:translateX(-50%);appearance:none;-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;background:transparent;cursor:pointer}.trailer-volume-slider::-webkit-slider-runnable-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-moz-range-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-volume-slider::-moz-range-thumb{width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-time{flex:0 0 auto;min-width:36px;color:rgba(255,255,255,0.78);font:11px/1.3 Arial,"Microsoft YaHei",sans-serif;white-space:nowrap;text-align:center}.trailer-progress{flex:1 1 160px;min-width:120px;height:32px;margin:0;border-radius:999px;accent-color:#38bdf8;cursor:pointer}`);
  GM_addStyle(`.jav-jump-toast{position:fixed;left:50%;top:72px;z-index:2147483647;display:flex;align-items:center;gap:12px;width:fit-content;max-width:min(520px,calc(100vw - 28px));min-width:0;padding:11px 10px 11px 16px;color:#252a31;background:#fff;border:1px solid #eceef1;border-left:8px solid #4c83f1;border-radius:12px;box-shadow:0 8px 22px rgba(31,35,41,.12);font-family:Arial,"Microsoft YaHei",sans-serif;transform:translate(-50%,-12px);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease}.jav-jump-toast.show{opacity:1;transform:translate(-50%,0)}.jav-jump-toast.hide{opacity:0;transform:translate(-50%,-12px)}.jav-jump-toast-actionable{pointer-events:auto}.jav-jump-toast-icon{display:grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:50%;color:#fff;background:#4c83f1;font-size:13px;font-weight:800;line-height:1}.jav-jump-toast-body{min-width:0;max-width:360px;flex:0 1 auto}.jav-jump-toast-title{margin:0;color:#252a31;font-size:13px;font-weight:600;line-height:1.4}.jav-jump-toast-message{margin:2px 0 0;color:#69727d;font-size:12px;line-height:1.4}.jav-jump-toast-action{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:28px;margin-left:4px;padding:0 8px;color:#4c83f1;background:transparent;border:0;border-radius:6px;font-size:11px;font-weight:800;line-height:1;text-decoration:none;white-space:nowrap;order:3;transition:background .15s ease,color .15s ease}.jav-jump-toast-action:hover,.jav-jump-toast-action:focus-visible{color:#245fc8;background:#edf3ff;outline:0}.jav-jump-toast-dismiss{display:grid;place-items:center;flex:0 0 24px;width:24px;height:24px;margin:0 -3px 0 0;padding:0;color:#8b949e;background:transparent;border:0;border-radius:6px;font-size:21px;font-weight:300;line-height:1;cursor:pointer;order:4}.jav-jump-toast-dismiss:hover,.jav-jump-toast-dismiss:focus-visible{color:#252a31;background:#f1f3f5;outline:0}.jav-jump-toast.is-success{border-left-color:#00cf77}.jav-jump-toast.is-success .jav-jump-toast-icon{background:#00cf77}.jav-jump-toast.is-success .jav-jump-toast-action{color:#00b968}.jav-jump-toast.is-error{border-left-color:#f3474f}.jav-jump-toast.is-error .jav-jump-toast-icon{background:#f3474f}.jav-jump-toast.is-error .jav-jump-toast-action{color:#ef3f48}.jav-jump-toast.is-warning{border-left-color:#ffc617}.jav-jump-toast.is-warning .jav-jump-toast-icon{color:#5f4b00;background:#ffc617}.jav-jump-toast.is-warning .jav-jump-toast-action{color:#d39d00}@media (max-width:560px){.jav-jump-toast{left:14px;right:14px;width:auto;max-width:none;transform:translateY(-12px)}.jav-jump-toast.show{transform:translateY(0)}.jav-jump-toast.hide{transform:translateY(-12px)}.jav-jump-toast-body{max-width:none}}`);
@@ -10023,26 +10760,11 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   const codeLower = String(code || '').trim().toLowerCase(); const codeCompactLower = codeLower.replace(/-/g, ''); const fc2Number = getFc2Number(code);
   const fc2Slug = fc2Number ? `fc2-ppv-${fc2Number}` : '';
   const fc2JavdaySlug = fc2Number ? `FC2PPV${fc2Number}` : '';
-  const dateNumberMatch = codeLower.match(/^(\d{6})([_-])(\d{2,3})$/);
-  const dateNumberPrefix = dateNumberMatch ? dateNumberMatch[3].length === 2 ? '10musume' : dateNumberMatch[3] === '100' ? 'pacopacomama' : dateNumberMatch[2] === '_' ? '1pondo' : '' : '';
-  const caribbeanCode = codeLower.match(/^(\d{6}-\d{3})$/)?.[1];
-  const caribbeanSlug = codeLower.match(/^(caribbeancom-\d{6}-\d{3})$/)?.[1];
-  const knownBrandedSlug = codeLower.match(/^10musume-\d{6}[_-]\d{2}$/)?.[0] || codeLower.match(/^1pondo-\d{6}[_-]\d{3}$/)?.[0] || codeLower.match(/^pacopacomama-\d{6}[_-]\d{3}$/)?.[0]
-   || codeLower.match(/^heyzo[-_]?\d{4}$/)?.[0]?.replace(/^heyzo(?=[_\d])/, 'heyzo-').replace('heyzo-_', 'heyzo-') || codeLower.match(/^tokyo-hot-(?:n-?\d{4}|k-?\d{4}|kb-?\d{4}|s2mbd-?\d{3})$/)?.[0]
-   || codeLower.match(/^(?:n-?\d{4}|k-?\d{4}|kb-?\d{4}|s2mbd-?\d{3})$/)?.[0]?.replace(/^/, 'tokyo-hot-') || codeLower.match(/^fc2-ppv-\d+$/)?.[0] || '';
-  const dateNumberSlug = dateNumberPrefix ? `${dateNumberPrefix}-${dateNumberMatch[1]}${dateNumberMatch[2]}${dateNumberMatch[3]}` : '';
-  const known123AvSlug = knownBrandedSlug || caribbeanSlug || (caribbeanCode ? `caribbeancom-${caribbeanCode}` : '') || dateNumberSlug;
-  const code123AvSlug = known123AvSlug || fc2Slug || codeLower;
-  const get123AvLocalePrefix = () => {
-   if (/(?:^|\.)123av\.com$/i.test(location.hostname)) {
-    const locale = location.pathname.match(/^\/([a-z]{2}(?:-[a-z]{2})?)\//i)?.[1];
-    if (locale) return `/${locale.toLowerCase()}`;
-   }
-   return '/cn'; };
+  const code123AvSlug = typeof Javdb123AvPlayer !== 'undefined' ? Javdb123AvPlayer.getSlug(code) : (fc2Slug || codeLower); const get123AvLocalePrefix = () => typeof Javdb123AvPlayer !== 'undefined' ? Javdb123AvPlayer.getLocalePrefix(location.href) : '/cn';
   const videoUrlMap = {
    missav: fc2Number ? `https://missav123.com/${fc2Slug}` : `https://missav123.com/cn/${getMissavSlug(code)}`,
    jable: `https://jable.tv/videos/${codeLower}/`,
-   '123av': `https://123av.com${known123AvSlug ? '/cn' : get123AvLocalePrefix()}/v/${code123AvSlug}`,
+   '123av': `https://123av.com${get123AvLocalePrefix()}/v/${code123AvSlug}`,
    javday: fc2JavdaySlug ? `https://javday.app/index.php/videos/${fc2JavdaySlug}/` : `https://javday.app/videos/${codeCompactLower}/`,
    supjav: `https://supjav.com/zh/?s=${encodeURIComponent(fc2Number || code)}`,
    javrate: `https://www.javrate.com/search/${encodeURIComponent(codeLower)}`,
@@ -11085,7 +11807,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    start(); },
   _start() {
    MobilePolicy.start(); MobileSettingsEntry.install(); Pan115SettingsEntry.install(); CardFx.apply(MobilePolicy.featureEnabled('cardFx', CFG.cardFx)); Trailer.installFallbackDebugHelper(); this.initRuntimeObserver(); this.initNavigationHooks();
-   SiteManager.setupJavDbGuards(); StillsGallery.start?.();
+   JavdbAppCover.start?.(); SiteManager.setupJavDbGuards(); StillsGallery.start?.();
    if (location.hostname.includes('javdb') && location.pathname.startsWith('/v/')) {
     SiteJavDB._insertTopSettingsButton?.(); JavdbContent.installNavigation?.(); SiteJavDB._removePromoAndMoveSearch?.(); setTimeout(mainRun, 600);
    } else { mainRun(); }
