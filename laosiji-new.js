@@ -1,40 +1,27 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.8.8
-// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、115改名与删除操作、完整正片播放、多画质预告片与预览图、高清2K封面下载、JavDB 无水印封面、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序；支持 JavDB 资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
+// @version      2.8.9
+// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、115改名与删除操作、完整正片播放、多画质预告片与预览图、高清2K封面下载、JavDB 无水印封面、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序；支持 JavBus、JavDB、JavLibrary 分站独立的资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
-// @match        *://*.javlibrary.com/*
-// @match        *://javlibrary.com/*
-// @match        *://*.javbus.com/*
-// @match        *://javbus.com/*
-// @match        *://javdb.com/*
+// @include      /^[^:]*?:\/\/(?:[^/]+\.)?(?:javlibrary\.com|javlib\.com|r86m\.com|s87n\.com|f101w\.com|c99i\.com|y94i\.com|e100k\.com)\/.*?$/
+// @include      /^[^:]*?:\/\/(?:[^/]+\.)?(?:javbus\.com|dmmsee\.casa|busfan\.casa|busdmm\.casa)\/.*?$/
+// @include      /^[^:]*?:\/\/(?:[^/]+\.)?javdb\d*\.com\/.*?$/
 // @match        *://115.com/*
 // @match        *://www.115.com/*
 // @match        *://sukebei.nyaa.si/*
-// @match        *://169bbs.com/*
-// @match        *://*169bbs*.com/*
-// @match        *://169bbs.net/*
-// @match        *://169bbs.org/*
-// @match        *://*.169bbs.net/*
-// @match        *://*.169bbs.org/*
+// @include      /^[^:]*?:\/\/(?:[^/]+\.)?(?:[^/]*169bbs[^/]*\.com|169bbs\.(?:net|org))\/.*?$/
 // @match        *://supjav.com/*
 // @match        *://*.supjav.com/*
 // @match        *://javrate.com/*
 // @match        *://www.javrate.com/*
-// @match        *://sehuatang.net/*
-// @match        *://sehuatang.org/*
-// @match        *://sehuatang.com/*
-// @match        *://*.sehuatang.net/*
-// @match        *://*.sehuatang.org/*
-// @match        *://*.sehuatang.com/*
+// @include      /^[^:]*?:\/\/(?:[^/]+\.)?sehuatang\.(?:net|org|com)\/.*?$/
 // @match        *://hjd2048.com/2048/*
 // @match        *://jable.tv/*
 // @match        *://123av.com/*
 // @match        *://fc2cmadb.com/*
 // @match        *://www.fc2cmadb.com/*
-// @include      *://javdb*.com/*
 // @include      /^[^:]*?:\/\/(?:www\.)?(?:missav|njavtv)\.[^/]*?\/.*?$/
 // @match        *://missav123.com/*
 // @match        *://www.missav123.com/*
@@ -45,6 +32,7 @@
 // @grant        GM_addStyle
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM_deleteValue
 // @grant        GM_setClipboard
 // @grant        GM_registerMenuCommand
 // @grant        GM_download
@@ -59,11 +47,19 @@
 // @updateURL    https://github.com/ZiPenOk/scripts/raw/refs/heads/main/laosiji-new.js
 // ==/UserScript==
 (function () {
- 'use strict';
+ 'use strict'; const JAVBUS_HOST_RE = /(?:^|\.)(?:javbus\.com|dmmsee\.casa|busfan\.casa|busdmm\.casa)$/i; const JAVDB_HOST_RE = /(?:^|\.)javdb\d*\.com$/i; const JAVLIB_HOST_RE = /(?:^|\.)(?:javlibrary|javlib|r86m|s87n|f101w|c99i|y94i|e100k)\.com$/i;
+ const numberIsFinite = value => typeof value === 'number' && value === value && value !== Infinity && value !== -Infinity;
+ try {
+  if (typeof Number.isFinite !== 'function') Number.isFinite = numberIsFinite;
+ } catch (_) {
+ }
+ function isJavBusHost(hostname = location.hostname) { return JAVBUS_HOST_RE.test(String(hostname || '')); }
+ function isJavDbHost(hostname = location.hostname) { return JAVDB_HOST_RE.test(String(hostname || '')); }
+ function isJavLibraryHost(hostname = location.hostname) { return JAVLIB_HOST_RE.test(String(hostname || '')); }
  function getJavdbCustomAdvancedSearchKind(urlLike = location.href) {
   try {
    const url = new URL(urlLike, location.href);
-   if (!/javdb/i.test(url.hostname)) return '';
+   if (!isJavDbHost(url.hostname)) return '';
    if (url.pathname.replace(/\/+$/, '') !== '/search_advanced') return '';
    const params = url.searchParams;
    if (params.get('laosiji_content') === 'reviews') return 'content';
@@ -74,34 +70,22 @@
  function is123AvFc2SpaUrl(urlLike = location.href) {
   try {
    const url = new URL(urlLike, location.href);
-   if (!/(?:jav(?:db|bus|library|lib)|r86m|s87n)/i.test(url.hostname)) return false;
+   if (!isJavDbHost(url.hostname) && !isJavBusHost(url.hostname) && !isJavLibraryHost(url.hostname)) return false;
    return url.searchParams.get('laosiji_123av_fc2') === '1';
   } catch (_) { return false; } }
  function isCustomSpaUrl(urlLike) { return isJavdbCustomSpaUrl(urlLike) || is123AvFc2SpaUrl(urlLike); }
- function installJavdbApiRouteStartupGuard() {
-  try {
-   const url = new URL(location.href);
-   if (!/javdb/i.test(url.hostname) || url.pathname.replace(/\/+$/, '') !== '/search_advanced') return;
-   const params = url.searchParams; const rank = params.get('laosiji_rank') || ''; const hideShell = rank === 'playback' || rank === 'top' || rank === 'fc2' || params.get('laosiji_detail') === 'fc2' || params.get('laosiji_fc2') === '1';
-   if (!hideShell) return;
-   if (document.getElementById('javdb-api-route-startup-guard')) return;
-   const style = document.createElement('style'); style.id = 'javdb-api-route-startup-guard';
-   style.textContent = 'body > section{visibility:hidden!important}';
-   (document.head || document.documentElement).appendChild(style);
-  } catch (_) {
-  } }
- installJavdbApiRouteStartupGuard(); const SCRIPT_VERSION = '2.8.8'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ const SCRIPT_VERSION = '2.8.9'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const JAVDB_REVIEW_INITIAL_LIMIT = 6; const JAVDB_REVIEW_MORE_LIMIT = 20;
  const CFG = {};
  const resolveCfgDefault = meta => typeof meta.def === 'function' ? meta.def() : meta.def;
  const clampCfgNumber = (value, meta) => {
-  const fallback = resolveCfgDefault(meta); const parsed = parseInt(value, 10); const next = Number.isFinite(parsed) ? parsed : fallback; return Math.min(meta.max, Math.max(meta.min, next)); };
+  const fallback = resolveCfgDefault(meta); const parsed = parseInt(value, 10); const next = numberIsFinite(parsed) ? parsed : fallback; return Math.min(meta.max, Math.max(meta.min, next)); };
  const normalizeCfgValue = (value, meta) => {
   if (meta.normalize) return meta.normalize(value);
   if (meta.bool) return !!value;
-  if (Number.isFinite(meta.min) && Number.isFinite(meta.max)) return clampCfgNumber(value, meta);
+  if (numberIsFinite(meta.min) && numberIsFinite(meta.max)) return clampCfgNumber(value, meta);
   return value; };
  const CFG_MAP = {
   javdbSearchUrl: { key: 'cfg_javdb_search_url', def: 'javdb.com' },
@@ -134,6 +118,7 @@
   reviewFontSize: { key: 'review_font_size', def: 'large', normalize: value => ['small', 'medium', 'large'].includes(value) ? value : 'large' },
   apiMovieDefaultTab: { key: 'javdb_api_movie_default_tab', def: 'magnets', normalize: value => ['magnets', 'reviews'].includes(value) ? value : 'magnets' },
   javdbFavoriteActorHighlight: { key: 'javdb_favorite_actor_highlight_enabled', def: true, bool: true },
+  actorInfoEnabled: { key: 'actor_info_enabled', def: true, bool: true },
   detailFlex: { key: 'detail_flex_settings', def: () => ({}), normalize: value => value || {} },
   btnShowNyaa: { key: 'btn_show_nyaa', def: true, bool: true },
   btnShowJavbus: { key: 'btn_show_javbus', def: true, bool: true },
@@ -160,6 +145,7 @@
   infiniteScrollRestore: { key: 'infinite_scroll_restore_enabled', def: true, bool: true },
   cardFx: { key: 'card_fx_enabled', def: false, bool: true },
   coverHoverPreview: { key: 'cover_hover_preview_enabled', def: false, bool: true },
+  javdbAppCover: { key: 'javdb_app_cover_enabled', def: true, bool: true },
   pan115CoverHoverPreview: { key: 'pan115_cover_hover_preview_enabled', def: true, bool: true }, };
  Object.entries(CFG_MAP).forEach(([prop, meta]) => {
   Object.defineProperty(CFG, prop, {
@@ -184,8 +170,8 @@
   try {
    if (shouldSkipPageZoomStartupStyle()) return;
    const host = location.hostname;
-   const site = /(?:^|\.)javbus\.com$/i.test(host) ? { selector: 'body > div.container-fluid,body > div.container', value: CFG.javbusPageZoom } : (/javdb/i.test(host) ? { selector: 'body > section > div', value: CFG.javdbPageZoom }
-     : (/(javlibrary|javlib|r86m|s87n)/i.test(host) ? { selector: '#content', value: CFG.javlibPageZoom } : null));
+   const site = isJavBusHost(host) ? { selector: 'body > div.container-fluid,body > div.container', value: CFG.javbusPageZoom } : (isJavDbHost(host) ? { selector: 'body > section > div', value: CFG.javdbPageZoom } : (isJavLibraryHost(host)
+      ? { selector: '#content', value: CFG.javlibPageZoom } : null));
    const zoom = Math.min(100, Math.max(60, parseInt(site?.value, 10) || 100));
    if (!site || zoom >= 100 || document.getElementById?.(PAGE_ZOOM_STARTUP_STYLE_ID)) return;
    const style = document.createElement?.('style'); const target = document.head || document.documentElement;
@@ -198,7 +184,7 @@
  installPageZoomStartupStyle();
  function installJavdbSearchStartupStyle() {
   try {
-   if (!/javdb/i.test(location.hostname) || document.getElementById?.('laosiji-javdb-search-startup')) return;
+   if (!isJavDbHost(location.hostname) || document.getElementById?.('laosiji-javdb-search-startup')) return;
    const style = document.createElement?.('style'); const target = document.head || document.documentElement;
    if (!style || !target?.appendChild) return;
    style.id = 'laosiji-javdb-search-startup';
@@ -221,12 +207,12 @@
  function installJavdbDetailStartupStyle() {
   try {
    const url = new URL(location.href);
-   if (!/javdb/i.test(url.hostname) || !/^\/v\//i.test(url.pathname)) return;
+   if (!isJavDbHost(url.hostname) || !/^\/v\//i.test(url.pathname)) return;
    if (window.matchMedia?.('(max-width:720px)').matches) return;
    if (document.getElementById?.('javdb-detail-startup-style')) return;
    const saved = CFG.detailFlex?.javdb || {};
    const flex = (value, fallback) => {
-    const parsed = Number.parseInt(value, 10); const normalized = Number.isFinite(parsed) ? Math.min(200, Math.max(50, parsed)) / 100 : fallback; return normalized.toFixed(2).replace(/\.?(0+)$/, ''); };
+    const parsed = Number.parseInt(value, 10); const normalized = numberIsFinite(parsed) ? Math.min(200, Math.max(50, parsed)) / 100 : fallback; return normalized.toFixed(2).replace(/\.?(0+)$/, ''); };
    const cover = flex(saved.cover, 1.35); const info = flex(saved.info, 1.05); const style = document.createElement?.('style'); const target = document.head || document.documentElement;
    if (!style || !target?.appendChild) return;
    style.id = 'javdb-detail-startup-style';
@@ -264,9 +250,9 @@
   const MOBILE_LANDSCAPE_LIMITS = { min: 2, max: 4 };
   let mobilePortraitValue = null; let mobileLandscapeValue = null;
   const SITE_META = {
-   javbus: { getter: () => CFG.javbusCardColumns, setter: v => { CFG.javbusCardColumns = v; }, portraitGetter: () => CFG.javbusPortraitCardColumns, portraitSetter: v => { CFG.javbusPortraitCardColumns = v; }, selector: '.javbus-card-grid', host: /(?:^|\.)javbus\.com$/i },
-   javdb:  { getter: () => CFG.javdbCardColumns,  setter: v => { CFG.javdbCardColumns = v; },  portraitGetter: () => CFG.javdbPortraitCardColumns,  portraitSetter: v => { CFG.javdbPortraitCardColumns = v; },  selector: '.javdb-card-grid',  host: /javdb/i },
-   javlib: { getter: () => CFG.javlibCardColumns, setter: v => { CFG.javlibCardColumns = v; }, portraitGetter: () => CFG.javlibPortraitCardColumns, portraitSetter: v => { CFG.javlibPortraitCardColumns = v; }, selector: '.javlib-card-grid', host: /(javlibrary|javlib|r86m|s87n)/i },
+   javbus: { getter: () => CFG.javbusCardColumns, setter: v => { CFG.javbusCardColumns = v; }, portraitGetter: () => CFG.javbusPortraitCardColumns, portraitSetter: v => { CFG.javbusPortraitCardColumns = v; }, selector: '.javbus-card-grid', host: JAVBUS_HOST_RE },
+   javdb:  { getter: () => CFG.javdbCardColumns,  setter: v => { CFG.javdbCardColumns = v; },  portraitGetter: () => CFG.javdbPortraitCardColumns,  portraitSetter: v => { CFG.javdbPortraitCardColumns = v; },  selector: '.javdb-card-grid',  host: JAVDB_HOST_RE },
+   javlib: { getter: () => CFG.javlibCardColumns, setter: v => { CFG.javlibCardColumns = v; }, portraitGetter: () => CFG.javlibPortraitCardColumns, portraitSetter: v => { CFG.javlibPortraitCardColumns = v; }, selector: '.javlib-card-grid', host: JAVLIB_HOST_RE },
   };
   function clamp(value) { return Math.min(LIMITS.max, Math.max(LIMITS.min, parseInt(value, 10) || 5)); }
   function clampMobilePortrait(value) { return Math.min(MOBILE_PORTRAIT_LIMITS.max, Math.max(MOBILE_PORTRAIT_LIMITS.min, parseInt(value, 10) || 1)); }
@@ -359,9 +345,9 @@
  const PageZoom = (() => {
   const LIMITS = { min: 60, max: 100 };
   const SITE_META = {
-   javbus: { getter: () => CFG.javbusPageZoom, setter: v => { CFG.javbusPageZoom = v; }, selector: 'body > div.container-fluid, body > div.container', host: /(?:^|\.)javbus\.com$/i },
-   javdb:  { getter: () => CFG.javdbPageZoom,  setter: v => { CFG.javdbPageZoom = v; },  selector: 'body > section > div',     host: /javdb/i },
-   javlib: { getter: () => CFG.javlibPageZoom, setter: v => { CFG.javlibPageZoom = v; }, selector: '#content',                 host: /(javlibrary|javlib|r86m|s87n)/i }, };
+   javbus: { getter: () => CFG.javbusPageZoom, setter: v => { CFG.javbusPageZoom = v; }, selector: 'body > div.container-fluid, body > div.container', host: JAVBUS_HOST_RE },
+   javdb:  { getter: () => CFG.javdbPageZoom,  setter: v => { CFG.javdbPageZoom = v; },  selector: 'body > section > div',     host: JAVDB_HOST_RE },
+   javlib: { getter: () => CFG.javlibPageZoom, setter: v => { CFG.javlibPageZoom = v; }, selector: '#content',                 host: JAVLIB_HOST_RE }, };
   function clamp(value) { return Math.min(LIMITS.max, Math.max(LIMITS.min, parseInt(value, 10) || 100)); }
   function get(siteId) { return SITE_META[siteId] ? clamp(SITE_META[siteId].getter()) : 100; }
   function set(siteId, value) {
@@ -436,17 +422,17 @@
   const DEFAULTS = { javbus: { cover: 95, info: 80, magnet: 100 }, javdb: { cover: 135, info: 105, magnet: 125 }, javlib: { cover: 100, info: 85, magnet: 100 } };
   const META = {
    javbus: {
-    host: /(?:^|\.)javbus\.com$/i,
+    host: JAVBUS_HOST_RE,
     detail: () => !!document.querySelector('.row.movie') && !document.querySelector('#waterfall div.item'),
     root: () => document.querySelector('[data-laosiji-123av-fc2-layout-site="javbus"]') || document.querySelector('.row.movie'),
     vars: { cover: '--javbus-cover-flex', info: '--javbus-info-flex', magnet: '--javbus-magnet-flex' }, },
    javdb: {
-    host: /javdb/i,
+    host: JAVDB_HOST_RE,
     detail: () => /\/v\//i.test(location.pathname),
     root: () => document.querySelector('[data-laosiji-123av-fc2-layout-site="javdb"]') || document.querySelector('.jav-flex-container'),
     vars: { cover: '--javdb-cover-flex', info: '--javdb-info-flex', magnet: '--javdb-magnet-flex' }, },
    javlib: {
-    host: /(javlibrary|javlib|r86m|s87n)/i,
+    host: JAVLIB_HOST_RE,
     detail: () => !!document.querySelector('#video_jacket_info #video_info, #video_id .text'),
     root: () => document.querySelector('[data-laosiji-123av-fc2-layout-site="javlib"]') || document.querySelector('#video_jacket_info tr'),
     vars: { cover: '--javlib-cover-flex', info: '--javlib-info-flex', magnet: '--javlib-magnet-flex' }, }, };
@@ -459,9 +445,9 @@
     } catch { return false; }
    })();
    if (is123AvDetailRoute) {
-    if (/javbus/i.test(host)) return 'javbus';
-    if (/(?:javlibrary|javlib|r86m|s87n)/i.test(host)) return 'javlib';
-    if (/javdb/i.test(host)) return 'javdb';
+    if (isJavBusHost(host)) return 'javbus';
+    if (isJavLibraryHost(host)) return 'javlib';
+    if (isJavDbHost(host)) return 'javdb';
    }
    return Object.entries(META).find(([, meta]) => meta.host.test(host) && meta.detail())?.[0] || ''; }
   function getAll() {
@@ -552,7 +538,7 @@
    id: 'media',
    label: '预览图与封面',
    description: '列表预览图、封面悬浮图和 115 封面',
-   prefixes: ['thumb_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_'], },
+   prefixes: ['thumb_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_', 'pan115_cover_v3_', 'pan115_cover_v4_'], },
   {
    id: 'trailer',
    label: '预告片与播放进度',
@@ -568,12 +554,6 @@
    label: '页面数据',
    description: '瀑布流恢复、123AV/FC2 数据和标题翻译',
    prefixes: ['laosiji_infinite_v1_', 'javdb_123av_fc2_cache_v3_', 'title_translate_pa_v1_', 'javdb_over18_confirming'], },
-  {
-   id: 'favorites',
-   label: '收藏演员高亮缓存',
-   description: '详情页高亮索引，清理后会自动重新同步',
-   gmKeys: ['javdb_favorite_actors_cache', 'javdb_favorite_actors_cache_dirty_at', 'javdb_favorite_actors_pending'],
-   gmReset: { javdb_favorite_actors_cache: null, javdb_favorite_actors_cache_dirty_at: 0, javdb_favorite_actors_pending: null }, },
   {
    id: 'actor-info',
    label: '演员信息',
@@ -817,7 +797,7 @@
    document.getElementById('jav-settings-overlay')?.remove(); injectSettingsPanelStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-settings-overlay';
    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
    const panel = document.createElement('div'); panel.id = 'jav-settings-panel';
-   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整视频播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放开关</strong><small>详情区封面加载完整视频播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>优先选择，没有则回落普通</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">默认有码</option><option value="uncensored">无码优先</option><option value="subtitle">中字优先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片中转播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>自动翻译列表和详情页标题</small></span><span class="sp-toggle"><input id="sp-title-translate" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>演员信息</strong><small>在作品详情页显示演员资料</small></span><span class="sp-toggle"><input id="sp-actor-info" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 无水印封面</strong><small>替换为JavDB APP CDN无水印封面</small></span><span class="sp-toggle"><input id="sp-javdb-app-cover" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整视频播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放开关</strong><small>详情区封面加载完整视频播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>优先选择，没有则回落普通</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">默认有码</option><option value="uncensored">无码优先</option><option value="subtitle">中字优先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片中转播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
    overlay.appendChild(panel); document.body.appendChild(overlay); const navItems = [...panel.querySelectorAll('[data-sp-section]')]; const sectionPanels = [...panel.querySelectorAll('[data-sp-panel]')];
    navItems.forEach(item => item.addEventListener('click', () => {
     const section = item.dataset.spSection;
@@ -831,8 +811,8 @@
    const listPreviewCheckbox = panel.querySelector('#sp-list-preview'); const titleTranslateCheckbox = panel.querySelector('#sp-title-translate'); const listNewTabCheckbox = panel.querySelector('#sp-list-new-tab');
    const portraitCardsCheckbox = panel.querySelector('#sp-portrait-cards'); const cardFxCheckbox = panel.querySelector('#sp-card-fx'); const coverHoverPreviewCheckbox = panel.querySelector('#sp-cover-hover-preview');
    const detailPreviewCheckbox = panel.querySelector('#sp-detail-preview'); const reviewsExpandedCheckbox = panel.querySelector('#sp-reviews-expanded'); const actorHighlightCheckbox = panel.querySelector('#sp-actor-highlight');
-   const reviewFontSelect = panel.querySelector('#sp-review-font'); const apiTabSelect = panel.querySelector('#sp-api-tab'); const nativeMagnetTabSelect = panel.querySelector('#sp-native-magnet-tab');
-   const magnetSortSelect = panel.querySelector('#sp-magnet-sort');
+   const actorInfoCheckbox = panel.querySelector('#sp-actor-info'); const javdbAppCoverCheckbox = panel.querySelector('#sp-javdb-app-cover'); const reviewFontSelect = panel.querySelector('#sp-review-font');
+   const apiTabSelect = panel.querySelector('#sp-api-tab'); const nativeMagnetTabSelect = panel.querySelector('#sp-native-magnet-tab'); const magnetSortSelect = panel.querySelector('#sp-magnet-sort');
    const btnToggles = Object.fromEntries(BUTTON_TOGGLE_META.map(({ key }) => (
     [key, panel.querySelector(`#sp-btn-${key}`)]
    ))); let proxyPlaybackValidation = null;
@@ -894,6 +874,8 @@
    if (detailPreviewCheckbox) detailPreviewCheckbox.checked = CFG.detailPreviewInline;
    if (reviewsExpandedCheckbox) reviewsExpandedCheckbox.checked = CFG.reviewsDefaultExpanded;
    if (actorHighlightCheckbox) actorHighlightCheckbox.checked = CFG.javdbFavoriteActorHighlight;
+   if (actorInfoCheckbox) actorInfoCheckbox.checked = CFG.actorInfoEnabled;
+   if (javdbAppCoverCheckbox) javdbAppCoverCheckbox.checked = CFG.javdbAppCover;
    Ui.setSelectValue(reviewFontSelect, CFG.reviewFontSize, 'large'); Ui.setSelectValue(apiTabSelect, CFG.apiMovieDefaultTab, 'magnets'); Ui.setSelectValue(nativeMagnetTabSelect, CFG.nativeMagnetDefaultTab, 'aggregate');
    Ui.setSelectValue(magnetSortSelect, CFG.magnetSort, 'size'); Ui.setSelectValue(magnetDisplaySelect, CFG.magnetDisplayMode, 'native-replace');
    BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { btnToggles[key].checked = CFG[cfgKey]; });
@@ -950,12 +932,14 @@
       portraitCards: CFG.portraitCards,
       cardFx: CFG.cardFx,
       coverHoverPreview: CFG.coverHoverPreview,
+      javdbAppCover: CFG.javdbAppCover,
       detailPreviewInline: CFG.detailPreviewInline, },
      reviews: {
       defaultExpanded: CFG.reviewsDefaultExpanded,
       fontSize: CFG.reviewFontSize,
       apiMovieDefaultTab: CFG.apiMovieDefaultTab,
-      favoriteActorHighlight: CFG.javdbFavoriteActorHighlight, },
+      favoriteActorHighlight: CFG.javdbFavoriteActorHighlight,
+      actorInfoEnabled: CFG.actorInfoEnabled, },
      magnetDisplayMode: CFG.magnetDisplayMode,
      nativeMagnetDefaultTab: CFG.nativeMagnetDefaultTab,
      magnetSort: CFG.magnetSort,
@@ -970,8 +954,9 @@
     CFG.trailerProxyPlayback = !!trailerProxyPlaybackCheckbox?.checked; CFG.trailerMultiQuality = !!trailerMultiQualityCheckbox?.checked; CFG.fullVideoPlayback = fullVideoPlaybackCheckbox.checked; CFG.fullVideoPreference = fullVideoPreferenceSelect.value;
     CFG.listPreviewQuick = !!listPreviewCheckbox?.checked; CFG.titleTranslate = !!titleTranslateCheckbox?.checked; CFG.listOpenNewTab = !!listNewTabCheckbox?.checked; CFG.portraitCards = !!portraitCardsCheckbox?.checked; CFG.cardFx = !!cardFxCheckbox?.checked;
     CFG.coverHoverPreview = !!coverHoverPreviewCheckbox?.checked; CFG.detailPreviewInline = !!detailPreviewCheckbox?.checked; CFG.reviewsDefaultExpanded = !!reviewsExpandedCheckbox?.checked; CFG.reviewFontSize = reviewFontSelect?.value || 'large';
-    CFG.apiMovieDefaultTab = apiTabSelect?.value || 'magnets'; CFG.javdbFavoriteActorHighlight = !!actorHighlightCheckbox?.checked; CFG.magnetDisplayMode = magnetDisplaySelect.value; CFG.magnetTable = CFG.magnetDisplayMode === 'sidebar';
-    CFG.nativeMagnetDefaultTab = nativeMagnetTabSelect?.value || 'aggregate'; CFG.magnetSort = magnetSortSelect?.value || 'size'; CFG.infiniteScroll = !!infiniteScrollCheckbox?.checked; CFG.infiniteScrollRestore = !!infiniteScrollRestoreCheckbox?.checked;
+    CFG.apiMovieDefaultTab = apiTabSelect?.value || 'magnets'; CFG.javdbFavoriteActorHighlight = !!actorHighlightCheckbox?.checked; CFG.actorInfoEnabled = !!actorInfoCheckbox?.checked; CFG.javdbAppCover = !!javdbAppCoverCheckbox?.checked;
+    CFG.magnetDisplayMode = magnetDisplaySelect.value; CFG.magnetTable = CFG.magnetDisplayMode === 'sidebar'; CFG.nativeMagnetDefaultTab = nativeMagnetTabSelect?.value || 'aggregate'; CFG.magnetSort = magnetSortSelect?.value || 'size';
+    CFG.infiniteScroll = !!infiniteScrollCheckbox?.checked; CFG.infiniteScrollRestore = !!infiniteScrollRestoreCheckbox?.checked;
     BUTTON_TOGGLE_META.forEach(({ key, cfgKey }) => { CFG[cfgKey] = btnToggles[key].checked; });
     GM_setValue('thumb_source_order', currentOrder); const pan115Changed = beforePan115Player !== nextPan115Player; const nonPan115Changed = beforeNonPan115 !== snapshotNonPan115(); closePanel();
     if (nonPan115Changed) { location.reload(); return; }
@@ -990,11 +975,14 @@
    { id: 'infinite-scroll', label: '瀑布流', cfgKey: 'infiniteScroll', sync: 'syncInfiniteScroll' },
    { id: 'card-fx', label: '卡片上浮动画', cfgKey: 'cardFx', sync: 'syncCardFx', mobileDisabled: true },
    { id: 'cover-hover-preview', label: '封面悬浮大图', cfgKey: 'coverHoverPreview', sync: 'syncCoverHoverPreview', mobileDisabled: true },
+   { id: 'javdb-app-cover', label: 'JavDB 无水印封面', cfgKey: 'javdbAppCover', sync: 'syncJavdbAppCover', javdbOnly: true },
    { id: 'title-translate', label: '翻译标题', cfgKey: 'titleTranslate', sync: 'syncTitleTranslate' },
    { id: 'portrait-cards', label: '竖图模式', cfgKey: 'portraitCards', sync: 'syncPortraitCards', persist: false, refreshColumns: true, mobileDisabled: true },
    { id: 'list-open-new-tab', label: '新标签打开页面', cfgKey: 'listOpenNewTab', sync: 'syncListOpenNewTab' },
    { id: 'list-preview', label: '\u9996\u9875\u5feb\u6377\u529f\u80fd', cfgKey: 'listPreviewQuick', sync: 'syncListPreview' },
-   { id: 'detail-preview-inline', label: '详情页预览图直显', cfgKey: 'detailPreviewInline', sync: 'syncDetailPreview', mobileDisabled: true }, ];
+   { id: 'detail-preview-inline', label: '详情页预览图直显', cfgKey: 'detailPreviewInline', sync: 'syncDetailPreview', mobileDisabled: true },
+   { id: 'actor-info', label: '演员信息', cfgKey: 'actorInfoEnabled', sync: 'syncActorInfo', detailOnly: true }, ];
+  const TOGGLE_META_EXTRA = [ { id: 'actor-highlight', label: '收藏演员高亮', cfgKey: 'javdbFavoriteActorHighlight', sync: 'syncFavoriteActorHighlight' } ];
   const PAN115_TOGGLE_META = [ { id: 'pan115-cover-hover-preview', label: '115封面预览', cfgKey: 'pan115CoverHoverPreview', sync: 'syncCoverHoverPreview', mobileDisabled: true } ];
   function renderToggleRows(toggleMeta = TOGGLE_META) {
    return toggleMeta.map(({ id, label, mobileDisabled }) =>`<div class="qs-switch-row"${mobileDisabled ? ' data-mobile-disabled="1"' : ''}><div class="qs-name">${label}</div><label class="qs-toggle"><input id="qs-${id}" type="checkbox"><span class="qs-toggle-track"></span></label></div>`).join('');
@@ -1013,7 +1001,9 @@
   function open(anchor = null) {
    document.getElementById('jav-quick-settings-popover')?.remove(); ensureQuickSettingsPanelStyles(); const site = getCurrentSite();
    if (!site) { SettingsPanel.open(); return; }
-   const panel = document.createElement('div'); panel.id = 'jav-quick-settings-popover'; panel.classList.toggle('is-mobile', MobilePolicy.isMobile()); const isPan115 = site === 'pan115'; const toggleMeta = isPan115 ? PAN115_TOGGLE_META : TOGGLE_META;
+   const panel = document.createElement('div'); panel.id = 'jav-quick-settings-popover'; panel.classList.toggle('is-mobile', MobilePolicy.isMobile()); const isPan115 = site === 'pan115';
+   const toggleMeta = isPan115 ? PAN115_TOGGLE_META
+    : TOGGLE_META.concat(TOGGLE_META_EXTRA).filter(item => (!item.javdbOnly || site === 'javdb') && (!item.detailOnly || site !== 'pan115') && (item.id !== 'actor-highlight' || ['javdb', 'javbus', 'javlib'].includes(site)));
    const mobileLandscape = !!window.matchMedia?.('(orientation:landscape)').matches; const showMobilePortraitColumns = !isPan115 && MobilePolicy.isMobile() && !mobileLandscape;
    const showMobileLandscapeColumns = !isPan115 && MobilePolicy.isMobile() && mobileLandscape;
    panel.innerHTML =`<div class="qs-head"><div><div class="qs-title">快捷设置</div><div class="qs-site"> ${siteLabelMap[site] || '当前站点'} </div></div><button class="qs-close" type="button" title="关闭">×</button></div> ${isPan115 ? '' : `<div class="qs-row qs-columns-row">
@@ -1039,10 +1029,13 @@
                     <div class="qs-name">页面宽度</div>
                     <input class="qs-range" id="qs-zoom" type="range" min="60" max="100" step="1">
                     <span class="qs-value" id="qs-zoom-value">100%</span>
-                </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力 <button class="qs-detail-magnet-help" type="button" title="查看磁力比例说明" aria-label="查看磁力比例说明">!</button></div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"> ${site === 'javdb' && window.__LAOSIJI_RESOURCE_LIBRARY__?.isSupported?.() ? '<button class="qs-resource" type="button">资源管理</button>' : ''} <button class="qs-more" type="button">更多设置</button></div>`;
-   document.body.appendChild(panel); const close = () => panel.remove(); const columnsInput = panel.querySelector('#qs-columns'); const columnsValue = panel.querySelector('#qs-columns-value');
-   const mobileColumnButtons = [...panel.querySelectorAll('[data-mobile-columns]')]; const mobileLandscapeColumnButtons = [...panel.querySelectorAll('[data-mobile-landscape-columns]')]; const zoomInput = panel.querySelector('#qs-zoom');
-   const zoomValue = panel.querySelector('#qs-zoom-value'); const detailSite = DetailFlex.detectCurrentSite(); const detailWrap = panel.querySelector('#qs-detail-flex');
+                </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力 <button class="qs-detail-magnet-help" type="button" title="查看磁力比例说明" aria-label="查看磁力比例说明">!</button></div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"> ${['javdb', 'javlib'].includes(site) && window.__LAOSIJI_RESOURCE_LIBRARY__?.isSupported?.() ? '<button class="qs-resource" type="button">资源管理</button>' : ''} <button class="qs-more" type="button">更多设置</button></div>`;
+   document.body.appendChild(panel);
+   if (site === 'javbus' && window.__LAOSIJI_RESOURCE_LIBRARY__?.isSupported?.()) {
+    const resourceButton = document.createElement('button'); resourceButton.className = 'qs-resource'; resourceButton.type = 'button'; resourceButton.textContent = '\u8d44\u6e90\u7ba1\u7406'; panel.querySelector('.qs-footer')?.prepend(resourceButton); }
+   const close = () => panel.remove(); const columnsInput = panel.querySelector('#qs-columns'); const columnsValue = panel.querySelector('#qs-columns-value'); const mobileColumnButtons = [...panel.querySelectorAll('[data-mobile-columns]')];
+   const mobileLandscapeColumnButtons = [...panel.querySelectorAll('[data-mobile-landscape-columns]')]; const zoomInput = panel.querySelector('#qs-zoom'); const zoomValue = panel.querySelector('#qs-zoom-value');
+   const detailSite = DetailFlex.detectCurrentSite(); const detailWrap = panel.querySelector('#qs-detail-flex');
    const detailInputs = { cover: panel.querySelector('#qs-detail-cover'), info: panel.querySelector('#qs-detail-info'), magnet: panel.querySelector('#qs-detail-magnet') };
    const detailValues = { cover: panel.querySelector('#qs-detail-cover-value'), info: panel.querySelector('#qs-detail-info-value'), magnet: panel.querySelector('#qs-detail-magnet-value') };
    const syncColumnsControl = () => {
@@ -1115,9 +1108,71 @@
  })();
  Core.expose('__LAOSIJI_OPEN_QUICK_SETTINGS__', anchor => QuickSettingsPanel.open(anchor));
  const MobileSettingsEntry = (() => {
-  const BUTTON_ID = 'jav-mobile-settings-entry'; let observer = null; let pending = false;
+  const BUTTON_ID = 'jav-mobile-settings-entry'; const POSITION_KEY = 'jav_mobile_settings_entry_position'; const EDGE_GAP = 10; const DRAG_THRESHOLD = 4; let observer = null; let pending = false;
+  function readPosition() {
+   try {
+    const value = GM_getValue(POSITION_KEY, null);
+    if (!value || !Number.isFinite(Number(value.left)) || !Number.isFinite(Number(value.top))) return null;
+    return { left: Number(value.left), top: Number(value.top) };
+   } catch (_) { return null; } }
+  function savePosition(position) {
+   try {
+    GM_setValue(POSITION_KEY, position);
+   } catch (_) {} }
+  function isTopLevelWindow() {
+   try {
+    return window.top === window.self;
+   } catch (_) { return false; } }
+  function clampPosition(button, left, top) {
+   const width = button.offsetWidth || 46; const height = button.offsetHeight || 46; const maxLeft = Math.max(EDGE_GAP, window.innerWidth - width - EDGE_GAP); const maxTop = Math.max(EDGE_GAP, window.innerHeight - height - EDGE_GAP);
+   return { left: Math.min(maxLeft, Math.max(EDGE_GAP, left)), top: Math.min(maxTop, Math.max(EDGE_GAP, top)) }; }
+  function applyPosition(button, position) {
+   if (!position) return;
+   const next = clampPosition(button, Number(position.left), Number(position.top)); button.style.right = 'auto'; button.style.bottom = 'auto';
+   button.style.left =`${next.left}px`;
+   button.style.top =`${next.top}px`;
+  }
+  function installDragging(button) {
+   let drag = null; let ignoreNextClick = false;
+   const finish = event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const moved = drag.moved;
+    if (moved) {
+     savePosition({
+      left: Number.parseFloat(button.style.left),
+      top: Number.parseFloat(button.style.top),
+     });
+     ignoreNextClick = true; }
+    button.classList.remove('is-dragging');
+    try { button.releasePointerCapture?.(event.pointerId); } catch (_) {}
+    drag = null; };
+   button.addEventListener('pointerdown', event => {
+    if (event.button !== 0) return;
+    ignoreNextClick = false; const rect = button.getBoundingClientRect();
+    drag = {
+     pointerId: event.pointerId,
+     startX: event.clientX,
+     startY: event.clientY,
+     left: rect.left,
+     top: rect.top,
+     moved: false, };
+    try { button.setPointerCapture?.(event.pointerId); } catch (_) {}
+   });
+   button.addEventListener('pointermove', event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const deltaX = event.clientX - drag.startX; const deltaY = event.clientY - drag.startY;
+    if (!drag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD) return;
+    drag.moved = true; button.classList.add('is-dragging');
+    applyPosition(button, { left: drag.left + deltaX, top: drag.top + deltaY });
+    event.preventDefault();
+   });
+   button.addEventListener('pointerup', finish); button.addEventListener('pointercancel', finish);
+   button.addEventListener('click', event => {
+    if (!ignoreNextClick) return;
+    ignoreNextClick = false; event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.();
+   }, true); }
   function ensureStyle() {
-   injectStyle('jav-mobile-settings-entry-style',`#${BUTTON_ID}{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:2147483000;width:46px;height:46px;display:grid;place-items:center;padding:0;border:1px solid rgba(37,99,235,.3);border-radius:50%;background:#fff;color:#1d4ed8;box-shadow:0 6px 18px rgba(15,23,42,.2);cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:22px;line-height:1}#${BUTTON_ID}:active{transform:scale(.95)}#${BUTTON_ID}:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}html:not([data-laosiji-mobile]) #${BUTTON_ID}{display:none}`);
+   injectStyle('jav-mobile-settings-entry-style',`#${BUTTON_ID}{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));z-index:2147483000;width:46px;height:46px;display:grid;place-items:center;padding:0;border:1px solid rgba(37,99,235,.3);border-radius:50%;background:#fff;color:#1d4ed8;box-shadow:0 6px 18px rgba(15,23,42,.2);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:22px;line-height:1}#${BUTTON_ID}.is-dragging{cursor:grabbing;opacity:.82}#${BUTTON_ID}:active{transform:scale(.95)}#${BUTTON_ID}:focus-visible{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}html:not([data-laosiji-mobile]) #${BUTTON_ID}{display:none}`);
   }
   function scheduleSync() {
    if (pending) return;
@@ -1127,18 +1182,23 @@
    }); }
   function createButton() {
    const button = document.createElement('button'); button.id = BUTTON_ID; button.type = 'button'; button.textContent = '\u2699'; button.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
-   button.setAttribute('aria-label', '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e');
+   button.setAttribute('aria-label', '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e'); button.setAttribute('aria-description', '\u53ef\u62d6\u52a8\u8c03\u6574\u4f4d\u7f6e'); installDragging(button);
    button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); QuickSettingsPanel.open(button); });
    return button; }
   function sync() {
    const existing = document.getElementById(BUTTON_ID);
-   if (!MobilePolicy.isMobile()) { existing?.remove(); return; }
+   if (!isTopLevelWindow() || !MobilePolicy.isMobile()) { existing?.remove(); return; }
    if (!document.body) return;
-   if (existing) return;
-   document.body.appendChild(createButton()); }
+   if (existing) {
+    if (!existing.classList.contains('is-dragging')) applyPosition(existing, readPosition());
+    return; }
+   const button = createButton(); document.body.appendChild(button); applyPosition(button, readPosition()); }
   function install() {
    if (observer) return;
-   ensureStyle(); MobilePolicy.onChange(sync); sync();
+   if (!isTopLevelWindow()) return;
+   ensureStyle(); MobilePolicy.onChange(sync);
+   window.addEventListener?.('resize', scheduleSync, { passive: true });
+   sync();
    if (!document.body || typeof MutationObserver === 'undefined') return;
    observer = new MutationObserver(scheduleSync);
    observer.observe(document.body, { childList: true, subtree: true }); }
@@ -2172,12 +2232,20 @@
  })();
  Core.expose('__LAOSIJI_NATIVE_MAGNET_PANEL__', NativeMagnetPanel);
  const SiteJavBus = {
-  match() { return location.hostname.includes('javbus'); },
+  match() { return isJavBusHost(); },
   isActorIndexPage(url = location.href) {
    try {
     const path = new URL(url, location.href).pathname.replace(/\/+$/, '');
     return /^\/(?:[a-z]{2}\/)?(?:uncensored\/)?actresses(?:\/\d+)?$/i.test(path);
    } catch (err) { return false; } },
+  isActorPage(url = location.href) { return !!this.getActorPageInfo(url); },
+  getActorPageInfo(url = location.href) {
+   try {
+    const path = new URL(url, location.href).pathname.replace(/\/+$/, '');
+    const match = path.match(/^\/(?:[a-z]{2}\/)?(?:(uncensored)\/)?star\/([^/]+)(?:\/\d+)?$/i);
+    if (!match) return null;
+    return { actorId: decodeURIComponent(match[2]), type: match[1] ? 'uncensored' : 'censored' };
+   } catch (err) { return null; } },
   getVid() {
    const kw = document.querySelector('meta[name="keywords"]')?.content || ''; return normalizeAvid(kw.split(',')[0].trim()); },
   isDetailPage() {
@@ -2188,11 +2256,47 @@
    document.querySelector('.ad-box')?.remove(); SiteJavDB._installCustomPageSpa?.(); this._insert123AvFc2NavLink(); this._insert123AvFc2MobileLink(); setTimeout(() => this._insert123AvFc2NavLink(), 500); setTimeout(() => this._insert123AvFc2MobileLink(), 500);
    this._insertTopSettingsButton(); setTimeout(() => this._insertTopSettingsButton(), 500);
    if (Javdb123AvFc2.init()) return;
+   FavoriteActorHighlight.init('javbus', { enabled: CFG.javdbFavoriteActorHighlight });
    if (this.isActorIndexPage()) return;
+   if (this.isActorPage()) {
+    if (document.querySelector('#waterfall div.item')) this._initListPage();
+    return; }
    if (document.querySelector('#waterfall div.item')) { this._initListPage(); return; }
    const detailDefaults = DetailFlex.defaultCss('javbus');
    GM_addStyle(`.container{max-width:100%!important;width:100%!important;padding-left:20px!important;padding-right:20px!important}.row.movie{display:flex!important;gap:20px!important;align-items:flex-start!important;flex-wrap:nowrap!important;margin:0!important}.row.movie{--javbus-cover-flex:${detailDefaults.cover};--javbus-info-flex:${detailDefaults.info};--javbus-magnet-flex:${detailDefaults.magnet}}.col-md-9.screencap{flex:var(--javbus-cover-flex) 1 0!important;min-width:0!important;width:auto!important;float:none!important;padding:0!important}.col-md-3.info{flex:var(--javbus-info-flex) 1 0!important;min-width:0!important;width:auto!important;float:none!important;overflow:hidden!important;word-break:break-word!important}.jav-nong-slot{flex:var(--javbus-magnet-flex) 1 0!important;min-width:0!important;align-self:flex-start!important;overflow:hidden!important}.jav-nong-wrapper{width:560px;max-width:100%}.screencap img{width:100%;max-width:100%}.footer{padding:20px 0}`);
    JavdbFullVideo.sync(avid); this._insertMagnet(avid); this._replaceRecommendWithJavdbReviews(avid); setTimeout(() => this._replaceRecommendWithJavdbReviews(avid), 900); this._scheduleNativeMagnetAssistantFix(); },
+  _insertActorBlacklistButton(toolbar) {
+   const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__; const actorPage = this.getActorPageInfo();
+   if (!resourceApi?.toggleActorBlacklist || !toolbar || !actorPage) return;
+   const actorId = actorPage.actorId;
+   if (!actorId || toolbar.querySelector('[data-resource-actor-blacklist]')) return;
+   const anchor = toolbar.querySelector('[data-resource-entry="blacklist-actors"]');
+   if (!anchor) return;
+   const nameNode = document.querySelector('.avatar-box .photo-info .mleft, .avatar-box .photo-info .pb10, .avatar-box .photo-info'); const actorName = nameNode?.textContent?.replace(/\s+/g, ' ').trim() || actorId;
+   const button = document.createElement('button'); button.type = 'button'; button.dataset.resourceActorBlacklist = '1'; button.className = 'javbus-actor-blacklist-btn'; button.title = '屏蔽该演员的所有作品';
+   const syncButtonState = () => {
+    const blocked = !!resourceApi.isActorBlacklisted?.(actorId); button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.classList.toggle('is-active', blocked); };
+   syncButtonState();
+   button.addEventListener('click', async event => {
+    event.preventDefault(); event.stopPropagation();
+    if (button.dataset.loading === '1') return;
+    button.dataset.loading = '1'; button.disabled = true; button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名单...' : '正在读取作品...';
+    try {
+     const blocked = await resourceApi.toggleActorBlacklist(actorId, {
+      actorId,
+      name: actorName,
+      aliases: actorName ? [actorName] : [],
+      url:`${location.origin}/${actorPage.type === 'uncensored' ? 'uncensored/' : ''}star/${encodeURIComponent(actorId)}`,
+      type: /\/uncensored\/star\//i.test(location.pathname) ? 'uncensored' : 'censored',
+      source: 'javbus',
+     });
+     button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.classList.toggle('is-active', blocked); Utils.showToast(blocked ? '已加入演员黑名单' : '已移出演员黑名单', actorName); document.dispatchEvent(new CustomEvent('laosiji-resource-blacklist-changed'));
+    } catch (error) {
+     Utils.showToast('黑名单操作失败', error?.message || '资源库写入失败', 3500);
+    } finally {
+     syncButtonState(); button.disabled = false; delete button.dataset.loading; }
+   });
+   anchor.insertAdjacentElement('afterend', button); },
   _insert123AvFc2NavLink() {
    const navbar = document.querySelector('#navbar');
    if (!navbar) return;
@@ -2445,6 +2549,16 @@
    const firstDate = info?.querySelector('date');
    if (firstDate && firstDate.dataset.laosijiCode !== '1') { firstDate.dataset.laosijiCode = '1'; firstDate.classList.add('javbus-card-code'); }
    ListPreview.attach(item); },
+  _getCardActionSlot(card) {
+   if (!card) return null;
+   const existing = card.querySelector('.item-tag');
+   if (existing) return existing;
+   if (!card.querySelector('a.movie-box[href]')) return null;
+   const infoBody = card.querySelector('.photo-info > span') || card.querySelector('.photo-info'); const firstDate = infoBody?.querySelector('date');
+   if (!infoBody || !firstDate) return null;
+   const legacySlot = infoBody.querySelector(':scope > div[style*="white-space"]');
+   if (legacySlot) { legacySlot.classList.add('item-tag'); return legacySlot; }
+   const slot = document.createElement('div'); slot.className = 'item-tag'; infoBody.insertBefore(slot, firstDate); return slot; },
   _flattenWaterfall() {
    document.querySelectorAll('[id="waterfall"]').forEach(wf => {
     wf.querySelectorAll(':scope > #waterfall, :scope > .masonry').forEach(nested => {
@@ -2460,6 +2574,23 @@
    return (
     document.querySelector('#waterfall.jav-card-grid') || document.querySelector('#waterfall')
    ); },
+  _insertResourceToolbar(container) {
+   const resourceApi = window.__LAOSIJI_RESOURCE_LIBRARY__; const parent = container?.parentElement;
+   if (!resourceApi?.open || !parent) return;
+   injectStyle('javbus-resource-toolbar-style',`.javbus-resource-toolbar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px;flex-wrap:wrap!important;width:100%!important;min-height:40px;margin:14px 0 14px!important;padding:0 0 2px!important;box-sizing:border-box!important}.javbus-resource-toolbar-group{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:6px!important;flex:0 1 auto!important;flex-wrap:wrap!important;min-width:0!important}.javbus-resource-toolbar-group-right{justify-content:flex-end!important;margin-left:auto!important}.javbus-resource-toolbar button{display:inline-flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:auto!important;height:32px!important;min-height:32px!important;margin:0!important;padding:0 .78rem!important;border:1px solid rgba(15,23,42,.2)!important;border-radius:6px!important;color:#fff!important;font:700 .9rem/1 inherit!important;appearance:none!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(15,23,42,.18)!important;white-space:nowrap!important}.javbus-resource-toolbar button:hover,.javbus-resource-toolbar button:focus{color:#fff!important;filter:brightness(.92)}.javbus-resource-toolbar [data-resource-entry="manager"]{background:#0f766e!important}.javbus-resource-toolbar [data-resource-entry="history"]{background:#2563eb!important}.javbus-resource-toolbar [data-resource-entry="blacklist-works"]{background:#b45309!important}.javbus-resource-toolbar [data-resource-entry="blacklist-actors"]{background:#be123c!important}.javbus-resource-toolbar [data-resource-actor-blacklist]{background:#475569!important}.javbus-resource-toolbar [data-resource-actor-blacklist].is-active{background:#b91c1c!important}.javbus-resource-toolbar [data-resource-entry="works-favorite"]{background:#f59e0b!important}.javbus-resource-toolbar [data-resource-entry="works-downloaded"]{background:#10b981!important}.javbus-resource-toolbar [data-resource-entry="works-watched"]{background:#3b82f6!important}@media (max-width:560px){.javbus-resource-toolbar{align-items:flex-start!important;gap:8px!important;margin-bottom:12px!important}.javbus-resource-toolbar-group{flex:1 1 100%!important;max-width:100%!important}.javbus-resource-toolbar-group-right{justify-content:flex-end!important;margin-left:0!important}.javbus-resource-toolbar button{min-height:34px!important;padding:0 .65rem!important}}`);
+   let toolbar = parent.querySelector(':scope > .javbus-resource-toolbar');
+   if (!toolbar) {
+    toolbar = document.createElement('div'); toolbar.className = 'javbus-resource-toolbar';
+    toolbar.innerHTML =`<div class="javbus-resource-toolbar-group javbus-resource-toolbar-group-left"><button type="button" data-resource-entry="manager" title="打开资源管理">资源管理</button><button type="button" data-resource-entry="history" title="打开鉴定记录">鉴定记录</button><button type="button" data-resource-entry="blacklist-works" title="打开作品黑名单">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors" title="打开演员黑名单">演员黑名单</button></div><div class="javbus-resource-toolbar-group javbus-resource-toolbar-group-right"><button type="button" data-resource-entry="works-favorite" title="查看作品库中已收藏的作品">已收藏</button><button type="button" data-resource-entry="works-downloaded" title="查看作品库中已下载的作品">已下载</button><button type="button" data-resource-entry="works-watched" title="查看作品库中已观看的作品">已观看</button></div>`;
+    const open = (selector, ...args) => {
+     toolbar.querySelector(selector)?.addEventListener('click', event => {
+      event.preventDefault(); resourceApi.open(...args);
+     }); };
+    open('[data-resource-entry="manager"]', 'actors'); open('[data-resource-entry="history"]', 'history'); open('[data-resource-entry="blacklist-works"]', 'blacklist', 'works'); open('[data-resource-entry="blacklist-actors"]', 'blacklist', 'actors');
+    open('[data-resource-entry="works-favorite"]', 'works', 'actors', 'favorite'); open('[data-resource-entry="works-downloaded"]', 'works', 'actors', 'downloaded'); open('[data-resource-entry="works-watched"]', 'works', 'actors', 'watched'); }
+   SiteJavBus._insertActorBlacklistButton?.(toolbar);
+   if (toolbar.nextElementSibling !== container) parent.insertBefore(toolbar, container);
+  },
   _listPageNo(url = location.href) {
    try {
     const path = new URL(url, location.href).pathname.replace(/\/+$/, ''); let m = path.match(/\/page\/(\d+)$/i);
@@ -2508,7 +2639,7 @@
    this._destroyMasonry(container); container.classList.remove('masonry'); container.style.setProperty('position', 'static', 'important'); container.style.setProperty('height', 'auto', 'important'); container.style.setProperty('width', 'auto', 'important');
    const needStyle = container.dataset.laosijiGrid !== '1';
    if (needStyle) { container.dataset.laosijiGrid = '1'; container.classList.add('jav-card-grid', 'javbus-card-grid'); }
-   CardColumns.apply('javbus'); container.querySelectorAll(':scope > .item').forEach(item => this._decorateCard(item));
+   this._insertResourceToolbar(container); CardColumns.apply('javbus'); container.querySelectorAll(':scope > .item').forEach(item => this._decorateCard(item));
    if (needStyle) {
     GM_addStyle(`.jav-card-grid{height:auto!important}.jav-card{position:relative!important}.jav-card-link:visited .jav-card-title,.jav-card-link:visited .javbus-card-headline,.jav-card-link:visited .javbus-card-code{color:#64748b!important}.jav-card-cover{margin:0!important}.jav-card-title{display:block!important;height:auto!important;max-height:none!important;flex:1 1 auto!important;min-height:0!important;padding:7px 8px 9px!important;overflow:visible!important;line-height:var(--jav-card-title-line-height,1.5)!important}.javbus-card-grid{position:static!important;--jav-card-columns:5;box-sizing:border-box!important}#waterfall.javbus-card-grid{display:grid!important;grid-template-columns:repeat(var(--jav-card-columns,5),minmax(0,1fr))!important;gap:14px 6px!important;align-items:stretch!important;min-height:0!important}body .container-fluid{padding-left:28px!important;padding-right:28px!important;box-sizing:border-box!important}#waterfall.javbus-card-grid>.item,.javbus-card-grid .item.javbus-grid-card{position:relative!important;width:auto!important;float:none!important;margin:0!important;top:auto!important;left:auto!important}.javbus-card-grid .item .jav-card-link.javbus-card-link{width:100%!important;min-width:0!important;margin:0!important;padding:0!important;background:#fff!important;box-shadow:none!important;border-radius:0!important;overflow:visible!important}.javbus-card-grid .item .javbus-cover-frame.photo-frame{margin:0!important;height:auto!important}.javbus-card-grid .item .javbus-card-image{margin:0!important}html:not(.jav-card-portrait-mode) .javbus-card-grid .item .javbus-card-image{object-fit:contain!important;object-position:center center!important;background:transparent!important}.javbus-card-title>span{display:block!important}.javbus-card-title .video-title{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--jav-card-title-lines,2)!important;line-clamp:var(--jav-card-title-lines,2)!important;height:calc(var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)!important;max-height:calc(var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)!important;min-height:calc(var(--jav-card-title-line-height,1.5) * var(--jav-card-title-lines,2) * 1em)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:normal!important;word-break:break-word!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;line-height:var(--jav-card-title-line-height,1.5)!important;margin-bottom:6px!important}.javbus-card-grid .item .javbus-card-title .jav-pan115-badge{display:inline-flex!important;width:auto!important;max-width:max-content!important;float:none!important;vertical-align:middle!important;margin:0 6px 4px 0!important}.javbus-card-title .item-tag{margin:6px 0 4px!important}.javbus-card-title date{color:#94a3b8!important;font-size:12px!important}.javbus-card-title date.javbus-card-code{display:inline-block!important;color:inherit!important;font-size:15px!important;font-weight:800!important;margin-top:2px!important}@media (max-width:1100px){.javbus-card-grid{--jav-card-columns:4}}@media (max-width:820px){.javbus-card-grid{--jav-card-columns:3}}@media (max-width:560px){.javbus-card-grid{--jav-card-columns:2;gap:10px 6px!important}}`);
    }
@@ -2519,214 +2650,162 @@
     this._flattenWaterfall(); container.querySelectorAll(':scope > .item').forEach(item => this._decorateCard(item)); Runtime.syncListPreview();
    }, 450); }, };
  Object.assign(SiteJavBus, JavbusList);
- const JavdbFavorites = {
-  _normalizeActorKey(value) {
-   return String(value || '') .replace(/\s+/g, ' ') .trim() .toLowerCase(); },
-  _getJavdbActorLinks(root = document) {
-   const panel = root.querySelector?.('.movie-panel-info') || root;
-   return [...panel.querySelectorAll?.('a[href*="/actors/"]') || []].filter(a => { const href = a.getAttribute('href') || ''; const text = (a.textContent || '').trim(); return text && /\/actors\/[^/?#]+/i.test(href); }); },
-  _getJavdbActorPath(value) {
-   try {
-    const path = new URL(value || '', location.origin).pathname.toLowerCase(); return path.match(/^\/actors\/[^/?#]+/i)?.[0] || '';
-   } catch { return ''; } },
-  _getJavdbActorId(value) {
-   const path = this._getJavdbActorPath(value); return path.match(/^\/actors\/([^/?#]+)/i)?.[1] || ''; },
-  _readFavoriteActorsCache() {
-   try {
-    const raw = GM_getValue('javdb_favorite_actors_cache', null); const cache = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (!cache || !Number.isFinite(cache.ts)) return null;
-    return {
-     names: new Set(Array.isArray(cache.names) ? cache.names : []),
-     paths: new Set(Array.isArray(cache.paths) ? cache.paths : []),
-     ids: new Set(
-      Array.isArray(cache.ids) ? cache.ids : (Array.isArray(cache.paths) ? cache.paths : []) .map(path => this._getJavdbActorId(path)) .filter(Boolean)
-     ),
-     ts: cache.ts, };
-   } catch { return null; } },
-  _writeFavoriteActorsCache(names, paths, ids) {
-   const ts = Date.now();
-   GM_setValue('javdb_favorite_actors_cache', JSON.stringify({
-    names: [...names],
-    paths: [...paths],
-    ids: [...ids],
-    ts,
-   }));
-   return ts; },
-  _readFavoriteActorsCacheDirtyAt() {
-   const dirtyAt = Number(GM_getValue('javdb_favorite_actors_cache_dirty_at', 0)); return Number.isFinite(dirtyAt) ? dirtyAt : 0; },
-  _markFavoriteActorsCacheDirty() {
-   GM_setValue('javdb_favorite_actors_cache_dirty_at', Date.now()); },
-  _clearFavoriteActorsCacheDirty(ts) {
-   if (this._readFavoriteActorsCacheDirtyAt() <= ts && !this._readFavoriteActorsPending()) { GM_setValue('javdb_favorite_actors_cache_dirty_at', 0); }
-  },
-  _readFavoriteActorsPending() {
-   try {
-    const raw = GM_getValue('javdb_favorite_actors_pending', null); const pending = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (!pending) return null;
-    const normalized = {
-     addIds: new Set(Array.isArray(pending.addIds) ? pending.addIds : []),
-     removeIds: new Set(Array.isArray(pending.removeIds) ? pending.removeIds : []),
-     addPaths: new Set(Array.isArray(pending.addPaths) ? pending.addPaths : []),
-     removePaths: new Set(Array.isArray(pending.removePaths) ? pending.removePaths : []),
-     addNames: new Set(Array.isArray(pending.addNames) ? pending.addNames : []),
-     removeNames: new Set(Array.isArray(pending.removeNames) ? pending.removeNames : []), };
-    return Object.values(normalized).some(value => value.size) ? normalized : null;
-   } catch { return null; } },
-  _writeFavoriteActorsPending(pending) {
-   const keys = ['addIds', 'removeIds', 'addPaths', 'removePaths', 'addNames', 'removeNames']; const hasPending = keys.some(key => pending[key]?.size);
-   if (!hasPending) { GM_setValue('javdb_favorite_actors_pending', null); return; }
-   GM_setValue('javdb_favorite_actors_pending', JSON.stringify(
-    Object.fromEntries(keys.map(key => [key, [...pending[key]]]))
-   )); },
-  _mergeFavoriteActorsPending(names, paths, ids) {
-   const pending = this._readFavoriteActorsPending();
-   if (!pending) return { names, paths, ids };
-   pending.addIds.forEach(id => {
-    if (ids.has(id)) pending.addIds.delete(id);
-   });
-   pending.removeIds.forEach(id => {
-    if (!ids.has(id)) pending.removeIds.delete(id);
-   });
-   pending.addPaths.forEach(path => {
-    if (paths.has(path)) pending.addPaths.delete(path);
-   });
-   pending.removePaths.forEach(path => {
-    if (!paths.has(path)) pending.removePaths.delete(path);
-   });
-   pending.addNames.forEach(name => {
-    if (names.has(name)) pending.addNames.delete(name);
-   });
-   pending.removeNames.forEach(name => {
-    if (!names.has(name)) pending.removeNames.delete(name);
-   });
-   pending.addIds.forEach(id => ids.add(id)); pending.removeIds.forEach(id => ids.delete(id)); pending.addPaths.forEach(path => paths.add(path)); pending.removePaths.forEach(path => paths.delete(path)); pending.addNames.forEach(name => names.add(name));
-   pending.removeNames.forEach(name => names.delete(name)); this._writeFavoriteActorsPending(pending);
-   return { names, paths, ids }; },
-  async _fetchFavoriteActors({ force = false } = {}) {
-   const cached = !force ? this._readFavoriteActorsCache() : null;
-   if (cached) return cached;
-   const names = new Set(); const paths = new Set(); const ids = new Set(); const seen = new Set(); let url = new URL('/users/collection_actors', location.origin).href;
-   for (let page = 0; url && page < 30; page++) {
-    const currentUrl = url; seen.add(currentUrl); const res = await gmFetch(currentUrl);
-    if (!res.loadstuts || !res.responseText) throw new Error('JavDB 收藏演员读取失败');
-    const doc = parseHTML(res.responseText);
-    doc.querySelectorAll('a[href*="/actors/"]').forEach(a => {
-     const text = this._normalizeActorKey(a.textContent); let path = ''; path = this._getJavdbActorPath(a.getAttribute('href'));
-     if (text) names.add(text);
-     if (path) { paths.add(path); ids.add(this._getJavdbActorId(path)); }
-    });
-    const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]'); url = '';
-    if (next) {
+ const FavoriteActorHighlight = (() => {
+  const sourceConfig = Object.freeze({
+   javdb: Object.freeze({
+    container: '.movie-panel-info',
+    linkSelector: 'a[href*="/actors/"]',
+    actionSelector: '#button-collect-actor[href*="/actors/"][href*="/collect"], #button-uncollect-actor[href*="/actors/"][href*="/uncollect"], a[href*="/actors/"][href*="/collect"][data-method="post"], a[href*="/actors/"][href*="/uncollect"][data-method="post"]',
+    isDetail: () => location.pathname.startsWith('/v/'),
+    getPath: value => /^\/actors\//i.test(value) ? value : '',
+    actionDelay: 0,
+   }),
+   javbus: Object.freeze({
+    container: '.col-md-3.info',
+    linkSelector: 'a[href*="/star/"]',
+    actionSelector: '.row.movie .starfav .mypointer.favicon, .row.movie .starfav .mypointer',
+    isDetail: () => !!document.querySelector('.row.movie') && !document.querySelector('#waterfall div.item'),
+    getPath: value => /^(?:\/uncensored)?\/star\//i.test(value) ? value : '',
+    actionDelay: 350,
+   }),
+   javlibrary: Object.freeze({
+    container: '#video_cast, #video_info',
+    linkSelector: 'a[href*="vl_star.php?s="]',
+    actionSelector: '.noty_bar .noty_buttons button.green',
+    isDetail: () => !!document.querySelector('#video_id .text, #video_info'),
+    getPath: value => {
      try {
-      const nextUrl = new URL(next.getAttribute('href') || '', location.origin);
-      if (nextUrl.origin === location.origin && /^\/users\/collection_actors\b/i.test(nextUrl.pathname) && !seen.has(nextUrl.href)) { url = nextUrl.href; }
-     } catch {} } }
-   const merged = this._mergeFavoriteActorsPending(names, paths, ids); const ts = this._writeFavoriteActorsCache(merged.names, merged.paths, merged.ids);
-   return { ...merged, ts }; },
-  _applyFavoriteActorHighlight(links, fav) {
-   if (!links?.length || !fav) return;
-   links.forEach(a => {
-    const path = this._getJavdbActorPath(a.getAttribute('href')); const id = this._getJavdbActorId(path); const name = this._normalizeActorKey(a.textContent);
-    const matched = id ? fav.ids?.has(id) : (path && fav.paths?.has(path)) || (name && fav.names?.has(name)); a.classList.toggle('javdb-favorite-actor', !!matched);
-    if (matched) a.title = a.title || '已收藏演员';
-   }); },
-  _updateFavoriteActorsCacheFromAction(action) {
-   const href = action?.getAttribute('href') || ''; const id = this._getJavdbActorId(href); const path = this._getJavdbActorPath(href);
-   if (!id || !path) return null;
-   const cached = this._readFavoriteActorsCache() || {
-    names: new Set(),
-    paths: new Set(),
-    ids: new Set(),
-    ts: 0, };
-   const isUncollect = /\/uncollect(?:[/?#]|$)/i.test(href); const name = this._normalizeActorKey(document.querySelector('.actor-section-name')?.textContent);
-   const pending = this._readFavoriteActorsPending() || {
-    addIds: new Set(),
-    removeIds: new Set(),
-    addPaths: new Set(),
-    removePaths: new Set(),
-    addNames: new Set(),
-    removeNames: new Set(), };
-   if (isUncollect) {
-    cached.ids.delete(id); cached.paths.delete(path);
-    if (name) cached.names.delete(name);
-    pending.addIds.delete(id); pending.addPaths.delete(path); pending.addNames.delete(name); pending.removeIds.add(id); pending.removePaths.add(path);
-    if (name) pending.removeNames.add(name);
-   } else {
-    cached.ids.add(id); cached.paths.add(path);
-    if (name) cached.names.add(name);
-    pending.removeIds.delete(id); pending.removePaths.delete(path); pending.removeNames.delete(name); pending.addIds.add(id); pending.addPaths.add(path);
-    if (name) pending.addNames.add(name);
+      const url = new URL(value || '', location.origin);
+      if (!/\/vl_star\.php$/i.test(url.pathname)) return '';
+      const id = url.searchParams.get('s') || '';
+      return id ?`${url.pathname}?s=${encodeURIComponent(id)}` : '';
+     } catch (_) { return ''; } },
+    actionDelay: 500,
+   }),
+  });
+  const watchHandlers = new Map(); const enabledStates = new Map(); const initialSyncInFlight = new Map();
+  function getConfig(source) { return sourceConfig[String(source || '').toLowerCase()] || null; }
+  function normalizeActorKey(value) { return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase(); }
+  function getResourceApi() { return window.__LAOSIJI_RESOURCE_LIBRARY__ || null; }
+  function getActorPath(source, value) {
+   const config = getConfig(source);
+   if (!config) return '';
+   try {
+    const url = new URL(value || '', location.origin); return config.getPath(source === 'javlibrary' ? url.href : url.pathname).toLowerCase();
+   } catch (_) { return ''; } }
+  function getActorId(source, value) {
+   const path = getActorPath(source, value);
+   if (source === 'javlibrary') {
+    try { return new URL(value || '', location.origin).searchParams.get('s') || ''; } catch (_) { return ''; }
    }
-   this._writeFavoriteActorsPending(pending); const ts = this._writeFavoriteActorsCache(cached.names, cached.paths, cached.ids);
-   return { ...cached, ts }; },
-  _refreshFavoriteActorsCache({ applyCurrentPage = true, delay = 500 } = {}) {
-   const root = document.documentElement; const refreshingKey = 'laosijiJavdbFavoriteActorsRefreshing'; const pendingKey = 'laosijiJavdbFavoriteActorsRefreshPending'; const pendingApplyKey = 'laosijiJavdbFavoriteActorsRefreshPendingApply';
-   if (root.dataset[refreshingKey] === '1') {
-    root.dataset[pendingKey] = '1';
-    if (applyCurrentPage) root.dataset[pendingApplyKey] = '1';
-    return; }
-   root.dataset[refreshingKey] = '1';
-   setTimeout(() => {
-    this._fetchFavoriteActors({ force: true }) .then(fav => {
-      this._clearFavoriteActorsCacheDirty(fav.ts);
-      if (applyCurrentPage) this._applyFavoriteActorHighlight(this._getJavdbActorLinks(), fav);
-     }) .catch(err => debugLog('JavDB 收藏演员缓存刷新失败:', err)) .finally(() => {
-      delete root.dataset[refreshingKey];
-      if (root.dataset[pendingKey] !== '1') return;
-      const pendingApply = root.dataset[pendingApplyKey] === '1'; delete root.dataset[pendingKey]; delete root.dataset[pendingApplyKey];
-      this._refreshFavoriteActorsCache({
-       applyCurrentPage: pendingApply,
-       delay: 0,
-      });
-     });
-   }, delay); },
-  _isLoggedIn() {
-   if (document.querySelector('a[href*="/users/sign_out"], a[href*="/logout"], a[href*="/users/profile"], a[href*="/users/collection"]')) { return true; }
-   const navbarText = [
-    document.querySelector('.navbar')?.textContent || '',
-    document.querySelector('.menu')?.textContent || '',
-    document.body?.textContent?.slice(0, 2000) || '',
-   ].join(' '); return /登出|退出|我的|帳號|账号|收藏/i.test(navbarText) && !/登入|登录|註冊|注册/i.test(navbarText); },
-  _primeFavoriteActorsCacheIfNeeded() {
-   if (!this._isLoggedIn()) return;
-   const cached = this._readFavoriteActorsCache(); const dirtyAt = this._readFavoriteActorsCacheDirtyAt();
-   if (cached && dirtyAt <= cached.ts) return;
-   this._refreshFavoriteActorsCache({ delay: dirtyAt ? 900 : 300 }); },
-  _watchFavoriteActorActions() {
-   if (document.documentElement.dataset.laosijiJavdbFavoriteActorActionWatch === '1') return;
-   document.documentElement.dataset.laosijiJavdbFavoriteActorActionWatch = '1';
-   document.addEventListener('click', e => {
-    const action = e.target?.closest?.(
-     '#button-collect-actor[href*="/actors/"][href$="/collect"],' +
-     '#button-uncollect-actor[href*="/actors/"][href$="/uncollect"],' +
-     'a[href*="/actors/"][href$="/uncollect"][data-method="post"]'
-    );
-    if (!action) return;
-    const cached = this._updateFavoriteActorsCacheFromAction(action); this._markFavoriteActorsCacheDirty();
-    if (cached) this._applyFavoriteActorHighlight(this._getJavdbActorLinks(), cached);
-    this._refreshFavoriteActorsCache({ delay: 900 });
-   }, true); },
-  _syncFavoriteActorsFromCollectionPage() {
-   if (!/^\/users\/collection_actors\b/i.test(location.pathname)) return;
-   this._refreshFavoriteActorsCache({
-    applyCurrentPage: false,
-    delay: 300,
-   }); },
-  _initFavoriteActorHighlight() {
-   if (!CFG.javdbFavoriteActorHighlight) return;
-   this._watchFavoriteActorActions(); this._syncFavoriteActorsFromCollectionPage();
-   if (location.pathname.startsWith('/v/')) { this._highlightFavoriteActors(); this._primeFavoriteActorsCacheIfNeeded(); }
-  },
-  _ensureFavoriteActorStyle() {
-   injectStyle('javdb-favorite-actor-style',`.movie-panel-info a.javdb-favorite-actor{color:#d97706!important;font-weight:700!important;text-shadow:0 0 0 rgba(217,119,6,.2)}.movie-panel-info a.javdb-favorite-actor::after{content:"收藏";display:inline-block;margin-left:4px;padding:1px 5px;border-radius:999px;background:rgba(245,158,11,.14);color:#d97706;font-size:11px;font-weight:700;vertical-align:1px}html[data-theme="dark"] .movie-panel-info a.javdb-favorite-actor{color:#fbbf24!important}html[data-theme="dark"] .movie-panel-info a.javdb-favorite-actor::after{background:rgba(251,191,36,.16);color:#fde68a}`);
-  },
-  async _highlightFavoriteActors() {
-   if (!CFG.javdbFavoriteActorHighlight) return;
-   const links = this._getJavdbActorLinks();
+   return path.match(source === 'javdb' ? /^\/actors\/([^/?#]+)/i : /^\/(?:uncensored\/)?star\/([^/?#]+)/i)?.[1] || ''; }
+  function isJavLibraryFavoriteConfirm(action) {
+   const noty = action?.closest?.('.noty_bar'); return !!noty && /最爱的演员名单/.test(String(noty.textContent || '')); }
+  function getActorLinks(source, root = document) {
+   const config = getConfig(source);
+   if (!config || !root?.querySelectorAll) return [];
+   const container = root.querySelector?.(config.container) || root;
+   return [...container.querySelectorAll(config.linkSelector) || []].filter(anchor => {
+    const href = anchor.getAttribute('href') || ''; return !!getActorPath(source, href) && !!String(anchor.textContent || '').trim();
+   }); }
+  function getFavoriteActors(source) {
+   const resourceApi = getResourceApi();
+   const actors = resourceApi?.getState?.(source)?.actors || {};
+   const favorite = { names: new Set(), paths: new Set(), ids: new Set() };
+   Object.entries(actors).forEach(([actorId, actor]) => {
+    const id = String(actor?.starId || actorId || '').trim().toLowerCase();
+    if (id) favorite.ids.add(id);
+    const fallback = source === 'javdb'
+     ?`/actors/${actorId}`                    : source === 'javlibrary'
+      ?`/cn/vl_star.php?s=${encodeURIComponent(actorId)}`                        :`/star/${actorId}`;
+    const path = getActorPath(source, actor?.url || fallback);
+    if (path) favorite.paths.add(path);
+    [actor?.name, ...(Array.isArray(actor?.aliases) ? actor.aliases : [])] .map(normalizeActorKey) .filter(Boolean) .forEach(name => favorite.names.add(name));
+   });
+   return favorite; }
+  function apply(links, source, favorite = getFavoriteActors(source)) {
+   if (!links?.length || !favorite) return;
+   links.forEach(anchor => {
+    const path = getActorPath(source, anchor.getAttribute('href')); const id = getActorId(source, path).toLowerCase(); const name = normalizeActorKey(anchor.textContent);
+    const matched = id ? favorite.ids.has(id) : (path && favorite.paths.has(path)) || (name && favorite.names.has(name)); anchor.classList.toggle('laosiji-favorite-actor', !!matched);
+    anchor.classList.toggle(`${source}-favorite-actor`, !!matched);
+    if (matched) anchor.title = anchor.title || '\u5df2收藏演员';
+   }); }
+  function ensureStyle() {
+   injectStyle('favorite-actor-highlight-style',`a.laosiji-favorite-actor{color:#d97706!important;font-weight:700!important;text-shadow:0 0 0 rgba(217,119,6,.2)}a.laosiji-favorite-actor::after{content:"已收藏";display:inline-block;margin-left:4px;padding:1px 5px;border-radius:999px;background:rgba(245,158,11,.14);color:#d97706;font-size:11px;font-weight:700;vertical-align:1px}html[data-theme="dark"] a.laosiji-favorite-actor{color:#fbbf24!important}html[data-theme="dark"] a.laosiji-favorite-actor::after{background:rgba(251,191,36,.16);color:#fde68a}`);
+  }
+  async function highlight(source, options = {}) {
+   const config = getConfig(source);
+   if (!config || options.enabled === false || enabledStates.get(source) === false || !config.isDetail()) return;
+   const resourceApi = getResourceApi();
+   if (!resourceApi?.getState) return;
+   await resourceApi.whenReady?.();
+   if (options.enabled === false || enabledStates.get(source) === false) return;
+   const links = getActorLinks(source);
    if (!links.length) return;
-   this._ensureFavoriteActorStyle(); const cached = this._readFavoriteActorsCache();
-   if (cached) { this._applyFavoriteActorHighlight(links, cached); }
-  }, };
+   ensureStyle(); apply(links, source); }
+  function clearHighlight(source) {
+   document.querySelectorAll('a.laosiji-favorite-actor, a.javdb-favorite-actor, a.javbus-favorite-actor, a.javlibrary-favorite-actor').forEach(anchor => {
+    anchor.classList.remove('laosiji-favorite-actor', 'javdb-favorite-actor', 'javbus-favorite-actor', 'javlibrary-favorite-actor');
+   }); }
+  async function syncAndHighlight(source, options = {}) {
+   if (options.enabled === false || enabledStates.get(source) === false) return;
+   const resourceApi = getResourceApi();
+   if (!resourceApi?.syncActors) return;
+   try {
+    await resourceApi.syncActors(); await highlight(source, options);
+   } catch (error) {
+    debugLog(`${source} 收藏演员同步失败:`, error?.message || error);
+   } }
+  async function maybeInitialSync(source, options = {}) {
+   const config = getConfig(source);
+   if (!config || options.enabled === false || enabledStates.get(source) === false) return;
+   if (initialSyncInFlight.has(source)) return initialSyncInFlight.get(source);
+   const resourceApi = getResourceApi();
+   if (!resourceApi?.syncActors || !resourceApi?.getActorSyncState || !resourceApi?.getLoginState) return;
+   const task = (async () => {
+    try {
+     await resourceApi.whenReady?.();
+     if (options.enabled === false || enabledStates.get(source) === false) return;
+     if (resourceApi.isChallengePage?.()) return;
+     if (resourceApi.getActorSyncState()?.lastSuccessAt) return;
+     if (resourceApi.getLoginState() !== true) return;
+     const syncActors = resourceApi.syncActorsWithStatus || resourceApi.syncActors; await syncActors(); await highlight(source, options);
+    } catch (error) {
+     debugLog(`${source} 首次收藏演员同步失败:`, error?.message || error);
+    }
+   })().finally(() => initialSyncInFlight.delete(source));
+   initialSyncInFlight.set(source, task); return task; }
+  function watch(source, options = {}) {
+   const config = getConfig(source);
+   if (!config || options.enabled === false || watchHandlers.has(source)) return;
+   const handler = event => {
+    const action = event.target?.closest?.(config.actionSelector);
+    if (!action) return;
+    if (source === 'javlibrary') {
+     if (!isJavLibraryFavoriteConfirm(action)) return;
+    }
+    setTimeout(() => syncAndHighlight(source, options), config.actionDelay); };
+   watchHandlers.set(source, handler); document.addEventListener('click', handler, true);
+   document.documentElement.dataset[`laosiji${source}FavoriteActorWatch`] = '1';
+  }
+  function stopWatch(source) {
+   const handler = watchHandlers.get(source);
+   if (!handler) return;
+   document.removeEventListener('click', handler, true); watchHandlers.delete(source);
+   delete document.documentElement.dataset[`laosiji${source}FavoriteActorWatch`];
+  }
+  function sync(source, options = {}) {
+   const config = getConfig(source);
+   if (!config) return;
+   const enabled = options.enabled !== false; enabledStates.set(source, enabled);
+   if (!enabled) { stopWatch(source); clearHighlight(source); return; }
+   watch(source, options); void highlight(source, options); void maybeInitialSync(source, options); }
+  function init(source, options = {}) {
+   sync(source, options); }
+  const api = { getActorLinks, getFavoriteActors, apply, highlight, syncAndHighlight, maybeInitialSync, sync, init };
+  Core.expose('__LAOSIJI_FAVORITE_ACTOR_HIGHLIGHT__', api); return api;
+ })();
  const JavdbApiTabStyles = {
   installMovieTabs() {
    injectStyle('javdb-api-movie-tab-style',`#tabs-container[data-laosiji-api-movie-tabs] .top-meta{display:none!important}.javdb-api-tab-loading,.javdb-api-tab-empty,.javdb-api-tab-error,.javdb-api-tab-end{padding:12px 14px!important;color:#64748b!important;font-size:13px!important;font-weight:700!important}.javdb-api-tab-error{color:#be123c!important}.javdb-api-review,.javdb-api-related{margin:0!important;padding:11px 12px!important;border-bottom:1px solid #edf2f7!important;background:#fff!important;word-break:break-word!important}.javdb-api-review-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important;color:#334155!important;font-size:13px!important}.javdb-api-related-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:wrap!important;color:#334155!important;font-size:var(--laosiji-review-font-size,17px)!important;line-height:1.65!important}.javdb-api-review-content,.javdb-api-related-desc{margin-top:7px!important;color:#1f2937!important;font-size:var(--laosiji-review-font-size,17px)!important;line-height:1.65!important;white-space:normal!important}.javdb-api-related-meta{display:flex!important;gap:10px!important;flex-wrap:wrap!important;margin-top:7px!important;color:#64748b!important;font-size:var(--laosiji-review-font-size,17px)!important;line-height:1.65!important}.javdb-api-tab-footer{padding:10px 0 0!important}.javdb-api-tab-load-more{width:100%!important;min-height:34px!important;border:1px solid #bfdbfe!important;border-radius:6px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:13px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-toggle{width:100%!important;min-height:38px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:13px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-review-toggle::before{content:"▸";color:#64748b;font-size:13px}.javdb-api-review-collapse-bar{display:flex!important;align-items:center!important;gap:8px!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-collapse{min-height:28px!important;padding:0 10px!important;border:1px solid #e2e8f0!important;border-radius:6px!important;background:#f8fafc!important;color:#334155!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important}.javdb-api-review-default-row{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important;justify-content:flex-end!important;margin-bottom:8px!important}.javdb-api-review-default-toggle{display:inline-flex!important;align-items:center!important;gap:6px!important;color:#475569!important;font-size:12px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important}.javdb-api-review-default-toggle input{position:absolute!important;opacity:0!important;pointer-events:none!important}.javdb-api-review-default-switch{position:relative!important;width:28px!important;height:16px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#e5e7eb!important;transition:background .16s ease,border-color .16s ease!important}.javdb-api-review-default-switch::before{content:""!important;position:absolute!important;top:2px!important;left:2px!important;width:10px!important;height:10px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 2px rgba(15,23,42,.22)!important;transition:transform .16s ease!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch{border-color:#2563eb!important;background:#2563eb!important}.javdb-api-review-default-toggle input:checked+.javdb-api-review-default-switch::before{transform:translateX(12px)!important}html[data-theme="dark"] .javdb-api-review-default-toggle{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-review-default-switch{border-color:#52525b!important;background:#3f3f46!important}.javdb-api-review-font-size{display:inline-flex!important;align-items:center!important;gap:5px!important;color:#475569!important;font-size:12px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important}.javdb-api-review-font-size select{min-height:24px!important;padding:0 18px 0 7px!important;border:1px solid #cbd5e1!important;border-radius:6px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;outline:none!important}html[data-theme="dark"] .javdb-api-review-font-size{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-review-font-size select{border-color:#52525b!important;background:#2f2f2f!important;color:#e5e7eb!important}.javdb-api-tab-badge-item{display:flex!important;align-items:center!important;margin-left:4px!important;pointer-events:auto!important}.javdb-api-tab-badge{margin-left:0!important;align-self:center!important;display:inline-flex!important;align-items:center!important;height:20px!important;padding:0 7px!important;border:1px solid #bfdbfe!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}.javdb-api-tab-default-item{display:flex!important;align-items:center!important;margin-left:auto!important;pointer-events:auto!important}.javdb-api-tab-default-control{display:inline-flex!important;align-items:center!important;gap:3px!important;height:24px!important;padding:2px!important;border:1px solid #cbd5e1!important;border-radius:999px!important;background:#f8fafc!important;color:#64748b!important;font-size:11px!important;font-weight:850!important;line-height:1!important;white-space:nowrap!important}.javdb-api-tab-default-label{padding:0 5px!important}.javdb-api-tab-default-btn{min-width:34px!important;height:18px!important;padding:0 7px!important;border:0!important;border-radius:999px!important;background:transparent!important;color:#64748b!important;font-size:11px!important;font-weight:850!important;cursor:pointer!important}.javdb-api-tab-default-btn.is-active{background:#2563eb!important;color:#fff!important}html[data-theme="dark"] .javdb-api-tab-default-control{border-color:#52525b!important;background:#2f2f2f!important;color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-default-btn{color:#cbd5e1!important}html[data-theme="dark"] .javdb-api-tab-default-btn.is-active{background:#3b82f6!important;color:#fff!important}`);
@@ -3002,41 +3081,6 @@
    injectStyle('javdb-api-detail-style',`.javdb-fc2-detail-samples-section{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important;margin-top:20px!important;overflow:hidden!important}.javdb-fc2-detail-sample-heading{margin:0 0 12px!important;color:#0f172a!important;font-size:17px!important;font-weight:900!important}.javdb-fc2-detail-magnet{margin-top:20px!important;box-sizing:border-box!important;overflow:visible!important}.javdb-fc2-detail-magnet-title{margin:0 0 12px!important;color:#0f172a!important;font-size:17px!important;font-weight:900!important}.javdb-fc2-detail-magnet-body{width:100%!important;min-width:0!important}.javdb-fc2-detail-magnet-body>.jav-nong-wrapper{max-width:100%!important}html[data-theme="dark"] .javdb-fc2-detail-sample-heading,html[data-theme="dark"] .javdb-fc2-detail-magnet-title{color:#f8fafc!important}`);
   }, };
  const JavdbApiShell = {
-  _retiredCustomPageUrl(href) {
-   try {
-    const url = new URL(href, location.href);
-    if (!/javdb/i.test(url.hostname)) return '';
-    const path = url.pathname.replace(/\/+$/, ''); const params = new URLSearchParams(url.search);
-    if (path !== '/search_advanced') return '';
-    if (params.get('laosiji_detail') === 'fc2') {
-     const movieId = params.get('movie_id') || '';
-     return movieId ? `/v/${encodeURIComponent(movieId)}` : '/fc2';
-    }
-    if (params.get('laosiji_fc2') === '1') return '/fc2';
-    const mode = params.get('laosiji_rank') || ''; const page = Math.max(1, parseInt(params.get('lsj_page') || '1', 10) || 1);
-    if (mode === 'top') {
-     const native = new URL('/rankings/top', url.origin); const category = params.get('lsj_category') || params.get('lsj_type_value') || 'all'; const year = params.get('lsj_year') || '';
-     if (year) native.searchParams.set('t', `y${year}`);
-     else if (category && category !== 'all') native.searchParams.set('t', category);
-     if (page > 1) native.searchParams.set('page', String(page));
-     return `${native.pathname}${native.search}`;
-    }
-    if (mode === 'fc2') {
-     const native = new URL('/rankings/movies', url.origin); native.searchParams.set('t', 'fc2'); native.searchParams.set('p', params.get('lsj_period') || 'daily');
-     if (page > 1) native.searchParams.set('page', String(page));
-     return `${native.pathname}${native.search}`;
-    }
-    if (mode === 'playback') {
-     const native = new URL('/rankings/playback', url.origin); native.searchParams.set('p', params.get('lsj_period') || 'daily'); native.searchParams.set('filter_by', params.get('lsj_filter_by') || 'high_score');
-     if (page > 1) native.searchParams.set('page', String(page));
-     return `${native.pathname}${native.search}`;
-    }
-   } catch {}
-   return ''; },
-  _redirectRetiredCustomEntry() {
-   const nativeUrl = this._retiredCustomPageUrl(location.href);
-   if (!nativeUrl) return false;
-   location.replace(nativeUrl); return true; },
   _customPageSpaToken: 0,
   _customPageSpaActive: false,
   _getCustomSpaHref(href) {
@@ -3088,7 +3132,6 @@
     run(Javdb123AvFc2.init()); painted = true;
    } else {
     Javdb123AvFc2?.cancelRender?.();
-    if (this._redirectRetiredCustomEntry()) return true;
     if (this._getContentMode?.()) { run(this._initContentPage()); painted = true; }
    }
    if (options.scroll !== false && painted) window.scrollTo(0, 0);
@@ -3099,17 +3142,14 @@
    document.addEventListener('click', event => {
     const link = event.target?.closest?.('a[href]');
     if (!link || event.defaultPrevented) return;
-    const retired = this._retiredCustomPageUrl(link.href); const navigationHref = retired || link.href;
-    if (navigationHref !== link.href) link.href = navigationHref;
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-    if (link.target === '_blank') return;
-    const spaHref = this._getCustomSpaHref(navigationHref);
+    const spaHref = this._getCustomSpaHref(link.href);
     if (!spaHref) return;
+    if (link.target === '_blank' && !(typeof is123AvFc2SpaUrl === 'function' && is123AvFc2SpaUrl(link.href))) return;
     event.preventDefault(); event.stopPropagation(); this._closeNativeNavigationMenus(link); this._navigateCustomSpa(spaHref);
    }, true);
    window.addEventListener('popstate', () => {
-    if (!/(?:jav(?:db|bus|library|lib)|r86m|s87n)/i.test(location.hostname)) return;
-    if (this._redirectRetiredCustomEntry()) return;
+    if (!isJavDbHost() && !isJavBusHost() && !isJavLibraryHost()) return;
     if (this._getCustomSpaHref(location.href)) {
      this._paintCustomSpa(() => this._renderCustomSpa({ scroll: false }));
      return; }
@@ -3147,8 +3187,8 @@
  })();
  Core.expose('__LAOSIJI_FC2_DETAIL_RENDERER__', JavdbFc2DetailRenderer);
  const JavdbContent = {
-  _contentUrl(kind, options = {}) {
-   const params = new URLSearchParams({ laosiji_content: kind });
+  _contentUrl(options = {}) {
+   const params = new URLSearchParams({ laosiji_content: 'reviews' });
    if (options.page > 1) params.set('laosiji_page', String(options.page));
    if (options.period && options.period !== 'latest') params.set('laosiji_period', options.period);
    return `/search_advanced?${params.toString()}`;
@@ -3170,7 +3210,7 @@
     ? `https://c0.jdbstatic.com/thumbs/${id.slice(0, 2).toLowerCase()}/${encodeURIComponent(id)}.jpg`
     : this._imageUrl(movie?.thumb_url); },
   _renderNavLinks(active = '') {
-   return `<a class="javdb-content-nav-link ${active === 'reviews' ? 'is-active' : ''}" href="${this._contentUrl('reviews')}">看短评</a>`;
+   return `<a class="javdb-content-nav-link ${active === 'reviews' ? 'is-active' : ''}" href="${this._contentUrl()}">看短评</a>`;
   },
   _installStyle() {
    injectStyle('javdb-content-shell-style',`.javdb-content-nav-link{display:inline-flex!important;align-items:center!important;min-height:40px!important;padding:0 12px!important;border-bottom:2px solid transparent!important;color:#4b5563!important;text-decoration:none!important;white-space:nowrap!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#0f766e!important;color:#0f766e!important;background:rgba(13,148,136,.06)!important}#navbar-menu-user .javdb-content-nav-link{display:flex!important;align-items:center!important;height:52px!important;min-height:52px!important;border-bottom:0!important;color:#38bdf8!important;font-weight:400!important;line-height:1.5!important;box-sizing:border-box!important;position:relative!important}#navbar-menu-user .javdb-content-nav-link::after{content:''!important;position:absolute!important;left:12px!important;right:12px!important;bottom:0!important;height:2px!important;background:transparent!important}#navbar-menu-user .javdb-content-nav-link:hover,#navbar-menu-user .javdb-content-nav-link.is-active{color:#facc15!important;background:rgba(255,255,255,.12)!important}#navbar-menu-user .javdb-content-nav-link:hover::after,#navbar-menu-user .javdb-content-nav-link.is-active::after{background:#facc15!important}.javdb-content-mobile-nav-link{display:none!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#eef3f4!important}html.laosiji-content-route body>section .container{max-width:1024px!important;margin:0 auto!important;padding:32px 42px 64px!important;background:#fbfcfd!important}.javdb-content-shell{--javdb-content-ink:#182230;--javdb-content-muted:#5f6b7a;--javdb-content-line:#d9e0e7;max-width:940px!important;margin:32px auto 56px!important;color:var(--javdb-content-ink)!important}.javdb-content-shell-head{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:16px!important;flex-wrap:wrap!important;margin:0 0 24px!important;padding:0 0 18px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-shell-title{color:var(--javdb-content-ink)!important;font-size:31px!important;font-weight:800!important;line-height:1.2!important;letter-spacing:0!important}.javdb-content-shell-nav,.javdb-content-toolbar{display:flex!important;align-items:center!important;gap:4px!important;flex-wrap:wrap!important}.javdb-content-toolbar{gap:8px!important;margin:-6px 0 18px!important}.javdb-content-toolbar a,.javdb-content-pagination a,.javdb-content-pagination span{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:40px!important;padding:0 13px!important;border:1px solid var(--javdb-content-line)!important;border-radius:6px!important;background:transparent!important;color:#334155!important;font-size:14px!important;font-weight:700!important;line-height:1!important;text-decoration:none!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#0f766e!important;background:#ecfdf5!important;color:#0f766e!important}.javdb-content-pagination span{border-color:transparent!important;color:var(--javdb-content-muted)!important}.javdb-content-status{margin:0 0 18px!important;color:var(--javdb-content-muted)!important;font-size:14px!important;line-height:1.5!important}.javdb-content-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:0!important}.javdb-content-pagination{display:flex!important;justify-content:center!important;align-items:center!important;gap:8px!important;margin:28px 0 8px!important}.javdb-content-review-list{max-width:none!important;margin:0!important}.javdb-content-review{padding:0 0 28px!important;margin:0 0 28px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-review:last-child{border-bottom:0!important}.javdb-content-review-movie{display:flex!important;align-items:flex-start!important;gap:12px!important;margin-bottom:13px!important;color:var(--javdb-content-ink)!important;text-decoration:none!important}.javdb-content-review-movie img{width:58px!important;height:76px!important;flex:0 0 58px!important;object-fit:cover!important;border-radius:4px!important;background:#dfe7e7!important}.javdb-content-review-movie-copy{min-width:0!important;padding-top:2px!important}.javdb-content-review-movie-code{display:block!important;color:#0f766e!important;font-size:12px!important;font-weight:800!important;line-height:1.3!important}.javdb-content-review-movie strong{display:block!important;margin-top:3px!important;font-size:16px!important;line-height:1.5!important;font-weight:750!important}.javdb-content-review-movie small{display:block!important;margin-top:5px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.4!important}.javdb-content-review-head{display:flex!important;align-items:center!important;gap:9px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.45!important}.javdb-content-review-user{color:#334155!important;font-weight:800!important}.javdb-content-review-stars{margin-left:auto!important;color:#a16207!important;font-size:15px!important;letter-spacing:2px!important;white-space:nowrap!important}.javdb-content-review-text{margin:13px 0 0!important;color:#273444!important;font-size:16px!important;line-height:1.85!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f1f5f9;--javdb-content-muted:#b0becd;--javdb-content-line:#344252}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#101820!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#17212b!important}html[data-theme="dark"] .javdb-content-toolbar a,html[data-theme="dark"] .javdb-content-pagination a,html[data-theme="dark"] .javdb-content-pagination span{color:#e2e8f0!important}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#163a36!important;color:#b9f5e7!important}html[data-theme="dark"] .javdb-content-review-user,html[data-theme="dark"] .javdb-content-review-text{color:#e2e8f0!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#f3f1ed!important}html.laosiji-content-route body>section .container{max-width:1024px!important;padding:32px 42px 64px!important;background:#faf9f6!important}.javdb-content-shell{--javdb-content-ink:#28221f;--javdb-content-muted:#736b63;--javdb-content-line:#d8d0c7;max-width:940px!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#a63b2c!important;color:#a63b2c!important;background:#f9ece8!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#a63b2c!important;background:#f9ece8!important;color:#8c3024!important}.javdb-content-review-movie-code{color:#a63b2c!important}.javdb-content-review-movie img{background:#ddd7cf!important}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#1d1a18!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#25211e!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f3eee8;--javdb-content-muted:#c3b9ae;--javdb-content-line:#4a423c}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#442720!important;color:#ffd8cf!important}@media (max-width:760px){html.laosiji-content-route body>section .container{padding:20px 18px 44px!important}.javdb-content-shell{margin:18px 0 32px!important}.javdb-content-shell-head{align-items:flex-start!important;margin-bottom:18px!important}.javdb-content-shell-title{font-size:27px!important}.javdb-content-toolbar{gap:6px!important;margin-bottom:16px!important}.javdb-content-toolbar a{min-height:40px!important;padding:0 10px!important}.javdb-content-review{padding-bottom:24px!important;margin-bottom:24px!important}.javdb-content-review-text{font-size:16px!important}}html[data-laosiji-mobile] #navbar-menu-user .javdb-content-nav-link{display:none!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link{display:flex!important;min-height:48px!important;padding:0 18px!important;color:#334155!important;font-weight:800!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link:hover,html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link.is-active{color:#a63b2c!important;background:#f9ece8!important}`);
@@ -3215,8 +3255,8 @@
    return (Array.isArray(items) ? items : []).map(item => { const movie = item?.movie || {}; return `<article class="javdb-content-review"><a class="javdb-content-review-movie" href="/v/${encodeURIComponent(movie.id || '')}" target="_blank" rel="noopener"><img loading="lazy" src="${this._escapeHtml(this._movieThumbUrl(movie))}" alt=""><span class="javdb-content-review-movie-copy"><span class="javdb-content-review-movie-code">${this._escapeHtml(movie.number || '')}</span><strong>${this._escapeHtml(movie.title || '')}</strong><small>${this._escapeHtml(movie.release_date || '')}</small></span></a><div class="javdb-content-review-head"><span class="javdb-content-review-user">${this._escapeHtml(item?.username || '匿名')}</span><span>看过 ${this._escapeHtml(item?.watched_count || 0)} 部</span><span class="javdb-content-review-stars" aria-label="${this._escapeHtml(item?.score || 0)}分">${stars(item?.score)}</span></div><p class="javdb-content-review-text">${this._escapeHtml(item?.content || '')}</p></article>`; }).join('');
   },
   _pagination(mode, hasNext) {
-   const previous = mode.page > 1 ? `<a href="${this._contentUrl(mode.kind, { page: mode.page - 1, period: mode.period })}">上一页</a>` : '';
-   const next = hasNext ? `<a href="${this._contentUrl(mode.kind, { page: mode.page + 1, period: mode.period })}">下一页</a>` : '';
+   const previous = mode.page > 1 ? `<a href="${this._contentUrl({ page: mode.page - 1, period: mode.period })}">上一页</a>` : '';
+   const next = hasNext ? `<a href="${this._contentUrl({ page: mode.page + 1, period: mode.period })}">下一页</a>` : '';
    return `<div class="javdb-content-pagination">${previous}<span>第 ${mode.page} 页</span>${next}</div>`;
   },
   async _initContentPage() {
@@ -3225,7 +3265,7 @@
    const container = document.querySelector('body > section > div, .section .container');
    if (!container) return false;
    document.documentElement.classList.add('laosiji-content-route'); this._installStyle(); const title = '看短评';
-   const periodLinks = ['latest', 'weekly', 'monthly', 'quarterly', 'yearly', 'all'].map(period => `<a class="${mode.period === period ? 'is-active' : ''}" href="${this._contentUrl('reviews', { period })}">${period === 'latest' ? '最新' : period === 'weekly' ? '上周热评' : period === 'monthly' ? '月度热评' : period === 'quarterly' ? '季度热评' : period === 'yearly' ? '年度热评' : '全部热评'}</a>`).join('');
+   const periodLinks = ['latest', 'weekly', 'monthly', 'quarterly', 'yearly', 'all'].map(period => `<a class="${mode.period === period ? 'is-active' : ''}" href="${this._contentUrl({ period })}">${period === 'latest' ? '最新' : period === 'weekly' ? '上周热评' : period === 'monthly' ? '月度热评' : period === 'quarterly' ? '季度热评' : period === 'yearly' ? '年度热评' : '全部热评'}</a>`).join('');
    const toolbar = periodLinks ? `<nav class="javdb-content-toolbar" aria-label="短评筛选">${periodLinks}</nav>` : '';
    container.innerHTML = this._renderShell(mode, `${toolbar}<div class="javdb-content-status" aria-live="polite">正在读取${title}...</div><div class="javdb-content-grid"></div><div class="javdb-content-list"></div><div class="javdb-content-pagination"></div>`);
    const status = container.querySelector('.javdb-content-status');
@@ -3244,7 +3284,7 @@
  const JavdbAppCover = (() => {
   const APP_HOST = 'tp.spfcas.com'; const WEB_HOST = 'c0.jdbstatic.com'; const APP_PREFIX = '/rhe951l4q'; const IMAGE_ATTRIBUTES = ['src', 'data-src', 'data-original', 'data-lazy-src', 'data-image']; const objectUrls = new Map(); const pending = new Map();
   const failed = new Set(); let started = false; let observer = null;
-  function isJavdbPage() { return /(?:^|\.)javdb(?:\.|$)/i.test(location.hostname); }
+  function isJavdbPage() { return isJavDbHost(); }
   function appUrlFrom(value) {
    let url;
    try {
@@ -3281,7 +3321,7 @@
    const fallback = new Uint8Array(text.length);
    for (let i = 0; i < text.length; i++) fallback[i] = text.charCodeAt(i) & 0xff;
    return fallback; }
-  async function load(url) {
+  async function loadAppCover(url) {
    if (objectUrls.has(url)) return objectUrls.get(url);
    if (pending.has(url)) return pending.get(url);
    if (failed.has(url)) throw new Error('JavDB App cover previously failed');
@@ -3305,12 +3345,42 @@
     failed.add(url); throw error;
    } finally {
     pending.delete(url); } }
+  async function load(value) {
+   const appUrl = appUrlFrom(value);
+   if (!appUrl) return '';
+   return loadAppCover(appUrl); }
+  function movieCoverSource(movie) {
+   const preview = Array.isArray(movie?.preview_images) ? movie.preview_images[0] : null;
+   return String(
+    movie?.cover_url || movie?.thumb_url || movie?.cover?.url || preview?.large_url || preview?.url || preview?.thumb_url || ''
+   ).trim(); }
+  async function loadByNumber(code) {
+   const normalized = String(code || '').trim();
+   if (!normalized || typeof MagnetApi === 'undefined' || typeof MagnetApi.client?.searchMovieByNumber !== 'function') return '';
+   const movie = await MagnetApi.client.searchMovieByNumber(normalized, { limit: 5, fallbackFirst: false });
+   let source = movieCoverSource(movie);
+   if (!source && movie?.id && typeof MagnetApi.client.movieDetail === 'function') { const detail = await MagnetApi.client.movieDetail(movie.id); source = movieCoverSource(detail?.data?.movie || detail?.movie); }
+   if (!source) throw new Error('JavDB cover missing');
+   return load(source); }
   function imageSource(image) {
    for (const attribute of IMAGE_ATTRIBUTES) {
     const value = image.getAttribute(attribute) || ''; const appUrl = appUrlFrom(value);
     if (appUrl) return { attribute, value, appUrl };
    }
    return null; }
+  function restore(image) {
+   const original = image?.dataset?.javdbAppCoverOriginal;
+   if (!image || !original) return;
+   const current = image.getAttribute('src') || image.src || '';
+   IMAGE_ATTRIBUTES.forEach(attribute => {
+    if (image.getAttribute(attribute) === current || image.getAttribute(attribute) === image.src) { image.setAttribute(attribute, original); }
+   });
+   image.src = original; const link = image.closest?.('a[href]'); const linkOriginal = link?.dataset?.javdbAppCoverOriginal;
+   if (link && linkOriginal) { link.setAttribute('href', linkOriginal); delete link.dataset.javdbAppCoverOriginal; }
+   delete image.dataset.javdbAppCover; delete image.dataset.javdbAppCoverPending; delete image.dataset.javdbAppCoverOriginal; }
+  function restoreAll(root = document) {
+   if (root.matches?.('img[data-javdb-app-cover]')) restore(root);
+   root.querySelectorAll?.('img[data-javdb-app-cover]').forEach(restore); }
   function apply(image, source, objectUrl) {
    image.dataset.javdbAppCover = source.appUrl; image.dataset.javdbAppCoverOriginal = image.dataset.javdbAppCoverOriginal || source.value;
    if (!image.dataset.laosijiCoverSrc) image.dataset.laosijiCoverSrc = source.value;
@@ -3318,10 +3388,10 @@
     if (image.getAttribute(attribute) === source.value) image.setAttribute(attribute, objectUrl);
    });
    image.src = objectUrl; const link = image.closest?.('a[href]'); const linkUrl = appUrlFrom(link?.getAttribute('href') || '');
-   if (link && linkUrl === source.appUrl) link.href = objectUrl;
+   if (link && linkUrl === source.appUrl) { link.dataset.javdbAppCoverOriginal = link.dataset.javdbAppCoverOriginal || link.getAttribute('href') || ''; link.href = objectUrl; }
   }
   function process(image) {
-   if (!image || image.nodeType !== 1) return;
+   if (!image || image.nodeType !== 1 || !CFG.javdbAppCover || !isJavdbPage()) return;
    const source = imageSource(image);
    if (!source) return;
    const cached = objectUrls.get(source.appUrl);
@@ -3343,9 +3413,10 @@
    if (root.matches?.('img')) process(root);
    root.querySelectorAll?.('img').forEach(process); }
   function start() {
-   if (started || !isJavdbPage()) return;
+   if (started || !isJavdbPage() || !CFG.javdbAppCover) return;
    started = true;
    const run = () => {
+    if (!started || !CFG.javdbAppCover || !isJavdbPage()) return;
     scan(); const target = document.documentElement || document;
     if (!target || typeof MutationObserver !== 'function') return;
     observer = new MutationObserver(records => {
@@ -3363,7 +3434,14 @@
    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
    else run();
   }
-  return { appUrlFrom, decode, responseBytes, start };
+  function stop() {
+   observer?.disconnect(); observer = null; restoreAll(); started = false; }
+  function sync(enabled = CFG.javdbAppCover) {
+   if (!isJavdbPage()) return;
+   if (enabled) start();
+   else stop();
+  }
+  return { appUrlFrom, decode, responseBytes, load, loadByNumber, start, stop, sync };
  })();
  const JavdbList = {
   _syncRecommendCollapse() {
@@ -3818,7 +3896,7 @@
         function installJavdbRouteStartupGuard() {
             try {
                 const url = new URL(location.href);
-                if (!/javdb/i.test(url.hostname) || url.searchParams.get(ROUTE_KEY) !== '1') return;
+                if (!isJavDbHost(url.hostname) || url.searchParams.get(ROUTE_KEY) !== '1') return;
                 if (document.getElementById('javdb-123av-fc2-route-startup-guard')) return;
                 const style = document.createElement('style');
                 style.id = 'javdb-123av-fc2-route-startup-guard';
@@ -3857,7 +3935,7 @@
                 const url = new URL(href, location.href);
                 const params = url.searchParams;
 
-                if (!/(?:jav(?:db|bus|library|lib)|r86m|s87n)/i.test(url.hostname) || params.get(ROUTE_KEY) !== '1') return null;
+                if ((!isJavDbHost(url.hostname) && !isJavBusHost(url.hostname) && !isJavLibraryHost(url.hostname)) || params.get(ROUTE_KEY) !== '1') return null;
                 const type = TYPES.some(item => item.value === params.get('laosiji_type')) ? params.get('laosiji_type') : '';
                 const year = YEARS.includes(params.get('laosiji_year')) ? params.get('laosiji_year') : '';
                 const actress = ACTRESS_MODES.some(item => item.value === params.get('laosiji_actress')) ? params.get('laosiji_actress') : '';
@@ -3896,9 +3974,9 @@
             if (page > 1) params.set('laosiji_page', String(page));
             if (detail) params.set(DETAIL_KEY, detail);
             const host = location.hostname || '';
-            const path = /javbus/i.test(host)
+            const path = isJavBusHost(host)
                 ? '/'
-                : /(?:javlibrary|javlib|r86m|s87n)/i.test(host)
+                : isJavLibraryHost(host)
                     ? '/cn/main.php'
                     : '/';
             return `${path}?${params.toString()}`;
@@ -4543,7 +4621,7 @@
    if (!route) return false;
    cancelRender(); document.documentElement.dataset.laosiji123avFc2 = '1';
    injectStyle('javdb-123av-fc2-native-search-style', 'html[data-laosiji-123av-fc2="1"] #search-bar-container{display:none!important}');
-   const host = location.hostname || ''; const site = /javbus/i.test(host) ? 'javbus' : /(?:javlibrary|javlib|r86m|s87n)/i.test(host) ? 'javlib' : 'javdb';
+   const host = location.hostname || ''; const site = isJavBusHost(host) ? 'javbus' : isJavLibraryHost(host) ? 'javlib' : 'javdb';
    if (route.detail) { initDetail(route, site); revealJavdbRouteShell(); return true; }
    const shell = renderShell(route, site);
    if (!shell) { revealJavdbRouteShell(); return true; }
@@ -4617,7 +4695,7 @@
  const JavdbFullVideo = (() => {
   const BASE_URL = 'https://missav123.com/cn/';
   const SOURCE_TIMEOUT_MS = 5000; const AVAILABILITY_TIMEOUT_MS = 2000; let mounted = null; let activeRequest = null; let activeHls = null; let generation = 0;
-  function isJavLibraryHost() { return /(javlibrary|javlib|r86m|s87n)/i.test(location.hostname); }
+  function isJavLibraryPage() { return isJavLibraryHost(); }
   function candidates(code, preference = CFG.fullVideoPreference) {
    const slug = getMissavSlug(code);
    if (!/^[a-z0-9][a-z0-9_-]{1,79}$/.test(slug)) return [];
@@ -4914,9 +4992,9 @@
   function detailCover() {
    const customDetailCover = document.querySelector('.javdb-123av-fc2-unified-detail .javdb-fc2-cover-column');
    if (customDetailCover) return customDetailCover;
-   if (isJavLibraryHost()) { return document.querySelector('#video_jacket'); }
-   if (/javbus/i.test(location.hostname)) { return document.querySelector('.row.movie .col-md-9.screencap'); }
-   if (!/javdb/i.test(location.hostname)) return null;
+   if (isJavLibraryPage()) { return document.querySelector('#video_jacket'); }
+   if (isJavBusHost()) { return document.querySelector('.row.movie .col-md-9.screencap'); }
+   if (!isJavDbHost()) return null;
    if (/^\/v\//i.test(location.pathname)) return document.querySelector('.column.column-video-cover');
    return null; }
   function sync(code = '', options = {}) {
@@ -4927,7 +5005,7 @@
    if (mounted?.cover === cover && mounted.player?.isConnected) return;
    if (mounted?.cover === cover && mounted.skipMissav && mounted.loading) return;
    const javlib = options.javlib ?? isJavLibraryHost(); let anchor = cover?.querySelector(':scope > a'); const image = javlib ? cover?.querySelector(':scope > img#video_jacket_img, :scope > img') : anchor?.querySelector('img.video-cover, img');
-   const resolvedCode = code || cover?.closest('[data-laosiji-code]')?.getAttribute('data-laosiji-code') || (isJavLibraryHost() ? SiteJavLib.getVid() : (/javbus/i.test(location.hostname) ? SiteJavBus.getVid() : SiteJavDB.getVid()))
+   const resolvedCode = code || cover?.closest('[data-laosiji-code]')?.getAttribute('data-laosiji-code') || (isJavLibraryPage() ? SiteJavLib.getVid() : (isJavBusHost() ? SiteJavBus.getVid() : SiteJavDB.getVid()))
     || document.querySelector('.movie-panel-info .first-block .value')?.textContent?.trim();
    if (!cover || !image || (!javlib && !anchor) || !candidates(resolvedCode).length) {
     if (javlib && mounted?.cover === cover) return;
@@ -4980,7 +5058,7 @@
  const SiteJavDB = {
   _actorBlacklistObserver: null,
   _actorBlacklistRetryTimers: [],
-  match() { return location.hostname.includes('javdb'); },
+  match() { return isJavDbHost(); },
   getVid() {
    const el = document.querySelector('a.button.is-white.copy-to-clipboard'); return normalizeAvid(el?.dataset?.clipboardText || '') || Utils.extractCode(document.querySelector('h2.title, .javdb-api-detail-title')?.textContent || ''); },
   _removePromoAndMoveSearch() {
@@ -5026,12 +5104,13 @@
    window.addEventListener('resize', syncSearchPlacement, { passive: true });
    syncSearchPlacement(); document.getElementById('laosiji-javdb-search-startup')?.remove(); },
   initPage(avid) {
-   if (this._redirectRetiredCustomEntry()) return;
    document.querySelector('.app-desktop-banner')?.remove(); this._dismissOver18Modal(); this._insertTopSettingsButton(); JavdbContent.installNavigation(); this._removePromoAndMoveSearch(); this._ensureDarkThemeStyle(); this._hideNativeLayoutSwitcher();
-   this._stripNativeLayoutParam(); this._insertResourceNav(); this._installCustomPageSpa(); this._initFavoriteActorHighlight(); this._insertActorBlacklistButton(); Javdb123AvFc2.installLink();
+   this._stripNativeLayoutParam(); this._insertResourceNav(); this._installCustomPageSpa();
+   FavoriteActorHighlight.init('javdb', { enabled: CFG.javdbFavoriteActorHighlight });
+   this._insertActorBlacklistButton(); Javdb123AvFc2.installLink();
    if (Javdb123AvFc2.init()) return;
    if (this._getContentMode?.()) {
-    this._initContentPage().catch(err => { errorLog('JavDB 资讯/短评自造页渲染失败:', err); });
+    this._initContentPage().catch(err => { errorLog('JavDB 短评自造页渲染失败:', err); });
     return; }
    this._initPaginationJump();
    if (!location.pathname.startsWith('/v/')) { this._initListPage(); this._insertResourceNav(); return; }
@@ -5246,9 +5325,15 @@
      if (!el) return;
      ['flex', 'width', 'max-width', 'min-width', 'align-self', 'overflow', 'word-break'].forEach(name => el.style.removeProperty(name));
     });
-    if (isFc2) {
-     const mobileCoverLink = coverCol.querySelector('a'); const mobileCoverImg = coverCol.querySelector('img'); mobileCoverLink?.style.setProperty('height', 'auto', 'important'); mobileCoverLink?.style.setProperty('overflow', 'visible', 'important');
-     mobileCoverImg?.style.setProperty('height', 'auto', 'important'); mobileCoverImg?.style.setProperty('max-height', 'none', 'important'); mobileCoverImg?.style.setProperty('object-fit', 'contain', 'important'); }
+    const mobileCoverImg = coverCol.querySelector('img.video-cover, img'); const mobileCoverLink = mobileCoverImg?.closest('a'); const isMobilePortrait = mobileCoverImg?.classList?.contains?.('is-portrait'); const mobileCoverHeight = 'min(360px,84vw,58vh)';
+    if (isMobilePortrait && mobileCoverImg && mobileCoverLink) {
+     mobileCoverLink.style.setProperty('display', 'flex', 'important'); mobileCoverLink.style.setProperty('align-items', 'center', 'important'); mobileCoverLink.style.setProperty('justify-content', 'center', 'important');
+     mobileCoverLink.style.setProperty('width', '100%', 'important'); mobileCoverLink.style.setProperty('height', mobileCoverHeight, 'important'); mobileCoverLink.style.setProperty('max-height', mobileCoverHeight, 'important');
+     mobileCoverLink.style.setProperty('overflow', 'hidden', 'important'); mobileCoverImg.style.setProperty('display', 'block', 'important'); mobileCoverImg.style.setProperty('width', '100%', 'important');
+     mobileCoverImg.style.setProperty('height', '100%', 'important'); mobileCoverImg.style.setProperty('max-height', '100%', 'important'); mobileCoverImg.style.setProperty('object-fit', 'contain', 'important');
+    } else if (isFc2) {
+     mobileCoverLink?.style.setProperty('height', 'auto', 'important'); mobileCoverLink?.style.setProperty('overflow', 'visible', 'important'); mobileCoverImg?.style.setProperty('height', 'auto', 'important');
+     mobileCoverImg?.style.setProperty('max-height', 'none', 'important'); mobileCoverImg?.style.setProperty('object-fit', 'contain', 'important'); }
     return flexContainer; }
    flexContainer.style.setProperty('display', 'flex', 'important'); flexContainer.style.setProperty('gap', '20px', 'important'); flexContainer.style.setProperty('align-items', 'flex-start', 'important');
    flexContainer.style.setProperty('width', '100%', 'important'); flexContainer.style.setProperty('margin-top', '16px', 'important'); const detailDefaults = DetailFlex.defaultCss('javdb'); const detailValues = DetailFlex.get('javdb');
@@ -5267,11 +5352,11 @@
    if (coverImg) {
     coverImg.removeAttribute('width'); coverImg.removeAttribute('height'); const coverLink = coverImg.closest('a');
     if (coverLink) {
-     coverLink.style.setProperty('display', 'block', 'important'); coverLink.style.setProperty('width', '100%', 'important');
+     coverLink.style.setProperty('display', 'block', 'important'); coverLink.style.setProperty('width', '100%', 'important'); coverLink.style.removeProperty('max-height'); coverLink.style.removeProperty('overflow');
      if (isFc2) coverLink.style.removeProperty('height');
      else coverLink.style.setProperty('height', 'auto', 'important');
     }
-    coverImg.style.setProperty('display', 'block', 'important'); coverImg.style.setProperty('width', '100%', 'important');
+    coverImg.style.setProperty('display', 'block', 'important'); coverImg.style.setProperty('width', '100%', 'important'); coverImg.style.removeProperty('max-height');
     if (isFc2) {
      coverImg.style.removeProperty('height'); coverImg.style.removeProperty('aspect-ratio');
     } else {
@@ -5286,7 +5371,7 @@
    if (!flexContainer) return;
    const slot = document.createElement('div'); slot.className = 'jav-nong-slot'; slot.style.setProperty('flex', 'var(--javdb-magnet-flex) 1 0', 'important'); slot.style.setProperty('min-width', '0', 'important');
    slot.style.setProperty('align-self', 'flex-start', 'important'); slot.style.setProperty('overflow', 'hidden', 'important'); const widget = Magnet.createMagnetWidget(avid); slot.appendChild(widget); flexContainer.appendChild(slot); }, };
- Object.assign( SiteJavDB, JavdbFavorites, JavdbApiTabs, JavdbPagination, JavdbApiShell, JavdbContent, JavdbList );
+ Object.assign( SiteJavDB, JavdbApiTabs, JavdbPagination, JavdbApiShell, JavdbContent, JavdbList );
  const JavdbReviews = {
   ensureStyle() { return SiteJavDB._ensureApiMovieTabStyle(); },
   escapeHtml(value) { return SiteJavDB._escapeHtml(value); },
@@ -5314,7 +5399,7 @@
    return list.map((item, index) => `<div class="javdb-api-review"><div class="javdb-api-review-head"><span><strong>#${offset + index + 1}</strong> ${this.escapeHtml(item?.username || '匿名')}</span><span>${this.renderStars(item?.score)} ${this.escapeHtml(this.formatDate(item?.created_at))} ${Number(item?.likes_count || 0) ? ` · 點讚:${this.escapeHtml(item.likes_count)}` : ''}</span></div><div class="javdb-api-review-content">${this.renderLinkedText(item?.content || '')}</div></div>`).join('');
   }, };
  const SiteJavLib = {
-  match() { return /(javlibrary|javlib|r86m|s87n)/i.test(location.hostname); },
+  match() { return isJavLibraryHost(); },
   isDetailPage() {
    return (
     !!document.querySelector('#video_id .text') && !!document.querySelector('meta[name="keywords"]')
@@ -5329,6 +5414,7 @@
    const m = document.title.match(/([A-Z0-9]+-\d+)/i); return m ? m[1].toUpperCase() : ''; },
   initPage(avid) {
    document.body?.setAttribute('data-laosiji-javlib', ''); SiteJavDB._installCustomPageSpa?.(); this._initMobileForum?.(); this._insertTopSettingsButton(); this._insertTopNavigationDropdown();
+   FavoriteActorHighlight.init('javlibrary', { enabled: CFG.javdbFavoriteActorHighlight });
    if (Javdb123AvFc2.init()) return;
    if (!this.isDetailPage()) {
     this._initListPage();
@@ -5407,12 +5493,17 @@
    const magnetTd = document.createElement('td'); magnetTd.className = 'jav-nong-slot javlib-nong-slot'; magnetTd.style.cssText = 'flex:var(--javlib-magnet-flex) 1 0;min-width:0;vertical-align:top;align-self:flex-start;';
    const innerWrap = document.createElement('div'); innerWrap.style.cssText = 'display:inline-block;'; const widget = Magnet.createMagnetWidget(avid); innerWrap.appendChild(widget); magnetTd.appendChild(innerWrap); row.appendChild(magnetTd); }, };
  const JavlibList = {
+  _insertResourceToolbar(list) {
+   const host = list?.parentElement || list;
+   if (!host || typeof SiteJavBus === 'undefined' || typeof SiteJavBus._insertResourceToolbar !== 'function') return;
+   if (host.closest?.('.javdb-123av-fc2-shell')) return;
+   SiteJavBus._insertResourceToolbar(host); },
   _initListPage() {
    const list = document.querySelector('.videothumblist .videos');
    if (!list) return;
    const needStyle = list.dataset.laosijiGrid !== '1'; const cards = [...list.querySelectorAll(':scope > .video:not([data-laosiji-grid-card="1"])')];
    if (!cards.length && !needStyle) return;
-   list.dataset.laosijiGrid = '1'; list.classList.add('jav-card-grid', 'javlib-card-grid'); CardColumns.apply('javlib'); cards.forEach(card => this._decorateCard(card));
+   list.dataset.laosijiGrid = '1'; list.classList.add('jav-card-grid', 'javlib-card-grid'); this._insertResourceToolbar(list); CardColumns.apply('javlib'); cards.forEach(card => this._decorateCard(card));
    if (needStyle) {
     GM_addStyle(`.jav-card-link:visited .jav-card-title,.jav-card-link:visited .javlib-card-headline,.jav-card-link:visited .javlib-card-code{color:#64748b!important}.javlib-card-link:visited .jav-card-title{background:#f8fafc!important}.javlib-card-link:visited .javlib-card-code{background:#e2e8f0!important}.javlib-cover-pending{opacity:0!important}.jav-card-title{--javlib-title-line-height:22px;display:flex!important;flex-direction:column!important;gap:6px!important;height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+54px)!important;max-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+54px)!important;flex:0 0 auto!important;min-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+54px)!important;padding:9px 10px 10px!important;overflow:hidden!important;text-overflow:ellipsis!important;line-height:var(--javlib-title-line-height)!important}.jav-card-title:has(.javlib-card-footer>*){height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+82px)!important;max-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+82px)!important;min-height:calc((var(--javlib-title-line-height) * var(--jav-card-title-lines,2))+82px)!important}.javlib-card-code-row{display:flex!important;align-items:center!important;flex:0 0 22px!important;height:22px!important;max-height:22px!important;min-height:22px!important;overflow:hidden!important}.javlib-card-headline{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--jav-card-title-lines,2)!important;line-clamp:var(--jav-card-title-lines,2)!important;height:calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;max-height:calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;min-height:calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:normal!important;word-break:break-word!important;color:inherit!important;flex:0 0 calc(var(--javlib-title-line-height) * var(--jav-card-title-lines,2))!important;line-height:var(--javlib-title-line-height)!important}.javlib-card-code{display:inline-flex!important;align-items:center!important;max-width:100%!important;padding:2px 7px!important;border-radius:999px!important;background:#eef2ff!important;color:inherit!important;font-size:14px!important;line-height:1.35!important;font-weight:800!important;letter-spacing:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.javlib-card-footer{display:none!important;align-items:center!important;gap:6px!important;min-height:0!important;margin-top:auto!important;overflow:hidden!important}.javlib-card-footer:not(:empty){display:flex!important;flex:0 0 22px!important;height:22px!important;max-height:22px!important;min-height:22px!important}.videothumblist{width:100%!important}.videothumblist .videos.javlib-card-grid{--jav-card-columns:5}.videothumblist .video.javlib-grid-card .id{display:none!important}.videothumblist .video.javlib-grid-card .toolbar{display:none!important}@media (max-width:1100px){.videothumblist .videos.javlib-card-grid{--jav-card-columns:4}}@media (max-width:820px){.videothumblist .videos.javlib-card-grid{--jav-card-columns:3}}@media (max-width:560px){.videothumblist .videos.javlib-card-grid{--jav-card-columns:2;gap:10px 6px!important}}`);
    }
@@ -5808,7 +5899,7 @@
      titleAnchor.dataset.pan115Checked = '1';
      pushTarget({ anchor: titleAnchor, code: `FC2-PPV-${match[1]}` });
     }); }
-   if (/(javlibrary|javlib|r86m|s87n)/i.test(location.hostname)) {
+   if (isJavLibraryHost()) {
     document.querySelectorAll('.videothumblist .video > a[href]:not(.emby-javlibrary-list-badge)').forEach(anchor => {
      if (seen.has(anchor) || anchor.dataset.pan115Checked === '1') return;
      if (anchor.closest('.emby-btn, .emby-badge, .emby-button-group, .emby-javlibrary-list-badge')) return;
@@ -5877,9 +5968,9 @@
    const titleText = titleElem?.textContent || document.title || ''; return Utils.extractCode(titleText) || ''; },
   getDetailLayoutSite() {
    const host = location.hostname;
-   if (/(?:^|\.)javbus\.com$/i.test(host) && document.querySelector('.row.movie')) return 'javbus';
-   if (/javdb/i.test(host) && document.querySelector('.jav-flex-container, .column.column-video-cover')) return 'javdb';
-   if (/(javlibrary|javlib|r86m|s87n)/i.test(host) && document.querySelector('#video_jacket_info tr')) return 'javlib';
+   if (isJavBusHost(host) && document.querySelector('.row.movie')) return 'javbus';
+   if (isJavDbHost(host) && document.querySelector('.jav-flex-container, .column.column-video-cover')) return 'javdb';
+   if (isJavLibraryHost(host) && document.querySelector('#video_jacket_info tr')) return 'javlib';
    return ''; },
   getMagnetSlot() { return document.querySelector('.jav-nong-slot'); },
   createDetailPreviewStandaloneSlot() {
@@ -5970,6 +6061,7 @@
    const seen = new Set();
    return selectors.flatMap(selector => [...document.querySelectorAll(selector)]) .filter(anchor => {
      if (seen.has(anchor) || !isSafeHref(anchor)) return false;
+     if (typeof is123AvFc2SpaUrl === 'function' && is123AvFc2SpaUrl(anchor.href)) return false;
      seen.add(anchor); return true;
     }); }
   function remember(anchor) {
@@ -5994,6 +6086,7 @@
     if (!active.has(anchor)) restoreAnchor(anchor);
    }); }
   function sync() {
+   if (typeof is123AvFc2SpaUrl === 'function' && is123AvFc2SpaUrl(location.href)) { clearExcept(); return; }
    if (!enabled()) { clearExcept(); return; }
    const anchors = collectAnchors(); const active = new Set(anchors); anchors.forEach(applyAnchor); clearExcept(active); }
   return { sync, clear: () => clearExcept() };
@@ -7361,13 +7454,13 @@
    document.head.appendChild(style); }
   function uniqueNames(anchors) { return [...new Set((anchors || []).map(anchor => normalizeName(anchor.textContent)).filter(Boolean))]; }
   function findTarget() {
-   if (location.hostname.includes('javdb')) {
+   if (isJavDbHost()) {
     const anchors = [...document.querySelectorAll('.movie-panel-info .panel-block a.actor-female[href*="/actors/"]')]; const row = anchors[0]?.closest('.panel-block');
     return row && anchors.length ? { site: 'javdb', names: uniqueNames(anchors), anchor: row } : null; }
-   if (location.hostname.includes('javbus')) {
+   if (isJavBusHost()) {
     const anchors = [...document.querySelectorAll('.col-md-3.info p .genre a[href*="/star/"]')]; const row = anchors[0]?.closest('p');
     return row && anchors.length ? { site: 'javbus', names: uniqueNames(anchors), anchor: row } : null; }
-   if (/(javlibrary|javlib|r86m|s87n)/i.test(location.hostname)) {
+   if (isJavLibraryHost()) {
     const anchors = [...document.querySelectorAll('#video_cast a[href*="vl_star.php"]')]; const row = anchors[0]?.closest('#video_cast');
     return row && anchors.length ? { site: 'javlib', names: uniqueNames(anchors), anchor: row } : null; }
    return null; }
@@ -7421,6 +7514,7 @@
    if (row) target.anchor.insertAdjacentElement('afterend', row);
   }
   async function sync() {
+   if (typeof CFG !== 'undefined' && !CFG.actorInfoEnabled) { renderToken += 1; document.querySelectorAll('.jav-actor-info').forEach(node => node.remove()); return; }
    const target = findTarget(); const token = ++renderToken;
    const actorKey = target ?`${target.site}:${target.names.join('|')}` : '';
    document.querySelectorAll('.jav-actor-info').forEach(node => {
@@ -7635,7 +7729,7 @@
   ]; QUICK_MENU_ITEMS.find(item => item.key === 'download-portrait-cover').icon = QUICK_MENU_ITEMS.find(item => item.key === 'download-cover').icon;
   function enabled() { return GM_getValue('list_preview_quick_enabled', true); }
   function ensureStyle() {
-   injectStyle('jav-list-preview-style',`.jav-card-quick-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;margin-left:auto!important}.jav-card-quick-btn{width:26px!important;height:26px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 26px!important;overflow:hidden!important;border:0!important;border-radius:4px!important;background:transparent!important;color:#64748b!important;box-shadow:none!important;fill:currentColor!important;line-height:1!important;text-decoration:none!important;cursor:pointer!important;user-select:none!important;opacity:.74!important;transition:transform .14s ease,color .14s ease,opacity .14s ease!important}.jav-card-quick-btn:hover{transform:translateY(-1px)!important;background:transparent!important;color:#2563eb!important;opacity:1!important}.jav-card-quick-btn:active{transform:scale(.96)!important}.jav-card-quick-btn:focus-visible{outline:2px solid rgba(37,99,235,.35)!important;outline-offset:2px!important}.jav-card-quick-btn .tool-svg{width:20px!important;height:20px!important;display:block!important;fill:currentColor!important}.jav-card-quick-menu{position:relative;display:inline-flex;z-index:30}.jav-card-quick-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-quick-menu-trigger .tool-svg{width:24px!important;height:24px!important}.jav-card-quick-menu-popover{display:none!important;position:fixed;z-index:10000120;min-width:164px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-card-quick-menu.is-open .jav-card-quick-menu-popover,.jav-card-quick-menu-popover.is-open{display:grid!important;gap:3px}.jav-card-quick-menu-item{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-quick-menu-item:hover{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.quick-menu-item-icon{width:18px;height:18px;flex:none;fill:currentColor}html[data-theme="dark"] .jav-card-quick-menu-popover,html[data-theme="dark"] .jav-card-quick-menu-item{border-color:#52525b;background:#18181b;color:#e4e4e7}.jav-card-resource-menu{position:relative;display:inline-flex;z-index:30}.jav-card-resource-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-resource-menu-trigger:hover,.jav-card-resource-menu-trigger:active{transform:none!important}.jav-card-resource-menu-trigger .resource-menu-icon{width:24px!important;height:24px!important;display:block!important;fill:currentColor!important}.jav-card-resource-menu-popover{display:none!important;position:fixed;z-index:10000120;min-width:128px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-detail-quick-actions{position:static!important;z-index:auto!important}.jav-detail-quick-actions .jav-card-resource-menu{position:relative!important;z-index:0!important}.jav-detail-quick-actions .jav-card-resource-menu-popover{position:absolute;top:calc(100%+6px);left:0;z-index:1!important}.jav-card-resource-menu-popover.is-open{display:grid!important;gap:3px}.jav-card-resource-menu-item{display:block;width:100%;min-height:32px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-resource-menu-item:hover,.jav-card-resource-menu-item.is-active{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.jav-card-resource-markers{position:absolute;top:6px;left:6px;z-index:3;display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 12px);pointer-events:none}.jav-card-resource-marker{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid rgba(255,255,255,.72);border-radius:4px;box-shadow:0 1px 3px rgba(15,23,42,.25);color:#fff;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap}.jav-card-resource-marker-favorite{background:#d97706}.jav-card-resource-marker-watched{background:#2563eb}.jav-card-resource-marker-downloaded{background:#059669}.jav-card-resource-marker-blocked{background:#dc2626}.javdb-grid-card[data-javdb-blacklist-hidden="1"]{display:none!important}.javbus-card-title .item-tag,.javdb-card-tags,.javlib-card-footer{align-items:center!important}.javbus-card-title .item-tag,.javdb-card-tags{display:flex!important}.javlib-card-footer .jav-card-quick-actions{margin-left:auto!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{display:inline-flex!important;align-items:center!important;gap:3px!important;vertical-align:middle!important;white-space:nowrap!important;float:right!important;margin:0!important}.torrent-list>tbody>tr>td:nth-child(2){display:table-cell!important;min-width:0!important;overflow:visible!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-btn{width:24px!important;height:24px!important;flex-basis:24px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .tool-svg{width:17px!important;height:17px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-menu-trigger .tool-svg{width:20px!important;height:20px!important}.torrent-list>tbody>tr>td:nth-child(2)>a[href^="/view/"]{display:inline-block!important;max-width:calc(100% - 150px)!important;overflow:hidden!important;text-overflow:ellipsis!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list .jav-card-quick-magnet{order:1}.torrent-list .jav-card-quick-trailer{order:2}.torrent-list .jav-card-quick-preview{order:3}.torrent-list .jav-card-quick-menu{order:4}.torrent-list .jav-sukebei-offline-115{margin-left:4px!important}.torrent-list .jav-sukebei-offline-115[data-loading="1"]{pointer-events:none!important;opacity:.55!important}html.jav-card-portrait-mode .javdb-card-meta{display:flex!important;align-items:center!important;gap:6px!important}.jav-card-magnet-overlay{position:fixed;inset:0;z-index:10000035;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px)}.jav-card-magnet-panel{width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:10px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-card-magnet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e5e7eb}.jav-card-magnet-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:15px;font-weight:850}.jav-card-magnet-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-card-magnet-body{padding:12px;overflow:auto}.jav-card-magnet-body .jav-nong-wrapper{width:100%!important;display:block!important;box-sizing:border-box!important}`);
+   injectStyle('jav-list-preview-style',`.jav-card-quick-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;margin-left:auto!important}.jav-card-quick-btn{width:26px!important;height:26px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 26px!important;overflow:hidden!important;border:0!important;border-radius:4px!important;background:transparent!important;color:#64748b!important;box-shadow:none!important;fill:currentColor!important;line-height:1!important;text-decoration:none!important;cursor:pointer!important;user-select:none!important;opacity:.74!important;transition:transform .14s ease,color .14s ease,opacity .14s ease!important}.jav-card-quick-btn:hover{transform:translateY(-1px)!important;background:transparent!important;color:#2563eb!important;opacity:1!important}.jav-card-quick-btn:active{transform:scale(.96)!important}.jav-card-quick-btn:focus-visible{outline:2px solid rgba(37,99,235,.35)!important;outline-offset:2px!important}.jav-card-quick-btn .tool-svg{width:20px!important;height:20px!important;display:block!important;fill:currentColor!important}.jav-card-quick-menu{position:relative;display:inline-flex;z-index:30}.jav-card-quick-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-quick-menu-trigger .tool-svg{width:24px!important;height:24px!important}.jav-card-quick-menu-popover{display:none!important;position:fixed;z-index:10000120;min-width:164px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-card-quick-menu.is-open .jav-card-quick-menu-popover,.jav-card-quick-menu-popover.is-open{display:grid!important;gap:3px}.jav-card-quick-menu-item{display:flex;align-items:center;gap:8px;width:100%;min-height:34px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-quick-menu-item:hover{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.quick-menu-item-icon{width:18px;height:18px;flex:none;fill:currentColor}html[data-theme="dark"] .jav-card-quick-menu-popover,html[data-theme="dark"] .jav-card-quick-menu-item{border-color:#52525b;background:#18181b;color:#e4e4e7}.jav-card-resource-menu{position:relative;display:inline-flex;z-index:30}.jav-card-resource-menu-trigger{width:26px!important;height:26px!important;padding:0!important}.jav-card-resource-menu-trigger:hover,.jav-card-resource-menu-trigger:active{transform:none!important}.jav-card-resource-menu-trigger .resource-menu-icon{width:24px!important;height:24px!important;display:block!important;fill:currentColor!important}.jav-card-resource-menu-popover{display:none!important;position:fixed;z-index:10000120;min-width:128px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.18)}.jav-detail-quick-actions{position:static!important;z-index:auto!important}.jav-detail-quick-actions .jav-card-resource-menu{position:relative!important;z-index:0!important}.jav-detail-quick-actions .jav-card-resource-menu-popover{position:absolute;top:calc(100%+6px);left:0;z-index:1!important}.jav-card-resource-menu-popover.is-open{display:grid!important;gap:3px}.jav-card-resource-menu-item{display:block;width:100%;min-height:32px;padding:0 9px;border:1px solid transparent;border-radius:4px;background:#fff;color:#475569;font-size:13px;font-weight:600;line-height:1.35;text-align:left;cursor:pointer}.jav-card-resource-menu-item:hover,.jav-card-resource-menu-item.is-active{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.jav-card-resource-markers{position:absolute;top:6px;left:6px;z-index:3;display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 12px);pointer-events:none}.jav-card-resource-marker{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid rgba(255,255,255,.72);border-radius:4px;box-shadow:0 1px 3px rgba(15,23,42,.25);color:#fff;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap}.jav-card-resource-marker-favorite{background:#d97706}.jav-card-resource-marker-watched{background:#2563eb}.jav-card-resource-marker-downloaded{background:#059669}.jav-card-resource-marker-blocked{background:#dc2626}.javdb-grid-card[data-javdb-blacklist-hidden="1"],.javbus-grid-card[data-jav-resource-blacklist-hidden="1"],.javlib-grid-card[data-jav-resource-blacklist-hidden="1"]{display:none!important}.javbus-card-title .item-tag,.javdb-card-tags,.javlib-card-footer{align-items:center!important}.javbus-card-title .item-tag,.javdb-card-tags{display:flex!important}.javlib-card-footer .jav-card-quick-actions{margin-left:auto!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions{display:inline-flex!important;align-items:center!important;gap:3px!important;vertical-align:middle!important;white-space:nowrap!important;float:right!important;margin:0!important}.torrent-list>tbody>tr>td:nth-child(2){display:table-cell!important;min-width:0!important;overflow:visible!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-btn{width:24px!important;height:24px!important;flex-basis:24px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .tool-svg{width:17px!important;height:17px!important}.torrent-list>tbody>tr>td:nth-child(2)>.jav-card-quick-actions .jav-card-quick-menu-trigger .tool-svg{width:20px!important;height:20px!important}.torrent-list>tbody>tr>td:nth-child(2)>a[href^="/view/"]{display:inline-block!important;max-width:calc(100% - 150px)!important;overflow:hidden!important;text-overflow:ellipsis!important;vertical-align:middle!important;white-space:nowrap!important}.torrent-list .jav-card-quick-magnet{order:1}.torrent-list .jav-card-quick-trailer{order:2}.torrent-list .jav-card-quick-preview{order:3}.torrent-list .jav-card-quick-menu{order:4}.torrent-list .jav-sukebei-offline-115{margin-left:4px!important}.torrent-list .jav-sukebei-offline-115[data-loading="1"]{pointer-events:none!important;opacity:.55!important}html.jav-card-portrait-mode .javdb-card-meta{display:flex!important;align-items:center!important;gap:6px!important}.jav-card-magnet-overlay{position:fixed;inset:0;z-index:10000035;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px)}.jav-card-magnet-panel{width:min(760px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border-radius:10px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-card-magnet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e5e7eb}.jav-card-magnet-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#111827;font-size:15px;font-weight:850}.jav-card-magnet-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-card-magnet-body{padding:12px;overflow:auto}.jav-card-magnet-body .jav-nong-wrapper{width:100%!important;display:block!important;box-sizing:border-box!important}`);
   }
   function isListPage() { return !SiteManager.isDetailPage(); }
   function cardSite(card) {
@@ -7646,7 +7740,7 @@
    return CardColumns.detectCurrentSite(); }
   function targetSlot(card) {
    const site = cardSite(card);
-   if (site === 'javbus') return card.querySelector('.item-tag');
+   if (site === 'javbus') return SiteJavBus._getCardActionSlot?.(card) || card.querySelector('.item-tag');
    if (site === 'javdb') {
     return PortraitCards.effective('javdb') ? card.querySelector('.javdb-card-meta, .meta, .javdb-card-tools') : card.querySelector('.javdb-card-tags, .tags.has-addons, .tags, .javdb-card-tools'); }
    if (site === 'javlib') {
@@ -7833,7 +7927,7 @@
     actions.appendChild(button);
    });
    const coverMenu = createDetailCoverMenu(code, host); coverMenu.hidden = !Utils.isEligibleDmmCoverCode(code); actions.appendChild(coverMenu);
-   if (/(?:^|\.)javdb\.com$/i.test(location.hostname)) addResourceMenu(null, actions, code);
+   if (resourceApi()?.isSupported?.()) addResourceMenu(null, actions, code);
    return actions; }
   if (window.__LAOSIJI_QUICK_MENU_EVENTS__) window.removeEventListener('click', window.__LAOSIJI_QUICK_MENU_EVENTS__, true);
   window.__LAOSIJI_QUICK_MENU_EVENTS__ = event => {
@@ -7847,20 +7941,27 @@
    const api = resourceApi();
    return api?.getWorkFlags?.(api.getState?.().works?.[code]) || {}; };
   function syncBlacklistCard(card, code = SiteManager.getCardCode(card)) {
-   if (cardSite(card) !== 'javdb' || !code) return false;
+   const site = cardSite(card);
+   if (!['javdb', 'javbus'].includes(site) || !code) return false;
    const api = resourceApi();
    if (!api?.isWorkBlacklisted) return false;
-   const title = card.querySelector('.javdb-card-headline, .javdb-card-title, .video-title, .title')?.textContent || '';
-   const actorNames = [...card.querySelectorAll('a[href*="/actors/"]:not(.jav-card-quick-actions a)')].map(anchor => anchor.textContent.trim()).filter(Boolean);
+   const title = card.querySelector('.javdb-card-headline, .javdb-card-title, .javbus-card-headline, .javlib-card-headline, .video-title, .title')?.textContent || '';
+   const actorNames = [...card.querySelectorAll('a[href*="/actors/"], a[href*="/star/"]')] .filter(anchor => !anchor.closest('.jav-card-quick-actions')) .map(anchor => anchor.textContent.trim()).filter(Boolean);
    const stored = api.getState?.().works?.[code] || {};
-   const blocked = !!api.isWorkBlacklisted({ ...stored, code, title: title.trim() || stored.title || '', actorNames: [...new Set([...(stored.actorNames || []), ...actorNames])] });
-   card.hidden = blocked; card.dataset.javdbBlacklistHidden = blocked ? '1' : '0'; return blocked; }
+   const actorPage = site === 'javbus' ? SiteJavBus.getActorPageInfo?.() : null;
+   const blocked = !!(actorPage?.actorId && api.isActorBlacklisted?.(actorPage.actorId)) || !!api.isWorkBlacklisted({ ...stored, code, title: title.trim() || stored.title || '', actorNames: [...new Set([...(stored.actorNames || []), ...actorNames])] });
+   card.hidden = blocked;
+   if (site === 'javdb') card.dataset.javdbBlacklistHidden = blocked ? '1' : '0';
+   else card.dataset.javResourceBlacklistHidden = blocked ? '1' : '0';
+   return blocked; }
   function resourceMetadata(card, code) {
-   const root = card || document; const titleNode = root.querySelector('.javdb-card-headline, .javdb-card-title, .video-title, .movie-panel-info .title, .movie-panel-info h1, .movie-panel-info h2, .title');
+   const root = card || document; const api = resourceApi(); const titleNode = root.querySelector('.javdb-card-headline, .javdb-card-title, .video-title, .movie-panel-info .title, .movie-panel-info h1, .movie-panel-info h2, .title');
    const image = root.querySelector('img[src], img[data-src]'); const anchor = card?.querySelector('a[href]'); let url = ''; let cover = '';
    try { url = anchor ? new URL(anchor.getAttribute('href') || '', location.href).href : ''; } catch (_) { }
    try { cover = image ? new URL(image.getAttribute('src') || image.getAttribute('data-src') || '', location.href).href : ''; } catch (_) { }
-   return { code, title: String(titleNode?.textContent || '').replace(code, '').trim(), cover, url: url || location.href, source: 'javdb', type: 'unknown', tags: [], actorNames: [] }; }
+   const source = api?.getActiveSource?.() || (isJavBusHost() ? 'javbus' : isJavLibraryHost() ? 'javlibrary' : 'javdb'); const typeText = root.textContent || '';
+   const type = /无码|無碼|uncensored/i.test(typeText) ? 'uncensored' : /有码|有碼|censored/i.test(typeText) ? 'censored' : 'unknown';
+   return { code, title: String(titleNode?.textContent || '').replace(code, '').trim(), cover, url: url || location.href, source, type, tags: [], actorNames: [] }; }
   function closeResourceMenu(menu) {
    if (!menu) return;
    menu.classList.remove('is-open'); menu.querySelector('.jav-card-resource-menu-trigger')?.setAttribute('aria-expanded', 'false'); const popover = menu.__resourcePopover;
@@ -7882,7 +7983,7 @@
    popover.style.top =`${Math.max(6, rect.top >= height + 8 ? rect.top - height - 6 : Math.min(window.innerHeight - height - 6, rect.bottom + 6))}px`;
    popover.style.visibility = 'visible'; }
   function syncResourceMarkers(card, code) {
-   if (!card || cardSite(card) !== 'javdb') return;
+   if (!card || !['javdb', 'javbus', 'javlib'].includes(cardSite(card))) return;
    const cover = card.querySelector('.jav-card-cover, .cover');
    if (!cover) return;
    const flags = resourceFlags(code); const active = RESOURCE_MARKERS.filter(([flag]) => flags[flag]); let markers = cover.querySelector('.jav-card-resource-markers');
@@ -7900,7 +8001,7 @@
     if (labels && button.textContent !== labels[active ? 1 : 0]) button.textContent = labels[active ? 1 : 0];
    }); }
   function syncAllResourceMenus() {
-   document.querySelectorAll('.javdb-grid-card').forEach(card => {
+   document.querySelectorAll('.javdb-grid-card, .javbus-grid-card, .javlib-grid-card').forEach(card => {
     const code = SiteManager.getCardCode(card);
     if (code && !syncBlacklistCard(card, code)) { attachToCard(card); syncResourceMenu(card, code); syncResourceMarkers(card, code); }
    });
@@ -7909,8 +8010,8 @@
     if (code) syncResourceMenu(null, code, actions);
    }); }
   function addResourceMenu(card, actions, code) {
-   const isJavdbDetail = !card && /(?:^|\.)javdb\.com$/i.test(location.hostname);
-   if ((!isJavdbDetail && cardSite(card) !== 'javdb') || !actions || !code) return;
+   const api = resourceApi(); const adapter = api?.getSourceAdapter?.(); const isResourceDetail = !card && !!api?.isSupported?.() && (api.getActiveSource?.() === 'javdb' || !!adapter?.parseWorkPage);
+   if ((!isResourceDetail && !['javdb', 'javbus', 'javlib'].includes(cardSite(card))) || !actions || !code) return;
    let menu = actions.querySelector('.jav-card-resource-menu') || card?.querySelector('.jav-card-resource-menu');
    if (!menu || menu.dataset.resourceMenuVersion !== '3') {
     if (menu) { closeResourceMenu(menu); menu.remove(); }
@@ -7976,8 +8077,7 @@
  })();
  Core.expose('__LAOSIJI_LIST_PREVIEW__', ListPreview);
  const CoverHoverPreview = (() => {
-  let active = false; let timer = null; let popup = null; let lastEvent = null; let lastAnchor = null; const titleStore = new Map(); const pan115CoverCache = new Map(); const pan115CoverPending = new Map(); const PAN115_COVER_CACHE_PREFIX = 'pan115_cover_v2_';
-  const DMM_GRAPHQL_URL = 'https://api.video.dmm.co.jp/graphql';
+  let active = false; let timer = null; let popup = null; let lastEvent = null; let lastAnchor = null; const titleStore = new Map(); const pan115CoverCache = new Map(); const pan115CoverPending = new Map(); const PAN115_COVER_CACHE_PREFIX = 'pan115_cover_v4_';
   function enabled() {
    const feature = is115Page() ? 'pan115CoverHoverPreview' : 'coverHoverPreview'; const configured = is115Page() ? CFG.pan115CoverHoverPreview : CFG.coverHoverPreview; const embyPage = isEmbyPage();
    if (embyPage) return true;
@@ -8078,68 +8178,38 @@
    const img = cover?.querySelector?.('img[src]');
    if (!img) return '';
    return img.dataset.laosijiLandscapeSrc || img.dataset.laosijiCoverSrc || img.currentSrc || img.src || ''; }
-  function javdbImageUrl(value) {
-   return String(value || '').trim().replace(/https:\/\/.*?\/rhe951l4q/g, 'https://c0.jdbstatic.com');
-  }
-  function pickJavdbCover(movie) {
-   const preview = Array.isArray(movie?.preview_images) ? movie.preview_images[0] : null;
-   return javdbImageUrl(
-    movie?.cover_url || movie?.thumb_url || movie?.cover?.url || preview?.large_url || preview?.url || preview?.thumb_url
-   ); }
   function readPan115CoverCache(code) {
-   const key =`${PAN115_COVER_CACHE_PREFIX}${code}`;
+   const key = `${PAN115_COVER_CACHE_PREFIX}${code}`;
    if (pan115CoverCache.has(key)) return pan115CoverCache.get(key);
    try {
     const raw = sessionStorage.getItem(key);
     if (raw === null) return undefined;
-    const value = JSON.parse(raw); pan115CoverCache.set(key, value || null); return value || null;
+    const value = JSON.parse(raw);
+    if (typeof value === 'string' && /^blob:/i.test(value)) { sessionStorage.removeItem(key); return undefined; }
+    pan115CoverCache.set(key, value || null); return value || null;
    } catch { return undefined; } }
   function writePan115CoverCache(code, value) {
-   const key =`${PAN115_COVER_CACHE_PREFIX}${code}`;
+   const key = `${PAN115_COVER_CACHE_PREFIX}${code}`;
    pan115CoverCache.set(key, value || null);
-   try { sessionStorage.setItem(key, JSON.stringify(value || null)); } catch {}
-  }
-  async function loadJavdbCover(code) {
-   const movie = await MagnetApi.client.searchMovieByNumber(code, { limit: 5, fallbackFirst: false });
-   let cover = pickJavdbCover(movie);
-   if (!cover && movie?.id) { const detail = await MagnetApi.client.movieDetail(movie.id); cover = pickJavdbCover(detail?.data?.movie); }
-   if (!cover) throw new Error('JavDB cover missing');
+   try {
+    if (typeof value === 'string' && /^blob:/i.test(value)) { sessionStorage.removeItem(key); return; }
+    sessionStorage.setItem(key, JSON.stringify(value || null));
+   } catch {} }
+  function coverUrlFromJavxyResult(result) {
+   return [result?.cover, result?.portraitCover, result?.url, result?.highCover, result?.highPortraitCover] .map(value => String(value || '').trim()) .find(Boolean) || ''; }
+  async function loadJavxyCover(code) {
+   if (typeof Trailer === 'undefined' || typeof Trailer.fromJavxyCover !== 'function') throw new Error('JavXY cover resolver unavailable');
+   const result = await Trailer.fromJavxyCover(code);
+   if (result?.banned) throw new Error('JavXY cover request banned');
+   if (!result?.found) throw new Error('JavXY cover missing');
+   const cover = coverUrlFromJavxyResult(result);
+   if (!cover) throw new Error('JavXY cover URL missing');
    return cover; }
-  function dmmGraphQLKeyword(code) {
-   const match = String(code || '').trim().toUpperCase().match(/^([A-Z0-9]{2,10})-(\d{1,6})$/);
-   if (!match) return '';
-   return`${match[1].toLowerCase()}${match[2].padStart(5, '0')}`;
-  }
-  async function dmmGraphQLRequest(query) {
-   const response = await gmFetch(DMM_GRAPHQL_URL, {
-    method: 'POST',
-    data: JSON.stringify({ query }),
-    timeout: 12000,
-    headers: {
-     Accept: 'application/json',
-     'Content-Type': 'application/json',
-     Referer: 'https://video.dmm.co.jp/',
-     'Fanza-Device': 'BROWSER',
-     'Cache-Control': 'no-cache', },
-   });
-   if (!response.loadstuts || response.status < 200 || response.status >= 400) {
-    throw new Error(`DMM GraphQL HTTP ${response.status || 0}`);
-   }
-   const json = JSON.parse(response.responseText || '{}');
-   if (Array.isArray(json.errors) && json.errors.length) throw new Error(json.errors[0]?.message || 'DMM GraphQL error');
-   return json.data || {}; }
-  async function loadDmmCover(code) {
-   const keyword = dmmGraphQLKeyword(code);
-   if (!keyword) throw new Error('DMM cover keyword missing');
-   for (const searchKeyword of [...new Set([keyword,`${keyword}#`])]) {
-    const query =`{ legacySearchPPV(limit: 5, offset: 0, sort: SALES_RANK_SCORE, floor: AV, queryWord: ${JSON.stringify(searchKeyword)}) { result { contents { id } } } }`;
-    const data = await dmmGraphQLRequest(query); const ids = Array.isArray(data?.legacySearchPPV?.result?.contents) ? data.legacySearchPPV.result.contents.map(item => String(item?.id || '').trim()).filter(Boolean) : [];
-    const compactKeyword = keyword.replace(/[^a-z0-9]/gi, '').toLowerCase(); const contentID = ids.find(id => id.replace(/[^a-z0-9]/gi, '').toLowerCase().includes(compactKeyword)) || (ids.length === 1 ? ids[0] : '');
-    if (contentID) {
-     const encoded = encodeURIComponent(contentID);
-     return`https://pics.dmm.co.jp/digital/video/${encoded}/${encoded}pl.jpg`;
-    } }
-   throw new Error('DMM cover missing'); }
+  async function loadJavdbCover(code) {
+   if (typeof JavdbAppCover === 'undefined' || typeof JavdbAppCover.loadByNumber !== 'function') { throw new Error('JavDB App cover resolver unavailable'); }
+   const cover = await JavdbAppCover.loadByNumber(code);
+   if (!cover) throw new Error('JavDB App cover missing');
+   return cover; }
   async function loadPan115Cover(code) {
    const normalized = Utils.normalizeCode(code);
    if (!normalized) return '';
@@ -8147,12 +8217,12 @@
    if (cached !== undefined) return cached || '';
    if (pan115CoverPending.has(normalized)) return pan115CoverPending.get(normalized);
    const task = Promise.any([
+    loadJavxyCover(normalized),
     loadJavdbCover(normalized),
-    loadDmmCover(normalized),
    ]).then(cover => {
     writePan115CoverCache(normalized, cover); return cover;
-   }).catch(err => {
-    errorLog('115 JavDB/DMM 封面查询失败:', normalized, err); writePan115CoverCache(normalized, ''); return '';
+   }).catch(error => {
+    errorLog('115 封面并发查询失败:', normalized, error); writePan115CoverCache(normalized, ''); return '';
    }).finally(() => pan115CoverPending.delete(normalized));
    pan115CoverPending.set(normalized, task); return task; }
   function titleTargets(cover) {
@@ -8179,8 +8249,8 @@
    if (top + rect.height > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
    if (top < 8) top = 8;
    if (left < 8) left = 8;
-   box.style.left =`${Math.round(left)}px`;
-   box.style.top =`${Math.round(top)}px`;
+   box.style.left = `${Math.round(left)}px`;
+   box.style.top = `${Math.round(top)}px`;
   }
   function show(src, event, fallback = '') {
    if (!src || !active) return;
@@ -8197,13 +8267,13 @@
    if (!enabled()) return;
    const target = targetFromEvent(event.target);
    if (!target) return;
-   suppressTitles(target.anchor); lastEvent = event; lastAnchor = target.anchor; clearTimer();
+   suppressTitles(target.anchor); lastEvent = event; lastAnchor = target.anchor; const coverTask = target.src ? Promise.resolve(target.src) : loadPan115Cover(target.code); clearTimer();
    timer = setTimeout(async () => {
     const current = targetFromEvent(lastEvent?.target);
     if (!current || current.anchor !== target.anchor || !active) return;
-    const src = target.src || await loadPan115Cover(target.code);
+    const src = await coverTask;
     if (src && active && lastAnchor === target.anchor) show(src, lastEvent, target.fallback);
-   }, 500); }
+   }, 350); }
   function onMove(event) {
    if (!popup && !timer) return;
    lastEvent = event;
@@ -8228,6 +8298,11 @@
     document.addEventListener('mouseover', onOver, true); document.addEventListener('mousemove', onMove, true); document.addEventListener('mouseout', onOut, true); document.addEventListener('pointerdown', onPointerDown, true);
    } else {
     document.removeEventListener('mouseover', onOver, true); document.removeEventListener('mousemove', onMove, true); document.removeEventListener('mouseout', onOut, true); document.removeEventListener('pointerdown', onPointerDown, true); hide(); } }
+  if (is115Page()) {
+   const install = () => sync();
+   if (typeof queueMicrotask === 'function') queueMicrotask(install);
+   else if (typeof setTimeout === 'function') setTimeout(install, 0);
+  }
   return { sync, hide };
  })();
  Core.expose('__LAOSIJI_COVER_HOVER_PREVIEW__', CoverHoverPreview);
@@ -8332,7 +8407,7 @@
  const Trailer = {
   normalize(code) { return Utils.normalizeCode(code); },
   cacheKey(code) {
-   return`trailer_cache_v17_${this.normalize(code)}`;
+   return `trailer_cache_v17_${this.normalize(code)}`;
   },
   isDynamicTrailer(result) {
    const url = String(result?.url || ''); return String(result?.type || '').toLowerCase() === 'hls' || /\.m3u8(?:[?#].*)?$/i.test(url); },
@@ -8488,7 +8563,7 @@
    if (raw === 'direct' || raw.includes('heyzo') || raw.includes('heydouga') || raw.includes('paco') || raw.includes('10musume') || raw.includes('10mu') || raw.includes('1pondo') || raw.includes('caribbean') || raw.includes('tokyo-hot') || raw.includes('tokyohot')) return 'Direct';
    return String(value || '').trim(); },
   jpSourceFailedKey(source = 'DMM') {
-   return`javxy_jp_source_failed_until_${String(source || '').toUpperCase()}`;
+   return `javxy_jp_source_failed_until_${String(source || '').toUpperCase()}`;
   },
   isJpSourceTemporarilyFailed(source = 'DMM') {
    const until = Number(sessionStorage.getItem(this.jpSourceFailedKey(source)) || 0);
@@ -8525,7 +8600,8 @@
    for (const endpoint of endpoints) {
     const params = new URLSearchParams({ client: 'laosiji-new' });
     const apiUrl = endpoint.base
-     ?`${endpoint.base}/api/trailers/proxy/status?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/api/trailers/proxy/status?${params}`;
+     ? `${endpoint.base}/api/trailers/proxy/status?${params}`
+     : `${endpoint.protocol || 'https'}://${endpoint.host}/api/trailers/proxy/status?${params}`;
     const response = await this.request(apiUrl, {
      timeout: 5000,
      headers: this.javxyHeaders(endpoint.authenticated)
@@ -8635,7 +8711,8 @@
    for (const endpoint of endpoints) {
     const params = new URLSearchParams({ client: 'laosiji-new' });
     const apiUrl = endpoint.base
-     ?`${endpoint.base}/api/actors?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/api/actors?${params}`;
+     ? `${endpoint.base}/api/actors?${params}`
+     : `${endpoint.protocol || 'https'}://${endpoint.host}/api/actors?${params}`;
     const response = await this.request(apiUrl, {
      method: 'POST',
      data: JSON.stringify({ names: normalizedNames }),
@@ -8667,7 +8744,8 @@
     if (options.proxyPlayback) params.set('purpose', 'proxy-playback');
     if (options.requestID) params.set('request_id', String(options.requestID));
     const apiUrl = endpoint.base
-     ?`${endpoint.base}/api/trailers/${encodeURIComponent(query)}?${params}`                    :`${endpoint.protocol || 'https'}://${endpoint.host}/api/trailers/${encodeURIComponent(query)}?${params}`;
+     ? `${endpoint.base}/api/trailers/${encodeURIComponent(query)}?${params}`
+     : `${endpoint.protocol || 'https'}://${endpoint.host}/api/trailers/${encodeURIComponent(query)}?${params}`;
     this.debug('Javxy \u8bf7\u6c42 API', { query, apiUrl, endpoint: endpoint.label });
     const r = await this.request(apiUrl, {
      timeout: 8000,
@@ -8709,8 +8787,8 @@
      return null; }
     const qualityMap = data?.qualities && typeof data.qualities === 'object' ? data.qualities : {};
     const quality = data?.quality && qualityMap[data.quality] ? data.quality : this.selectHighestQuality(qualityMap);
-    const sourceBase = this.javxySourceLabels[data?.source] ||`Javxy | ${data?.source || 'dmm'}`;
-    const source = data?.proxy ?`${sourceBase} | 代理` : sourceBase;
+    const sourceBase = this.javxySourceLabels[data?.source] || `Javxy | ${data?.source || 'dmm'}`;
+    const source = data?.proxy ? `${sourceBase} | 代理` : sourceBase;
     this.debug('Javxy 返回结果', { endpoint: endpoint.label, source: data?.source, quality, qualities: Object.keys(qualityMap) });
     const resultType = String(data?.type || '').trim() || 'video'; const directUrl = qualityMap[quality] || trailerUrl;
     return this.applyQualityPreference(this.result(directUrl, source, resultType, {
@@ -8742,7 +8820,8 @@
    for (const endpoint of endpoints) {
     const params = new URLSearchParams({ client: 'laosiji-new' });
     const apiUrl = endpoint.base
-     ?`${endpoint.base}/api/cover/${encodeURIComponent(query)}?${params}`                    :`https://${endpoint.host}/api/cover/${encodeURIComponent(query)}?${params}`;
+     ? `${endpoint.base}/api/cover/${encodeURIComponent(query)}?${params}`
+     : `https://${endpoint.host}/api/cover/${encodeURIComponent(query)}?${params}`;
     const response = await this.request(apiUrl, {
      timeout: 15000,
      headers: this.javxyHeaders(endpoint.authenticated)
@@ -8774,12 +8853,12 @@
   getVideoEngines() { return VIDEO_ENGINES; },
   getSourceOrder() { return GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']); } };
  const SearchEngines = [
-  { name: 'BTDigg', color: '#F60', url: (code) =>`https://btdig.com/search?q=${code}` },
-  { name: 'Taocili', color: '#DE5833', url: (code) =>`https://taocili.com/search?q=${code}` },
-  { name: 'Google', color: '#4285F4', url: (code) =>`https://www.google.com/search?q=${code}` },
-  { name: 'Bing', color: '#008373', url: (code) =>`https://www.bing.com/search?q=${code}` },
-  { name: 'DuckGo', color: '#DE5833', url: (code) =>`https://duckduckgo.com/?q=${code}` },
-  { name: 'AVBase', color: '#1d4ed8', url: (code) =>`https://www.avbase.net/works?q=${encodeURIComponent(code)}` },
+  { name: 'BTDigg', color: '#F60', url: (code) => `https://btdig.com/search?q=${code}` },
+  { name: 'Taocili', color: '#DE5833', url: (code) => `https://taocili.com/search?q=${code}` },
+  { name: 'Google', color: '#4285F4', url: (code) => `https://www.google.com/search?q=${code}` },
+  { name: 'Bing', color: '#008373', url: (code) => `https://www.bing.com/search?q=${code}` },
+  { name: 'DuckGo', color: '#DE5833', url: (code) => `https://duckduckgo.com/?q=${code}` },
+  { name: 'AVBase', color: '#1d4ed8', url: (code) => `https://www.avbase.net/works?q=${encodeURIComponent(code)}` },
   {
    name: 'FD2PPV',
    color: '#0f766e',
@@ -8787,7 +8866,7 @@
    isAvailable: code => /^FC2[-_\s]?(?:PPV[-_\s]?)?\d{6,9}$/i.test(String(code || '').trim()),
    url: code => {
     const number = String(code || '').trim().match(/^FC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})$/i)?.[1] || '';
-    return number ?`https://fd2ppv.cc/articles/${number}` : '';
+    return number ? `https://fd2ppv.cc/articles/${number}` : '';
    }, }, ];
  function getAvailableSearchEngines(code) { return SearchEngines.filter(engine => !engine.isAvailable || engine.isAvailable(code)); }
  const Pan115 = {
@@ -8797,6 +8876,7 @@
   deleteApi: 'https://webapi.115.com/rb/delete',
   videoExts: new Set(['mp4', 'mkv', 'avi', 'wmv', 'mov', 'm4v', 'ts', 'flv', 'rmvb', 'webm']),
   pendingAll: new Map(),
+  searchBlockedUntil: 0,
   listCachePrefix: 'pan115_list_cache_v1_',
   mgstagePrefixMap: {
    LUXU: '259LUXU',
@@ -8835,25 +8915,30 @@
   playUrl(pickcode) {
    const encoded = encodeURIComponent(pickcode); const playerMode = GM_getValue('pan115_player_mode', 'official');
    if (playerMode === '115master') {
-    return`https://115.com/web/lixian/master/video/?pick_code=${encoded}`;
+    return `https://115.com/web/lixian/master/video/?pick_code=${encoded}`;
    }
-   return`https://115vod.com/?pickcode=${encoded}&share_id=0`;
+   return `https://115vod.com/?pickcode=${encoded}&share_id=0`;
   },
   isPotPlayerMode() { return GM_getValue('pan115_player_mode', 'official') === 'potplayer'; },
   async playPotPlayer(pickcode, title = '') {
    const directUrl = await fetchPan115DirectUrl(pickcode); const encodedTitle = String(title || '').replace(/[\r\n]/g, ' ').split('"').join(' ').trim();
    const command = [
-`potplayer://${encodeURI(directUrl)}`,
+    `potplayer://${encodeURI(directUrl)}`,
     '/current',
-`/user_agent="${String(navigator.userAgent).replace(/[\r\n]/g, ' ').split('"').join(' ')}"`,
+    `/user_agent="${String(navigator.userAgent).replace(/[\r\n]/g, ' ').split('"').join(' ')}"`,
     '/referer="https://115.com/"',
-    encodedTitle ?`/title="${encodedTitle}"` : '',
+    encodedTitle ? `/title="${encodedTitle}"` : '',
    ].filter(Boolean).join(' '); GM_setClipboard(command);
    window.open('potplayer:///current/clipboard', '_self');
    return directUrl; },
   listCacheKey(code) {
-   return`${this.listCachePrefix}${this.normalizeKeepSeparator(code)}`;
+   return `${this.listCachePrefix}${this.normalizeKeepSeparator(code)}`;
   },
+  isSearchBlocked() { return Date.now() < this.searchBlockedUntil; },
+  blockSearch(duration = 10 * 60 * 1000) {
+   this.searchBlockedUntil = Date.now() + duration; },
+  clearSearchBlock() {
+   this.searchBlockedUntil = 0; },
   getListCached(code) {
    try {
     const raw = sessionStorage.getItem(this.listCacheKey(code));
@@ -8880,7 +8965,7 @@
    return match ? { date: match[1], sep: match[2], num: match[3], source: match[4] || '' } : null; },
   uncensoredDigitKey(code) {
    const parts = this.uncensoredParts(code);
-   return parts ?`${parts.date}${parts.sep}${parts.num}` : '';
+   return parts ? `${parts.date}${parts.sep}${parts.num}` : '';
   },
   fc2Number(code) {
    const normalized = this.normalizeKeepSeparator(code);
@@ -8888,17 +8973,17 @@
    return match ? match[1] : ''; },
   extractCode(text, fallbackCode = '') {
    const fc2 = String(text || '').match(/\bFC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})\b/i);
-   if (fc2) return`FC2-PPV-${fc2[1]}`;
+   if (fc2) return `FC2-PPV-${fc2[1]}`;
    const sourcePattern = this.sourcePattern();
    const tail = String(text || '').match(new RegExp(`\\b(\\d{6})([-_])(\\d{2,3})[-_\\s]*(${sourcePattern})\\b`, 'i'));
    if (tail) {
     const source = tail[4].toUpperCase(); const sep = tail[2] === '_' ? '_' : '-';
-    return`${tail[1]}${sep}${tail[3]}-${source}`;
+    return `${tail[1]}${sep}${tail[3]}-${source}`;
    }
    const head = String(text || '').match(new RegExp(`\\b(${sourcePattern})[-_\\s]*(\\d{6})([-_])(\\d{2,3})\\b`, 'i'));
    if (head) {
     const source = head[1].toUpperCase(); const sep = head[3] === '_' ? '_' : '-';
-    return`${head[2]}${sep}${head[4]}-${source}`;
+    return `${head[2]}${sep}${head[4]}-${source}`;
    }
    return fallbackCode || Utils.extractCode(text); },
   searchKeyword(code) {
@@ -8910,7 +8995,7 @@
    if (compact !== normalized) variants.push(compact);
    const fc2 = this.fc2Number(normalized);
    if (fc2) {
-    variants.push(`FC2-${fc2}`,`FC2-PPV-${fc2}`, fc2);
+    variants.push(`FC2-${fc2}`, `FC2-PPV-${fc2}`, fc2);
    }
    const mgstage = normalized.match(/^(\d{3})([A-Z]{2,10})-(\d{2,6})$/);
    if (mgstage && Object.values(this.mgstagePrefixMap).includes(`${mgstage[1]}${mgstage[2]}`)) {
@@ -8965,7 +9050,7 @@
    const units = ['B', 'KB', 'MB', 'GB', 'TB']; let value = size; let index = 0;
    while (value >= 1024 && index < units.length - 1) { value /= 1024; index += 1; }
    const digits = index >= 3 ? 2 : index >= 2 ? 1 : 0;
-   return`${value.toFixed(digits).replace(/\.0+$/, '')} ${units[index]}`;
+   return `${value.toFixed(digits).replace(/\.0+$/, '')} ${units[index]}`;
   },
   lowPriorityReason(item) {
    const name = String(item?.name || ''); const size = this.parseSize(item?.size); const previewName = /(?:^|[.\-_\s])(?:tp|trailer|sample|preview|pv|cm|予告|预告|試看|试看)(?:[.\-_\s]|$)/i.test(name);
@@ -8992,14 +9077,14 @@
    return new Promise((resolve, reject) => {
     GM_xmlhttpRequest({
      method: 'GET',
-     url:`${this.api}?${query}`,
+     url: `${this.api}?${query}`,
      timeout: 15000,
      anonymous: false,
      headers: { Accept: 'application/json, text/plain, */*' },
      onload: r => {
       try {
        resolve(JSON.parse(r.responseText));
-      } catch (err) { reject(new Error('115返回不是JSON，可能未登录')); } },
+      } catch (err) { const error = new Error('115返回不是JSON，可能未登录'); error.code = 'PAN115_AUTH_REQUIRED'; reject(error); } },
      onerror: () => reject(new Error('115请求失败')),
      ontimeout: () => reject(new Error('115请求超时')),
     });
@@ -9008,7 +9093,8 @@
    const matcher = this.codeRegex(code); const seen = new Set(); const matches = []; const keywords = [...new Set(this.searchVariants(code).map(item => this.searchKeyword(item)).filter(Boolean))];
    for (const keyword of keywords) {
     const payload = await this.requestSearch(keyword); const state = payload?.state ?? payload?.success;
-    if (state === false) { const msg = payload?.error || payload?.message || payload?.errno || '115查询失败'; throw new Error(String(msg)); }
+    if (state === false) {
+     const msg = payload?.error || payload?.message || payload?.errno || '115查询失败'; const error = new Error(String(msg)); error.code = 'PAN115_SEARCH_UNAVAILABLE'; throw error; }
     for (const item of this.flattenFiles(payload)) {
      const key = item.pickcode || item.name;
      if (seen.has(key)) continue;
@@ -9019,11 +9105,14 @@
   async searchAllCached(code) {
    const normalized = this.normalizeKeepSeparator(code);
    if (!normalized) return [];
+   if (this.isSearchBlocked()) throw new Error('115匹配已暂停，请登录115后刷新页面或重新开启匹配');
    const cached = this.getListCached(normalized);
    if (cached !== undefined) return cached;
    if (this.pendingAll.has(normalized)) return this.pendingAll.get(normalized);
    const task = this.searchAll(normalized) .then(matches => {
      this.setListCached(normalized, matches); return matches;
+    }) .catch(error => {
+     this.blockSearch(); throw error;
     }) .finally(() => this.pendingAll.delete(normalized));
    this.pendingAll.set(normalized, task); return task; },
   async deleteFile(fileId) {
@@ -9245,7 +9334,7 @@
    const ext = this.itemExt(item); let name = this.itemDisplayName(item, code);
    if (ext && !new RegExp(`\\.${ext}$`, 'i').test(name)) name += `.${ext}`;
    name = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/\s+/g, ' ').trim();
-   return name ||`${this.normalizeCode(code)}.${ext || 'srt'}`;
+   return name || `${this.normalizeCode(code)}.${ext || 'srt'}`;
   },
   async search(code) {
    const normalized = this.normalizeCode(code);
@@ -9254,15 +9343,15 @@
    const list = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.data?.list) ? payload.data.list : []; const seen = new Set();
    return list.filter(item => {
     const url = this.itemUrl(item);
-    const key =`${url}|${this.itemDisplayName(item, normalized)}`;
+    const key = `${url}|${this.itemDisplayName(item, normalized)}`;
     if (!url || seen.has(key)) return false;
     seen.add(key); return true;
    }); },
-  createShell(code, title =`字幕 ${code}`) {
+  createShell(code, title = `字幕 ${code}`) {
    this.ensureStyle();
    if (this.closeOverlay) this.closeOverlay();
    const overlay = document.createElement('div'); overlay.className = 'jav-subtitle-overlay';
-   overlay.innerHTML =`<section class="jav-subtitle-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><div class="jav-subtitle-body"><div class="jav-subtitle-status">正在搜索字幕...</div></div></section>`;
+   overlay.innerHTML = `<section class="jav-subtitle-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><div class="jav-subtitle-body"><div class="jav-subtitle-status">正在搜索字幕...</div></div></section>`;
    overlay.querySelector('.jav-subtitle-title').textContent = title;
    const close = () => {
     overlay.remove();
@@ -9316,7 +9405,7 @@
    const url = this.itemUrl(item); const ext = this.itemExt(item);
    if (!url) { Utils.showToast('无法预览字幕', '字幕文件地址为空', 2400); return; }
    if (!this.previewExts.has(ext)) {
-    Utils.showToast('暂不支持预览',`${ext || '该'} 类型可直接下载`, 2400);
+    Utils.showToast('暂不支持预览', `${ext || '该'} 类型可直接下载`, 2400);
     return; }
    await this.withBusy(btn, '读取中', async () => {
     const text = await this.requestText(url); this.showPreview(code, this.fileName(item, code), text, item);
@@ -9339,7 +9428,7 @@
    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1200); },
   showPreview(code, fileName, text, item) {
    this.ensureStyle(); const overlay = document.createElement('div'); overlay.className = 'jav-subtitle-preview-overlay';
-   overlay.innerHTML =`<section class="jav-subtitle-panel jav-subtitle-preview-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><pre class="jav-subtitle-pre"></pre><div class="jav-subtitle-preview-footer"><button class="jav-subtitle-preview-download" type="button">下载</button></div></section>`;
+   overlay.innerHTML = `<section class="jav-subtitle-panel jav-subtitle-preview-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><pre class="jav-subtitle-pre"></pre><div class="jav-subtitle-preview-footer"><button class="jav-subtitle-preview-download" type="button">下载</button></div></section>`;
    const close = () => {
     overlay.remove(); this.unlockScroll(); document.removeEventListener('keydown', onKeydown, true); };
    const onKeydown = e => {
@@ -9347,9 +9436,9 @@
    };
    const numbered = String(text || '').split(/\r?\n/).map((line, index, lines) => {
     const num = String(index + 1).padStart(String(lines.length).length, ' ');
-    return`${num}. ${line}`;
+    return `${num}. ${line}`;
    }).join('\n');
-   overlay.querySelector('.jav-subtitle-title').textContent =`${fileName} - ${code}`;
+   overlay.querySelector('.jav-subtitle-title').textContent = `${fileName} - ${code}`;
    overlay.querySelector('.jav-subtitle-pre').textContent = numbered; overlay.querySelector('.jav-subtitle-close')?.addEventListener('click', close);
    overlay.querySelector('.jav-subtitle-preview-download')?.addEventListener('click', e => {
     e.preventDefault();
@@ -9382,24 +9471,165 @@
  Core.expose('__LAOSIJI_SUBTITLE__', Subtitle);
  function ensureResourceLibraryStyles() {
   injectStyle('jav-resource-library-style',`.jav-resource-overlay{position:fixed;inset:0;z-index:10000060;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.44);backdrop-filter:blur(6px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-resource-center{width:min(96vw,1600px);height:min(90vh,960px);max-width:calc(100vw - 20px);max-height:calc(100vh - 20px);display:grid;grid-template-columns:190px minmax(0,1fr);overflow:hidden;border:1px solid #d8dee8;border-radius:10px;background:#f8fafc;color:#0f172a;box-shadow:0 28px 80px rgba(15,23,42,.3)}.jav-resource-center *{box-sizing:border-box}.jav-resource-nav{display:flex;flex-direction:column;gap:4px;padding:14px 10px;border-right:1px solid #e2e8f0;background:#fff}.jav-resource-brand{padding:5px 8px 14px;font-size:16px;font-weight:850;color:#0f172a}.jav-resource-nav button{height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:#475569;font-size:13px;font-weight:700;text-align:left;cursor:pointer}.jav-resource-nav button:hover{background:#f1f5f9;color:#1e3a8a}.jav-resource-nav button.is-active{background:#dbeafe;color:#1d4ed8}.jav-resource-nav-spacer{flex:1}.jav-resource-nav-close{color:#64748b!important}.jav-resource-main{min-width:0;min-height:0;display:flex;flex-direction:column;background:#f8fafc}.jav-resource-head{display:flex;align-items:center;min-height:66px;padding:13px 18px;border-bottom:1px solid #e2e8f0;background:#fff}.jav-resource-head-title{font-size:18px;font-weight:850;line-height:1.2}.jav-resource-backup{flex:1 1 auto;min-height:0;overflow:auto;padding:30px 34px 24px}.jav-resource-backup-intro{max-width:620px}.jav-resource-backup-kicker{color:#2563eb;font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.jav-resource-backup h2{margin:5px 0 8px;color:#0f172a;font-size:22px;line-height:1.2}.jav-resource-backup p{margin:0;color:#64748b;font-size:13px;line-height:1.65}.jav-resource-library{flex:1 1 auto;min-height:0;overflow:auto;padding:12px}.jav-resource-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.jav-resource-toolbar-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.jav-resource-toolbar input,.jav-resource-toolbar select{height:34px;min-width:130px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-toolbar input{min-width:210px}.jav-resource-toolbar button{height:34px;padding:0 12px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px;font-weight:700;cursor:pointer}.jav-resource-toolbar button.primary{border-color:#2563eb;background:#2563eb;color:#fff}.jav-resource-toolbar button:disabled{opacity:.6;cursor:wait}.jav-resource-summary{margin:0 0 12px;color:#64748b;font-size:12px}.jav-resource-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;width:100%;min-width:0;max-width:1680px;margin:0 auto;padding:4px}.jav-resource-card{display:flex;flex-direction:column;min-width:0;padding:16px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}.jav-resource-card:hover{border-color:#93c5fd}.jav-resource-card-actions{display:flex;gap:7px;margin-top:auto}.jav-resource-card-actions button,.jav-resource-card-actions.button{height:30px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:11px;font-weight:700;cursor:pointer;text-decoration:none}.jav-resource-card-actions button.primary{border-color:#2563eb;background:#2563eb;color:#fff}.jav-resource-empty{padding:50px 12px;text-align:center;color:#94a3b8;font-size:13px}.jav-resource-progress{margin:0 0 12px;padding:9px 11px;border:1px solid #bfdbfe;border-radius:6px;background:#eff6ff;color:#1d4ed8;font-size:12px}.jav-resource-backup-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:24px 0}.jav-resource-backup-stats div{padding:14px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}.jav-resource-backup-stats strong,.jav-resource-backup-stats span{display:block}.jav-resource-backup-stats strong{color:#0f172a;font-size:22px;line-height:1.2}.jav-resource-backup-stats span{margin-top:3px;color:#94a3b8;font-size:12px;font-weight:700}.jav-resource-backup-actions,.jav-resource-backup-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 0;border-top:1px solid #e2e8f0}.jav-resource-backup-tools{border-bottom:1px solid #e2e8f0}.jav-resource-backup-actions button,.jav-resource-backup-tools button,.jav-resource-backup-apply,.jav-resource-backup-cancel,.jav-resource-health-repair{height:34px;padding:0 12px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;font-size:13px;font-weight:800;cursor:pointer}.jav-resource-backup-actions button:first-child,.jav-resource-backup-apply{border-color:#2563eb;background:#2563eb;color:#fff}.jav-resource-backup-actions button:hover,.jav-resource-backup-tools button:hover,.jav-resource-backup-cancel:hover,.jav-resource-health-repair:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.jav-resource-backup-actions span,.jav-resource-backup-tools span{color:#94a3b8;font-size:11px}.jav-resource-backup-tools button:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed}.jav-resource-file-input{position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none}.jav-resource-health{margin-top:16px;padding:12px 14px;border:1px solid #bbf7d0;border-radius:7px;background:#f0fdf4;color:#166534;font-size:12px;line-height:1.7}.jav-resource-health strong,.jav-resource-health span{display:block}.jav-resource-health.has-errors{border-color:#fecaca;background:#fef2f2;color:#b91c1c}.jav-resource-health-repair{margin-top:10px;height:30px;padding:0 10px;border-color:#fecaca;color:#b91c1c}.jav-resource-webdav{margin-top:18px;padding:16px;border:1px solid #e2e8f0;border-radius:7px;background:#fff}.jav-resource-webdav-title,.jav-resource-cloud-title{color:#0f172a;font-size:13px;font-weight:850}.jav-resource-webdav-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-top:10px}.jav-resource-webdav-grid input{min-width:0;height:34px;padding:0 10px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#0f172a;font-size:12px;outline:none}.jav-resource-webdav-grid input:focus{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.13)}.jav-resource-webdav-actions,.jav-resource-conflict-actions,.jav-resource-cleanup-confirm div{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}.jav-resource-webdav-actions button,.jav-resource-cloud-item button,.jav-resource-cleanup-actions button,.jav-resource-cleanup-confirm button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-webdav-actions button:hover,.jav-resource-cloud-item button:hover,.jav-resource-cleanup-actions button:hover,.jav-resource-cleanup-confirm button:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.jav-resource-webdav-actions button:disabled,.jav-resource-cloud-item button:disabled{opacity:.6;cursor:wait}.jav-resource-webdav-actions span{color:#94a3b8;font-size:11px}.jav-resource-cloud-list,.jav-resource-history{margin-top:16px;border-top:1px solid #e2e8f0}.jav-resource-cloud-title{padding:12px 0 8px;font-size:12px}.jav-resource-cloud-item,.jav-resource-history-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f5f9}.jav-resource-cloud-file,.jav-resource-history-main{min-width:0;flex:1}.jav-resource-cloud-file strong,.jav-resource-cloud-file span,.jav-resource-history-main strong,.jav-resource-history-main span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-cloud-file strong,.jav-resource-history-main strong{color:#334155;font-size:12px}.jav-resource-cloud-file span,.jav-resource-history-main span{margin-top:3px;color:#94a3b8;font-size:11px}.jav-resource-cloud-empty{padding:12px 0;color:#94a3b8;font-size:11px}.jav-resource-history-status{width:34px;flex:none;font-size:11px;font-weight:850;text-align:center}.jav-resource-history-status.is-ok{color:#047857}.jav-resource-history-status.is-error{color:#b91c1c}.jav-resource-history-status.is-conflict{color:#b45309}.jav-resource-history-item time{flex:none;color:#94a3b8;font-size:11px}.jav-resource-import-preview{margin-top:18px;padding:16px;border:1px solid #bfdbfe;border-radius:7px;background:#eff6ff}.jav-resource-backup-summary{display:flex;align-items:center;gap:12px;flex-wrap:wrap;color:#475569;font-size:12px}.jav-resource-backup-summary strong{width:100%;color:#1e3a8a;font-size:13px}.jav-resource-import-errors{margin:12px 0;color:#b91c1c;font-size:12px;line-height:1.7}.jav-resource-import-ok{margin:12px 0;color:#047857;font-size:12px}.jav-resource-backup-apply:disabled{border-color:#cbd5e1;background:#cbd5e1;cursor:not-allowed}.jav-resource-conflict,.jav-resource-cleanup-confirm{margin-top:16px;padding:14px;border:1px solid #fca5a5;border-radius:7px;background:#fff1f2;color:#9f1239}.jav-resource-conflict strong,.jav-resource-conflict span,.jav-resource-cleanup-confirm strong{display:block}.jav-resource-conflict span,.jav-resource-cleanup-confirm strong{margin-top:4px;font-size:12px;line-height:1.6}.jav-resource-cleanup{margin-top:18px;padding-top:2px;border-top:1px solid #e2e8f0}.jav-resource-cleanup p{margin:0 0 10px;color:#94a3b8;font-size:11px;line-height:1.6}.jav-resource-cleanup-confirm{margin:10px 0}.jav-resource-cleanup-confirm button:first-child{border-color:#dc2626;background:#dc2626;color:#fff}.jav-resource-confirm{position:absolute;inset:0;z-index:2;display:grid;place-items:center;padding:20px;background:rgba(15,23,42,.28)}.jav-resource-confirm-box{width:min(360px,100%);padding:18px;border:1px solid #fecaca;border-radius:8px;background:#fff;color:#334155;box-shadow:0 18px 50px rgba(15,23,42,.24)}.jav-resource-confirm-box strong,.jav-resource-confirm-box span{display:block}.jav-resource-confirm-box strong{font-size:14px;color:#991b1b}.jav-resource-confirm-box span{margin-top:8px;font-size:12px;line-height:1.6}.jav-resource-confirm-box div{display:flex;gap:8px;margin-top:14px}.jav-resource-confirm-box button{height:30px;padding:0 11px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-confirm-box button:first-child{border-color:#dc2626;background:#dc2626;color:#fff}html[data-theme="dark"] .jav-resource-center{border-color:#3f3f46;background:#18181b;color:#f4f4f5}html[data-theme="dark"] .jav-resource-nav,html[data-theme="dark"] .jav-resource-head,html[data-theme="dark"] .jav-resource-backup-stats div,html[data-theme="dark"] .jav-resource-webdav,html[data-theme="dark"] .jav-resource-card{border-color:#3f3f46;background:#27272a;color:#f4f4f5}html[data-theme="dark"] .jav-resource-main{background:#18181b}html[data-theme="dark"] .jav-resource-brand,html[data-theme="dark"] .jav-resource-head-title,html[data-theme="dark"] .jav-resource-backup h2,html[data-theme="dark"] .jav-resource-backup-stats strong,html[data-theme="dark"] .jav-resource-cloud-title{color:#fafafa}html[data-theme="dark"] .jav-resource-nav button{color:#d4d4d8}html[data-theme="dark"] .jav-resource-nav button:hover{background:#3f3f46;color:#bfdbfe}html[data-theme="dark"] .jav-resource-nav button.is-active{background:#1e3a5f;color:#bfdbfe}html[data-theme="dark"] .jav-resource-backup p,html[data-theme="dark"] .jav-resource-backup-stats span,html[data-theme="dark"] .jav-resource-cloud-file span,html[data-theme="dark"] .jav-resource-history-main span{color:#a1a1aa}html[data-theme="dark"] .jav-resource-backup-actions button,html[data-theme="dark"] .jav-resource-backup-tools button,html[data-theme="dark"] .jav-resource-backup-cancel,html[data-theme="dark"] .jav-resource-webdav-grid input,html[data-theme="dark"] .jav-resource-webdav-actions button,html[data-theme="dark"] .jav-resource-cloud-item button,html[data-theme="dark"] .jav-resource-cleanup-actions button,html[data-theme="dark"] .jav-resource-cleanup-confirm button,html[data-theme="dark"] .jav-resource-toolbar input,html[data-theme="dark"] .jav-resource-toolbar select,html[data-theme="dark"] .jav-resource-toolbar button,html[data-theme="dark"] .jav-resource-card-actions button{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-import-preview{border-color:#1e3a5f;background:#172554}html[data-theme="dark"] .jav-resource-backup-summary strong{color:#bfdbfe}html[data-theme="dark"] .jav-resource-health{border-color:#14532d;background:#052e16;color:#bbf7d0}html[data-theme="dark"] .jav-resource-health.has-errors,html[data-theme="dark"] .jav-resource-conflict,html[data-theme="dark"] .jav-resource-cleanup-confirm{border-color:#7f1d1d;background:#450a0a;color:#fecaca}html[data-theme="dark"] .jav-resource-cloud-list,html[data-theme="dark"] .jav-resource-history,html[data-theme="dark"] .jav-resource-cleanup{border-color:#3f3f46}html[data-theme="dark"] .jav-resource-cloud-item,html[data-theme="dark"] .jav-resource-history-item{border-color:#3f3f46}@media (max-width:700px){.jav-resource-overlay{padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));align-items:stretch}.jav-resource-center{width:100%;height:100%;max-width:none;max-height:none;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);border-radius:8px}.jav-resource-nav{display:flex;flex-direction:row;align-items:center;overflow-x:auto;overflow-y:hidden;padding:8px;border-right:0;border-bottom:1px solid #e2e8f0;-webkit-overflow-scrolling:touch;scrollbar-width:thin}.jav-resource-brand{padding:5px 8px;white-space:nowrap}.jav-resource-nav button{flex:0 0 auto;min-height:42px;padding:0 12px;white-space:nowrap;touch-action:manipulation}.jav-resource-nav-spacer{display:none}.jav-resource-nav-close{margin-left:auto}.jav-resource-head{min-height:54px;padding:11px 14px}.jav-resource-head-title{font-size:16px}.jav-resource-backup{padding:16px 12px}.jav-resource-library{padding:8px}.jav-resource-backup-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.jav-resource-backup-stats div{padding:10px 8px}.jav-resource-backup-stats strong{font-size:18px}.jav-resource-backup-stats span{font-size:11px}.jav-resource-webdav-grid{grid-template-columns:1fr 1fr}.jav-resource-webdav-grid input:first-child,.jav-resource-webdav-grid input:last-child{grid-column:1/-1}}`);
-  injectStyle('jav-resource-library-polish',`.actress-card{position:relative;display:flex;flex-direction:column;min-width:0;padding:16px;border-radius:7px;box-shadow:none}.actress-card__badges{display:flex;align-items:center;gap:4px;margin-bottom:12px}.actress-card__profile{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:12px;color:inherit;text-decoration:none}.actress-card-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;background:#f1f5f9}.actress-card__profile>span{min-width:0}.actress-card-name,.actress-card-allname{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.actress-card-name{color:#0f172a;font-size:15px;font-weight:700}.actress-card-allname{margin-top:4px;color:#64748b;font-size:12px}.actress-card__meta{display:grid;gap:8px;margin:12px 0}.actress-card__meta-row{display:grid;grid-template-columns:76px minmax(0,1fr);gap:8px;color:#64748b;font-size:12px}.actress-card__meta-row dt{color:#94a3b8}.actress-card__meta-row dd{overflow:hidden;margin:0;color:#334155;text-overflow:ellipsis;white-space:nowrap}.actress-card__note{min-height:20px;margin:0 0 12px;color:#64748b;font-size:12px}.actress-card__actions{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-top:auto}.actress-card__actions button{min-width:0;min-height:36px;padding:0 12px;border-radius:5px;font-size:13px;font-weight:800;line-height:1.2;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease}.actress-card__actions .btn-check-actress{border:1px solid #2563eb;background:#2563eb;color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.2)}.actress-card__actions .btn-check-actress:hover{border-color:#1d4ed8;background:#1d4ed8;box-shadow:0 2px 5px rgba(37,99,235,.25)}.actress-card__actions .btn-check-actress:focus-visible,.actress-card__actions .jav-resource-actor-remove:focus-visible{outline:3px solid rgba(59,130,246,.3);outline-offset:1px}.actress-card__actions .jav-resource-actor-remove{flex:0 0 auto;border:1px solid #fecaca;background:#fff1f2;color:#b91c1c}.actress-card__actions .jav-resource-actor-remove:hover{border-color:#f87171;background:#fee2e2;color:#991b1b}.actress-card__actions button:disabled{cursor:wait;opacity:.6}.jav-resource-badge{box-sizing:border-box;display:inline-flex;min-height:24px;align-items:center;justify-content:center;padding:2px 8px;border:1px solid transparent;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:600;line-height:1.2;white-space:nowrap}.jav-resource-badge-count{background:#dbeafe;color:#2563eb}.jav-resource-badge-type.uncensored{background:#dcfce7;color:#15803d}.jav-resource-badge-type.censored{background:#fef3c7;color:#a16207}.jav-resource-badge-type.unknown{background:#f1f5f9;color:#64748b}.nv-card{padding:0;border-radius:7px;box-shadow:none}.nv-card:hover{border-color:#2563eb;box-shadow:none}.nv-card__link{display:block;color:inherit;text-decoration:none}.nv-card__cover{position:relative;width:100%;overflow:hidden;aspect-ratio:3/2;border-radius:5px;background:#f1f5f9}.nv-cover-img{width:100%;height:100%;object-fit:cover}.nv-card__empty{display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:11px}.nv-card__body{display:grid;gap:3px;padding:8px 8px 4px}.nv-card__title,.nv-card__actress{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nv-card__title{color:#0f172a;font-size:12px;font-weight:700}.nv-card__actress,.nv-card__date{color:#64748b;font-size:11px}.nv-card__statuses{display:flex;align-items:center;min-height:24px;margin-top:3px}.nv-card .jav-resource-badge{margin-top:0}.nv-card .jav-resource-card-actions{margin-top:4px;padding:0 8px 8px}.nv-card .jav-resource-card-actions button{width:100%;flex:1}.jav-resource-card-markers{position:absolute;top:6px;left:6px;z-index:2;display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 12px);pointer-events:none}.jav-resource-card-marker{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid rgba(255,255,255,.72);border-radius:4px;box-shadow:0 1px 3px rgba(15,23,42,.25);color:#fff;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap}.jav-resource-card-marker-favorite{background:#d97706}.jav-resource-card-marker-watched{background:#2563eb}.jav-resource-card-marker-downloaded{background:#059669}.jav-resource-card-marker-blocked{background:#dc2626}.jav-resource-card-actions button{flex:1}.jav-resource-card-actions a{display:inline-flex;align-items:center;justify-content:center;flex:1;height:30px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:11px;font-weight:700;text-decoration:none}.jav-resource-card-actions button:hover,.jav-resource-card-actions a:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.jav-resource-library--workspace{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}.jav-resource-content-scroll{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}.jav-resource-operation-stop{border-color:#fca5a5!important;background:#fff1f2!important;color:#b91c1c!important}.jav-resource-pagination{display:flex;align-items:center;justify-content:center;gap:10px;flex:0 0 auto;position:sticky;bottom:0;margin-top:12px;padding:12px 0;border-top:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;z-index:1}.jav-resource-pagination button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-pagination button:disabled{opacity:.45;cursor:not-allowed}@media (max-width:767px){.jav-resource-toolbar{align-items:stretch;flex-direction:column}.jav-resource-toolbar select,.jav-resource-toolbar button{min-height:44px}.jav-resource-grid{grid-template-columns:1fr}.jav-resource-card-actions{flex-wrap:wrap}}html[data-theme="dark"] .jav-resource-pagination{border-color:#3f3f46;background:#18181b}html[data-theme="dark"] .jav-resource-card{box-shadow:none}html[data-theme="dark"] .actress-card-name,html[data-theme="dark"] .nv-card__title{color:#fafafa}html[data-theme="dark"] .actress-card-allname,html[data-theme="dark"] .actress-card__meta-row,html[data-theme="dark"] .actress-card__meta-row dt,html[data-theme="dark"] .actress-card__note,html[data-theme="dark"] .actress-card__meta-row dd,html[data-theme="dark"] .nv-card__actress,html[data-theme="dark"] .nv-card__date{color:#a1a1aa}html[data-theme="dark"] .jav-resource-card-actions a{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-operation-stop{border-color:#7f1d1d!important;background:#450a0a!important;color:#fecaca!important}.jav-resource-overlay{overscroll-behavior:contain}.jav-resource-backup--library{display:flex;flex-direction:column;min-height:0;overflow:hidden}.jav-resource-backup--library>.jav-resource-library{flex:1 1 auto;min-height:0}.jav-resource-badge-type.western{background:#e0e7ff;color:#4338ca}.jav-resource-history-view{display:flex;flex-direction:column;min-height:0;height:100%;overflow:hidden}.jav-resource-history-tabs{display:flex;gap:4px;margin-bottom:10px}.jav-resource-history-tabs button{height:32px;padding:0 12px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-history-tabs button.is-active{border-color:#2563eb;background:#dbeafe;color:#1d4ed8}.jav-resource-history-list{flex:1;min-height:0;overflow:auto;border:1px solid #e2e8f0;border-radius:6px;background:#fff}.jav-resource-history-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-bottom:1px solid #f1f5f9}.jav-resource-history-row:last-child{border-bottom:0}.jav-resource-history-row strong,.jav-resource-history-row span{display:block}.jav-resource-history-row strong{color:#0f172a;font-size:13px}.jav-resource-history-row span{margin-top:3px;color:#64748b;font-size:12px}.jav-resource-history-row time{flex:none;color:#94a3b8;font-size:11px}.jav-resource-flag{height:28px;padding:0 8px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#64748b;font-size:11px;font-weight:700;cursor:pointer}.jav-resource-flag.is-active{border-color:#2563eb;background:#dbeafe;color:#1d4ed8}.jav-resource-card-actions-flags{flex-wrap:wrap}.jav-resource-card-actions-flags>[data-resource-ack-work]{flex:1 1 100%}.jav-resource-card-menu{position:relative;flex:1;min-width:0}.jav-resource-card-menu-trigger{width:100%;height:28px;padding:0 8px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:11px;font-weight:800;cursor:pointer}.jav-resource-card-menu-popover{display:none;position:absolute;right:0;bottom:calc(100%+6px);z-index:10000061;min-width:120px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.16)}.jav-resource-card-menu.is-open .jav-resource-card-menu-popover{display:grid;gap:3px;position:fixed;right:auto;bottom:auto}.jav-resource-card-menu-popover .jav-resource-flag{width:100%;text-align:left}.jav-resource-history-table-wrap{flex:1;min-height:0;overflow:auto;border:1px solid #e2e8f0;border-radius:6px;background:#fff}.jav-resource-history-table{width:100%;min-width:1080px;border-collapse:separate;border-spacing:0;color:#334155;font-size:12px}.jav-resource-history-table th{position:sticky;top:0;z-index:1;height:38px;padding:0 12px;border-bottom:1px solid #dbe3ef;background:#f8fafc;color:#334155;font-size:12px;font-weight:850;text-align:left;white-space:nowrap}.jav-resource-history-table td{height:58px;padding:8px 12px;border-bottom:1px solid #e5e7eb;vertical-align:middle;white-space:nowrap}.jav-resource-history-table tbody tr:nth-child(even){background:#fafafa}.jav-resource-history-table tbody tr:hover{background:#f1f5f9}.jav-resource-history-table tbody tr:last-child td{border-bottom:0}.jav-resource-history-table th:nth-child(1){width:130px}.jav-resource-history-table th:nth-child(2){width:170px}.jav-resource-history-table th:nth-child(3),.jav-resource-history-table th:nth-child(4){width:160px}.jav-resource-history-table th:nth-child(5){width:120px}.jav-resource-history-table th:nth-child(6){width:90px}.jav-resource-history-table th:nth-child(7){width:150px}.jav-resource-history-table th:nth-child(8){width:130px}.jav-resource-history-table th:nth-child(9){width:150px}.jav-resource-history-code{color:#2563eb;text-decoration:none}.jav-resource-history-code:hover{text-decoration:underline}.jav-resource-history-source{color:#ec4899}.jav-resource-history-statuses{display:flex;align-items:center;gap:4px}.jav-resource-history-status-pill{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:4px;font-size:11px;font-weight:800}.jav-resource-history-status-pill.jav-flag-favorite{background:#fef3c7;color:#a16207}.jav-resource-history-status-pill.jav-flag-watched{background:#dbeafe;color:#1d4ed8}.jav-resource-history-status-pill.jav-flag-downloaded{background:#d1fae5;color:#047857}.jav-resource-history-status-pill.jav-flag-blocked{background:#fee2e2;color:#b91c1c}.jav-resource-history-muted{color:#94a3b8;font-size:11px}.jav-resource-history-actions{display:flex;align-items:center;gap:6px}.jav-resource-history-edit,.jav-resource-history-detail{display:inline-flex;align-items:center;justify-content:center;height:30px;min-width:64px;padding:0 10px;border:0;border-radius:4px;box-shadow:0 2px 5px rgba(15,23,42,.14);font-size:11px;font-weight:850;text-decoration:none;cursor:pointer}.jav-resource-history-edit{background:#d1a83f;color:#fff}.jav-resource-history-edit:hover{background:#b88e27}.jav-resource-history-detail{background:#3197d8;color:#fff}.jav-resource-history-detail:hover{background:#1976b6}.jav-resource-history-edit-panel{display:flex;flex-wrap:wrap;gap:4px;width:150px;margin-top:6px;padding:5px;border:1px solid #dbe3ef;border-radius:5px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.14);white-space:normal}.jav-resource-history-edit-panel .jav-resource-flag{height:26px}.jav-resource-history-edit-panel .jav-resource-flag.is-active{border-color:#2563eb;background:#dbeafe;color:#1d4ed8}.jav-resource-data-cleanup{margin-top:18px;padding:16px;border:1px solid #fecaca;border-radius:7px;background:#fffafa}.jav-resource-data-cleanup+.jav-resource-data-cleanup{display:none}.jav-resource-data-cleanup p{margin:6px 0 0;color:#64748b;font-size:12px;line-height:1.6}.jav-resource-data-cleanup-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.jav-resource-data-cleanup select{height:32px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-data-cleanup button{height:32px;padding:0 11px;border:1px solid #dc2626;border-radius:5px;background:#dc2626;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-data-cleanup .jav-resource-cleanup-confirm{margin-bottom:0}.jav-resource-blacklist-view{gap:0}.jav-resource-blacklist-intro{margin:0 0 12px;padding:10px 12px;border:1px solid #fecaca;border-radius:6px;background:#fff1f2;color:#9f1239;font-size:12px;line-height:1.6}.jav-resource-blacklist-list{border:1px solid #e2e8f0;border-radius:6px;background:#fff}.jav-resource-blacklist-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border-bottom:1px solid #f1f5f9}.jav-resource-blacklist-row:last-child{border-bottom:0}.jav-resource-blacklist-row>div{min-width:0;flex:1}.jav-resource-blacklist-row strong,.jav-resource-blacklist-row span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-blacklist-row strong{color:#334155;font-size:13px}.jav-resource-blacklist-row span{margin-top:3px;color:#94a3b8;font-size:11px}.jav-resource-blacklist-row button{height:30px;padding:0 10px;border:1px solid #fecaca;border-radius:5px;background:#fff1f2;color:#b91c1c;font-size:11px;font-weight:800;cursor:pointer}.jav-resource-blacklist-row button:hover{border-color:#f87171;background:#fee2e2}.jav-resource-actor-blacklist{flex:0 0 auto!important;border-color:#fecaca!important;color:#b91c1c!important}.jav-resource-actor-blacklist.is-active{background:#fee2e2!important}.jav-resource-badge-blocked{background:#fee2e2;color:#b91c1c}.jav-resource-blacklist-keyword-form{display:flex;align-items:flex-end;gap:8px;margin:12px 0 7px}.jav-resource-blacklist-keyword-form label{display:grid;gap:5px;flex:1;color:#64748b;font-size:11px;font-weight:800}.jav-resource-blacklist-keyword-form input{height:34px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-blacklist-keyword-form button{height:34px;padding:0 13px;border:1px solid #2563eb;border-radius:5px;background:#2563eb;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-keyword-list{display:flex;flex-wrap:wrap;gap:6px;min-height:30px;padding:4px 0 8px}.jav-resource-keyword-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border:1px solid #fecaca;border-radius:5px;background:#fff1f2;color:#9f1239;font-size:12px}.jav-resource-keyword-chip button{width:18px;height:18px;padding:0;border:0;background:transparent;color:#b91c1c;font-size:16px;line-height:1;cursor:pointer}.jav-resource-blacklist-muted{color:#94a3b8;font-size:11px}.actress-card-name{font-size:16px}.actress-card-allname{font-size:13px}.actress-card__meta-row,.actress-card__note{font-size:13px}.actress-card .jav-resource-badge{font-size:12px}.actress-card__actions button{font-size:13px;min-height:34px}.jav-resource-blacklist-actions{display:flex;align-items:center;gap:6px;flex:none}.jav-resource-blacklist-actions button{min-width:72px}.jav-resource-blacklist-actions .jav-resource-blacklist-check{border-color:#2563eb;background:#eff6ff;color:#1d4ed8}.jav-resource-blacklist-actions .jav-resource-blacklist-check:hover{border-color:#1d4ed8;background:#dbeafe;color:#1e40af}.jav-resource-blacklist-actions button:disabled{cursor:wait;opacity:.6}.jav-resource-history-table{table-layout:fixed!important;min-width:0!important}.jav-resource-history-actors{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-backup--history{overflow:auto}.jav-resource-backup--history>.jav-resource-history-view{flex:0 0 auto;height:auto;overflow:visible}.jav-resource-backup--history .jav-resource-history-table-wrap{flex:0 0 auto;overflow-x:hidden;overflow-y:visible}@media (max-width:1200px){.jav-resource-history-table{min-width:1080px!important}.jav-resource-backup--history .jav-resource-history-table-wrap{overflow-x:auto}}.nv-card__body{gap:4px;padding:10px 10px 5px}.nv-card__title{font-size:14px}.nv-card__actress{font-size:13px}.nv-card__date-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}.nv-card__date{min-width:0;overflow:hidden;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.nv-card__statuses{display:flex;align-items:center;flex:0 0 auto;min-height:0;margin:0}.nv-card .jav-resource-badge{margin:0;font-size:12px}.nv-card .jav-resource-card-actions button{font-size:13px;min-height:34px}html[data-theme="dark"] .jav-resource-card-menu-trigger,html[data-theme="dark"] .jav-resource-card-menu-popover,html[data-theme="dark"] .jav-resource-flag{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-table-wrap,html[data-theme="dark"] .jav-resource-history-table{background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-table th{border-color:#3f3f46;background:#27272a;color:#f4f4f5}html[data-theme="dark"] .jav-resource-history-table td{border-color:#3f3f46}html[data-theme="dark"] .jav-resource-history-table tbody tr:nth-child(even){background:#202023}html[data-theme="dark"] .jav-resource-history-table tbody tr:hover{background:#2f2f34}html[data-theme="dark"] .jav-resource-history-edit-panel{border-color:#52525b;background:#18181b}html[data-theme="dark"] .actress-card__actions .btn-check-actress{border-color:#60a5fa;background:#2563eb;color:#fff}html[data-theme="dark"] .actress-card__actions .btn-check-actress:hover{border-color:#93c5fd;background:#3b82f6}html[data-theme="dark"] .actress-card__actions .jav-resource-actor-remove{border-color:#7f1d1d;background:#450a0a;color:#fecaca}html[data-theme="dark"] .actress-card__actions .jav-resource-actor-remove:hover{border-color:#ef4444;background:#7f1d1d;color:#fee2e2}html[data-theme="dark"] .jav-resource-blacklist-actions .jav-resource-blacklist-check{border-color:#60a5fa;background:#172554;color:#bfdbfe}html[data-theme="dark"] .jav-resource-blacklist-actions .jav-resource-blacklist-check:hover{border-color:#93c5fd;background:#1e3a8a;color:#dbeafe}`);
+  injectStyle('jav-resource-library-polish',`.actress-card{position:relative;display:flex;flex-direction:column;min-width:0;padding:16px;border-radius:7px;box-shadow:none}.actress-card__badges{display:flex;align-items:center;gap:4px;margin-bottom:12px}.actress-card__profile{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:12px;color:inherit;text-decoration:none}.actress-card-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;background:#f1f5f9}.actress-card__profile>span{min-width:0}.actress-card-name,.actress-card-allname{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.actress-card-name{color:#0f172a;font-size:15px;font-weight:700}.actress-card-allname{margin-top:4px;color:#64748b;font-size:12px}.actress-card__meta{display:grid;gap:8px;margin:12px 0}.actress-card__meta-row{display:grid;grid-template-columns:76px minmax(0,1fr);gap:8px;color:#64748b;font-size:12px}.actress-card__meta-row dt{color:#94a3b8}.actress-card__meta-row dd{overflow:hidden;margin:0;color:#334155;text-overflow:ellipsis;white-space:nowrap}.actress-card__note{min-height:20px;margin:0 0 12px;color:#64748b;font-size:12px}.actress-card__actions{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-top:auto}.actress-card__actions button{min-width:0;min-height:36px;padding:0 12px;border-radius:5px;font-size:13px;font-weight:800;line-height:1.2;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,box-shadow .15s ease}.actress-card__actions .btn-check-actress{border:1px solid #2563eb;background:#2563eb;color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.2)}.actress-card__actions .btn-check-actress:hover{border-color:#1d4ed8;background:#1d4ed8;box-shadow:0 2px 5px rgba(37,99,235,.25)}.actress-card__actions .btn-view-actress-works{border:1px solid #cbd5e1;background:#fff;color:#475569}.actress-card__actions .btn-view-actress-works:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.actress-card__actions .btn-check-actress:focus-visible,.actress-card__actions .btn-view-actress-works:focus-visible,.actress-card__actions .jav-resource-actor-remove:focus-visible{outline:3px solid rgba(59,130,246,.3);outline-offset:1px}.actress-card__actions .jav-resource-actor-remove{flex:0 0 auto;border:1px solid #fecaca;background:#fff1f2;color:#b91c1c}.actress-card__actions .jav-resource-actor-remove:hover{border-color:#f87171;background:#fee2e2;color:#991b1b}.actress-card__actions button:disabled{cursor:wait;opacity:.6}html[data-theme="dark"] .actress-card__actions .btn-view-actress-works{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .actress-card__actions .btn-view-actress-works:hover{border-color:#3b82f6;background:#172554;color:#bfdbfe}.jav-resource-badge{box-sizing:border-box;display:inline-flex;min-height:24px;align-items:center;justify-content:center;padding:2px 8px;border:1px solid transparent;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:600;line-height:1.2;white-space:nowrap}.jav-resource-badge-count{background:#dbeafe;color:#2563eb}.jav-resource-badge-type.uncensored{background:#dcfce7;color:#15803d}.jav-resource-badge-type.censored{background:#fef3c7;color:#a16207}.jav-resource-badge-type.unknown{background:#f1f5f9;color:#64748b}.nv-card{padding:0;border-radius:7px;box-shadow:none}.nv-card:hover{border-color:#2563eb;box-shadow:none}.nv-card__link{display:block;color:inherit;text-decoration:none}.nv-card__cover{position:relative;display:flex;align-items:center;justify-content:center;width:100%;overflow:hidden;aspect-ratio:3/2;border-radius:5px;background:#f1f5f9}.nv-cover-img{width:100%;height:100%;object-fit:contain;object-position:center}.nv-card__empty{display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:11px}.nv-card__body{display:grid;gap:3px;padding:8px 8px 4px}.nv-card__title,.nv-card__actress{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nv-card__title{color:#0f172a;font-size:12px;font-weight:700}.nv-card__actress,.nv-card__date{color:#64748b;font-size:11px}.nv-card__statuses{display:flex;align-items:center;min-height:24px;margin-top:3px}.nv-card .jav-resource-badge{margin-top:0}.nv-card .jav-resource-card-actions{margin-top:4px;padding:0 8px 8px}.nv-card .jav-resource-card-actions button{width:100%;flex:1}.jav-resource-card-markers{position:absolute;top:6px;left:6px;z-index:2;display:flex;flex-wrap:wrap;gap:4px;max-width:calc(100% - 12px);pointer-events:none}.jav-resource-card-marker{display:inline-flex;align-items:center;min-height:22px;padding:2px 6px;border:1px solid rgba(255,255,255,.72);border-radius:4px;box-shadow:0 1px 3px rgba(15,23,42,.25);color:#fff;font-size:11px;font-weight:800;line-height:1.2;white-space:nowrap}.jav-resource-card-marker-favorite{background:#d97706}.jav-resource-card-marker-watched{background:#2563eb}.jav-resource-card-marker-downloaded{background:#059669}.jav-resource-card-marker-blocked{background:#dc2626}.jav-resource-card-actions button{flex:1}.jav-resource-card-actions a{display:inline-flex;align-items:center;justify-content:center;flex:1;height:30px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:11px;font-weight:700;text-decoration:none}.jav-resource-card-actions button:hover,.jav-resource-card-actions a:hover{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.jav-resource-library--workspace{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}.jav-resource-content-scroll{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}.jav-resource-operation-stop{border-color:#fca5a5!important;background:#fff1f2!important;color:#b91c1c!important}.jav-resource-task-status{position:fixed;right:24px;bottom:24px;z-index:10000070;width:min(420px,calc(100vw - 32px));padding:15px 16px;border:1px solid #bfdbfe;border-radius:8px;background:#fff;color:#1e3a8a;box-shadow:0 18px 44px rgba(15,23,42,.2);font-size:12px}.jav-resource-task-status[hidden]{display:none}.jav-resource-task-status-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.jav-resource-task-status-head strong{font-size:14px}.jav-resource-task-status-head button,.jav-resource-task-status-actions button{height:28px;padding:0 9px;border:1px solid #93c5fd;border-radius:5px;background:#eff6ff;color:#1d4ed8;font-size:11px;font-weight:800;cursor:pointer}.jav-resource-task-status-message{margin-top:8px;color:#334155;line-height:1.5}.jav-resource-task-status progress{display:block;width:100%;height:8px;margin:10px 0 8px;accent-color:#2563eb}.jav-resource-task-status-meta{color:#64748b;font-size:11px}.jav-resource-task-status p{margin:9px 0 0;color:#b45309;font-size:11px}.jav-resource-task-status-actions{display:flex;justify-content:flex-end;margin-top:10px}.jav-resource-task-status.is-complete{border-color:#86efac;background:#f0fdf4;color:#166534}.jav-resource-task-status.is-complete progress{accent-color:#16a34a}.jav-resource-overlay.is-background{align-items:flex-end;justify-content:flex-end;padding:24px;background:transparent;backdrop-filter:none;pointer-events:none}.jav-resource-overlay.is-background .jav-resource-center{display:none}.jav-resource-overlay.is-background .jav-resource-task-status{pointer-events:auto}.jav-resource-settings-view{max-width:820px;margin:0 auto}.jav-resource-settings-intro,.jav-resource-settings-section{display:grid;gap:5px;padding:14px 16px;border:1px solid #bfdbfe;border-radius:7px;background:#eff6ff;color:#1e3a8a}.jav-resource-settings-intro strong,.jav-resource-settings-section strong{font-size:15px}.jav-resource-settings-intro span,.jav-resource-settings-section span{color:#475569;font-size:12px;line-height:1.6}.jav-resource-settings-form{display:grid;gap:1px;margin:16px 0;background:#e2e8f0;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden}.jav-resource-setting-row{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 16px;background:#fff}.jav-resource-setting-row>span{display:grid;gap:4px;min-width:0}.jav-resource-setting-row strong{color:#334155;font-size:13px}.jav-resource-setting-row small{color:#94a3b8;font-size:11px;line-height:1.5}.jav-resource-setting-row select,.jav-resource-setting-row input[type=number]{width:140px;height:34px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-setting-row input[type=checkbox]{width:18px;height:18px;accent-color:#2563eb}.jav-resource-settings-note{padding:4px 2px;color:#94a3b8;font-size:11px;line-height:1.6}.jav-resource-pagination{display:flex;align-items:center;justify-content:center;gap:10px;flex:0 0 auto;position:sticky;bottom:0;margin-top:12px;padding:12px 0;border-top:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;z-index:1}.jav-resource-pagination button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-pagination button:disabled{opacity:.45;cursor:not-allowed}@media (max-width:767px){.jav-resource-toolbar{align-items:stretch;flex-direction:column}.jav-resource-toolbar select,.jav-resource-toolbar button{min-height:44px}.jav-resource-grid{grid-template-columns:1fr}.jav-resource-card-actions{flex-wrap:wrap}.jav-resource-task-status{right:10px;bottom:10px;width:calc(100vw - 20px)}.jav-resource-setting-row{align-items:flex-start;flex-direction:column;gap:10px}.jav-resource-setting-row select,.jav-resource-setting-row input[type=number]{width:100%}}html[data-theme="dark"] .jav-resource-pagination{border-color:#3f3f46;background:#18181b}html[data-theme="dark"] .jav-resource-card{box-shadow:none}html[data-theme="dark"] .actress-card-name,html[data-theme="dark"] .nv-card__title{color:#fafafa}html[data-theme="dark"] .actress-card-allname,html[data-theme="dark"] .actress-card__meta-row,html[data-theme="dark"] .actress-card__meta-row dt,html[data-theme="dark"] .actress-card__note,html[data-theme="dark"] .actress-card__meta-row dd,html[data-theme="dark"] .nv-card__actress,html[data-theme="dark"] .nv-card__date{color:#a1a1aa}html[data-theme="dark"] .jav-resource-card-actions a{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-operation-stop{border-color:#7f1d1d!important;background:#450a0a!important;color:#fecaca!important}html[data-theme="dark"] .jav-resource-task-status{border-color:#1d4ed8;background:#18181b;color:#bfdbfe}html[data-theme="dark"] .jav-resource-task-status-message{color:#e4e4e7}html[data-theme="dark"] .jav-resource-task-status-meta{color:#a1a1aa}html[data-theme="dark"] .jav-resource-task-status p{color:#fbbf24}html[data-theme="dark"] .jav-resource-task-status-head button,html[data-theme="dark"] .jav-resource-task-status-actions button{border-color:#1d4ed8;background:#172554;color:#bfdbfe}html[data-theme="dark"] .jav-resource-task-status.is-complete{border-color:#15803d;background:#052e16;color:#bbf7d0}html[data-theme="dark"] .jav-resource-settings-intro,html[data-theme="dark"] .jav-resource-settings-section{border-color:#1d4ed8;background:#172554;color:#bfdbfe}html[data-theme="dark"] .jav-resource-settings-intro span,html[data-theme="dark"] .jav-resource-settings-section span{color:#cbd5e1}html[data-theme="dark"] .jav-resource-settings-form{border-color:#3f3f46;background:#3f3f46}html[data-theme="dark"] .jav-resource-setting-row{background:#18181b}html[data-theme="dark"] .jav-resource-setting-row strong{color:#e4e4e7}html[data-theme="dark"] .jav-resource-setting-row small,html[data-theme="dark"] .jav-resource-settings-note{color:#a1a1aa}html[data-theme="dark"] .jav-resource-setting-row select,html[data-theme="dark"] .jav-resource-setting-row input[type=number]{border-color:#52525b;background:#18181b;color:#e4e4e7}.jav-resource-overlay{overscroll-behavior:contain}.jav-resource-backup--library{display:flex;flex-direction:column;min-height:0;overflow:hidden}.jav-resource-backup--library>.jav-resource-library{flex:1 1 auto;min-height:0}.jav-resource-badge-type.western{background:#e0e7ff;color:#4338ca}.jav-resource-history-view{display:flex;flex-direction:column;min-height:0;height:100%;overflow:hidden}.jav-resource-history-tabs{display:flex;gap:4px;margin-bottom:10px}.jav-resource-history-tabs button{height:32px;padding:0 12px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-history-tabs button.is-active{border-color:#2563eb;background:#dbeafe;color:#1d4ed8}.jav-resource-history-list{flex:1;min-height:0;overflow:auto;border:1px solid #e2e8f0;border-radius:6px;background:#fff}.jav-resource-history-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-bottom:1px solid #f1f5f9}.jav-resource-history-row:last-child{border-bottom:0}.jav-resource-history-row strong,.jav-resource-history-row span{display:block}.jav-resource-history-row strong{color:#0f172a;font-size:13px}.jav-resource-history-row span{margin-top:3px;color:#64748b;font-size:12px}.jav-resource-history-row time{flex:none;color:#94a3b8;font-size:11px}.jav-resource-flag{height:28px;padding:0 8px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#64748b;font-size:11px;font-weight:700;cursor:pointer}.jav-resource-flag.is-active{border-color:#2563eb;background:#dbeafe;color:#1d4ed8}.jav-resource-card-actions-flags{flex-wrap:wrap}.jav-resource-card-actions-flags>[data-resource-ack-work]{flex:1 1 100%}.jav-resource-card-menu{position:relative;flex:1;min-width:0}.jav-resource-card-menu-trigger{width:100%;height:28px;padding:0 8px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:11px;font-weight:800;cursor:pointer}.jav-resource-card-menu-popover{display:none;position:absolute;right:0;bottom:calc(100%+6px);z-index:10000061;min-width:120px;padding:5px;border:1px solid #dbe3ef;border-radius:6px;background:#fff;box-shadow:0 10px 24px rgba(15,23,42,.16)}.jav-resource-card-menu.is-open .jav-resource-card-menu-popover{display:grid;gap:3px;position:fixed;right:auto;bottom:auto}.jav-resource-card-menu-popover .jav-resource-flag{width:100%;text-align:left}.jav-resource-history-table-wrap{flex:1;min-height:0;overflow:auto;border:1px solid #e2e8f0;border-radius:6px;background:#fff}.jav-resource-history-table{width:100%;min-width:1080px;border-collapse:separate;border-spacing:0;color:#334155;font-size:12px}.jav-resource-history-table th{position:sticky;top:0;z-index:1;height:38px;padding:0 12px;border-bottom:1px solid #dbe3ef;background:#f8fafc;color:#334155;font-size:12px;font-weight:850;text-align:left;white-space:nowrap}.jav-resource-history-table td{height:58px;padding:8px 12px;border-bottom:1px solid #e5e7eb;vertical-align:middle;white-space:nowrap}.jav-resource-history-table tbody tr:nth-child(even){background:#fafafa}.jav-resource-history-table tbody tr:hover{background:#f1f5f9}.jav-resource-history-table tbody tr:last-child td{border-bottom:0}.jav-resource-history-table th:nth-child(1){width:130px}.jav-resource-history-table th:nth-child(2){width:170px}.jav-resource-history-table th:nth-child(3),.jav-resource-history-table th:nth-child(4){width:160px}.jav-resource-history-table th:nth-child(5){width:120px}.jav-resource-history-table th:nth-child(6){width:90px}.jav-resource-history-table th:nth-child(7){width:150px}.jav-resource-history-table th:nth-child(8){width:130px}.jav-resource-history-table th:nth-child(9){width:150px}.jav-resource-history-code{color:#2563eb;text-decoration:none}.jav-resource-history-code:hover{text-decoration:underline}.jav-resource-history-source{color:#ec4899}.jav-resource-history-statuses{display:flex;align-items:center;gap:4px}.jav-resource-history-status-pill{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:4px;font-size:11px;font-weight:800}.jav-resource-history-status-pill.jav-flag-favorite{background:#fef3c7;color:#a16207}.jav-resource-history-status-pill.jav-flag-watched{background:#dbeafe;color:#1d4ed8}.jav-resource-history-status-pill.jav-flag-downloaded{background:#d1fae5;color:#047857}.jav-resource-history-status-pill.jav-flag-blocked{background:#fee2e2;color:#b91c1c}.jav-resource-history-muted{color:#94a3b8;font-size:11px}.jav-resource-history-actions{display:flex;align-items:center;gap:6px}.jav-resource-history-edit,.jav-resource-history-detail{display:inline-flex;align-items:center;justify-content:center;height:30px;min-width:64px;padding:0 10px;border:0;border-radius:4px;box-shadow:0 2px 5px rgba(15,23,42,.14);font-size:11px;font-weight:850;text-decoration:none;cursor:pointer}.jav-resource-history-edit{background:#d1a83f;color:#fff}.jav-resource-history-edit:hover{background:#b88e27}.jav-resource-history-detail{background:#3197d8;color:#fff}.jav-resource-history-detail:hover{background:#1976b6}.jav-resource-history-edit-panel{display:flex;flex-wrap:wrap;gap:4px;width:150px;margin-top:6px;padding:5px;border:1px solid #dbe3ef;border-radius:5px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.14);white-space:normal}.jav-resource-history-edit-panel .jav-resource-flag{height:26px}.jav-resource-history-edit-panel .jav-resource-flag.is-active{border-color:#2563eb;background:#dbeafe;color:#1d4ed8}.jav-resource-data-cleanup{margin-top:18px;padding:16px;border:1px solid #fecaca;border-radius:7px;background:#fffafa}.jav-resource-data-cleanup+.jav-resource-data-cleanup{display:none}.jav-resource-data-cleanup p{margin:6px 0 0;color:#64748b;font-size:12px;line-height:1.6}.jav-resource-data-cleanup-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}.jav-resource-data-cleanup select{height:32px;padding:0 9px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-data-cleanup button{height:32px;padding:0 11px;border:1px solid #dc2626;border-radius:5px;background:#dc2626;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-data-cleanup .jav-resource-cleanup-confirm{margin-bottom:0}.jav-resource-blacklist-view{gap:0}.jav-resource-blacklist-intro{margin:0 0 12px;padding:10px 12px;border:1px solid #fecaca;border-radius:6px;background:#fff1f2;color:#9f1239;font-size:12px;line-height:1.6}.jav-resource-blacklist-list{border:1px solid #e2e8f0;border-radius:6px;background:#fff}.jav-resource-blacklist-row{display:flex;align-items:center;gap:12px;padding:11px 12px;border-bottom:1px solid #f1f5f9}.jav-resource-blacklist-row:last-child{border-bottom:0}.jav-resource-blacklist-row>div{min-width:0;flex:1}.jav-resource-blacklist-row strong,.jav-resource-blacklist-row span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-blacklist-row strong{color:#334155;font-size:13px}.jav-resource-blacklist-row span{margin-top:3px;color:#94a3b8;font-size:11px}.jav-resource-blacklist-row button{height:30px;padding:0 10px;border:1px solid #fecaca;border-radius:5px;background:#fff1f2;color:#b91c1c;font-size:11px;font-weight:800;cursor:pointer}.jav-resource-blacklist-row button:hover{border-color:#f87171;background:#fee2e2}.jav-resource-actor-blacklist{flex:0 0 auto!important;border-color:#fecaca!important;color:#b91c1c!important}.jav-resource-actor-blacklist.is-active{background:#fee2e2!important}.jav-resource-badge-blocked{background:#fee2e2;color:#b91c1c}.jav-resource-blacklist-keyword-form{display:flex;align-items:flex-end;gap:8px;margin:12px 0 7px}.jav-resource-blacklist-keyword-form label{display:grid;gap:5px;flex:1;color:#64748b;font-size:11px;font-weight:800}.jav-resource-blacklist-keyword-form input{height:34px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#334155;font-size:12px}.jav-resource-blacklist-keyword-form button{height:34px;padding:0 13px;border:1px solid #2563eb;border-radius:5px;background:#2563eb;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.jav-resource-keyword-list{display:flex;flex-wrap:wrap;gap:6px;min-height:30px;padding:4px 0 8px}.jav-resource-keyword-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border:1px solid #fecaca;border-radius:5px;background:#fff1f2;color:#9f1239;font-size:12px}.jav-resource-keyword-chip button{width:18px;height:18px;padding:0;border:0;background:transparent;color:#b91c1c;font-size:16px;line-height:1;cursor:pointer}.jav-resource-blacklist-muted{color:#94a3b8;font-size:11px}.actress-card-name{font-size:16px}.actress-card-allname{font-size:13px}.actress-card__meta-row,.actress-card__note{font-size:13px}.actress-card .jav-resource-badge{font-size:12px}.actress-card__actions button{font-size:13px;min-height:34px}.jav-resource-blacklist-actions{display:flex;align-items:center;gap:6px;flex:none}.jav-resource-blacklist-actions button{min-width:72px}.jav-resource-blacklist-actions .jav-resource-blacklist-check{border-color:#2563eb;background:#eff6ff;color:#1d4ed8}.jav-resource-blacklist-actions .jav-resource-blacklist-check:hover{border-color:#1d4ed8;background:#dbeafe;color:#1e40af}.jav-resource-blacklist-actions button:disabled{cursor:wait;opacity:.6}.jav-resource-history-table{table-layout:fixed!important;min-width:0!important}.jav-resource-history-actors{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.jav-resource-backup--history{overflow:auto}.jav-resource-backup--history>.jav-resource-history-view{flex:0 0 auto;height:auto;overflow:visible}.jav-resource-backup--history .jav-resource-history-table-wrap{flex:0 0 auto;overflow-x:hidden;overflow-y:visible}@media (max-width:1200px){.jav-resource-history-table{min-width:1080px!important}.jav-resource-backup--history .jav-resource-history-table-wrap{overflow-x:auto}}.nv-card__body{gap:4px;padding:10px 10px 5px}.nv-card__title{font-size:14px}.nv-card__actress{font-size:13px}.nv-card__date-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}.nv-card__date{min-width:0;overflow:hidden;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.nv-card__statuses{display:flex;align-items:center;flex:0 0 auto;min-height:0;margin:0}.nv-card .jav-resource-badge{margin:0;font-size:12px}.nv-card .jav-resource-card-actions button{font-size:13px;min-height:34px}html[data-theme="dark"] .jav-resource-card-menu-trigger,html[data-theme="dark"] .jav-resource-card-menu-popover,html[data-theme="dark"] .jav-resource-flag{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-table-wrap,html[data-theme="dark"] .jav-resource-history-table{background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-table th{border-color:#3f3f46;background:#27272a;color:#f4f4f5}html[data-theme="dark"] .jav-resource-history-table td{border-color:#3f3f46}html[data-theme="dark"] .jav-resource-history-table tbody tr:nth-child(even){background:#202023}html[data-theme="dark"] .jav-resource-history-table tbody tr:hover{background:#2f2f34}html[data-theme="dark"] .jav-resource-history-edit-panel{border-color:#52525b;background:#18181b}html[data-theme="dark"] .actress-card__actions .btn-check-actress{border-color:#60a5fa;background:#2563eb;color:#fff}html[data-theme="dark"] .actress-card__actions .btn-check-actress:hover{border-color:#93c5fd;background:#3b82f6}html[data-theme="dark"] .actress-card__actions .jav-resource-actor-remove{border-color:#7f1d1d;background:#450a0a;color:#fecaca}html[data-theme="dark"] .actress-card__actions .jav-resource-actor-remove:hover{border-color:#ef4444;background:#7f1d1d;color:#fee2e2}html[data-theme="dark"] .jav-resource-blacklist-actions .jav-resource-blacklist-check{border-color:#60a5fa;background:#172554;color:#bfdbfe}html[data-theme="dark"] .jav-resource-blacklist-actions .jav-resource-blacklist-check:hover{border-color:#93c5fd;background:#1e3a8a;color:#dbeafe}`);
   injectStyle('jav-resource-library-history-actions',`.jav-resource-history-remove{display:inline-flex;align-items:center;justify-content:center;height:30px;min-width:64px;padding:0 10px;border:0;border-radius:4px;background:#c2410c;color:#fff;box-shadow:0 2px 5px rgba(15,23,42,.14);font-size:11px;font-weight:850;cursor:pointer}.jav-resource-history-remove:hover{background:#9a3412}.jav-resource-history-query-actors{display:inline-flex;align-items:center;justify-content:center;height:26px;padding:0 8px;border:1px solid #93c5fd;border-radius:4px;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.jav-resource-history-query-actors:hover{border-color:#60a5fa;background:#dbeafe}.jav-resource-history-query-actors:disabled{opacity:.65;cursor:wait}.jav-resource-history-remove-confirm{display:grid;gap:6px;width:220px;margin-top:6px;padding:7px;border:1px solid #fed7aa;border-radius:5px;background:#fff7ed;color:#9a3412;white-space:normal}.jav-resource-history-remove-confirm span{font-size:11px;line-height:1.45}.jav-resource-history-remove-confirm div{display:flex;gap:5px}.jav-resource-history-remove-confirm button{height:27px;padding:0 8px;border:1px solid #cbd5e1;border-radius:4px;background:#fff;color:#475569;font-size:11px;font-weight:800;cursor:pointer}.jav-resource-history-remove-confirm button:first-child{border-color:#c2410c;background:#c2410c;color:#fff}.jav-resource-history-remove-confirm button:first-child:hover{background:#9a3412}html[data-theme="dark"] .jav-resource-history-query-actors{border-color:#1d4ed8;background:#172554;color:#bfdbfe}html[data-theme="dark"] .jav-resource-history-query-actors:hover{border-color:#3b82f6;background:#1e3a8a}html[data-theme="dark"] .jav-resource-history-remove-confirm{border-color:#7c2d12;background:#431407;color:#fed7aa}html[data-theme="dark"] .jav-resource-history-remove-confirm button{border-color:#52525b;background:#18181b;color:#e4e4e7}`);
   injectStyle('jav-resource-library-history-confirm',`.jav-resource-history-view{position:relative}.jav-resource-history-actions{white-space:nowrap}.jav-resource-history-actions button,.jav-resource-history-actions a{flex:0 0 auto;white-space:nowrap}.jav-resource-history-menu{display:inline-block;min-width:74px;flex:none}.jav-resource-history-menu .jav-resource-card-menu-trigger{min-width:74px}.jav-resource-history-menu .jav-resource-card-menu-popover{min-width:148px;white-space:nowrap}.jav-resource-history-menu.is-open .jav-resource-card-menu-popover{position:fixed;right:auto;bottom:auto;z-index:10000061}.jav-resource-history-menu .jav-resource-history-detail{display:flex;align-items:center;height:28px;min-width:0;padding:0 8px;color:#3197d8;font-size:11px;font-weight:800;text-decoration:none}.jav-resource-history-menu .jav-resource-history-detail:hover{background:#eff6ff;color:#1976b6}.jav-resource-history-menu-remove{width:100%;height:28px;padding:0 8px;border:1px solid #fed7aa;border-radius:5px;background:#fff7ed;color:#c2410c;font-size:11px;font-weight:800;text-align:left;cursor:pointer;white-space:nowrap}.jav-resource-history-menu-remove:hover{border-color:#fdba74;background:#ffedd5;color:#9a3412}.jav-resource-history-remove-confirm{position:absolute;inset:0;z-index:10;display:grid;place-items:center;width:auto;margin:0;padding:24px;border:0;border-radius:0;background:rgba(15,23,42,.28);color:inherit;gap:0;white-space:normal}.jav-resource-history-remove-dialog{display:block;width:min(380px,100%);padding:18px;border:1px solid #fecaca;border-radius:8px;background:#fff;color:#334155;box-shadow:0 18px 50px rgba(15,23,42,.24);gap:0}.jav-resource-history-remove-dialog strong,.jav-resource-history-remove-dialog span{display:block}.jav-resource-history-remove-dialog strong{color:#991b1b;font-size:14px}.jav-resource-history-remove-dialog span{margin-top:8px;font-size:12px;line-height:1.6}.jav-resource-history-remove-dialog div{display:flex;gap:8px;margin-top:14px}.jav-resource-history-remove-dialog button{height:30px;padding:0 11px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}.jav-resource-history-remove-dialog button:first-child{border-color:#dc2626;background:#dc2626;color:#fff}.jav-resource-history-remove-dialog button:first-child:hover{background:#b91c1c}html[data-theme="dark"] .jav-resource-history-remove-confirm{background:rgba(0,0,0,.42)}html[data-theme="dark"] .jav-resource-history-remove-dialog{border-color:#7f1d1d;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-remove-dialog strong{color:#fca5a5}html[data-theme="dark"] .jav-resource-history-remove-dialog button{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-menu-remove{border-color:#7c2d12;background:#431407;color:#fed7aa}html[data-theme="dark"] .jav-resource-history-menu .jav-resource-history-detail:hover{background:#172554;color:#93c5fd}`);
-  injectStyle('jav-resource-library-card-grid',`.jav-resource-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}`);
+  injectStyle('jav-resource-library-card-grid',`.jav-resource-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}.actress-card .actress-card__actions{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,1.15fr);gap:5px}.actress-card .actress-card__actions button{width:100%;min-width:0;padding:0 5px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}`);
  }
  const ResourceLibrary = (() => {
-  const STORAGE_KEY = 'laosiji_resource_library_v1'; const CACHE_DB_NAME = 'laosiji_resource_library_cache'; const CACHE_DB_VERSION = 3; const BACKUP_FORMAT = 'laosiji-resource-library'; const BACKUP_VERSION = 2; const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
-  const WEBDAV_KEY =`${STORAGE_KEY}_webdav`;
-  const WEBDAV_SYNC_KEY =`${STORAGE_KEY}_webdav_sync`;
-  const BACKUP_HISTORY_KEY =`${STORAGE_KEY}_backup_history`;
-  const MAX_BACKUP_HISTORY = 20; let state = null; let resourceDbPromise = null; let resourceStateHydration = null; let resourceWriteQueue = Promise.resolve(); let resourceStateRevision = 0; let recoverySnapshot = null; let activeResourceOperation = null;
-  const actorLookupInFlight = new Map();
-  function isSupported() { return /(?:^|\.)(?:javdb|javbus|javlibrary)\.com$/i.test(location.hostname); }
+  const STORAGE_KEY = 'laosiji_resource_library_v1'; const CACHE_DB_NAME = 'laosiji_resource_library_cache'; const BACKUP_FORMAT = 'laosiji-resource-library'; const BACKUP_VERSION = 3; const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
+  const sourceSuffix = getActiveSource() === 'javdb' ? '' : `_${getActiveSource()}`;
+  const LEGACY_SHARED_STATE_KEY = `${STORAGE_KEY}_shared_state`;
+  const LEGACY_RECOVERY_KEY = `${STORAGE_KEY}_recovery${sourceSuffix}`;
+  const WEBDAV_KEY = `${STORAGE_KEY}_webdav${sourceSuffix}`;
+  const WEBDAV_SYNC_KEY = `${STORAGE_KEY}_webdav_sync${sourceSuffix}`;
+  const BACKUP_HISTORY_KEY = `${STORAGE_KEY}_backup_history${sourceSuffix}`;
+  const RESOURCE_SETTINGS_KEY = `${STORAGE_KEY}_settings${sourceSuffix}`;
+  const RESOURCE_VIEW_STATE_KEY = `${STORAGE_KEY}_view_state${sourceSuffix}`;
+  const RESOURCE_SCHEDULE_STATE_KEY = `${STORAGE_KEY}_schedule_state${sourceSuffix}`;
+  const MAX_BACKUP_HISTORY = 20;
+  const RESOURCE_SETTINGS_DEFAULTS = Object.freeze({
+   checkMode: 'incremental',
+   concurrency: 2,
+   requestDelay: 120,
+   scheduleEnabled: true,
+   scheduleSyncActors: true,
+   scheduleCheckWorks: false,
+   scheduleActorHours: 2,
+   scheduleWorksHours: 12,
+  });
+  const RESOURCE_SCHEDULE_HOURS = Object.freeze([2, 4, 6, 12, 24]);
+  const RESOURCE_VIEW_STATE_DEFAULTS = Object.freeze({ actorsSort: 'pending', worksSort: 'published' });
+  let state = null; let resourceDbPromise = null; let resourceStateHydration = null; let resourceWriteQueue = Promise.resolve(); let resourceStateRevision = 0; let recoverySnapshot = null; let activeResourceOperation = null;
+  const resourceScheduleTimers = { actors: null, works: null };
+  let resourceScheduleRunning = false; let resourceScheduleLastRunAt = 0; const actorLookupInFlight = new Map(); const resourceSourceAdapters = new Map();
+  const RESOURCE_SOURCES = Object.freeze({
+   javdb: 'JavDB',
+   javbus: 'JavBus',
+   javlibrary: 'JavLibrary',
+  });
+  const ACTOR_AVATAR_PLACEHOLDERS = Object.freeze({
+   javdb: 'https://c0.jdbstatic.com/images/actor_unknow.jpg',
+   javbus: 'https://pics.dmm.co.jp/mono/actjpgs/nowprinting.gif',
+   javlibrary: 'https://pics.dmm.co.jp/mono/actjpgs/nowprinting.gif',
+  });
+  function normalizeSource(value) {
+   const source = String(value || '').trim().toLowerCase(); return Object.prototype.hasOwnProperty.call(RESOURCE_SOURCES, source) ? source : ''; }
+  function detectSource(hostname = location.hostname) {
+   const host = String(hostname || '').toLowerCase();
+   if (isJavDbHost(host)) return 'javdb';
+   if (isJavBusHost(host)) return 'javbus';
+   if (isJavLibraryHost(host)) return 'javlibrary';
+   return ''; }
+  function getActiveSource() { return detectSource() || 'javdb'; }
+  function getActorAvatarFallback(source = getActiveSource()) { return ACTOR_AVATAR_PLACEHOLDERS[normalizeSource(source)] || ACTOR_AVATAR_PLACEHOLDERS.javdb; }
+  function registerSourceAdapter(source, adapter) {
+   const sourceId = normalizeSource(source);
+   if (!sourceId || !adapter || typeof adapter !== 'object') return false;
+   resourceSourceAdapters.set(sourceId, Object.freeze({ id: sourceId, ...adapter }));
+   return true; }
+  function getSourceAdapter(source = getActiveSource()) { return resourceSourceAdapters.get(normalizeSource(source)) || null; }
+  function isSupported() { return !!detectSource(); }
+  function getResourceLoginState() {
+   if (typeof document === 'undefined') return null;
+   const source = getActiveSource(); const nav = source === 'javbus' ? document.querySelector('nav.top-bar') : source === 'javdb' ? document.querySelector('nav.main-nav') : document.querySelector('#topmenu .menutext, #topmenu');
+   if (!nav) return null;
+   if (source === 'javbus') {
+    if (nav.querySelector('a[href*="member.php"][href*="mdl=logout"]')) return true;
+    if (nav.querySelector('[onclick*="member.php"][onclick*="mod=logging"][onclick*="action=login"], a[href*="member.php"][href*="action=login"]')) return false;
+    const avatar = nav.querySelector('img.avatar[src*="uid="]');
+    if (/[?&]uid=0(?:&|$)/i.test(avatar?.getAttribute('src') || '')) return false;
+    return null; }
+   if (source === 'javdb') {
+    if (nav.querySelector('#navbar-menu-user a[href="/logout"], #navbar-menu-user a[href="/users/profile"]')) return true;
+    if (nav.querySelector('#navbar-menu-user a[href="/login"], #navbar-menu-user a[href="/users/new"]')) return false;
+    return null; }
+   if (source === 'javlibrary') {
+    if (nav.querySelector('a[href*="logout.php"], a[href*="myaccount.php"]')) return true;
+    if (nav.querySelector('a[href*="login.php"], a[href*="register.php"]')) return false;
+    return null; }
+   if (nav.querySelector('a[href*="/users/sign_out"], a[href*="/logout"], a[href*="/users/profile"], a[href*="/member/logout"]')) return true;
+   if (nav.querySelector('a[href*="/users/sign_in"], a[href*="/login"], a[href*="/users/login"], a[href*="/member/login"]')) return false;
+   return null; }
+  function isCloudflareChallengePage(doc = typeof document === 'undefined' ? null : document) {
+   if (!doc) return false;
+   const pageText = `${doc.title || ''} ${doc.body?.textContent || ''}`;
+   return /Just a moment|cf-chl-|challenge-platform|Cloudflare|Checking your browser|Performing security verification|Verify you are human/i.test(pageText)
+    || !!doc.querySelector?.('#challenge-running, #challenge-stage, #challenge-error, .cf-challenge, iframe[src*="challenges.cloudflare.com"]'); }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({
    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   })[char]);
-  function createState() { return { version: 3, works: {}, actors: {}, relations: {}, blacklist: { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] }, updatedAt: 0 }; }
+  function readResourceSettings() {
+   const saved = typeof GM_getValue === 'function' ? GM_getValue(RESOURCE_SETTINGS_KEY, '') : '';
+   let input = {};
+   try { input = typeof saved === 'string' ? JSON.parse(saved || '{}') : saved || {}; } catch (_) { input = {}; }
+   const checkMode = input.checkMode === 'full' ? 'full' : RESOURCE_SETTINGS_DEFAULTS.checkMode; const concurrency = Math.min(8, Math.max(1, Number.parseInt(input.concurrency, 10) || RESOURCE_SETTINGS_DEFAULTS.concurrency));
+   const parsedRequestDelay = Number.parseInt(input.requestDelay, 10); const requestDelay = Math.min(5000, Math.max(0, Number.isFinite(parsedRequestDelay) ? parsedRequestDelay : RESOURCE_SETTINGS_DEFAULTS.requestDelay));
+   const parsedLegacyHours = Number.parseInt(input.scheduleHours, 10); const legacyHours = RESOURCE_SCHEDULE_HOURS.includes(parsedLegacyHours) ? parsedLegacyHours : 0; const parsedActorHours = Number.parseInt(input.scheduleActorHours, 10);
+   const parsedWorksHours = Number.parseInt(input.scheduleWorksHours, 10); const scheduleActorHours = RESOURCE_SCHEDULE_HOURS.includes(parsedActorHours) ? parsedActorHours : (legacyHours || RESOURCE_SETTINGS_DEFAULTS.scheduleActorHours);
+   const scheduleWorksHours = RESOURCE_SCHEDULE_HOURS.includes(parsedWorksHours) ? parsedWorksHours : (legacyHours || RESOURCE_SETTINGS_DEFAULTS.scheduleWorksHours); const hasScheduleEnabled = Object.prototype.hasOwnProperty.call(input, 'scheduleEnabled');
+   const scheduleEnabled = hasScheduleEnabled ? input.scheduleEnabled === true : RESOURCE_SETTINGS_DEFAULTS.scheduleEnabled;
+   const scheduleSyncActors = Object.prototype.hasOwnProperty.call(input, 'scheduleSyncActors') ? input.scheduleSyncActors === true : (hasScheduleEnabled ? scheduleEnabled : RESOURCE_SETTINGS_DEFAULTS.scheduleSyncActors);
+   const scheduleCheckWorks = Object.prototype.hasOwnProperty.call(input, 'scheduleCheckWorks') ? input.scheduleCheckWorks === true : (hasScheduleEnabled ? scheduleEnabled : RESOURCE_SETTINGS_DEFAULTS.scheduleCheckWorks);
+   return { ...RESOURCE_SETTINGS_DEFAULTS, ...input, checkMode, concurrency, requestDelay, scheduleActorHours, scheduleWorksHours, scheduleEnabled: scheduleEnabled && (scheduleSyncActors || scheduleCheckWorks), scheduleSyncActors, scheduleCheckWorks }; }
+  function saveResourceSettings(values = {}) {
+   const current = readResourceSettings();
+   const next = { ...current, ...values };
+   if (next.checkMode !== 'full') next.checkMode = 'incremental';
+   next.concurrency = Math.min(8, Math.max(1, Number.parseInt(next.concurrency, 10) || RESOURCE_SETTINGS_DEFAULTS.concurrency)); next.requestDelay = Math.min(5000, Math.max(0, Number.parseInt(next.requestDelay, 10) || 0));
+   const parsedActorHours = Number.parseInt(next.scheduleActorHours, 10); const parsedWorksHours = Number.parseInt(next.scheduleWorksHours, 10);
+   next.scheduleActorHours = RESOURCE_SCHEDULE_HOURS.includes(parsedActorHours) ? parsedActorHours : RESOURCE_SETTINGS_DEFAULTS.scheduleActorHours;
+   next.scheduleWorksHours = RESOURCE_SCHEDULE_HOURS.includes(parsedWorksHours) ? parsedWorksHours : RESOURCE_SETTINGS_DEFAULTS.scheduleWorksHours; delete next.scheduleHours; next.scheduleEnabled = next.scheduleEnabled === true;
+   next.scheduleSyncActors = next.scheduleSyncActors === true; next.scheduleCheckWorks = next.scheduleCheckWorks === true; next.scheduleEnabled = next.scheduleEnabled && (next.scheduleSyncActors || next.scheduleCheckWorks);
+   if (typeof GM_setValue === 'function') GM_setValue(RESOURCE_SETTINGS_KEY, JSON.stringify(next));
+   return next; }
+  function readResourceViewState() {
+   const saved = typeof GM_getValue === 'function' ? GM_getValue(RESOURCE_VIEW_STATE_KEY, '') : '';
+   let input = {};
+   try { input = typeof saved === 'string' ? JSON.parse(saved || '{}') : saved || {}; } catch (_) { input = {}; }
+   return {
+    actorsSort: ['pending', 'added', 'updated'].includes(input.actorsSort) ? input.actorsSort : RESOURCE_VIEW_STATE_DEFAULTS.actorsSort,
+    worksSort: ['published', 'added', 'updated'].includes(input.worksSort) ? input.worksSort : RESOURCE_VIEW_STATE_DEFAULTS.worksSort, }; }
+  function saveResourceViewState(values = {}) {
+   const current = readResourceViewState();
+   const next = { actorsSort: ['pending', 'added', 'updated'].includes(values.actorsSort) ? values.actorsSort : current.actorsSort, worksSort: ['published', 'added', 'updated'].includes(values.worksSort) ? values.worksSort : current.worksSort };
+   if (typeof GM_setValue === 'function') GM_setValue(RESOURCE_VIEW_STATE_KEY, JSON.stringify(next));
+   return next; }
+  function readResourceScheduleState() {
+   const saved = typeof GM_getValue === 'function' ? GM_getValue(RESOURCE_SCHEDULE_STATE_KEY, '') : '';
+   let input = {};
+   try { input = typeof saved === 'string' ? JSON.parse(saved || '{}') : saved || {}; } catch (_) { input = {}; }
+   const legacySlot = { lastRunAt: Number(input.lastRunAt) || 0, nextRunAt: Number(input.nextRunAt) || 0 };
+   const normalizeSlot = value => ({ lastRunAt: Number(value?.lastRunAt) || 0, lastSuccessAt: Number(value?.lastSuccessAt) || 0, nextRunAt: Number(value?.nextRunAt) || 0 });
+   return { actors: normalizeSlot(input.actors || legacySlot), works: normalizeSlot(input.works || legacySlot) }; }
+  function saveResourceScheduleState(values = {}) {
+   const current = readResourceScheduleState();
+   const next = { ...current, ...values, actors: { ...current.actors, ...(values.actors || {}) }, works: { ...current.works, ...(values.works || {}) } };
+   if (typeof GM_setValue === 'function') GM_setValue(RESOURCE_SCHEDULE_STATE_KEY, JSON.stringify(next));
+   return next; }
+  function createSourceState(source = 'javdb') { return { version: 3, source: normalizeSource(source) || 'javdb', works: {}, actors: {}, relations: {}, blacklist: { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] }, updatedAt: 0 }; }
+  function createState() {
+   return { version: 4, sources: Object.fromEntries(Object.keys(RESOURCE_SOURCES).map(source => [source, createSourceState(source)])), updatedAt: 0 }; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function readStoredValue(key, fallback = '') {
+   if (typeof GM_getValue !== 'function') return fallback;
+   try { return GM_getValue(key, fallback); } catch (_) { return fallback; }
+  }
+  function writeStoredValue(key, value) {
+   if (typeof GM_setValue !== 'function') return false;
+   try {
+    GM_setValue(key, value); return true;
+   } catch (_) { return false; } }
+  function parseStoredObject(value, fallback = null) {
+   if (!value) return fallback;
+   try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value; return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
+   } catch (_) { return fallback; } }
+  function deleteStoredValue(key) {
+   if (typeof GM_deleteValue === 'function') {
+    try { GM_deleteValue(key); return true; } catch (_) { }
+   }
+   return writeStoredValue(key, ''); }
   function javdbCoverFromUrl(url) {
    const id = String(url || '').match(/\/v\/([^/?#]+)/i)?.[1];
    if (!id || id.length < 2) return '';
@@ -9408,19 +9638,20 @@
   function fillWorkCover(work) {
    if (!work || typeof work !== 'object') return false;
    if (String(work.cover || '').trim()) return false;
+   if (work.source && work.source !== 'javdb') return false;
    const cover = javdbCoverFromUrl(work.url);
    if (!cover) return false;
    work.cover = cover; return true; }
-  function normalizeStoredState(value) {
-   const source = value && typeof value === 'object' ? value : {};
-   const result = createState();
+  function normalizeSourceState(value, source = 'javdb') {
+   const input = value && typeof value === 'object' ? value : {};
+   const result = createSourceState(source);
    ['works', 'actors', 'relations'].forEach(kind => {
-    if (!source[kind] || typeof source[kind] !== 'object' || Array.isArray(source[kind])) return;
-    Object.entries(source[kind]).forEach(([key, item]) => {
+    if (!input[kind] || typeof input[kind] !== 'object' || Array.isArray(input[kind])) return;
+    Object.entries(input[kind]).forEach(([key, item]) => {
      if (item && typeof item === 'object' && !Array.isArray(item)) result[kind][key] = clone(item);
     });
    });
-   const sourceBlacklist = source.blacklist && typeof source.blacklist === 'object' && !Array.isArray(source.blacklist) ? source.blacklist : {};
+   const sourceBlacklist = input.blacklist && typeof input.blacklist === 'object' && !Array.isArray(input.blacklist) ? input.blacklist : {};
    ['actors', 'works'].forEach(kind => {
     const entries = sourceBlacklist[kind];
     if (!entries || typeof entries !== 'object' || Array.isArray(entries)) return;
@@ -9438,10 +9669,41 @@
     if (work.flags) work.flags.blocked = false;
     if ('filter' in work) work.filter = false;
    });
-   result.updatedAt = Number(source.updatedAt) || 0; return result; }
-  function getState() {
-   if (state) return state;
-   state = createState(); return state; }
+   result.updatedAt = Number(input.updatedAt) || 0; return result; }
+  function normalizeStoredState(value) {
+   const input = value && typeof value === 'object' ? value : {};
+   const result = createState();
+   if (input.sources && typeof input.sources === 'object' && !Array.isArray(input.sources)) {
+    Object.keys(RESOURCE_SOURCES).forEach(source => { result.sources[source] = normalizeSourceState(input.sources[source], source); });
+   } else { result.sources.javdb = normalizeSourceState(input, 'javdb'); }
+   result.updatedAt = Number(input.updatedAt) || Math.max(...Object.values(result.sources).map(item => item.updatedAt || 0), 0); return result; }
+  function mergeSourceSnapshots(existing, incoming, source) {
+   const current = normalizeSourceState(existing, source); const next = normalizeSourceState(incoming, source); const incomingIsNewer = next.updatedAt >= current.updatedAt;
+   ['works', 'actors', 'relations'].forEach(kind => Object.entries(next[kind]).forEach(([key, value]) => {
+    if (!(key in current[kind])) { current[kind][key] = clone(value); return; }
+    else current[kind][key] = incomingIsNewer ? mergeValues(current[kind][key], value) : mergeValues(value, current[kind][key]);
+   }));
+   ['actors', 'works'].forEach(kind => Object.entries(next.blacklist[kind]).forEach(([key, value]) => {
+    if (!(key in current.blacklist[kind])) { current.blacklist[kind][key] = clone(value); return; }
+    else current.blacklist[kind][key] = incomingIsNewer ? mergeValues(current.blacklist[kind][key], value) : mergeValues(value, current.blacklist[kind][key]);
+   }));
+   current.blacklist.codeKeywords = [...new Set([...(current.blacklist.codeKeywords || []), ...(next.blacklist.codeKeywords || [])])];
+   current.blacklist.titleKeywords = [...new Set([...(current.blacklist.titleKeywords || []), ...(next.blacklist.titleKeywords || [])])]; current.updatedAt = Math.max(current.updatedAt || 0, next.updatedAt || 0); return current; }
+  function mergeStoredStates(existing, incoming) {
+   const current = normalizeStoredState(existing || createState()); const next = incoming ? normalizeStoredState(incoming) : null;
+   if (!next) return current;
+   Object.keys(RESOURCE_SOURCES).forEach(source => { current.sources[source] = mergeSourceSnapshots(current.sources[source], next.sources[source], source); });
+   current.updatedAt = Math.max(current.updatedAt || 0, next.updatedAt || 0); return current; }
+  function getState(source = getActiveSource()) {
+   if (!state) state = createState();
+   if (!state.sources || typeof state.sources !== 'object' || Array.isArray(state.sources)) state = normalizeStoredState(state);
+   const sourceId = normalizeSource(source) || getActiveSource();
+   if (!state.sources[sourceId]) state.sources[sourceId] = createSourceState(sourceId);
+   return state.sources[sourceId]; }
+  function getFullState() {
+   if (!state) state = createState();
+   if (!state.sources || typeof state.sources !== 'object' || Array.isArray(state.sources)) state = normalizeStoredState(state);
+   return state; }
   function emitResourceEvent(name) {
    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return;
    try { window.dispatchEvent(new Event(name)); } catch (_) { }
@@ -9451,7 +9713,7 @@
    if (resourceDbPromise) return resourceDbPromise;
    resourceDbPromise = new Promise((resolve, reject) => {
     try {
-     const request = window.indexedDB.open(CACHE_DB_NAME, CACHE_DB_VERSION);
+     const request = window.indexedDB.open(CACHE_DB_NAME);
      request.onupgradeneeded = () => {
       if (!request.result.objectStoreNames.contains('snapshots')) request.result.createObjectStore('snapshots');
      };
@@ -9491,17 +9753,25 @@
      readIndexedDbValue('latest'),
      readIndexedDbValue('recovery'),
     ]).then(([indexedState, indexedRecovery]) => {
-     state = indexedState ? normalizeStoredState(indexedState) : createState(); resourceStateRevision += 1; recoverySnapshot = indexedRecovery?.format === BACKUP_FORMAT && indexedRecovery?.data ? indexedRecovery : null;
-     emitResourceEvent('laosiji-resource-state-ready');
-     if (indexedState && Object.values(state.works).some(work => work.cover && !String(indexedState.works?.[work.code]?.cover || '').trim())) { persist(); }
-     return state;
+     const localState = indexedState ? normalizeStoredState(indexedState) : null; const legacyStateValue = readStoredValue(LEGACY_SHARED_STATE_KEY, ''); const legacyState = parseStoredObject(legacyStateValue, null);
+     state = legacyState ? mergeStoredStates(localState || createState(), legacyState) : (localState || createState()); resourceStateRevision += 1; const legacyRecoveryValue = readStoredValue(LEGACY_RECOVERY_KEY, '');
+     const legacyRecovery = parseStoredObject(legacyRecoveryValue, null);
+     recoverySnapshot = indexedRecovery?.format === BACKUP_FORMAT && indexedRecovery?.data ? indexedRecovery : legacyRecovery?.format === BACKUP_FORMAT && legacyRecovery?.data ? legacyRecovery : null;
+     const sourceNeedsPersist = Object.keys(RESOURCE_SOURCES).some(source => Object.values(state.sources[source].works).some(work => work.cover && !String(indexedState?.sources?.[source]?.works?.[work.code]?.cover || indexedState?.works?.[work.code]?.cover || '').trim()));
+     const needsLocalWrite = !!legacyState || !!legacyRecovery || (indexedState && (!indexedState.sources || sourceNeedsPersist));
+     if (needsLocalWrite) { resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => writeIndexedDbValue('latest', clone(state))).catch(() => {}); }
+     if (legacyStateValue) { resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => deleteStoredValue(LEGACY_SHARED_STATE_KEY)).catch(() => {}); }
+     if (legacyRecovery && !indexedRecovery) { resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => writeIndexedDbValue('recovery', legacyRecovery)).then(() => deleteStoredValue(LEGACY_RECOVERY_KEY)).catch(() => {}); }
+     if (legacyRecoveryValue && (indexedRecovery || !legacyRecovery)) { resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => deleteStoredValue(LEGACY_RECOVERY_KEY)).catch(() => {}); }
+     emitResourceEvent('laosiji-resource-state-ready'); return state;
     }).catch(() => {
      state = createState(); resourceStateRevision += 1; recoverySnapshot = null; emitResourceEvent('laosiji-resource-state-ready'); return state;
     }); }
    if (onReady) resourceStateHydration.then(onReady);
    return resourceStateHydration; }
-  function persist() {
-   const library = getState(); library.updatedAt = Date.now(); resourceStateRevision += 1; const snapshot = clone(library);
+  function persist(source = getActiveSource()) {
+   const library = getState(source); library.updatedAt = Date.now(); const fullState = getFullState(); fullState.sources[source] = normalizeSourceState(library, source); fullState.version = 4;
+   fullState.updatedAt = Math.max(library.updatedAt, ...Object.values(fullState.sources).map(item => item.updatedAt || 0)); resourceStateRevision += 1; const snapshot = clone(fullState);
    resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => writeIndexedDbValue('latest', snapshot));
    emitResourceEvent('laosiji-resource-state-changed'); return resourceWriteQueue; }
   const RESOURCE_WORK_FLAG_META = { favorite: '收藏', watched: '观看', downloaded: '下载' };
@@ -9539,7 +9809,7 @@
      publishTime: String(metadata.publishTime || '').trim(),
      url: String(metadata.url || '').trim(),
      type: metadata.type || 'unknown',
-     source: metadata.source || 'javdb',
+     source: metadata.source || getActiveSource(),
      tags: Array.isArray(metadata.tags) ? [...metadata.tags] : [],
      actorIds: Array.isArray(metadata.actorIds) ? [...new Set(metadata.actorIds.filter(Boolean))] : [],
      actorNames: normalizeActorNames(metadata.actorNames, normalizedCode),
@@ -9604,15 +9874,14 @@
    else delete blacklist.actors[actorId];
    return blocked; }
   async function toggleResourceActorBlacklist(actorId, metadata = {}) {
-   await hydrateResourceState(); const library = getState(); const blocked = !isActorBlacklisted(actorId, library);
+   await hydrateResourceState(); const source = getActiveSource(); const adapter = getSourceAdapter(source); const library = getState(); const blocked = !isActorBlacklisted(actorId, library);
    const actor = library.actors[actorId] || {
     starId: actorId,
     name: String(metadata.name || actorId),
     aliases: [],
     type: 'unknown',
-    source: 'javdb',
-    url: absoluteUrl(`/actors/${encodeURIComponent(actorId)}`),
-   };
+    source,
+    url: metadata.url || adapter?.getActorUrl?.(actorId, metadata) || '', };
    library.actors[actorId] = { ...actor, ...metadata, starId: actorId, name: String(metadata.name || actor.name || actorId) };
    setActorBlacklist(actorId, library.actors[actorId], blocked);
    if (blocked) {
@@ -9621,21 +9890,25 @@
     } catch (error) { errorLog('actor blacklist work sync failed:', error?.message || error); } }
    await persist(); return blocked; }
   async function syncBlacklistedActor(actorId, onProgress, operation) {
-   await hydrateResourceState(); const library = getState(); const entry = getBlacklist().actors[actorId];
+   await hydrateResourceState(); const source = getActiveSource(); const adapter = getSourceAdapter(source);
+   if (!adapter?.getActorUrl) throw new Error(`${RESOURCE_SOURCES[source]} 尚未支持作品同步`);
+   const library = getState(); const entry = getBlacklist().actors[actorId];
    if (!entry) throw new Error('演员不在黑名单中');
    const actor = library.actors[actorId] || {
     starId: actorId,
     name: String(entry.name || actorId),
     aliases: Array.isArray(entry.aliases) ? [...entry.aliases] : [],
     type: 'unknown',
-    source: 'javdb',
-    url: absoluteUrl(`/actors/${encodeURIComponent(actorId)}`),
-   };
-   library.actors[actorId] = actor; const result = await syncActorWorks(actorId, onProgress, operation); const workCodes = Object.values(library.works).filter(work => work.actorIds?.includes(actorId)).map(work => work.code).filter(Boolean);
-   entry.workCodes = [...new Set([...(Array.isArray(entry.workCodes) ? entry.workCodes : []), ...workCodes])]; entry.name = actor.name || entry.name || actorId; entry.aliases = Array.isArray(actor.aliases) ? [...actor.aliases] : [];
-   entry.worksSyncedAt = Date.now(); await persist(); return result; }
+    source,
+    url: entry.url || adapter.getActorUrl(actorId, entry), };
+   library.actors[actorId] = actor;
+   const result = await syncActorWorks(actorId, onProgress, operation, { fullScan: true });
+   const workCodes = Object.values(library.works).filter(work => work.actorIds?.includes(actorId)).map(work => work.code).filter(Boolean); entry.workCodes = [...new Set([...(Array.isArray(entry.workCodes) ? entry.workCodes : []), ...workCodes])];
+   entry.name = actor.name || entry.name || actorId; entry.aliases = Array.isArray(actor.aliases) ? [...actor.aliases] : []; entry.worksSyncedAt = Date.now(); await persist(); return result; }
   async function syncPendingBlacklistedActors() {
-   await hydrateResourceState(); const library = getState(); const pending = Object.values(getBlacklist().actors).filter(actor => actor?.actorId && !actor.worksSyncedAt); let changed = false;
+   await hydrateResourceState(); const source = getActiveSource(); const adapter = getSourceAdapter(source); const library = getState();
+   if (!adapter?.getActorUrl || !adapter.parseWorkPage) return;
+   const pending = Object.values(getBlacklist().actors).filter(actor => actor?.actorId && !actor.worksSyncedAt); let changed = false;
    for (const entry of pending) {
     const actorId = String(entry.actorId);
     if (!library.actors[actorId]) {
@@ -9644,9 +9917,8 @@
       name: String(entry.name || actorId),
       aliases: Array.isArray(entry.aliases) ? [...entry.aliases] : [],
       type: 'unknown',
-      source: 'javdb',
-      url: absoluteUrl(`/actors/${encodeURIComponent(actorId)}`),
-     }; }
+      source,
+      url: entry.url || adapter.getActorUrl(actorId, entry), }; }
     try {
      await syncBlacklistedActor(actorId); changed = true;
     } catch (error) { errorLog('pending actor blacklist sync failed:', error?.message || error); } }
@@ -9687,18 +9959,320 @@
     if (value) return value;
    }
    return ''; }
+  registerSourceAdapter('javdb', {
+   getCollectionActorsUrl: origin => new URL('/users/collection_actors', origin).href,
+   getActorUrl: actorId => absoluteUrl(`/actors/${encodeURIComponent(actorId)}`),
+   getActorUncollectUrl: actorId => absoluteUrl(`/actors/${encodeURIComponent(actorId)}/uncollect`),
+   parseActorPage,
+   parseActorProfile,
+   parseWorkActors,
+   parseWorkPage,
+  });
+  function getJavbusPageNumber(url) {
+   const raw = String(url || '').replace(/&amp;/gi, '&'); const queryMatch = raw.match(/[?&]page=(\d+)/i);
+   if (queryMatch) return Math.max(1, Number(queryMatch[1]) || 1);
+   try {
+    const pathname = new URL(raw, location.href).pathname.replace(/\/+$/, ''); const pathMatch = pathname.match(/\/(?:uncensored\/)?star\/[^/]+\/(\d+)$/i); return Math.max(1, Number(pathMatch?.[1]) || 1);
+   } catch (_) { return 1; } }
+  function parseJavbusActorPage(html, pageUrl) {
+   const doc = parseHTML(html); const cards = [...doc.querySelectorAll('#waterfall a.avatar-box[href]')];
+   if (!cards.length && /driver-verify|Just a moment|cf-chl-|Cloudflare/i.test(`${doc.title || ''} ${doc.body?.textContent || ''}`)) { return { actors: [], nextUrl: '', isChallenge: true }; }
+   if (!doc.querySelector('#waterfall')) throw new Error('未找到 JavBus 收藏演员列表，请确认已登录');
+   const actors = []; const seen = new Set();
+   cards.forEach(anchor => {
+    const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); let pathname = '';
+    try { pathname = new URL(href || pageUrl, pageUrl).pathname; } catch (_) { }
+    const match = pathname.match(/\/(?:uncensored\/)?star\/([^/?#]+)/i); const starId = match?.[1] || '';
+    if (!starId || seen.has(starId)) return;
+    seen.add(starId); const info = anchor.querySelector('.photo-info .mleft, .photo-info'); const badge = info?.querySelector('button'); const badgeText = String(badge?.textContent || '').trim();
+    const rawName = String(info?.textContent || anchor.getAttribute('title') || '').replace(badgeText, '').replace(/\s+/g, ' ').trim(); const name = rawName || starId; const image = anchor.querySelector('img[src], img[data-src]');
+    const type = /\/uncensored\/star\//i.test(pathname) || /uncensored|\u7121\u78bc|\u65e0\u7801/i.test(`${badgeText} ${rawName}`) ? 'uncensored' : 'censored';
+    const imageUrl = image?.getAttribute('src') || image?.getAttribute('data-src') || '';
+    actors.push({
+     starId,
+     name,
+     aliases: [name],
+     avatar: imageUrl ? absoluteUrl(imageUrl, pageUrl) : getActorAvatarFallback('javbus'),
+     type,
+     source: 'javbus',
+     url: href,
+    });
+   });
+   const currentPage = getJavbusPageNumber(pageUrl);
+   const next = [...doc.querySelectorAll('.pagination a[href]')] .map(anchor => ({ href: anchor.getAttribute('href') || '', page: getJavbusPageNumber(anchor.getAttribute('href')) })) .filter(item => item.page > currentPage) .sort((a, b) => a.page - b.page)[0];
+   return {
+    actors,
+    nextUrl: next ? absoluteUrl(next.href, pageUrl) : '',
+    isChallenge: /driver-verify|Just a moment|cf-chl-|Cloudflare/i.test(`${doc.title || ''} ${doc.body?.textContent || ''}`),
+   }; }
+  function parseJavbusActorProfile(html, pageUrl) {
+   const doc = parseHTML(html); const info = doc.querySelector('.avatar-box .photo-info .mleft, .avatar-box .photo-info .pb10, .avatar-box .photo-info, #video_title h3, h1'); const badge = info?.querySelector('button');
+   const badgeText = String(badge?.textContent || '').trim(); const name = String(info?.textContent || '').replace(badgeText, '').replace(/\s+/g, ' ').trim(); const image = doc.querySelector('.avatar-box img[src], .avatar-box img[data-src], #avatar img[src]');
+   const imageUrl = image?.getAttribute('src') || image?.getAttribute('data-src') || ''; const favorite = parseJavbusFavoriteData(doc);
+   return { name, aliases: normalizeActorNames(name), avatar: imageUrl ? absoluteUrl(imageUrl, pageUrl) : getActorAvatarFallback('javbus'), favoriteCode: favorite.code, favoriteToken: favorite.token, favoriteTitle: favorite.title }; }
+  function parseJavbusFavoriteData(doc, actorId = '') {
+   const controls = [...(doc.querySelectorAll?.('.starfav .mypointer[value], .info .mypointer[value], .mypointer.favicon[value]') || [])]; const normalizedActorId = String(actorId || '').trim().toLowerCase();
+   const matchingControl = controls.find(item => {
+    if (!normalizedActorId) return false;
+    const link = item.closest?.('p')?.querySelector?.('a[href*="/star/"]'); const href = String(link?.getAttribute?.('href') || '');
+    try {
+     const pathname = new URL(href, location.href || location.origin).pathname; const match = pathname.match(/\/(?:uncensored\/)?star\/([^/?#]+)/i); return decodeURIComponent(match?.[1] || '').toLowerCase() === normalizedActorId;
+    } catch (_) { return false; }
+   });
+   const control = normalizedActorId ? matchingControl : doc.querySelector?.('.starfav .mypointer[value], .info .mypointer[value], .mypointer.favicon[value]'); const tokenInput = doc.querySelector('#token');
+   const heart = control?.querySelector?.('.glyphicon-heart');
+   return {
+    code: String(control?.getAttribute('value') || '').trim(),
+    token: String(tokenInput?.value || tokenInput?.getAttribute('value') || '').trim(),
+    title: String(control?.getAttribute('title') || '').trim(),
+    isCollected: /取消收藏/i.test(String(control?.getAttribute('title') || '')) || !!heart, }; }
+  function javbusCoverFromUrl(value, pageUrl) {
+   const href = absoluteUrl(value, pageUrl);
+   if (!href) return '';
+   try {
+    const url = new URL(href);
+    const wasThumbnail = /\/(imgs|pics)\/thumbs?\//i.test(url.pathname);
+    if (!wasThumbnail) return url.href;
+    url.pathname = url.pathname.replace(/\/(imgs|pics)\/thumbs?\//i, '/$1/cover/');
+    if (!/nopic\.jpg|_b\.(?:jpe?g|png)$/i.test(url.pathname)) url.pathname = url.pathname.replace(/(\.jpe?g|\.png)$/i, '_b$1');
+    return url.href;
+   } catch (_) { return href; } }
+  async function uncollectJavbusActor(actorId, actor = {}) {
+   const pageUrl = actor.url || absoluteUrl(`/${actor?.type === 'uncensored' ? 'uncensored/' : ''}star/${encodeURIComponent(actorId)}`);
+   const pageResponse = await gmFetch(pageUrl, { method: 'GET', timeout: 30000 });
+   if (!pageResponse.loadstuts || !pageResponse.responseText) throw new Error(`JavBus 演员详情请求失败 HTTP ${pageResponse.status || 0}`);
+   const actorDoc = parseHTML(pageResponse.responseText); const firstWork = actorDoc.querySelector?.('#waterfall a.movie-box[href], #waterfall a[href*="/"]'); const detailUrl = absoluteUrl(firstWork?.getAttribute?.('href'), pageUrl);
+   if (!detailUrl) throw new Error('未找到 JavBus 演员作品详情，无法取消收藏');
+   const detailResponse = await gmFetch(detailUrl, { method: 'GET', timeout: 30000 });
+   if (!detailResponse.loadstuts || !detailResponse.responseText) throw new Error(`JavBus 作品详情请求失败 HTTP ${detailResponse.status || 0}`);
+   const favorite = parseJavbusFavoriteData(parseHTML(detailResponse.responseText), actorId);
+   if (!favorite.code || !favorite.token) throw new Error('未找到 JavBus 演员收藏参数，请确认已登录');
+   if (!favorite.isCollected) throw new Error('JavBus 演员当前未收藏，已停止切换请求');
+   const endpoint = new URL('../ajax/addfavorite.php', detailUrl);
+   endpoint.search = new URLSearchParams({
+    code: favorite.code,
+    token: favorite.token,
+    floor: String(Math.floor(Math.random() * 1000) + 1),
+   }).toString();
+   const response = await gmFetch(endpoint.href, {
+    method: 'POST',
+    headers: {
+     'X-Requested-With': 'XMLHttpRequest', },
+    timeout: 30000,
+   });
+   if (!response.loadstuts) throw new Error(`JavBus 取消收藏失败 HTTP ${response.status || 0}`);
+   let payload = null;
+   try { payload = JSON.parse(response.responseText || 'null'); } catch (_) { throw new Error('JavBus 收藏接口返回了无法识别的响应'); }
+   if (payload?.act === 'err') throw new Error(String(payload.message || payload.msg || 'JavBus 收藏操作失败'));
+   if (payload && typeof payload === 'object') { actor.favoriteCode = String(payload.code || favorite.code); actor.favoriteToken = String(payload.token || favorite.token); actor.favoriteTitle = String(payload.title || ''); }
+   return payload; }
+  function parseJavbusWorkActors(html, pageUrl) {
+   const doc = parseHTML(html); const actors = []; const seen = new Set(); const links = [...(doc.querySelectorAll?.('.info a[href*="/star/"], a[href*="/star/"]') || [])];
+   links.forEach(anchor => {
+    const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); let pathname = '';
+    try { pathname = new URL(href || pageUrl, pageUrl).pathname; } catch (_) { }
+    const match = pathname.match(/\/(?:uncensored\/)?star\/([^/?#]+)/i); const starId = match?.[1] || ''; const name = String(anchor.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!starId || !name || seen.has(starId)) return;
+    seen.add(starId);
+    actors.push({
+     starId,
+     name,
+     aliases: [name],
+     url: href,
+     type: /\/uncensored\/star\//i.test(pathname) ? 'uncensored' : 'censored',
+     source: 'javbus',
+    });
+   });
+   return actors; }
+  function parseJavbusWorkPage(html, pageUrl) {
+   const doc = parseHTML(html); const anchors = [...doc.querySelectorAll('#waterfall a.movie-box[href], #waterfall a[href*="/v/"]')]; const works = []; const seen = new Set();
+   anchors.forEach(anchor => {
+    const card = anchor.closest('.item, .movie-box, .box, .card') || anchor; const text = card.textContent || anchor.textContent || ''; const code = extractWorkCode(text) || extractWorkCode(anchor.getAttribute('href'));
+    if (!code || seen.has(code)) return;
+    seen.add(code); const image = card.querySelector('img[src], img[data-src]'); const titleNode = card.querySelector('.video-title, .title, .name, [class*="title"]'); const dateNodes = [...(card.querySelectorAll?.('date') || [])];
+    const dateNode = dateNodes.find(node => /(?:19|20)\d{2}[-/.]\d{1,2}[-/.]\d{1,2}/.test(String(node.textContent || ''))) || dateNodes[1] || card.querySelector('.date, .meta, .time, time');
+    const imageUrl = image?.getAttribute('src') || image?.getAttribute('data-src') || '';
+    works.push({
+     code,
+     title: String(titleNode?.textContent || anchor.textContent || '').replace(code, '').replace(/[|｜]/g, '').trim(),
+     cover: imageUrl ? javbusCoverFromUrl(imageUrl, pageUrl) : '',
+     publishTime: String(dateNode?.textContent || '').trim(),
+     url: absoluteUrl(anchor.getAttribute('href'), pageUrl),
+     type: classifyType(text),
+     source: 'javbus',
+     tags: [],
+    });
+   });
+   const currentPage = getJavbusPageNumber(pageUrl);
+   const next = [...doc.querySelectorAll('.pagination a[href]')] .map(anchor => ({ href: anchor.getAttribute('href') || '', page: getJavbusPageNumber(anchor.getAttribute('href')) })) .filter(item => item.page > currentPage) .sort((a, b) => a.page - b.page)[0];
+   return {
+    works,
+    nextUrl: next ? absoluteUrl(next.href, pageUrl) : '',
+    isChallenge: /driver-verify|Just a moment|cf-chl-|Cloudflare/i.test(`${doc.title || ''} ${doc.body?.textContent || ''}`),
+   }; }
+  registerSourceAdapter('javbus', {
+   getCollectionActorsUrl: origin => `${origin}/member/&mdl=favor&sort=4`,
+   getActorUrl: (actorId, actor) => absoluteUrl(`/${actor?.type === 'uncensored' ? 'uncensored/' : ''}star/${encodeURIComponent(actorId)}`),
+   uncollectActor: uncollectJavbusActor,
+   parseActorPage: parseJavbusActorPage,
+   parseActorProfile: parseJavbusActorProfile,
+   parseWorkActors: parseJavbusWorkActors,
+   parseWorkPage: parseJavbusWorkPage,
+  });
+  function getJavLibraryPageNumber(url) {
+   try {
+    const parsed = new URL(String(url || ''), location.href || location.origin); return Math.max(1, Number(parsed.searchParams.get('page')) || 1);
+   } catch (_) { return 1; } }
+  function getJavLibraryActorId(url) {
+   try {
+    const parsed = new URL(String(url || ''), location.href || location.origin);
+    if (!/\/vl_star\.php$/i.test(parsed.pathname)) return '';
+    const value = parsed.searchParams.get('s') || ''; return /^(?:list|all)$/i.test(value) ? '' : value.trim();
+   } catch (_) { return ''; } }
+  function getJavLibraryNextPage(doc, pageUrl, currentPage, selector) {
+   const candidates = [...doc.querySelectorAll(selector)] .map(anchor => ({
+     href: anchor.getAttribute('href') || '',
+     page: getJavLibraryPageNumber(anchor.getAttribute('href')),
+    })) .filter(item => item.href && item.page > currentPage) .sort((a, b) => a.page - b.page);
+   return candidates[0] ? absoluteUrl(candidates[0].href, pageUrl) : ''; }
+  function isJavLibraryChallenge(doc) {
+   return /Just a moment|cf-chl-|Cloudflare|Checking your browser/i.test(`${doc.title || ''} ${doc.body?.textContent || ''}`);
+  }
+  function parseJavLibraryActorPage(html, pageUrl) {
+   const doc = parseHTML(html); const links = [...doc.querySelectorAll('.videotextlist a[href*="vl_star.php?s="], a[href*="/vl_star.php?s="]')];
+   if (!links.length && isJavLibraryChallenge(doc)) return { actors: [], nextUrl: '', isChallenge: true };
+   if (!links.length && !doc.querySelector('.videotextlist')) throw new Error('JavLibrary actor collection was not found');
+   const collectionForm = doc.querySelector('form[method="post"][action*="mv_favstars.php"], form[action*="mv_favstars.php"]'); const collectionAction = absoluteUrl(collectionForm?.getAttribute('action') || pageUrl, pageUrl); const actors = [];
+   const seen = new Set();
+   links.forEach(anchor => {
+    const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); const actorId = getJavLibraryActorId(href); const name = String(anchor.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!actorId || !name || seen.has(actorId)) return;
+    seen.add(actorId); const row = anchor.closest?.('tr'); const collectionId = String(row?.querySelector?.('input[name="selectedVideos[]"]')?.getAttribute('value') || '').trim();
+    actors.push({ starId: actorId, name, aliases: [name], avatar: getActorAvatarFallback('javlibrary'), type: 'unknown', source: 'javlibrary', url: href, collectionId, collectionAction });
+   });
+   const currentPage = getJavLibraryPageNumber(pageUrl);
+   return { actors, collectionAction, nextUrl: getJavLibraryNextPage(doc, pageUrl, currentPage, 'a[href*="mv_favstars.php"][href*="page="]'), isChallenge: isJavLibraryChallenge(doc) }; }
+  async function submitJavLibraryCollectionRemoval(collectionAction, collectionId, origin) {
+   const data = `selectedVideos%5B%5D=${encodeURIComponent(collectionId)}`;
+   const target = new URL(collectionAction, origin).href;
+   if (new URL(target).origin === origin && typeof fetch === 'function') {
+    try {
+     const response = await fetch(target, {
+      method: 'POST',
+      credentials: 'include',
+      cache: 'no-store',
+      referrer: location.href || target,
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      headers: {
+       Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+       'Content-Type': 'application/x-www-form-urlencoded', },
+      body: data,
+     });
+     const responseText = typeof response.text === 'function' ? await response.text() : '';
+     if (response.ok || (response.status >= 200 && response.status < 400)) { return { ok: true, loadstuts: true, status: response.status, responseText, finalUrl: response.url || target }; }
+     debugLog('JavLibrary native collection removal returned HTTP status, fallback to GM_xmlhttpRequest:', response.status);
+    } catch (error) { debugLog('JavLibrary native collection removal failed, fallback to GM_xmlhttpRequest:', error); } }
+   return gmFetch(target, {
+    method: 'POST',
+    withCredentials: true,
+    headers: {
+     Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+     'Content-Type': 'application/x-www-form-urlencoded',
+     Origin: origin,
+     Referer: location.href || target, },
+    data,
+    timeout: 30000,
+   }); }
+  async function uncollectJavLibraryActor(actorId, actor = {}) {
+   const normalizedId = String(actorId || '').trim();
+   if (!normalizedId) throw new Error('JavLibrary 演员 ID 不能为空');
+   const origin = location.origin; const collectionUrl = new URL('/cn/mv_favstars.php', origin).href; let collectionId = String(actor.collectionId || '').trim(); let collectionAction = String(actor.collectionAction || '').trim() || collectionUrl;
+   if (!collectionId) {
+    let pageUrl = collectionUrl; const visited = new Set(); let pages = 0;
+    while (pageUrl && pages < 200 && !visited.has(pageUrl)) {
+     visited.add(pageUrl); pages += 1;
+     const response = await gmFetch(pageUrl, { method: 'GET', withCredentials: true, timeout: 30000 });
+     if (!response.loadstuts || !response.responseText) throw new Error(`JavLibrary 演员收藏列表请求失败 HTTP ${response.status || 0}`);
+     const parsed = parseJavLibraryActorPage(response.responseText, pageUrl);
+     if (parsed.isChallenge) throw new Error('JavLibrary 返回了 Cloudflare 验证页面');
+     const found = parsed.actors.find(item => String(item.starId).toLowerCase() === normalizedId.toLowerCase());
+     if (found) { collectionId = String(found.collectionId || '').trim(); collectionAction = String(found.collectionAction || parsed.collectionAction || '').trim() || collectionUrl; break; }
+     pageUrl = parsed.nextUrl && new URL(parsed.nextUrl).origin === origin ? parsed.nextUrl : ''; } }
+   if (!collectionId) throw new Error('JavLibrary 收藏列表中未找到该演员');
+   const response = await submitJavLibraryCollectionRemoval(collectionAction, collectionId, origin);
+   if (!response.loadstuts) throw new Error(`JavLibrary 取消演员收藏失败 HTTP ${response.status || 0}`);
+   return response; }
+  function parseJavLibraryActorProfile(html, pageUrl) {
+   const doc = parseHTML(html); const title = String(doc.querySelector('#rightcolumn .boxtitle, #rightcolumn h1, h1')?.textContent || '') .replace(/\s*所演出的影片\s*$/i, '').replace(/\s+/g, ' ').trim();
+   const avatarNode = doc.querySelector('#rightcolumn .avatar img, #rightcolumn img.avatar, #rightcolumn .star img'); const avatarUrl = avatarNode?.getAttribute('src') || avatarNode?.getAttribute('data-src') || '';
+   return { name: title, aliases: normalizeActorNames(title), avatar: avatarUrl ? absoluteUrl(avatarUrl, pageUrl) : getActorAvatarFallback('javlibrary') }; }
+  function parseJavLibraryWorkPage(html, pageUrl) {
+   const doc = parseHTML(html); const cards = [...doc.querySelectorAll('.videothumblist .video, #rightcolumn .videothumblist .video')];
+   if (!cards.length && isJavLibraryChallenge(doc)) return { works: [], nextUrl: '', isChallenge: true };
+   if (!cards.length && !doc.querySelector('.videothumblist')) throw new Error('JavLibrary actor work list was not found');
+   const works = []; const seen = new Set();
+   cards.forEach(card => {
+    const anchor = card.querySelector(':scope > a[href$=".html"], a[href$=".html"]');
+    if (!anchor) return;
+    const code = normalizeCode(String(card.querySelector('.id')?.textContent || '').trim() || extractWorkCode(anchor.getAttribute('title') || anchor.textContent));
+    if (!code || seen.has(code)) return;
+    seen.add(code); const image = card.querySelector('img[src], img[data-src]'); const titleNode = card.querySelector('.title'); const rawImage = image?.getAttribute('src') || image?.getAttribute('data-src') || '';
+    const cover = absoluteUrl(rawImage.replace(/ps\.(jpe?g)([?#].*)?$/i, 'pl.$1$2'), pageUrl); const title = String(titleNode?.textContent || anchor.getAttribute('title') || '') .replace(code, '').replace(/\s+/g, ' ').trim();
+    works.push({
+     code,
+     title,
+     cover,
+     publishTime: '',
+     url: absoluteUrl(anchor.getAttribute('href'), pageUrl),
+     type: classifyType(card.textContent || ''),
+     source: 'javlibrary',
+     tags: [],
+    });
+   });
+   const currentPage = getJavLibraryPageNumber(pageUrl);
+   return { works, nextUrl: getJavLibraryNextPage(doc, pageUrl, currentPage, 'a.page[href*="vl_star.php"][href*="page="]'), isChallenge: isJavLibraryChallenge(doc) }; }
+  function parseJavLibraryWorkActors(html, pageUrl) {
+   const doc = parseHTML(html); const links = [...doc.querySelectorAll('#video_info a[href*="vl_star.php?s="], #video_cast a[href*="vl_star.php?s="], a[href*="vl_star.php?s="]')]; const actors = []; const seen = new Set();
+   links.forEach(anchor => {
+    const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); const starId = getJavLibraryActorId(href); const name = String(anchor.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!starId || !name || seen.has(starId)) return;
+    seen.add(starId);
+    actors.push({ starId, name, aliases: [name], url: href, type: 'unknown', source: 'javlibrary' });
+   });
+   return actors; }
+  function parseJavLibraryPublishTime(html) {
+   const doc = parseHTML(html); const rows = [...doc.querySelectorAll('#video_info tr, #video_jacket_info tr')];
+   for (const row of rows) {
+    const text = String(row.textContent || '').replace(/\s+/g, ' ').trim();
+    if (!/(release|date|发行|發行|発売|日期|日付)/i.test(text)) continue;
+    const value = String(row.querySelector('.text, td:last-child, dd')?.textContent || text) .replace(/^[^:：]+[:：]?\s*/, '').trim();
+    if (value) return value;
+   }
+   return ''; }
+  registerSourceAdapter('javlibrary', {
+   getCollectionActorsUrl: origin => new URL('/cn/mv_favstars.php', origin).href,
+   getActorUrl: actorId => absoluteUrl(`/cn/vl_star.php?s=${encodeURIComponent(actorId)}`),
+   uncollectActor: uncollectJavLibraryActor,
+   parseActorPage: parseJavLibraryActorPage,
+   parseActorProfile: parseJavLibraryActorProfile,
+   parseWorkActors: parseJavLibraryWorkActors,
+   parseWorkPage: parseJavLibraryWorkPage,
+   parseWorkPublishTime: parseJavLibraryPublishTime,
+  });
   async function enrichWorkActors(code, detailUrl, options = {}) {
-   await hydrateResourceState(); const normalizedCode = String(code || '').trim(); const url = absoluteUrl(detailUrl);
+   await hydrateResourceState(); const source = getActiveSource(); const adapter = getSourceAdapter(source);
+   if (!adapter?.parseWorkActors) return false;
+   const normalizedCode = String(code || '').trim(); const url = absoluteUrl(detailUrl);
    if (!normalizedCode || !url) return false;
-   const current = getState().works[normalizedCode] || ensureResourceWork(normalizedCode, { code: normalizedCode, url, source: 'javdb' });
+   const current = getState().works[normalizedCode] || ensureResourceWork(normalizedCode, { code: normalizedCode, url, source });
    if (!current || (current.actorInfoVersion === 3 && !options.force)) return false;
    if (actorLookupInFlight.has(normalizedCode)) return actorLookupInFlight.get(normalizedCode);
    const task = (async () => {
     const response = await gmFetch(url, { method: 'GET', timeout: 20000 });
     if (!response.loadstuts || !response.responseText) return false;
-    const actors = parseWorkActors(response.responseText, url); const library = getState(); const work = library.works[normalizedCode];
+    const actors = adapter.parseWorkActors(response.responseText, url); const library = getState(); const work = library.works[normalizedCode];
     if (!work) return false;
-    work.actorNames = normalizeActorNames(actors.map(actor => actor.name), normalizedCode); const publishTime = parseWorkPublishTime(response.responseText);
+    work.actorNames = normalizeActorNames(actors.map(actor => actor.name), normalizedCode); const publishTime = adapter.parseWorkPublishTime ? adapter.parseWorkPublishTime(response.responseText, url) : parseWorkPublishTime(response.responseText);
     if (publishTime) work.publishTime = publishTime;
     work.actorIds = [];
     actors.forEach(actor => {
@@ -9708,8 +10282,9 @@
       name: actor.name || previousActor.name || actor.starId,
       aliases: [...new Set([...(previousActor.aliases || []), actor.name].filter(Boolean))],
       url: actor.url || previousActor.url || '',
-      source: previousActor.source || 'javdb',
-      type: previousActor.type || 'censored', };
+      source: previousActor.source || source,
+      type: previousActor.type || actor.type || 'censored',
+      createdAt: Number(previousActor.createdAt || actor.createdAt) || Date.now(), };
      work.actorIds.push(actor.starId);
     });
     work.actorIds = [...new Set(work.actorIds)];
@@ -9722,11 +10297,13 @@
     work.actorInfoFetchedAt = Date.now(); work.actorInfoVersion = 3; persist(); return true;
    })().finally(() => actorLookupInFlight.delete(normalizedCode));
    actorLookupInFlight.set(normalizedCode, task); return task; }
-  function exportBackup() { return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data: clone(getState()) }; }
+  function exportBackup() {
+   const source = getActiveSource();
+   return { format: BACKUP_FORMAT, version: BACKUP_VERSION, source, exportedAt: new Date().toISOString(), data: clone(getState(source)) }; }
   function downloadBackup() {
    const blob = new Blob([JSON.stringify(exportBackup(), null, 2)], { type: 'application/json' });
    const url = URL.createObjectURL(blob); const link = document.createElement('a');
-   const filename = `laosiji-resource-backup-${new Date().toISOString().replace(/[.:]/g, '-')}.json`;
+   const filename =`laosiji-resource-backup-${new Date().toISOString().replace(/[.:]/g, '-')}.json`;
    link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); return filename; }
   function getBackupHistory() {
    const saved = GM_getValue(BACKUP_HISTORY_KEY, '');
@@ -9737,7 +10314,7 @@
    const history = getBackupHistory();
    history.unshift({ action, status, filename: String(details.filename || ''), message: String(details.message || ''), at: Date.now() });
    GM_setValue(BACKUP_HISTORY_KEY, JSON.stringify(history.slice(0, MAX_BACKUP_HISTORY))); }
-  function webdavSyncId(config) { return `${config.url}\n${config.filename}`; }
+  function webdavSyncId(config) { return`${config.url}\n${config.filename}`; }
   function getWebdavSyncRecord(config) {
    const saved = GM_getValue(WEBDAV_SYNC_KEY, '');
    try {
@@ -9758,20 +10335,22 @@
    const buffer = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(normalized)); return Array.from(new Uint8Array(buffer), byte => byte.toString(16).padStart(2, '0')).join(''); }
   function getWebdavConfig() {
    const saved = GM_getValue(WEBDAV_KEY, '');
+   const defaultFilename =`laosiji-resource-backup${sourceSuffix}.json`;
    try {
     const config = typeof saved === 'string' ? JSON.parse(saved || '{}') : saved;
-    return { url: String(config?.url || '').trim(), username: String(config?.username || ''), password: String(config?.password || ''), filename: String(config?.filename || 'laosiji-resource-backup.json').trim() || 'laosiji-resource-backup.json' };
-   } catch (_) { return { url: '', username: '', password: '', filename: 'laosiji-resource-backup.json' }; } }
+    return { url: String(config?.url || '').trim(), username: String(config?.username || ''), password: String(config?.password || ''), filename: String(config?.filename || defaultFilename).trim() || defaultFilename };
+   } catch (_) { return { url: '', username: '', password: '', filename: defaultFilename }; } }
   function saveWebdavConfig(config) {
-   const next = { url: String(config?.url || '').trim().replace(/\/+$/, ''), username: String(config?.username || ''), password: String(config?.password || ''), filename: String(config?.filename || 'laosiji-resource-backup.json').trim() || 'laosiji-resource-backup.json' };
+   const defaultFilename =`laosiji-resource-backup${sourceSuffix}.json`;
+   const next = { url: String(config?.url || '').trim().replace(/\/+$/, ''), username: String(config?.username || ''), password: String(config?.password || ''), filename: String(config?.filename || defaultFilename).trim() || defaultFilename };
    GM_setValue(WEBDAV_KEY, JSON.stringify(next)); return next; }
   function webdavAuth(config) {
    const bytes = new TextEncoder().encode(`${config.username}:${config.password}`);
-   return `Basic ${btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))}`;
+   return`Basic ${btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))}`;
   }
   function webdavTarget(config, includeFilename = true) {
    if (!config.url) throw new Error('请先填写 WebDAV 地址');
-   try { return new URL(includeFilename ? encodeURIComponent(config.filename) : '', `${config.url.replace(/\/+$/, '')}/`).href; } catch (_) { throw new Error('WebDAV 地址格式不正确'); }
+   try { return new URL(includeFilename ? encodeURIComponent(config.filename) : '',`${config.url.replace(/\/+$/, '')}/`).href; } catch (_) { throw new Error('WebDAV 地址格式不正确'); }
   }
   async function webdavRequest(method, config, body = '') {
    const response = await gmFetch(webdavTarget(config, method !== 'PROPFIND'), {
@@ -9823,7 +10402,8 @@
    const response = await webdavRequest('PROPFIND', config);
    return { status: response.status, items: parseWebdavListing(response.responseText || '', config) }; }
   function saveRecoverySnapshot() {
-   const snapshot = { format: BACKUP_FORMAT, version: BACKUP_VERSION, createdAt: new Date().toISOString(), data: clone(getState()) };
+   const source = getActiveSource();
+   const snapshot = { format: BACKUP_FORMAT, version: BACKUP_VERSION, source, createdAt: new Date().toISOString(), data: clone(getState(source)) };
    recoverySnapshot = snapshot;
    resourceWriteQueue = resourceWriteQueue.catch(() => {}).then(() => writeIndexedDbValue('recovery', snapshot));
    return snapshot; }
@@ -9831,9 +10411,7 @@
   function restoreRecoverySnapshot() {
    const snapshot = getRecoverySnapshot();
    if (!snapshot) throw new Error('没有可恢复的本地快照');
-   const prepared = prepareImport(snapshot);
-   state = { version: 2, ...prepared.data, updatedAt: Date.now() };
-   persist(); return state; }
+   const prepared = prepareImport(snapshot); getFullState().sources[prepared.source] = normalizeSourceState(prepared.data, prepared.source); persist(prepared.source); return getState(prepared.source); }
   function checkIntegrity() {
    const library = getState(); const issues = []; const workCodes = new Set(Object.keys(library.works)); const actorIds = new Set(Object.keys(library.actors));
    Object.entries(library.works).forEach(([key, work]) => { if (!work || typeof work !== 'object' || Array.isArray(work)) issues.push(`作品记录异常：${key}`); });
@@ -9856,28 +10434,32 @@
    const payload = raw?.data && typeof raw.data === 'object' ? raw.data : raw; const errors = [];
    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('备份内容不是对象');
    if (raw?.format && raw.format !== BACKUP_FORMAT) throw new Error('不是老司机资源管理备份文件');
+   const source = normalizeSource(raw?.source) || (payload.sources ? getActiveSource() : 'javdb');
+   if (source !== getActiveSource()) throw new Error(`此备份属于 ${RESOURCE_SOURCES[source]}，请在对应站点导入`);
+   const sourcePayload = payload.sources && typeof payload.sources === 'object' && !Array.isArray(payload.sources) ? payload.sources[source] : payload;
    const data = { works: {}, actors: {}, relations: {}, blacklist: { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] } };
    ['works', 'actors', 'relations'].forEach(kind => {
-    const source = payload[kind];
-    if (!source) return;
-    if (typeof source !== 'object' || Array.isArray(source)) { errors.push(`${kind} 数据格式无效`); return; }
-    Object.entries(source).forEach(([key, value]) => {
+    const entries = sourcePayload?.[kind];
+    if (!entries) return;
+    if (typeof entries !== 'object' || Array.isArray(entries)) { errors.push(`${kind} 数据格式无效`); return; }
+    Object.entries(entries).forEach(([key, value]) => {
      if (!value || typeof value !== 'object' || Array.isArray(value)) { errors.push(`跳过无效${kind}记录：${key}`); return; }
      data[kind][key] = clone(value);
     });
    });
-   if (payload.blacklist && typeof payload.blacklist === 'object' && !Array.isArray(payload.blacklist)) {
+   const sourceBlacklist = sourcePayload?.blacklist;
+   if (sourceBlacklist && typeof sourceBlacklist === 'object' && !Array.isArray(sourceBlacklist)) {
     ['actors', 'works'].forEach(kind => {
-     const source = payload.blacklist[kind];
-     if (!source || typeof source !== 'object' || Array.isArray(source)) return;
-     Object.entries(source).forEach(([key, value]) => {
+     const entries = sourceBlacklist[kind];
+     if (!entries || typeof entries !== 'object' || Array.isArray(entries)) return;
+     Object.entries(entries).forEach(([key, value]) => {
       if (value && typeof value === 'object' && !Array.isArray(value)) data.blacklist[kind][key] = clone(value);
      });
     });
     ['codeKeywords', 'titleKeywords'].forEach(kind => {
-     if (Array.isArray(payload.blacklist[kind])) data.blacklist[kind] = [...new Set(payload.blacklist[kind].map(value => String(value || '').trim()).filter(Boolean))];
+     if (Array.isArray(sourceBlacklist[kind])) data.blacklist[kind] = [...new Set(sourceBlacklist[kind].map(value => String(value || '').trim()).filter(Boolean))];
     }); }
-   return { data, errors }; }
+   return { data, errors, source }; }
   function mergeValues(previous, incoming) {
    if (Array.isArray(previous) || Array.isArray(incoming)) return [...new Set([...(Array.isArray(previous) ? previous : []), ...(Array.isArray(incoming) ? incoming : [])])];
    if (previous && typeof previous === 'object' && incoming && typeof incoming === 'object') {
@@ -9886,12 +10468,15 @@
     }, {}); }
    return incoming ?? previous; }
   function mergeImportedState(imported) {
-   saveRecoverySnapshot(); const library = getState();
-   ['works', 'actors', 'relations'].forEach(kind => Object.entries(imported[kind] || {}).forEach(([key, value]) => { library[kind][key] = mergeValues(library[kind][key], value); }));
-   const blacklist = getBlacklist(library);
-   ['actors', 'works'].forEach(kind => Object.entries(imported.blacklist?.[kind] || {}).forEach(([key, value]) => { blacklist[kind][key] = mergeValues(blacklist[kind][key], value); }));
-   ['codeKeywords', 'titleKeywords'].forEach(kind => { blacklist[kind] = [...new Set([...(blacklist[kind] || []), ...(imported.blacklist?.[kind] || [])])]; });
-   persist(); return library; }
+   saveRecoverySnapshot();
+   const mergeSource = (source, incoming) => {
+    const library = getState(source);
+    ['works', 'actors', 'relations'].forEach(kind => Object.entries(incoming?.[kind] || {}).forEach(([key, value]) => { library[kind][key] = mergeValues(library[kind][key], value); }));
+    const blacklist = getBlacklist(library);
+    ['actors', 'works'].forEach(kind => Object.entries(incoming?.blacklist?.[kind] || {}).forEach(([key, value]) => { blacklist[kind][key] = mergeValues(blacklist[kind][key], value); }));
+    ['codeKeywords', 'titleKeywords'].forEach(kind => { blacklist[kind] = [...new Set([...(blacklist[kind] || []), ...(incoming?.blacklist?.[kind] || [])])]; });
+    persist(source); return library; };
+   return mergeSource(imported?.source || getActiveSource(), imported); }
   function clearAuxiliaryData() {
    GM_setValue(WEBDAV_SYNC_KEY, '{}');
    GM_setValue(BACKUP_HISTORY_KEY, '[]'); recoverySnapshot = null;
@@ -9902,7 +10487,7 @@
    if (!raw) return '';
    if (typeof normalizeAvid === 'function') return normalizeAvid(raw);
    const match = raw.match(/^([A-Z]+)[-_ ]?(\d+)$/);
-   return match ? `${match[1]}-${match[2]}` : raw.replace(/\s+/g, '-');
+   return match ?`${match[1]}-${match[2]}` : raw.replace(/\s+/g, '-');
   }
   function absoluteUrl(value, base = location.origin) {
    try {
@@ -9919,7 +10504,9 @@
    if (value === 'uncensored' || value === 'censored' || value === 'western') return value;
    const classified = classifyType(value); return classified !== 'unknown' ? classified : actor?.source === 'javdb' ? 'censored' : 'unknown'; }
   function parseActorPage(html, pageUrl) {
-   const doc = parseHTML(html); const container = doc.querySelector('#actors');
+   const doc = parseHTML(html);
+   if (isCloudflareChallengePage(doc)) return { actors: [], nextUrl: '', isChallenge: true };
+   const container = doc.querySelector('#actors');
    if (!container) throw new Error('未找到 JavDB 演员列表');
    const actors = [];
    container.querySelectorAll('.actor-box a[href*="/actors/"]').forEach(anchor => {
@@ -9934,8 +10521,8 @@
     ].filter(Boolean).join(' '); const title = String(anchor.getAttribute('title') || anchor.querySelector('.info')?.textContent || '').trim(); const aliases = title.split(/[,，、]/).map(item => item.trim()).filter(Boolean);
     const name = aliases[0] || String(anchor.querySelector('.info')?.textContent || '').trim();
     if (!starId || !name) return;
-    const detectedType = classifyType(typeHint || infoText);
-    actors.push({ starId, name, aliases, avatar: absoluteUrl(anchor.querySelector('img')?.getAttribute('src'), pageUrl), type: detectedType === 'uncensored' ? 'uncensored' : detectedType === 'western' ? 'western' : 'censored', source: 'javdb', url: href });
+    const detectedType = classifyType(typeHint || infoText); const image = anchor.querySelector('img[src], img[data-src]'); const imageUrl = image?.getAttribute('src') || image?.getAttribute('data-src') || '';
+    actors.push({ starId, name, aliases, avatar: imageUrl ? absoluteUrl(imageUrl, pageUrl) : getActorAvatarFallback('javdb'), type: detectedType === 'uncensored' ? 'uncensored' : detectedType === 'western' ? 'western' : 'censored', source: 'javdb', url: href });
    });
    const next = doc.querySelector('a.pagination-next[rel="next"][href], a[rel="next"][href], .pagination a[rel="next"][href]'); const nextUrl = next ? absoluteUrl(next.getAttribute('href'), pageUrl) : '';
    return { actors, nextUrl, isChallenge: /Just a moment|cf-chl-|Cloudflare/i.test(doc.title + doc.body.textContent) }; }
@@ -9959,89 +10546,277 @@
    const avatarNode = doc.querySelector('.actor-avatar .avatar, .actor-avatar [style*="background-image"], .avatar-box .avatar, .avatar-box [style*="background-image"]'); const style = String(avatarNode?.getAttribute('style') || '');
    const match = style.match(/background-image\s*:\s*url\(\s*["']?([^"')]+)["']?\s*\)/i); let avatar = '';
    try { avatar = match?.[1] ? absoluteUrl(match[1], location.href) : ''; } catch (_) { }
-   return { name: aliases[0] || name, aliases, avatar }; }
+   return { name: aliases[0] || name, aliases, avatar: avatar || getActorAvatarFallback('javdb') }; }
   function getActorAvatarUrl(actorId) {
    const id = String(actorId || '').trim();
    if (id.length < 2) return '';
-   return `https://c0.jdbstatic.com/avatars/${encodeURIComponent(id.slice(0, 2).toLowerCase())}/${encodeURIComponent(id)}.jpg`;
+   return`https://c0.jdbstatic.com/avatars/${encodeURIComponent(id.slice(0, 2).toLowerCase())}/${encodeURIComponent(id)}.jpg`;
   }
   function resolveActorAvatar(actor) {
-   const fallback = 'https://c0.jdbstatic.com/images/actor_unknow.jpg';
+   const source = normalizeSource(actor?.source) || getActiveSource(); const fallback = getActorAvatarFallback(source);
+   if (source === 'javlibrary') return fallback;
    const value = String(actor?.avatar || '').trim();
-   if (!value || /actor_unknow\.jpg/i.test(value)) return getActorAvatarUrl(actor?.starId) || fallback;
+   if (!value || /(?:actor_unknow\.jpg|nowprinting\.gif)/i.test(value)) return fallback;
    try {
     const url = new URL(value, location.href);
-    if (/(?:^|\.)(?:javdb\.com|jdbstatic\.com)$/i.test(url.hostname) && /^\/avatars\//i.test(url.pathname)) return getActorAvatarUrl(actor?.starId) || fallback;
+    if (source === 'javdb' && /(?:^|\.)(?:javdb\.com|jdbstatic\.com)$/i.test(url.hostname) && /^\/avatars\//i.test(url.pathname)) return getActorAvatarUrl(actor?.starId) || fallback;
    } catch (_) { }
-   return value; }
+   return value || fallback; }
   function createResourceOperation() { return { cancelled: false, request: null, cancel() { this.cancelled = true; this.request?.abort?.(); } }; }
+  function createResourceLoginRequiredError() { const error = new Error('请先登录当前站点，登录后请手动重新同步收藏演员'); error.code = 'RESOURCE_LOGIN_REQUIRED'; return error; }
+  function createResourceChallengeError() {
+   const source = RESOURCE_SOURCES[getActiveSource()] || '当前站点';
+   const error = new Error(`${source} 正在进行 Cloudflare 验证，请完成验证后再同步资源`);
+   error.code = 'RESOURCE_CHALLENGE'; return error; }
+  function markActorSyncSuccess() {
+   if (typeof GM_setValue !== 'function') return;
+   saveResourceScheduleState({ actors: { lastSuccessAt: Date.now() } }); }
+  function resetActorSyncSuccess() {
+   if (typeof GM_setValue !== 'function') return;
+   saveResourceScheduleState({ actors: { lastSuccessAt: 0 } }); }
+  function getActorSyncState() { return { ...readResourceScheduleState().actors }; }
   function throwIfResourceOperationCancelled(operation) {
    if (operation?.cancelled) throw new Error('RESOURCE_OPERATION_CANCELLED');
   }
   async function fetchResourcePage(url, operation) {
+   throwIfResourceOperationCancelled(operation); const target = new URL(url, location.href);
+   if (target.origin === location.origin && typeof fetch === 'function') {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const control = { abort: () => controller?.abort() };
+    if (operation) operation.request = control;
+    try {
+     const response = await fetch(target.href, {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+      signal: controller?.signal,
+     });
+     if (response.ok) {
+      const responseText = await response.text();
+      if (operation && operation.request === control) operation.request = null;
+      throwIfResourceOperationCancelled(operation);
+      if (responseText) return responseText;
+     }
+     debugLog('same-origin resource page fetch returned HTTP status, fallback to GM_xmlhttpRequest:', response.status);
+    } catch (error) {
+     throwIfResourceOperationCancelled(operation); debugLog('same-origin resource page fetch failed, fallback to GM_xmlhttpRequest:', error);
+    } finally {
+     if (operation && operation.request === control) operation.request = null;
+    } }
    throwIfResourceOperationCancelled(operation);
-   const request = gmFetch(url, { method: 'GET', timeout: 30000 });
+   const request = gmFetch(target.href, { method: 'GET', withCredentials: true, timeout: 30000 });
    if (operation) operation.request = request;
-   const response = await request;
+   let response;
+   try {
+    response = await request;
+   } catch (error) {
+    throwIfResourceOperationCancelled(operation); throw error; }
    if (operation && operation.request === request) operation.request = null;
    throwIfResourceOperationCancelled(operation);
    if (!response.loadstuts || !response.responseText) throw new Error(`请求失败 HTTP ${response.status || 0}`);
    return response.responseText; }
   async function syncActors(onProgress, operation) {
-   await hydrateResourceState(); const library = getState(); const origin = location.origin; const seen = new Set(); let url = new URL('/users/collection_actors', origin).href; let pages = 0; const now = Date.now();
+   await hydrateResourceState();
+   if (isCloudflareChallengePage()) throw createResourceChallengeError();
+   if (getResourceLoginState() === false) throw createResourceLoginRequiredError();
+   const source = getActiveSource(); const adapter = getSourceAdapter(source);
+   if (!adapter?.getCollectionActorsUrl || !adapter.parseActorPage) throw new Error(`${RESOURCE_SOURCES[source]} 尚未支持演员同步`);
+   const library = getState(); const origin = location.origin; const seen = new Set(); const syncedActorIds = new Set(); let url = adapter.getCollectionActorsUrl(origin); let pages = 0; let collectionOrder = 0; const now = Date.now();
    while (url && pages < 200 && !seen.has(url)) {
     throwIfResourceOperationCancelled(operation); seen.add(url); pages += 1;
-    onProgress?.(`同步演员 ${pages} 页`);
-    const result = parseActorPage(await fetchResourcePage(url, operation), url);
-    if (result.isChallenge) throw new Error('JavDB 返回了 Cloudflare 验证页面');
-    result.actors.forEach(actor => {
+    onProgress?.(`同步演员 ${pages} 页`, { phase: 'actors', page: pages, pages });
+    const result = adapter.parseActorPage(await fetchResourcePage(url, operation), url);
+    if (result.isChallenge) throw new Error(`${RESOURCE_SOURCES[source]} 返回了 Cloudflare 验证页面`);
+    result.actors.forEach((actor, index) => {
+     syncedActorIds.add(actor.starId);
      const previous = library.actors[actor.starId] || {};
-     library.actors[actor.starId] = { ...previous, ...actor, aliases: actor.aliases.length ? actor.aliases : previous.aliases || [], lastSyncAt: now };
+     const createdAt = Number(previous.createdAt || previous.lastSyncAt || actor.createdAt) || now;
+     library.actors[actor.starId] = { ...previous, ...actor, aliases: actor.aliases.length ? actor.aliases : previous.aliases || [], collectionOrder: collectionOrder + index + 1, createdAt, lastSyncAt: now };
     });
-    url = result.nextUrl && new URL(result.nextUrl).origin === origin ? result.nextUrl : ''; }
-   linkKnownActorsToWorks(library); persist();
+    collectionOrder += result.actors.length; url = result.nextUrl && new URL(result.nextUrl).origin === origin ? result.nextUrl : ''; }
+   const collectionComplete = !url || seen.has(url);
+   if (collectionComplete) {
+    Object.keys(library.actors).forEach(actorId => {
+     if (syncedActorIds.has(actorId)) return;
+     delete library.actors[actorId];
+     Object.entries(library.relations).forEach(([key, relation]) => {
+      if (relation.actorId === actorId) delete library.relations[key];
+     });
+    }); }
+   linkKnownActorsToWorks(library); await persist();
+   if (collectionComplete) markActorSyncSuccess();
    return { actors: Object.keys(library.actors).length, pages }; }
-  async function syncActorWorks(actorId, onProgress, operation) {
-   await hydrateResourceState(); const library = getState(); const actor = library.actors[actorId];
+  async function syncActorWorks(actorId, onProgress, operation, options = {}) {
+   await hydrateResourceState(); const source = getActiveSource(); const adapter = getSourceAdapter(source);
+   if (!adapter?.getActorUrl || !adapter.parseActorProfile || !adapter.parseWorkPage) throw new Error(`${RESOURCE_SOURCES[source]} 尚未支持作品同步`);
+   const library = getState(); const actor = library.actors[actorId];
    if (!actor) throw new Error('演员记录不存在');
-   const pageUrl = absoluteUrl(`/actors/${encodeURIComponent(actorId)}`);
-   onProgress?.(`检测 ${actor.name || actorId}`);
-   const firstPageHtml = await fetchResourcePage(pageUrl, operation); const profile = parseActorProfile(firstPageHtml);
+   const pageUrl = actor.url || adapter.getActorUrl(actorId, actor); const settings = readResourceSettings(); const fullScan = options.fullScan === true || settings.checkMode === 'full';
+   const report = (message, details = {}) => onProgress?.(message, { actorId, actorName: actor.name || actorId, ...details });
+   report(`检测 ${actor.name || actorId}`, { page: 0, pages: 0, works: 0, added: 0 });
+   const firstPageHtml = await fetchResourcePage(pageUrl, operation); const profile = adapter.parseActorProfile(firstPageHtml, pageUrl);
    if (profile.name && (!actor.name || actor.name === actorId)) actor.name = profile.name;
    if (profile.aliases.length) actor.aliases = [...new Set([...(actor.aliases || []), ...profile.aliases])];
    if (profile.avatar) actor.avatar = profile.avatar;
-   const result = parseWorkPage(firstPageHtml, pageUrl);
-   if (result.isChallenge) throw new Error('JavDB 返回了 Cloudflare 验证页面');
-   const now = Date.now(); let added = 0; const allWorks = result.works.slice(); let nextUrl = result.nextUrl || ''; const seenPages = new Set([pageUrl]); let pageCount = 1;
+   if (profile.favoriteCode) actor.favoriteCode = profile.favoriteCode;
+   if (profile.favoriteToken) actor.favoriteToken = profile.favoriteToken;
+   if (profile.favoriteTitle) actor.favoriteTitle = profile.favoriteTitle;
+   const result = adapter.parseWorkPage(firstPageHtml, pageUrl);
+   if (result.isChallenge) throw new Error(`${RESOURCE_SOURCES[source]} 返回了 Cloudflare 验证页面`);
+   const now = Date.now(); let added = 0; const allWorks = result.works.slice(); let nextUrl = result.nextUrl || ''; const seenPages = new Set([pageUrl]); let pageCount = 1; let stoppedAtKnown = false;
+   const firstPageKnown = result.works.some(work => library.works[work.code]);
+   report(`检测 ${actor.name || actorId} · 第 1 页 · 已读取 ${allWorks.length} 部${firstPageKnown ? ' · 已遇到已知作品' : ''}`, { page: 1, pages: 1, works: allWorks.length, stoppedAtKnown: firstPageKnown });
+   if (!fullScan && firstPageKnown) { stoppedAtKnown = true; nextUrl = ''; }
    while (nextUrl && pageCount < 200 && !seenPages.has(nextUrl)) {
-    seenPages.add(nextUrl); throwIfResourceOperationCancelled(operation); const nextResult = parseWorkPage(await fetchResourcePage(nextUrl, operation), nextUrl);
+    seenPages.add(nextUrl); throwIfResourceOperationCancelled(operation); const nextResult = adapter.parseWorkPage(await fetchResourcePage(nextUrl, operation), nextUrl);
     if (nextResult.isChallenge) throw new Error('actor blacklist work sync challenge');
-    allWorks.push(...nextResult.works);
+    allWorks.push(...nextResult.works); pageCount += 1; const knownOnPage = nextResult.works.some(work => library.works[work.code]);
+    report(`检测 ${actor.name || actorId} · 第 ${pageCount} 页 · 已读取 ${allWorks.length} 部${knownOnPage ? ' · 已遇到已知作品' : ''}`, { page: pageCount, pages: pageCount, works: allWorks.length, stoppedAtKnown: knownOnPage });
+    if (!fullScan && knownOnPage) { stoppedAtKnown = true; break; }
     try {
      nextUrl = nextResult.nextUrl && new URL(nextResult.nextUrl).origin === location.origin ? nextResult.nextUrl : '';
-    } catch (_) { nextUrl = ''; }
-    pageCount += 1; }
+    } catch (_) { nextUrl = ''; } }
    result.works = allWorks;
    result.works.forEach(work => {
     const previous = library.works[work.code];
     if (!previous) added += 1;
     const inferredType = work.type === 'unknown' ? actorType(actor) : work.type;
      library.works[work.code] = { ...previous, ...work, type: previous?.type && previous.type !== 'unknown' ? previous.type : inferredType, actorIds: [...new Set([...(previous?.actorIds || []), actorId])], actorNames: normalizeActorNames([...(previous?.actorNames || []), actor.name], work.code), actorInfoVersion: 3, actorInfoFetchedAt: now, createdAt: previous?.createdAt || now, modifiedAt: previous?.modifiedAt || 0, lastSeenAt: now };
-    const relationKey = `${work.code}:${actorId}`;
+    const relationKey =`${work.code}:${actorId}`;
     library.relations[relationKey] = { workCode: work.code, actorId, updatedAt: now };
    });
    actor.lastCheckAt = now; actor.lastWorkCount = result.works.length; actor.newWorkCount = (actor.newWorkCount || 0) + added; actor.lastPublishTime = result.works.map(item => item.publishTime).filter(Boolean).sort().at(-1) || actor.lastPublishTime || '';
-   persist();
-   return { found: result.works.length, added }; }
+   await persist();
+   return { found: result.works.length, added, pages: pageCount, stoppedAtKnown }; }
   async function syncAllActorWorks(actorIds, onProgress, operation) {
-   const ids = (actorIds?.length ? actorIds : Object.keys(getState().actors)).filter(Boolean); let found = 0; let added = 0;
-   for (const actorId of ids) {
-    throwIfResourceOperationCancelled(operation); const result = await syncActorWorks(actorId, onProgress, operation); found += result.found; added += result.added; }
-   return { actors: ids.length, found, added }; }
+   const ids = (actorIds?.length ? actorIds : Object.keys(getState().actors)).filter(Boolean); const settings = readResourceSettings(); let found = 0; let added = 0; let completed = 0; let pages = 0; const errors = []; let nextIndex = 0;
+   const worker = async () => {
+    while (true) {
+     throwIfResourceOperationCancelled(operation); const index = nextIndex++;
+     if (index >= ids.length) return;
+     const actorId = ids[index];
+     try {
+      const result = await syncActorWorks(actorId, (message, details = {}) => {
+       onProgress?.(message, { ...details, actorIndex: index + 1, actorTotal: ids.length, completed, total: ids.length, found, added });
+      }, operation);
+      found += result.found; added += result.added; pages += result.pages || 0;
+     } catch (error) {
+      if (error?.message === 'RESOURCE_OPERATION_CANCELLED') throw error;
+      errors.push({ actorId, message: error?.message || String(error) });
+     } finally {
+      completed += 1;
+      onProgress?.(`演员检测进度 ${completed}/${ids.length} · 新增 ${added} 部`, { actorIndex: completed, actorTotal: ids.length, completed, total: ids.length, found, added, pages });
+      if (settings.requestDelay > 0) await new Promise(resolve => setTimeout(resolve, settings.requestDelay));
+     } } };
+   const workers = Array.from({ length: Math.min(settings.concurrency, Math.max(ids.length, 1)) }, () => worker());
+   await Promise.all(workers);
+   return { actors: ids.length, found, added, pages, errors }; }
+  let resourceScheduledOperation = null; let resourceScheduledStatusEl = null; let resourceScheduledCompletionTimer = null;
+  function getScheduledTaskStatus() {
+   if (resourceScheduledStatusEl?.isConnected) return resourceScheduledStatusEl;
+   if (typeof ensureResourceLibraryStyles === 'function') ensureResourceLibraryStyles();
+   const status = document.createElement('aside'); status.id = 'jav-resource-scheduled-task-status'; status.className = 'jav-resource-task-status jav-resource-task-status-global'; status.setAttribute('role', 'status');
+   status.setAttribute('aria-live', 'polite');
+   status.innerHTML = '<div class="jav-resource-task-status-head"><strong data-resource-task-title>资源检测进行中</strong></div><div class="jav-resource-task-status-message" data-resource-task-message></div><progress data-resource-task-progress max="1" value="0"></progress><div class="jav-resource-task-status-meta" data-resource-task-meta></div><p>请勿刷新和关闭页面，任务完成后会自动提示。</p><div class="jav-resource-task-status-actions"><button type="button" data-resource-task-stop>停止任务</button></div>';
+   document.body.appendChild(status);
+   status.addEventListener('click', event => {
+    if (!event.target.closest('[data-resource-task-stop]')) return;
+    resourceScheduledOperation?.cancel(); const button = status.querySelector('[data-resource-task-stop]');
+    if (button) { button.disabled = true; button.textContent = '正在停止...'; }
+    updateScheduledTaskStatus('正在停止演员同步...', {}, false);
+   });
+   resourceScheduledStatusEl = status; return status; }
+  function updateScheduledTaskStatus(message, details = {}, completed = false) {
+   const status = getScheduledTaskStatus(); const total = Number(details.total || details.actorTotal || 0); const value = Number(details.completed || details.actorIndex || 0);
+   status.querySelector('[data-resource-task-title]').textContent = completed ? '资源检测完成' : '资源检测进行中'; status.querySelector('[data-resource-task-message]').textContent = message || (completed ? '检测完成' : '正在准备任务...');
+   const progress = status.querySelector('[data-resource-task-progress]'); progress.max = total || 1; progress.value = Math.min(total || 1, value); const stop = status.querySelector('[data-resource-task-stop]');
+   if (stop) { stop.disabled = completed; stop.hidden = completed; }
+   status.querySelector('[data-resource-task-meta]').textContent = total ?`演员 ${Math.min(value, total)}/${total} · 第 ${details.page || 0} 页 · 已读取 ${details.works || 0} 部 · 新增 ${details.added || 0} 部` : '正在准备检测任务';
+   status.hidden = false; status.classList.toggle('is-complete', completed); }
+  function finishScheduledTask(message, details = {}) {
+   updateScheduledTaskStatus(message, details, true);
+   if (typeof clearTimeout === 'function') clearTimeout(resourceScheduledCompletionTimer);
+   resourceScheduledCompletionTimer = setTimeout(() => {
+    resourceScheduledStatusEl?.remove(); resourceScheduledStatusEl = null;
+   }, 3000); }
+  async function syncActorsWithStatus() {
+   if (resourceScheduledOperation || activeResourceOperation) return null;
+   const operation = createResourceOperation(); resourceScheduledOperation = operation;
+   updateScheduledTaskStatus('正在同步收藏演员...', { total: 0 });
+   try {
+    const result = await syncActors((message, details = {}) => updateScheduledTaskStatus(`演员同步：${message}`, details), operation);
+    finishScheduledTask(`收藏演员同步完成：共 ${result.actors} 位演员`, { total: result.actors, completed: result.actors, actorTotal: result.actors, actorIndex: result.actors, pages: result.pages });
+    return result;
+   } catch (error) {
+    finishScheduledTask(error?.message === 'RESOURCE_OPERATION_CANCELLED' ? '演员同步已停止' :`演员同步失败：${error?.message || error}`);
+    throw error;
+   } finally {
+    if (resourceScheduledOperation === operation) resourceScheduledOperation = null;
+   } }
+  async function runScheduledResourceCheck(kind) {
+   if (!['actors', 'works'].includes(kind) || resourceScheduleRunning || resourceScheduledOperation || !isSupported() || activeResourceOperation) return false;
+   const settings = readResourceSettings(); const enabled = kind === 'actors' ? settings.scheduleSyncActors : settings.scheduleCheckWorks;
+   if (!settings.scheduleEnabled || !enabled) return false;
+   const scheduleState = readResourceScheduleState();
+   if (scheduleState[kind].nextRunAt && scheduleState[kind].nextRunAt > Date.now()) return false;
+   const run = async () => {
+    if (resourceScheduleRunning) return false;
+    resourceScheduleRunning = true; resourceScheduleLastRunAt = Date.now(); const hours = kind === 'actors' ? settings.scheduleActorHours : settings.scheduleWorksHours;
+    saveResourceScheduleState({ [kind]: { lastRunAt: resourceScheduleLastRunAt, nextRunAt: resourceScheduleLastRunAt + hours * 60 * 60 * 1000 } });
+    resourceScheduledOperation = createResourceOperation();
+    try {
+     if (kind === 'actors') {
+      updateScheduledTaskStatus('正在准备定时任务：同步收藏演员...', { total: 0 });
+      const result = await syncActors((message, details = {}) => updateScheduledTaskStatus(`定时任务：${message}`, details), resourceScheduledOperation);
+      finishScheduledTask(`定时演员同步完成：共 ${result.actors} 位演员`, { total: result.actors, completed: result.actors, actorTotal: result.actors, actorIndex: result.actors });
+      return result; }
+     const actorTotal = Object.keys(getState().actors).length;
+     updateScheduledTaskStatus('正在准备定时任务：检测最新作品...', { total: actorTotal, actorTotal, completed: 0, actorIndex: 0 });
+     const result = await syncAllActorWorks(null, updateScheduledTaskStatus, resourceScheduledOperation);
+     finishScheduledTask(`定时作品检测完成：读取 ${result.pages} 页，新增 ${result.added} 部作品${result.errors?.length ? `，失败 ${result.errors.length} 位` : ''}`, { total: result.actors, completed: result.actors, actorTotal: result.actors, actorIndex: result.actors, page: result.pages, pages: result.pages, works: result.found, found: result.found, added: result.added });
+     return result;
+    } catch (error) {
+     finishScheduledTask(error?.message === 'RESOURCE_OPERATION_CANCELLED' ? '定时任务已停止' :`定时任务失败：${error?.message || error}`);
+     return null;
+    } finally {
+     resourceScheduledOperation = null; resourceScheduleRunning = false; } };
+   const locks = typeof navigator !== 'undefined' ? navigator.locks : null;
+   if (!locks?.request) return run();
+   let result = null;
+   await locks.request('laosiji-resource-scheduled-check', { ifAvailable: true }, async lock => {
+    if (lock) result = await run();
+    else result = { locked: true };
+   });
+   return result; }
+  function restartResourceSchedule() {
+   if (typeof clearTimeout === 'function') Object.keys(resourceScheduleTimers).forEach(kind => clearTimeout(resourceScheduleTimers[kind]));
+   resourceScheduleTimers.actors = null; resourceScheduleTimers.works = null; const settings = readResourceSettings();
+   if (!settings.scheduleEnabled || (!settings.scheduleSyncActors && !settings.scheduleCheckWorks) || !isSupported() || typeof setTimeout !== 'function') {
+    saveResourceScheduleState({ actors: { nextRunAt: 0 }, works: { nextRunAt: 0 } });
+    return; }
+   const now = Date.now();
+   const schedule = (kind, enabled, hours) => {
+    if (!enabled) return;
+    const scheduleState = readResourceScheduleState(); const nextRunAt = scheduleState[kind].nextRunAt || (now + hours * 60 * 60 * 1000);
+    if (!scheduleState[kind].nextRunAt) saveResourceScheduleState({ [kind]: { nextRunAt } });
+    const delay = resourceScheduleRunning ? 60 * 1000 : Math.max(0, nextRunAt - Date.now());
+    resourceScheduleTimers[kind] = setTimeout(async () => {
+     try {
+      const result = await runScheduledResourceCheck(kind);
+      if (result?.locked) { resourceScheduleTimers[kind] = setTimeout(() => restartResourceSchedule(), 60 * 1000); return; }
+     } catch (error) { finishScheduledTask(`定时任务失败：${error?.message || error}`); }
+     restartResourceSchedule();
+    }, delay); };
+   schedule('actors', settings.scheduleSyncActors, settings.scheduleActorHours); schedule('works', settings.scheduleCheckWorks, settings.scheduleWorksHours); }
   async function uncollectResourceActor(actorId) {
+   const adapter = getSourceAdapter(); const library = getState();
+   if (adapter?.uncollectActor) return adapter.uncollectActor(actorId, library.actors[actorId] || {});
+   const uncollectUrl = adapter?.getActorUncollectUrl?.(actorId) || '';
+   if (!uncollectUrl) throw new Error('当前来源尚未支持取消演员收藏');
+   if (!adapter?.getActorUncollectUrl) throw new Error('当前来源尚未支持取消演员收藏');
    const token = document.querySelector('meta[name="csrf-token"]')?.content;
    if (!token) throw new Error('未找到 JavDB 授权令牌');
-   const request = gmFetch(absoluteUrl(`/actors/${encodeURIComponent(actorId)}/uncollect`), { method: 'POST', headers: { 'x-csrf-token': token }, timeout: 30000 });
+   const request = gmFetch(adapter.getActorUncollectUrl(actorId), { method: 'POST', headers: { 'x-csrf-token': token }, timeout: 30000 });
    const response = await request;
    if (!response.loadstuts) throw new Error(`取消收藏失败 HTTP ${response.status || 0}`);
    return response; }
@@ -10051,13 +10826,50 @@
    if (previousOverlay) { document.body.style.overflow = ''; document.documentElement.style.overflow = ''; }
    ensureResourceLibraryStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-resource-overlay'; overlay.className = 'jav-resource-overlay'; const previousBodyOverflow = document.body.style.overflow;
    const previousDocumentOverflow = document.documentElement.style.overflow; document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden';
-   overlay.innerHTML = `<section class="jav-resource-center" role="dialog" aria-modal="true" aria-label="资源管理"><nav class="jav-resource-nav"><div class="jav-resource-brand">资源管理</div><button type="button" data-resource-view="actors" class="is-active" aria-current="page">演员库</button><button type="button" data-resource-view="works">作品库</button><button type="button" data-resource-view="history">鉴定记录</button><button type="button" data-resource-view="blacklist">黑名单</button><button type="button" data-resource-view="backup">备份与恢复</button><div class="jav-resource-nav-spacer"></div><button class="jav-resource-nav-close" type="button" data-resource-close="1">关闭</button></nav><main class="jav-resource-main"><header class="jav-resource-head"><div class="jav-resource-head-title">演员库</div></header><section class="jav-resource-backup"></section></main></section>`;
+   overlay.innerHTML =`<section class="jav-resource-center" role="dialog" aria-modal="true" aria-label="资源管理"><nav class="jav-resource-nav"><div class="jav-resource-brand">资源管理</div><button type="button" data-resource-view="actors" class="is-active" aria-current="page">演员库</button><button type="button" data-resource-view="works">作品库</button><button type="button" data-resource-view="history">鉴定记录</button><button type="button" data-resource-view="blacklist">黑名单</button><button type="button" data-resource-view="backup">备份与恢复</button><button type="button" data-resource-view="settings">检测设置</button><div class="jav-resource-nav-spacer"></div><button class="jav-resource-nav-close" type="button" data-resource-close="1">关闭</button></nav><main class="jav-resource-main"><header class="jav-resource-head"><div class="jav-resource-head-title">演员库</div></header><section class="jav-resource-backup"></section></main></section><aside class="jav-resource-task-status" hidden role="status" aria-live="polite"><div class="jav-resource-task-status-head"><strong data-resource-task-title>资源检测进行中</strong><button type="button" data-resource-task-expand title="返回资源管理">展开</button></div><div class="jav-resource-task-status-message" data-resource-task-message></div><progress data-resource-task-progress max="1" value="0"></progress><div class="jav-resource-task-status-meta" data-resource-task-meta></div><p>请勿刷新和关闭页面，任务完成后会自动提示。</p><div class="jav-resource-task-status-actions"><button type="button" data-resource-task-stop>停止任务</button></div></aside>`;
    document.body.appendChild(overlay); const backupEl = overlay.querySelector('.jav-resource-backup'); let pendingImport = null; let healthReport = null; let webdavListing = null; let webdavListingLoading = false; let webdavConflict = null;
-   let webdavConflictLoading = false; let cleanupPending = false; let resourceCleanupPending = null; const validViews = new Set(['actors', 'works', 'history', 'blacklist', 'backup']); const validBlacklistViews = new Set(['actors', 'works', 'keywords']);
-   let activeView = validViews.has(initialView) ? initialView : 'actors'; let actorsFilter = 'all'; let actorsSearch = ''; let actorsPage = 1; const actorsPageSize = 20; let worksFilter = 'all'; let worksSearch = ''; let worksPage = 1;
-   const worksPageSize = 20; const validWorksStatusFilters = new Set(['all', 'unmarked', 'favorite', 'watched', 'downloaded']); let worksStatusFilter = validWorksStatusFilters.has(initialWorksStatusFilter) ? initialWorksStatusFilter : 'all';
+   let webdavConflictLoading = false; let cleanupPending = false; let resourceCleanupPending = null; const validViews = new Set(['actors', 'works', 'history', 'blacklist', 'backup', 'settings']);
+   const validBlacklistViews = new Set(['actors', 'works', 'keywords']); const savedViewState = readResourceViewState(); let activeView = validViews.has(initialView) ? initialView : 'actors'; let actorsFilter = 'all'; let actorsSearch = '';
+   let actorsSort = savedViewState.actorsSort; let actorsPage = 1; const actorsPageSize = 20; let worksFilter = 'all'; let worksSearch = ''; let worksActorId = ''; let worksSort = savedViewState.worksSort; let worksPage = 1; const worksPageSize = 20;
+   const validWorksStatusFilters = new Set(['all', 'unmarked', 'favorite', 'watched', 'downloaded']); let worksStatusFilter = validWorksStatusFilters.has(initialWorksStatusFilter) ? initialWorksStatusFilter : 'all';
    let blacklistView = validBlacklistViews.has(initialBlacklistView) ? initialBlacklistView : 'actors'; let blacklistSearch = ''; let historyView = 'state'; let historyFilter = 'all'; let historySearch = ''; let historyRemoveCode = '';
    const historyActorEnrichmentScheduled = new Set(); let actorWorkStatsRevision = -1; let actorWorkStats = null; let operationBusy = false; let operationMessage = '';
+   let operationProgress = { actorIndex: 0, actorTotal: 0, completed: 0, total: 0, page: 0, pages: 0, works: 0, found: 0, added: 0 };
+   let backgroundCollapsed = false; let backgroundCompletionTimer = null; const taskStatusEl = overlay.querySelector('.jav-resource-task-status');
+   function renderTaskStatus(completed = false) {
+    if (!taskStatusEl) return;
+    const details = operationProgress || {};
+    const progressTotal = Number(details.total || details.actorTotal || 0); const progressValue = Number(details.completed || details.actorIndex || 0); const progress = taskStatusEl.querySelector('[data-resource-task-progress]');
+    const message = taskStatusEl.querySelector('[data-resource-task-message]'); const meta = taskStatusEl.querySelector('[data-resource-task-meta]'); const title = taskStatusEl.querySelector('[data-resource-task-title]');
+    const stop = taskStatusEl.querySelector('[data-resource-task-stop]');
+    if (title) title.textContent = completed ? '资源检测完成' : '资源检测进行中';
+    if (message) message.textContent = operationMessage || (completed ? '检测完成' : '正在准备任务...');
+    if (progress) { progress.max = progressTotal || 1; progress.value = Math.min(progressTotal || 1, progressValue); }
+    if (meta) meta.textContent = progressTotal ?`演员 ${Math.min(progressValue, progressTotal)}/${progressTotal} · 第 ${details.page || 0} 页 · 已读取 ${details.works || 0} 部 · 新增 ${details.added || 0} 部` : '正在准备检测任务';
+    if (stop) { stop.disabled = completed; stop.hidden = completed; }
+    taskStatusEl.hidden = false; taskStatusEl.classList.toggle('is-complete', completed); }
+   function updateOperationProgress(message, details = {}) {
+    operationMessage = message || operationMessage;
+    operationProgress = { ...operationProgress, ...details };
+    renderTaskStatus(false);
+    if (!backgroundCollapsed) {
+     const progressMessage = contentEl.querySelector('.jav-resource-progress');
+     if (progressMessage) progressMessage.textContent = operationMessage;
+    } }
+   function collapseResourceToBackground() {
+    backgroundCollapsed = true; overlay.classList.add('is-background'); document.body.style.overflow = previousBodyOverflow; document.documentElement.style.overflow = previousDocumentOverflow; renderTaskStatus(false); }
+   function expandResourceFromBackground() {
+    backgroundCollapsed = false; overlay.classList.remove('is-background'); document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden';
+    if (taskStatusEl) taskStatusEl.hidden = true;
+    renderActiveView(); }
+   function finishBackgroundTask() {
+    renderTaskStatus(true); clearTimeout(backgroundCompletionTimer);
+    backgroundCompletionTimer = setTimeout(() => {
+     if (backgroundCollapsed) taskStatusEl?.remove();
+     else if (taskStatusEl) taskStatusEl.hidden = true;
+     if (backgroundCollapsed && overlay.isConnected) {
+      overlay.dispatchEvent(new Event('laosiji-resource-dispose')); overlay.remove(); document.body.style.overflow = previousBodyOverflow; document.documentElement.style.overflow = previousDocumentOverflow; }
+    }, 3000); }
    function syncOperationControl() {
     const libraryEl = contentEl.querySelector('.jav-resource-library');
     if (!libraryEl) return;
@@ -10074,17 +10886,20 @@
       const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'jav-resource-actor-remove'; remove.dataset.resourceUncollectActor = card.dataset.starId || ''; remove.textContent = '取消收藏'; actions.appendChild(remove); }
     });
     let stop = libraryEl.querySelector('[data-resource-stop]');
-    if (!operationBusy) { stop?.remove(); return; }
-    if (stop) return;
-    stop = document.createElement('button'); stop.type = 'button'; stop.dataset.resourceStop = '1'; stop.className = 'jav-resource-operation-stop'; stop.textContent = '\u505c\u6b62\u5f53\u524d\u64cd\u4f5c';
-    libraryEl.querySelector('.jav-resource-toolbar-group')?.prepend(stop); }
+    if (!operationBusy) { stop?.remove(); libraryEl.querySelector('[data-resource-background]')?.remove(); return; }
+    if (!stop) {
+     stop = document.createElement('button'); stop.type = 'button'; stop.dataset.resourceStop = '1'; stop.className = 'jav-resource-operation-stop'; stop.textContent = '\u505c\u6b62\u5f53\u524d\u64cd\u4f5c';
+     libraryEl.querySelector('.jav-resource-toolbar-group')?.prepend(stop); }
+    const toolbarGroup = libraryEl.querySelector('.jav-resource-toolbar-group');
+    if (toolbarGroup && !toolbarGroup.querySelector('[data-resource-background]')) {
+     const background = document.createElement('button'); background.type = 'button'; background.dataset.resourceBackground = '1'; background.textContent = '收起到后台'; toolbarGroup.prepend(background); } }
    const readWebdavForm = () => saveWebdavConfig({
     url: backupEl.querySelector('[data-webdav-url]')?.value,
     username: backupEl.querySelector('[data-webdav-username]')?.value,
     password: backupEl.querySelector('[data-webdav-password]')?.value,
     filename: backupEl.querySelector('[data-webdav-filename]')?.value,
    });
-   const formatSize = bytes => !bytes ? '大小未知' : bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+   const formatSize = bytes => !bytes ? '大小未知' : bytes < 1024 ?`${bytes} B` : bytes < 1024 * 1024 ?`${(bytes / 1024).toFixed(1)} KB` :`${(bytes / (1024 * 1024)).toFixed(1)} MB`;
    const contentEl = backupEl;
    const closeResourceMenus = (except = null) => {
     overlay.querySelectorAll('.jav-resource-card-menu.is-open').forEach(menu => {
@@ -10097,12 +10912,29 @@
     if (!trigger || !popover || !menu.classList.contains('is-open')) return;
     const triggerRect = trigger.getBoundingClientRect(); const popoverRect = popover.getBoundingClientRect(); const width = popoverRect.width || 148; const height = popoverRect.height || 130; const gap = 6;
     const left = Math.min(Math.max(8, triggerRect.right - width), window.innerWidth - width - 8); const top = window.innerHeight - triggerRect.bottom >= height + gap ? triggerRect.bottom + gap : Math.max(8, triggerRect.top - height - gap);
-    popover.style.left = `${Math.round(left)}px`;
-    popover.style.top = `${Math.round(top)}px`;
+    popover.style.left =`${Math.round(left)}px`;
+    popover.style.top =`${Math.round(top)}px`;
    };
    const closeResourceMenusOnViewportChange = () => closeResourceMenus(); window.addEventListener('resize', closeResourceMenusOnViewportChange); overlay.addEventListener('scroll', closeResourceMenusOnViewportChange, true);
    overlay.addEventListener('laosiji-resource-dispose', () => window.removeEventListener('resize', closeResourceMenusOnViewportChange), { once: true });
    const typeLabel = type => type === 'uncensored' ? '无码' : type === 'censored' ? '有码' : type === 'western' ? '欧美' : '未知';
+   const resourceTimestamp = value => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    const text = String(value || '').trim();
+    if (!text) return 0;
+    if (/^\d{10,13}$/.test(text)) return Number(text.length === 10 ? text * 1000 : text);
+    const normalized = text.replace(/\u5e74/g, '-').replace(/\u6708/g, '-').replace(/\u65e5/g, '').replace(/[/.]/g, '-'); const parsed = Date.parse(normalized); return Number.isFinite(parsed) ? parsed : 0; };
+   const latestResourceTimestamp = (...values) => Math.max(...values.map(resourceTimestamp), 0);
+   const compareResourceTime = (left, right) => {
+    const leftTime = resourceTimestamp(left); const rightTime = resourceTimestamp(right);
+    if (leftTime === rightTime) return 0;
+    if (!leftTime || !rightTime) return leftTime ? -1 : 1;
+    return rightTime - leftTime; };
+   const compareCollectionOrder = (left, right) => {
+    const leftOrder = Number(left) || 0; const rightOrder = Number(right) || 0;
+    if (leftOrder === rightOrder) return 0;
+    if (!leftOrder || !rightOrder) return leftOrder ? -1 : 1;
+    return leftOrder - rightOrder; };
    function getActorWorkStats() {
     if (actorWorkStats && actorWorkStatsRevision === resourceStateRevision) return actorWorkStats;
     const stats = new Map();
@@ -10127,7 +10959,7 @@
     const date = new Date(value);
     if (!value || Number.isNaN(date.getTime())) return '暂无记录';
     const pad = number => String(number).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    return`${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
    };
    const cleanupScopeLabel = scope => ({ works: '作品资料', actors: '演员资料', history: '鉴定记录', 'blacklist-actors': '演员黑名单', 'blacklist-works': '作品黑名单', 'blacklist-keywords': '关键词屏蔽', relations: '孤立关联', all: '全部资源' }[scope] || '资源数据');
    const workFlagMeta = { favorite: ['收藏', 'jav-flag-favorite', '已收藏'], watched: ['观看', 'jav-flag-watched', '已观看'], downloaded: ['下载', 'jav-flag-downloaded', '已下载'] };
@@ -10179,7 +11011,7 @@
      library.works = {};
      library.relations = {};
      library.blacklist = { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] };
-     persist(); return result; }
+     resetActorSyncSuccess(); persist(); return result; }
     actorIds.forEach(id => delete library.actors[id]); workCodes.forEach(code => delete library.works[code]);
     if (scope === 'works') workCodes.forEach(code => delete library.blacklist.works[code]);
     if (scope === 'actors') actorIds.forEach(id => delete library.blacklist.actors[id]);
@@ -10195,16 +11027,22 @@
    function renderActors() {
     const library = getState(); let actors = Object.values(library.actors);
     if (actorsFilter !== 'all') actors = actors.filter(actor => actorType(actor) === actorsFilter);
-    if (actorsSearch) actors = actors.filter(actor => `${actor.name} ${(Array.isArray(actor.aliases) ? actor.aliases : actor.allName || []).join(' ')}`.toLowerCase().includes(actorsSearch.toLowerCase()));
-    actors.sort((a, b) => (actorNewCount(b.starId) - actorNewCount(a.starId)) || String(a.name).localeCompare(String(b.name))); const totalPages = Math.max(1, Math.ceil(actors.length / actorsPageSize));
-    actorsPage = Math.min(Math.max(1, actorsPage), totalPages); const pageActors = actors.slice((actorsPage - 1) * actorsPageSize, actorsPage * actorsPageSize);
+    if (actorsSearch) actors = actors.filter(actor =>`${actor.name} ${(Array.isArray(actor.aliases) ? actor.aliases : actor.allName || []).join(' ')}`.toLowerCase().includes(actorsSearch.toLowerCase()));
+    actors.sort((a, b) => {
+     let result = 0;
+     if (actorsSort === 'added') result = compareCollectionOrder(a.collectionOrder, b.collectionOrder) || compareResourceTime(a.createdAt || a.lastSyncAt, b.createdAt || b.lastSyncAt);
+     else if (actorsSort === 'updated') result = compareResourceTime(latestResourceTimestamp(a.lastCheckAt, a.lastSyncAt, a.modifiedAt, a.createdAt), latestResourceTimestamp(b.lastCheckAt, b.lastSyncAt, b.modifiedAt, b.createdAt));
+     else result = actorNewCount(b.starId) - actorNewCount(a.starId);
+     return result || String(a.name).localeCompare(String(b.name)) || String(a.starId).localeCompare(String(b.starId));
+    });
+    const totalPages = Math.max(1, Math.ceil(actors.length / actorsPageSize)); actorsPage = Math.min(Math.max(1, actorsPage), totalPages); const pageActors = actors.slice((actorsPage - 1) * actorsPageSize, actorsPage * actorsPageSize);
     const cards = pageActors.map(actor => {
      const newCount = actorNewCount(actor.starId); const avatar = resolveActorAvatar(actor); const type = actorType(actor); const aliases = Array.isArray(actor.aliases) ? actor.aliases : Array.isArray(actor.allName) ? actor.allName : [];
      const blacklisted = !!getBlacklist().actors[actor.starId];
-     return `<article class="jav-resource-card actress-card" data-star-id="${escape(actor.starId)}"><div class="actress-card__badges"><span class="jav-resource-badge jav-resource-badge-count">${newCount} 新</span><span class="jav-resource-badge jav-resource-badge-type ${escape(type)}">${typeLabel(type)}</span>${blacklisted ? '<span class="jav-resource-badge jav-resource-badge-blocked">已屏蔽作品</span>' : ''}</div><a class="actress-card__profile" href="${escape(actor.url ||`/actors/${encodeURIComponent(actor.starId)}`)}" target="_blank" rel="noopener"><img class="actress-card-avatar" loading="lazy" src="${escape(avatar)}" alt="${escape(actor.name)}"><span><span class="actress-card-name">${escape(actor.name)}</span><span class="actress-card-allname">${escape(aliases.slice(1).join('、') || '暂无别名')}</span></span></a><dl class="actress-card__meta"><div class="actress-card__meta-row"><dt>作品</dt><dd>${actorWorkCount(actor.starId)} 部 · 待处理 ${newCount}</dd></div><div class="actress-card__meta-row"><dt>上次检测</dt><dd>${escape(formatDate(actor.lastCheckAt || actor.lastCheckTime))}</dd></div></dl><p class="actress-card__note">${escape(newCount ? `待处理 ${newCount} 部最新作品` : '暂无待处理作品')}</p><div class="actress-card__actions"><button type="button" class="primary btn-check-actress" data-resource-check-actor="${escape(actor.starId)}">检测最新作品</button></div></article>`;
+     return`<article class="jav-resource-card actress-card" data-star-id="${escape(actor.starId)}"><div class="actress-card__badges"><span class="jav-resource-badge jav-resource-badge-count">${newCount} 新</span><span class="jav-resource-badge jav-resource-badge-type ${escape(type)}">${typeLabel(type)}</span>${blacklisted ? '<span class="jav-resource-badge jav-resource-badge-blocked">已屏蔽作品</span>' : ''}</div><a class="actress-card__profile" href="${escape(actor.url || `/actors/${encodeURIComponent(actor.starId)}`)}" target="_blank" rel="noopener"><img class="actress-card-avatar" loading="lazy" src="${escape(avatar)}" data-resource-avatar-fallback="${escape(getActorAvatarFallback(actor.source))}" alt="${escape(actor.name)}"><span><span class="actress-card-name">${escape(actor.name)}</span><span class="actress-card-allname">${escape(aliases.slice(1).join('、') || '暂无别名')}</span></span></a><dl class="actress-card__meta"><div class="actress-card__meta-row"><dt>作品</dt><dd>${actorWorkCount(actor.starId)} 部 · 待处理 ${newCount}</dd></div><div class="actress-card__meta-row"><dt>上次检测</dt><dd>${escape(formatDate(actor.lastCheckAt || actor.lastCheckTime))}</dd></div></dl><p class="actress-card__note">${escape(newCount ? `待处理 ${newCount} 部最新作品` : '暂无待处理作品')}</p><div class="actress-card__actions"><button type="button" class="primary btn-check-actress" data-resource-check-actor="${escape(actor.starId)}">检测最新作品</button><button type="button" class="btn-view-actress-works" data-resource-actor-works="${escape(actor.starId)}">作品库</button></div></article>`;
     }).join('');
-    const pagination = actors.length > actorsPageSize ? `<nav class="jav-resource-pagination" aria-label="演员库分页"><button type="button" data-resource-actors-page="${actorsPage - 1}" ${actorsPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${actorsPage} / ${totalPages} 页</span><button type="button" data-resource-actors-page="${actorsPage + 1}" ${actorsPage >= totalPages ? 'disabled' : ''}>下一页</button></nav>` : '';
-    contentEl.innerHTML = `<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" class="primary" data-resource-sync-actors="1" ${operationBusy ? 'disabled' : ''}>同步演员</button><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>检测最新作品</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-actors-search="1" value="${escape(actorsSearch)}" placeholder="搜索演员"><select data-resource-actors-filter="1"><option value="all" ${actorsFilter === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${actorsFilter === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${actorsFilter === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${actorsFilter === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${actorsFilter === 'unknown' ? 'selected' : ''}>未知</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${actors.length} / ${Object.keys(library.actors).length} 位演员</p><div class="jav-resource-grid">${cards || '<div class="jav-resource-empty">暂无演员，请先同步 JavDB 收藏演员</div>'}</div>${pagination}</div>`;
+    const pagination = actors.length > actorsPageSize ?`<nav class="jav-resource-pagination" aria-label="演员库分页"><button type="button" data-resource-actors-page="${actorsPage - 1}" ${actorsPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${actorsPage} / ${totalPages} 页</span><button type="button" data-resource-actors-page="${actorsPage + 1}" ${actorsPage >= totalPages ? 'disabled' : ''}>下一页</button></nav>` : '';
+    contentEl.innerHTML =`<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" class="primary" data-resource-sync-actors="1" ${operationBusy ? 'disabled' : ''}>同步演员</button><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>检测最新作品</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-actors-search="1" value="${escape(actorsSearch)}" placeholder="搜索演员"><select data-resource-actors-filter="1"><option value="all" ${actorsFilter === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${actorsFilter === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${actorsFilter === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${actorsFilter === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${actorsFilter === 'unknown' ? 'selected' : ''}>未知</option></select><select data-resource-actors-sort="1"><option value="pending" ${actorsSort === 'pending' ? 'selected' : ''}>待处理作品</option><option value="added" ${actorsSort === 'added' ? 'selected' : ''}>最新加入</option><option value="updated" ${actorsSort === 'updated' ? 'selected' : ''}>最近更新</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${actors.length} / ${Object.keys(library.actors).length} 位演员</p><div class="jav-resource-grid">${cards || `<div class="jav-resource-empty">暂无演员，请先同步 ${escape(RESOURCE_SOURCES[getActiveSource()])} 收藏演员</div>`}</div>${pagination}</div>`;
    }
    function renderWorks() {
     const library = getState();
@@ -10217,20 +11055,27 @@
       if (worksStatusFilter === 'unmarked') return !Object.values(flags).some(Boolean);
       return !!flags[worksStatusFilter];
      }); }
-    if (worksSearch) works = works.filter(work => `${work.code} ${work.title} ${(work.actorIds || []).map(id => library.actors[id]?.name || '').join(' ')}`.toLowerCase().includes(worksSearch.toLowerCase()));
-    works.sort((a, b) => String(b.publishTime || b.lastSeenAt || '').localeCompare(String(a.publishTime || a.lastSeenAt || ''))); const totalPages = Math.max(1, Math.ceil(works.length / worksPageSize)); worksPage = Math.min(Math.max(1, worksPage), totalPages);
-    const pageWorks = works.slice((worksPage - 1) * worksPageSize, worksPage * worksPageSize);
+    if (worksActorId) works = works.filter(work => Array.isArray(work.actorIds) && work.actorIds.includes(worksActorId));
+    if (worksSearch) works = works.filter(work =>`${work.code} ${work.title} ${(work.actorIds || []).map(id => library.actors[id]?.name || '').join(' ')}`.toLowerCase().includes(worksSearch.toLowerCase()));
+    works.sort((a, b) => {
+     let result = 0;
+     if (worksSort === 'added') result = compareResourceTime(a.createdAt || a.lastSeenAt, b.createdAt || b.lastSeenAt);
+     else if (worksSort === 'updated') result = compareResourceTime(latestResourceTimestamp(a.modifiedAt, a.lastSeenAt, a.actorInfoFetchedAt, a.createdAt), latestResourceTimestamp(b.modifiedAt, b.lastSeenAt, b.actorInfoFetchedAt, b.createdAt));
+     else result = compareResourceTime(a.publishTime, b.publishTime);
+     return result || String(a.code).localeCompare(String(b.code));
+    });
+    const totalPages = Math.max(1, Math.ceil(works.length / worksPageSize)); worksPage = Math.min(Math.max(1, worksPage), totalPages); const pageWorks = works.slice((worksPage - 1) * worksPageSize, worksPage * worksPageSize);
     const cards = pageWorks.map(work => {
      const names = normalizeActorNames((work.actorIds || []).map(id => library.actors[id]?.name), work.code).join('、'); const flags = workFlags(work);
-     const statusMarkers = Object.entries(workFlagMeta).filter(([flag]) => flags[flag]).map(([flag, meta]) => `<span class="jav-resource-card-marker jav-resource-card-marker-${flag}">${meta[2]}</span>`).join('');
-     const flagButtons = Object.entries(workFlagMeta).map(([flag, meta]) => `<button type="button" class="jav-resource-flag ${meta[1]}${flags[flag] ? ' is-active' : ''}" data-resource-work-flag="${flag}" data-resource-work-code="${escape(work.code)}" aria-pressed="${flags[flag]}">${flags[flag] ? meta[2] : meta[0]}</button>`).join('');
-     const flagMenu = `<div class="jav-resource-card-menu"><button type="button" class="jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">鉴定处理</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-blacklist-action" data-resource-work-blacklist="${escape(work.code)}">屏蔽作品</button></div></div>`;
-     const queryButton = work.url ? `<button type="button" class="jav-resource-history-query-actors" data-resource-work-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查询中...' : '查询演员'}</button>` : '';
+     const statusMarkers = Object.entries(workFlagMeta).filter(([flag]) => flags[flag]).map(([flag, meta]) =>`<span class="jav-resource-card-marker jav-resource-card-marker-${flag}">${meta[2]}</span>`).join('');
+     const flagButtons = Object.entries(workFlagMeta).map(([flag, meta]) =>`<button type="button" class="jav-resource-flag ${meta[1]}${flags[flag] ? ' is-active' : ''}" data-resource-work-flag="${flag}" data-resource-work-code="${escape(work.code)}" aria-pressed="${flags[flag]}">${flags[flag] ? meta[2] : meta[0]}</button>`).join('');
+     const flagMenu =`<div class="jav-resource-card-menu"><button type="button" class="jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">鉴定处理</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-blacklist-action" data-resource-work-blacklist="${escape(work.code)}">屏蔽作品</button></div></div>`;
+     const queryButton = work.url ?`<button type="button" class="jav-resource-history-query-actors" data-resource-work-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查询中...' : '查询演员'}</button>` : '';
      const cover = work.cover || javdbCoverFromUrl(work.url);
-     return `<article class="jav-resource-card nv-card"><a class="nv-card__link" href="${escape(work.url || '#')}" target="_blank" rel="noopener"><div class="nv-card__cover">${cover ? `<img class="nv-cover-img" loading="lazy" src="${escape(cover)}" alt="${escape(work.code)}">` : '<div class="nv-card__empty">暂无封面</div>'}${statusMarkers ? `<div class="jav-resource-card-markers">${statusMarkers}</div>` : ''}</div><div class="nv-card__body"><div class="nv-card__title" title="${escape(work.code)}">${escape(work.code)}</div><div class="nv-card__actress" title="${escape(names || '未关联演员')}">${escape(names || '未关联演员')}</div><div class="nv-card__date-row"><div class="nv-card__date">${escape(work.publishTime || '发行时间未知')}</div><div class="nv-card__statuses"><span class="jav-resource-badge jav-resource-badge-type ${escape(work.type || 'unknown')}">${typeLabel(work.type)}</span></div></div></div></a><div class="jav-resource-card-actions jav-resource-card-actions-flags">${queryButton}${flagMenu}</div></article>`;
+     return`<article class="jav-resource-card nv-card"><a class="nv-card__link" href="${escape(work.url || '#')}" target="_blank" rel="noopener"><div class="nv-card__cover">${cover ? `<img class="nv-cover-img" loading="lazy" src="${escape(cover)}" alt="${escape(work.code)}">` : '<div class="nv-card__empty">暂无封面</div>'}${statusMarkers ? `<div class="jav-resource-card-markers">${statusMarkers}</div>` : ''}</div><div class="nv-card__body"><div class="nv-card__title" title="${escape(work.code)}">${escape(work.code)}</div><div class="nv-card__actress" title="${escape(names || '未关联演员')}">${escape(names || '未关联演员')}</div><div class="nv-card__date-row"><div class="nv-card__date">${escape(work.publishTime || '发行时间未知')}</div><div class="nv-card__statuses"><span class="jav-resource-badge jav-resource-badge-type ${escape(work.type || 'unknown')}">${typeLabel(work.type)}</span></div></div></div></a><div class="jav-resource-card-actions jav-resource-card-actions-flags">${queryButton}${flagMenu}</div></article>`;
     }).join('');
-    const pagination = works.length > worksPageSize ? `<nav class="jav-resource-pagination" aria-label="作品库分页"><button type="button" data-resource-works-page="${worksPage - 1}" ${worksPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${worksPage} / ${totalPages} 页</span><button type="button" data-resource-works-page="${worksPage + 1}" ${worksPage >= totalPages ? 'disabled' : ''}>下一页</button></nav>` : '';
-    contentEl.innerHTML = `<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>检测全部演员</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-works-search="1" value="${escape(worksSearch)}" placeholder="搜索番号、标题或演员"><select data-resource-works-filter="1"><option value="all" ${worksFilter === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${worksFilter === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${worksFilter === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${worksFilter === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${worksFilter === 'unknown' ? 'selected' : ''}>未知</option></select><select data-resource-works-status-filter="1"><option value="all" ${worksStatusFilter === 'all' ? 'selected' : ''}>全部标记</option><option value="unmarked" ${worksStatusFilter === 'unmarked' ? 'selected' : ''}>未标记</option><option value="favorite" ${worksStatusFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${worksStatusFilter === 'watched' ? 'selected' : ''}>已观看</option><option value="downloaded" ${worksStatusFilter === 'downloaded' ? 'selected' : ''}>已下载</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${works.length} / ${Object.keys(library.works).length} 部作品</p><div class="jav-resource-grid">${cards || '<div class="jav-resource-empty">暂无作品，请先检测演员最新作品</div>'}</div>${pagination}</div>`;
+    const pagination = works.length > worksPageSize ?`<nav class="jav-resource-pagination" aria-label="作品库分页"><button type="button" data-resource-works-page="${worksPage - 1}" ${worksPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${worksPage} / ${totalPages} 页</span><button type="button" data-resource-works-page="${worksPage + 1}" ${worksPage >= totalPages ? 'disabled' : ''}>下一页</button></nav>` : '';
+    contentEl.innerHTML =`<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>检测全部演员</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-works-search="1" value="${escape(worksSearch)}" placeholder="搜索番号、标题或演员"><select data-resource-works-filter="1"><option value="all" ${worksFilter === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${worksFilter === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${worksFilter === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${worksFilter === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${worksFilter === 'unknown' ? 'selected' : ''}>未知</option></select><select data-resource-works-status-filter="1"><option value="all" ${worksStatusFilter === 'all' ? 'selected' : ''}>全部标记</option><option value="unmarked" ${worksStatusFilter === 'unmarked' ? 'selected' : ''}>未标记</option><option value="favorite" ${worksStatusFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${worksStatusFilter === 'watched' ? 'selected' : ''}>已观看</option><option value="downloaded" ${worksStatusFilter === 'downloaded' ? 'selected' : ''}>已下载</option></select><select data-resource-works-sort="1"><option value="published" ${worksSort === 'published' ? 'selected' : ''}>发布时间</option><option value="added" ${worksSort === 'added' ? 'selected' : ''}>加入时间</option><option value="updated" ${worksSort === 'updated' ? 'selected' : ''}>最近更新</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${works.length} / ${Object.keys(library.works).length} 部作品</p><div class="jav-resource-grid">${cards || '<div class="jav-resource-empty">暂无作品，请先检测演员最新作品</div>'}</div>${pagination}</div>`;
    }
    function renderHistory() {
     const library = getState();
@@ -10239,75 +11084,88 @@
     let works = Object.values(library.works).filter(hasHistory).map(work => ({ ...work, type: displayWorkType(work) }));
     works = works.filter(work => !isWorkBlacklisted(work, library));
     if (historyFilter !== 'all') works = works.filter(work => workFlags(work)[historyFilter]);
-    if (historySearch) works = works.filter(work => `${work.code} ${work.title} ${workActorNames(work).join(' ')}`.toLowerCase().includes(historySearch.toLowerCase()));
-    const tabs = `<div class="jav-resource-history-tabs"><button type="button" class="${historyView === 'state' ? 'is-active' : ''}" data-history-view="state">作品状态</button><button type="button" class="${historyView === 'activity' ? 'is-active' : ''}" data-history-view="activity">操作记录</button></div>`;
+    if (historySearch) works = works.filter(work =>`${work.code} ${work.title} ${workActorNames(work).join(' ')}`.toLowerCase().includes(historySearch.toLowerCase()));
+    const tabs =`<div class="jav-resource-history-tabs"><button type="button" class="${historyView === 'state' ? 'is-active' : ''}" data-history-view="state">作品状态</button><button type="button" class="${historyView === 'activity' ? 'is-active' : ''}" data-history-view="activity">操作记录</button></div>`;
     if (historyView === 'activity') {
      const activities = Object.values(library.works).flatMap(work => (Array.isArray(work.activity) ? work.activity : []).map(item => ({ ...item, code: work.code, title: work.title }))).sort((a, b) => b.at - a.at);
-     const rows = activities.filter(item => !historySearch || `${item.code} ${item.title || ''}`.toLowerCase().includes(historySearch.toLowerCase())).map(item => `<div class="jav-resource-history-row"><strong>${escape(item.code)}</strong><span>${escape(workFlagMeta[item.action]?.[item.value ? 2 : 0] || (item.action === 'blocked' ? (item.value ? '加入作品黑名单' : '移出作品黑名单') : item.action))}</span><time>${escape(formatDate(item.at))}</time></div>`).join('');
-     contentEl.innerHTML = `<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-history-toolbar"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜索番号或演员"></div><div class="jav-resource-history-list">${rows || '<div class="jav-resource-empty">暂无操作记录</div>'}</div></div>`; return;
+     const rows = activities.filter(item => !historySearch ||`${item.code} ${item.title || ''}`.toLowerCase().includes(historySearch.toLowerCase())).map(item =>`<div class="jav-resource-history-row"><strong>${escape(item.code)}</strong><span>${escape(workFlagMeta[item.action]?.[item.value ? 2 : 0] || (item.action === 'blocked' ? (item.value ? '加入作品黑名单' : '移出作品黑名单') : item.action))}</span><time>${escape(formatDate(item.at))}</time></div>`).join('');
+     contentEl.innerHTML =`<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-history-toolbar"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜索番号或演员"></div><div class="jav-resource-history-list">${rows || '<div class="jav-resource-empty">暂无操作记录</div>'}</div></div>`; return;
     }
     const removeTarget = historyRemoveCode ? works.find(work => work.code === historyRemoveCode) : null;
-    const removeConfirm = removeTarget ? `<div class="jav-resource-history-remove-confirm" role="dialog" aria-modal="true" aria-label="移出鉴定记录"><div class="jav-resource-history-remove-dialog"><strong>移出鉴定记录？</strong><span>仅清除该作品的鉴定状态和操作记录，作品库数据会保留。</span><div><button type="button" data-resource-history-remove-confirm="${escape(removeTarget.code)}">确认移出</button><button type="button" data-resource-history-remove-cancel="1">取消</button></div></div></div>` : '';
+    const removeConfirm = removeTarget ?`<div class="jav-resource-history-remove-confirm" role="dialog" aria-modal="true" aria-label="移出鉴定记录"><div class="jav-resource-history-remove-dialog"><strong>移出鉴定记录？</strong><span>仅清除该作品的鉴定状态和操作记录，作品库数据会保留。</span><div><button type="button" data-resource-history-remove-confirm="${escape(removeTarget.code)}">确认移出</button><button type="button" data-resource-history-remove-cancel="1">取消</button></div></div></div>` : '';
     const rows = works.map(work => {
      const flags = workFlags(work); const names = workActorNames(work).join('、'); const needsActorRefresh = work.actorInfoVersion !== 3;
      const actorContent = needsActorRefresh && work.url
-      ? `<button type="button" class="jav-resource-history-query-actors" data-resource-history-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查询中...' : names ? '重新查询演员' : '查询演员'}</button>`
-      : names
-       ? `<span class="jav-resource-history-actors">${escape(names)}</span>`
-       : '<span class="jav-resource-history-muted">未找到演员</span>';
-     const statuses = Object.entries(workFlagMeta).filter(([flag]) => flags[flag]).map(([flag, meta]) => `<span class="jav-resource-history-status-pill ${meta[1]}">${meta[2]}</span>`).join('') || '<span class="jav-resource-history-muted">无标记</span>';
-     const codeLink = work.url ? `<a class="jav-resource-history-code" href="${escape(work.url)}" target="_blank" rel="noopener" title="${escape(work.title || work.code)}">${escape(work.code)}</a>` : `<span class="jav-resource-history-code">${escape(work.code)}</span>`;
-     const flagButtons = Object.entries(workFlagMeta).map(([flag, meta]) => `<button type="button" class="jav-resource-flag ${meta[1]}${flags[flag] ? ' is-active' : ''}" data-resource-work-flag="${flag}" data-resource-work-code="${escape(work.code)}" aria-pressed="${flags[flag]}">${flags[flag] ? meta[2] : meta[0]}</button>`).join('');
-     const detail = work.url ? `<a class="jav-resource-history-detail" href="${escape(work.url)}" target="_blank" rel="noopener">详情</a>` : '<span class="jav-resource-history-muted">无链接</span>';
-     const changeMenu = `<div class="jav-resource-card-menu jav-resource-history-menu"><button type="button" class="jav-resource-history-edit jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">变更</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-history-menu-remove" data-resource-history-remove="${escape(work.code)}">移出</button></div></div>`;
-     return `<tr class="jav-resource-history-table-row"><td>${codeLink}</td><td title="${escape(names)}">${actorContent}</td><td>${escape(formatHistoryDate(work.createdAt))}</td><td>${escape(formatHistoryDate(work.modifiedAt || work.activity?.[0]?.at))}</td><td>${escape(formatPublishDate(work.publishTime))}</td><td><span class="jav-resource-history-source">${escape(work.source || 'JavDB')}</span></td><td><div class="jav-resource-history-statuses">${statuses}</div></td><td><div class="jav-resource-history-actions">${changeMenu}${detail}</div></td></tr>`;
+      ?`<button type="button" class="jav-resource-history-query-actors" data-resource-history-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查询中...' : names ? '重新查询演员' : '查询演员'}</button>`                        : names
+       ?`<span class="jav-resource-history-actors">${escape(names)}</span>`                            : '<span class="jav-resource-history-muted">未找到演员</span>';
+     const statuses = Object.entries(workFlagMeta).filter(([flag]) => flags[flag]).map(([flag, meta]) =>`<span class="jav-resource-history-status-pill ${meta[1]}">${meta[2]}</span>`).join('') || '<span class="jav-resource-history-muted">无标记</span>';
+     const codeLink = work.url ?`<a class="jav-resource-history-code" href="${escape(work.url)}" target="_blank" rel="noopener" title="${escape(work.title || work.code)}">${escape(work.code)}</a>` :`<span class="jav-resource-history-code">${escape(work.code)}</span>`;
+     const flagButtons = Object.entries(workFlagMeta).map(([flag, meta]) =>`<button type="button" class="jav-resource-flag ${meta[1]}${flags[flag] ? ' is-active' : ''}" data-resource-work-flag="${flag}" data-resource-work-code="${escape(work.code)}" aria-pressed="${flags[flag]}">${flags[flag] ? meta[2] : meta[0]}</button>`).join('');
+     const detail = work.url ?`<a class="jav-resource-history-detail" href="${escape(work.url)}" target="_blank" rel="noopener">详情</a>` : '<span class="jav-resource-history-muted">无链接</span>';
+     const changeMenu =`<div class="jav-resource-card-menu jav-resource-history-menu"><button type="button" class="jav-resource-history-edit jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">变更</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-history-menu-remove" data-resource-history-remove="${escape(work.code)}">移出</button></div></div>`;
+     return`<tr class="jav-resource-history-table-row"><td>${codeLink}</td><td title="${escape(names)}">${actorContent}</td><td>${escape(formatHistoryDate(work.createdAt))}</td><td>${escape(formatHistoryDate(work.modifiedAt || work.activity?.[0]?.at))}</td><td>${escape(formatPublishDate(work.publishTime))}</td><td><span class="jav-resource-history-source">${escape(work.source || 'JavDB')}</span></td><td><div class="jav-resource-history-statuses">${statuses}</div></td><td><div class="jav-resource-history-actions">${changeMenu}${detail}</div></td></tr>`;
     }).join('');
-    contentEl.innerHTML = `<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜索番号或演员"><select data-resource-history-filter="1"><option value="all" ${historyFilter === 'all' ? 'selected' : ''}>所有</option><option value="favorite" ${historyFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${historyFilter === 'watched' ? 'selected' : ''}>已观看</option><option value="downloaded" ${historyFilter === 'downloaded' ? 'selected' : ''}>已下载</option></select></div></div><div class="jav-resource-history-table-wrap"><table class="jav-resource-history-table"><thead><tr><th>番号</th><th>演员</th><th>创建时间</th><th>修改时间</th><th>发行时间</th><th>来源</th><th>状态</th><th>变更</th></tr></thead><tbody>${rows || `<tr><td colspan="8"><div class="jav-resource-empty">暂无状态记录</div></td></tr>`}</tbody></table></div>${removeConfirm}</div>`;
+    contentEl.innerHTML =`<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜索番号或演员"><select data-resource-history-filter="1"><option value="all" ${historyFilter === 'all' ? 'selected' : ''}>所有</option><option value="favorite" ${historyFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${historyFilter === 'watched' ? 'selected' : ''}>已观看</option><option value="downloaded" ${historyFilter === 'downloaded' ? 'selected' : ''}>已下载</option></select></div></div><div class="jav-resource-history-table-wrap"><table class="jav-resource-history-table"><thead><tr><th>番号</th><th>演员</th><th>创建时间</th><th>修改时间</th><th>发行时间</th><th>来源</th><th>状态</th><th>变更</th></tr></thead><tbody>${rows || `<tr><td colspan="8"><div class="jav-resource-empty">暂无状态记录</div></td></tr>`}</tbody></table></div>${removeConfirm}</div>`;
    }
    function renderBlacklist() {
     const library = getState(); const blacklist = getBlacklist(library);
-    const tabs = `<div class="jav-resource-history-tabs"><button type="button" class="${blacklistView === 'actors' ? 'is-active' : ''}" data-blacklist-view="actors">演员黑名单</button><button type="button" class="${blacklistView === 'works' ? 'is-active' : ''}" data-blacklist-view="works">作品黑名单</button><button type="button" class="${blacklistView === 'keywords' ? 'is-active' : ''}" data-blacklist-view="keywords">关键词屏蔽</button></div>`;
+    const tabs =`<div class="jav-resource-history-tabs"><button type="button" class="${blacklistView === 'actors' ? 'is-active' : ''}" data-blacklist-view="actors">演员黑名单</button><button type="button" class="${blacklistView === 'works' ? 'is-active' : ''}" data-blacklist-view="works">作品黑名单</button><button type="button" class="${blacklistView === 'keywords' ? 'is-active' : ''}" data-blacklist-view="keywords">关键词屏蔽</button></div>`;
     if (blacklistView === 'actors') {
-     const entries = Object.values(blacklist.actors).filter(actor => !blacklistSearch || `${actor.name} ${(actor.aliases || []).join(' ')}`.toLowerCase().includes(blacklistSearch.toLowerCase()));
-     const rows = entries.map(actor => `<div class="jav-resource-blacklist-row"><div><strong>${escape(actor.name || actor.actorId)}</strong><span>${escape(actor.actorId)} · 关联作品将自动屏蔽</span></div><div class="jav-resource-blacklist-actions"><button type="button" class="jav-resource-blacklist-check" data-resource-blacklist-check-actor="${escape(actor.actorId)}" ${operationBusy ? 'disabled' : ''}>继续检测</button><button type="button" data-resource-blacklist-remove-actor="${escape(actor.actorId)}">移出</button></div></div>`).join('');
-     contentEl.innerHTML = `<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">加入黑名单的演员，其关联作品会从作品库和鉴定记录中隐藏。</div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜索黑名单演员"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暂无演员黑名单，请在演员详情页加入</div>'}</div></div>`;
+     const entries = Object.values(blacklist.actors).filter(actor => !blacklistSearch ||`${actor.name} ${(actor.aliases || []).join(' ')}`.toLowerCase().includes(blacklistSearch.toLowerCase()));
+     const rows = entries.map(actor =>`<div class="jav-resource-blacklist-row"><div><strong>${escape(actor.name || actor.actorId)}</strong><span>${escape(actor.actorId)} · 关联作品将自动屏蔽</span></div><div class="jav-resource-blacklist-actions"><button type="button" class="jav-resource-blacklist-check" data-resource-blacklist-check-actor="${escape(actor.actorId)}" ${operationBusy ? 'disabled' : ''}>继续检测</button><button type="button" data-resource-blacklist-remove-actor="${escape(actor.actorId)}">移出</button></div></div>`).join('');
+     contentEl.innerHTML =`<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">加入黑名单的演员，其关联作品会从作品库和鉴定记录中隐藏。</div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜索黑名单演员"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暂无演员黑名单，请在演员详情页加入</div>'}</div></div>`;
      return; }
     if (blacklistView === 'works') {
-     const entries = Object.values(blacklist.works).map(item => library.works[item.code] || item).filter(work => !blacklistSearch || `${work.code} ${work.title || ''}`.toLowerCase().includes(blacklistSearch.toLowerCase()));
-     const rows = entries.map(work => `<div class="jav-resource-blacklist-row"><div><strong>${escape(work.code)}</strong><span>${escape(work.title || '作品黑名单')} · ${escape(getWorkBlacklistReason(work, library) || '手动屏蔽')}</span></div><button type="button" data-resource-blacklist-remove-work="${escape(work.code)}">移出</button></div>`).join('');
-     contentEl.innerHTML = `<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">从作品卡片执行“屏蔽作品”后会出现在这里，移出后恢复到作品库。</div><div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜索黑名单作品"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暂无作品黑名单</div>'}</div></div>`;
+     const entries = Object.values(blacklist.works).map(item => library.works[item.code] || item).filter(work => !blacklistSearch ||`${work.code} ${work.title || ''}`.toLowerCase().includes(blacklistSearch.toLowerCase()));
+     const rows = entries.map(work =>`<div class="jav-resource-blacklist-row"><div><strong>${escape(work.code)}</strong><span>${escape(work.title || '作品黑名单')} · ${escape(getWorkBlacklistReason(work, library) || '手动屏蔽')}</span></div><button type="button" data-resource-blacklist-remove-work="${escape(work.code)}">移出</button></div>`).join('');
+     contentEl.innerHTML =`<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">从作品卡片执行“屏蔽作品”后会出现在这里，移出后恢复到作品库。</div><div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜索黑名单作品"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暂无作品黑名单</div>'}</div></div>`;
      return; }
-    const codeKeywords = blacklist.codeKeywords.map(keyword => `<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="code" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="删除番号关键词">×</button></span>`).join('');
-    const titleKeywords = blacklist.titleKeywords.map(keyword => `<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="title" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="删除标题关键词">×</button></span>`).join('');
-    contentEl.innerHTML = `<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">命中番号或标题关键词的作品会从作品库和鉴定记录中隐藏。</div><div class="jav-resource-blacklist-keyword-form"><label>番号关键词<input type="text" data-resource-blacklist-keyword-input="code" placeholder="例如 FC2、无码"></label><button type="button" data-resource-blacklist-add-keyword="code">添加</button></div><div class="jav-resource-keyword-list">${codeKeywords || '<span class="jav-resource-blacklist-muted">暂无番号关键词</span>'}</div><div class="jav-resource-blacklist-keyword-form"><label>标题关键词<input type="text" data-resource-blacklist-keyword-input="title" placeholder="例如 字幕、合集"></label><button type="button" data-resource-blacklist-add-keyword="title">添加</button></div><div class="jav-resource-keyword-list">${titleKeywords || '<span class="jav-resource-blacklist-muted">暂无标题关键词</span>'}</div></div>`;
+    const codeKeywords = blacklist.codeKeywords.map(keyword =>`<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="code" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="删除番号关键词">×</button></span>`).join('');
+    const titleKeywords = blacklist.titleKeywords.map(keyword =>`<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="title" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="删除标题关键词">×</button></span>`).join('');
+    contentEl.innerHTML =`<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">命中番号或标题关键词的作品会从作品库和鉴定记录中隐藏。</div><div class="jav-resource-blacklist-keyword-form"><label>番号关键词<input type="text" data-resource-blacklist-keyword-input="code" placeholder="例如 FC2、无码"></label><button type="button" data-resource-blacklist-add-keyword="code">添加</button></div><div class="jav-resource-keyword-list">${codeKeywords || '<span class="jav-resource-blacklist-muted">暂无番号关键词</span>'}</div><div class="jav-resource-blacklist-keyword-form"><label>标题关键词<input type="text" data-resource-blacklist-keyword-input="title" placeholder="例如 字幕、合集"></label><button type="button" data-resource-blacklist-add-keyword="title">添加</button></div><div class="jav-resource-keyword-list">${titleKeywords || '<span class="jav-resource-blacklist-muted">暂无标题关键词</span>'}</div></div>`;
    }
+   function renderSettings() {
+    const settings = readResourceSettings();
+    const actorScheduleOptions = RESOURCE_SCHEDULE_HOURS.map(hours =>`<option value="${hours}" ${settings.scheduleActorHours === hours ? 'selected' : ''}>${hours} 小时</option>`).join('');
+    const worksScheduleOptions = RESOURCE_SCHEDULE_HOURS.map(hours =>`<option value="${hours}" ${settings.scheduleWorksHours === hours ? 'selected' : ''}>${hours} 小时</option>`).join('');
+    contentEl.innerHTML =`<div class="jav-resource-library jav-resource-settings-view"><div class="jav-resource-settings-intro"><strong>作品检测</strong><span>增量检测遇到已知作品后停止翻页；全量校验会继续读取演员的全部分页。</span></div><div class="jav-resource-settings-form"><label class="jav-resource-setting-row"><span><strong>检测模式</strong><small>默认使用增量检测，适合日常检查新作品。</small></span><select data-resource-setting="checkMode"><option value="incremental" ${settings.checkMode === 'incremental' ? 'selected' : ''}>增量检测</option><option value="full" ${settings.checkMode === 'full' ? 'selected' : ''}>全量校验</option></select></label><label class="jav-resource-setting-row"><span><strong>并发数量</strong><small>同时检测的演员数量，范围 1-8；并发过高可能触发 CF 挑战，建议保持较低值。</small></span><input type="number" min="1" max="8" step="1" data-resource-setting="concurrency" value="${settings.concurrency}"></label><label class="jav-resource-setting-row"><span><strong>请求间隔</strong><small>每批任务完成后等待的时间，范围 0-5000 毫秒。</small></span><input type="number" min="0" max="5000" step="10" data-resource-setting="requestDelay" value="${settings.requestDelay}"></label></div><div class="jav-resource-settings-section"><strong>定时检测</strong><span>两个检测动作可以分别控制。关闭或刷新页面后当前执行会停止；重新打开支持站点后会根据保存的下次执行时间补执行，逾期会立即启动。</span></div><div class="jav-resource-settings-form"><label class="jav-resource-setting-row"><span><strong>自动同步收藏演员</strong><small>按间隔同步当前来源账号的演员收藏列表。</small></span><input type="checkbox" data-resource-setting="scheduleSyncActors" ${settings.scheduleSyncActors ? 'checked' : ''}></label><label class="jav-resource-setting-row"><span><strong>自动检测最新作品</strong><small>按间隔检测资源库演员的最新作品。</small></span><input type="checkbox" data-resource-setting="scheduleCheckWorks" ${settings.scheduleCheckWorks ? 'checked' : ''}></label><label class="jav-resource-setting-row"><span><strong>同步演员间隔</strong><small>自动同步收藏演员的执行频率。</small></span><select data-resource-setting="scheduleActorHours">${actorScheduleOptions}</select></label><label class="jav-resource-setting-row"><span><strong>检测作品间隔</strong><small>自动检测最新作品的执行频率。</small></span><select data-resource-setting="scheduleWorksHours">${worksScheduleOptions}</select></label></div><div class="jav-resource-settings-note">设置即时保存。定时任务不会跨页面刷新继续运行；检测期间请勿刷新和关闭页面。</div></div>`;
+   }
+   function bindActorAvatarFallbacks() {
+    const images = [...(contentEl.querySelectorAll?.('.actress-card-avatar') || [])];
+    images.forEach(image => {
+     const fallback = image.getAttribute('data-resource-avatar-fallback') || getActorAvatarFallback();
+     const onError = () => {
+      image.removeEventListener?.('error', onError); image.setAttribute('src', fallback); };
+     image.addEventListener?.('error', onError, { once: true });
+    }); }
    function renderActiveView() {
-    const title = activeView === 'actors' ? '演员库' : activeView === 'works' ? '作品库' : activeView === 'history' ? '鉴定记录' : activeView === 'blacklist' ? '黑名单' : '备份与恢复'; overlay.querySelector('.jav-resource-head-title').textContent = title;
-    backupEl.classList.toggle('jav-resource-backup--library', activeView === 'actors' || activeView === 'works' || activeView === 'history' || activeView === 'blacklist'); backupEl.classList.toggle('jav-resource-backup--history', activeView === 'history');
+    const title = activeView === 'actors' ? '演员库' : activeView === 'works' ? '作品库' : activeView === 'history' ? '鉴定记录' : activeView === 'blacklist' ? '黑名单' : activeView === 'settings' ? '检测设置' : '备份与恢复';
+    overlay.querySelector('.jav-resource-head-title').textContent = title; backupEl.classList.toggle('jav-resource-backup--library', activeView === 'actors' || activeView === 'works' || activeView === 'history' || activeView === 'blacklist');
+    backupEl.classList.toggle('jav-resource-backup--history', activeView === 'history');
     overlay.querySelectorAll('[data-resource-view]').forEach(button => { const active = button.dataset.resourceView === activeView; button.classList.toggle('is-active', active); button.setAttribute('aria-current', active ? 'page' : 'false'); });
-    if (activeView === 'actors') renderActors();
+    if (activeView === 'actors') { renderActors(); bindActorAvatarFallbacks(); }
     else if (activeView === 'works') renderWorks();
     else if (activeView === 'history') renderHistory();
     else if (activeView === 'blacklist') renderBlacklist();
+    else if (activeView === 'settings') renderSettings();
     else renderBackup();
-    syncOperationControl(); }
+    syncOperationControl();
+    if (backgroundCollapsed && operationBusy) renderTaskStatus(false);
+   }
    function renderResourceCleanup() {
     const library = getState(); const selectedScope = resourceCleanupPending?.scope || 'works'; const selectedType = resourceCleanupPending?.type || 'all'; const matches = resourceCleanupPending ? getResourceCleanupMatches(selectedScope, selectedType) : null;
     const blacklist = getBlacklist(library);
     const blacklistCount = selectedScope === 'blacklist-actors' ? Object.keys(blacklist.actors).length : selectedScope === 'blacklist-works' ? Object.keys(blacklist.works).length
       : selectedScope === 'blacklist-keywords' ? blacklist.codeKeywords.length + blacklist.titleKeywords.length : 0;
-    const preview = resourceCleanupPending ? selectedScope === 'history' ? `将清除 ${matches.historyCodes.length} 条鉴定记录，作品资料保留。`
-     : selectedScope === 'relations' ? `将清除 ${matches.orphanRelations.length} 条孤立关联。`
-      : selectedScope.startsWith('blacklist-') ? `将清除 ${blacklistCount} 条${cleanupScopeLabel(selectedScope)}。`
-       : `将删除 ${matches.actorIds.length} 位演员、${matches.workCodes.length} 部作品及相关关联。` : '';
-    const pending = resourceCleanupPending ? `<div class="jav-resource-cleanup-confirm"><strong>确认清理${cleanupScopeLabel(selectedScope)}？</strong><span>${preview}此操作不可撤销，请确认已完成备份。</span><div><button type="button" data-resource-data-cleanup-confirm="1">确认清理</button><button type="button" data-resource-data-cleanup-cancel="1">取消</button></div></div>` : '';
-    return `<div class="jav-resource-data-cleanup"><div class="jav-resource-webdav-title">资源数据清理</div><p>可分别清理作品资料、演员资料、鉴定记录、黑名单分类和孤立关联。鉴定记录只清除收藏/观看/下载状态及操作记录，不删除作品资料。</p><div class="jav-resource-data-cleanup-controls"><select data-resource-data-cleanup-scope="1"><option value="works" ${selectedScope === 'works' ? 'selected' : ''}>作品资料</option><option value="actors" ${selectedScope === 'actors' ? 'selected' : ''}>演员资料</option><option value="history" ${selectedScope === 'history' ? 'selected' : ''}>鉴定记录</option><option value="blacklist-actors" ${selectedScope === 'blacklist-actors' ? 'selected' : ''}>演员黑名单</option><option value="blacklist-works" ${selectedScope === 'blacklist-works' ? 'selected' : ''}>作品黑名单</option><option value="blacklist-keywords" ${selectedScope === 'blacklist-keywords' ? 'selected' : ''}>关键词屏蔽</option><option value="relations" ${selectedScope === 'relations' ? 'selected' : ''}>孤立关联</option><option value="all" ${selectedScope === 'all' ? 'selected' : ''}>全部资源</option></select><select data-resource-data-cleanup-type="1" ${['actors', 'works'].includes(selectedScope) ? '' : 'disabled'}><option value="all" ${selectedType === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${selectedType === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${selectedType === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${selectedType === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${selectedType === 'unknown' ? 'selected' : ''}>未知</option></select><button type="button" data-resource-data-cleanup="1">预览清理范围</button></div>${pending}</div>`;
+    const preview = resourceCleanupPending ? selectedScope === 'history' ?`将清除 ${matches.historyCodes.length} 条鉴定记录，作品资料保留。`                    : selectedScope === 'relations' ?`将清除 ${matches.orphanRelations.length} 条孤立关联。`                        : selectedScope.startsWith('blacklist-') ?`将清除 ${blacklistCount} 条${cleanupScopeLabel(selectedScope)}。`                            :`将删除 ${matches.actorIds.length} 位演员、${matches.workCodes.length} 部作品及相关关联。` : '';
+    const pending = resourceCleanupPending ?`<div class="jav-resource-cleanup-confirm"><strong>确认清理${cleanupScopeLabel(selectedScope)}？</strong><span>${preview}此操作不可撤销，请确认已完成备份。</span><div><button type="button" data-resource-data-cleanup-confirm="1">确认清理</button><button type="button" data-resource-data-cleanup-cancel="1">取消</button></div></div>` : '';
+    return`<div class="jav-resource-data-cleanup"><div class="jav-resource-webdav-title">资源数据清理</div><p>可分别清理作品资料、演员资料、鉴定记录、黑名单分类和孤立关联。鉴定记录只清除收藏/观看/下载状态及操作记录，不删除作品资料。</p><div class="jav-resource-data-cleanup-controls"><select data-resource-data-cleanup-scope="1"><option value="works" ${selectedScope === 'works' ? 'selected' : ''}>作品资料</option><option value="actors" ${selectedScope === 'actors' ? 'selected' : ''}>演员资料</option><option value="history" ${selectedScope === 'history' ? 'selected' : ''}>鉴定记录</option><option value="blacklist-actors" ${selectedScope === 'blacklist-actors' ? 'selected' : ''}>演员黑名单</option><option value="blacklist-works" ${selectedScope === 'blacklist-works' ? 'selected' : ''}>作品黑名单</option><option value="blacklist-keywords" ${selectedScope === 'blacklist-keywords' ? 'selected' : ''}>关键词屏蔽</option><option value="relations" ${selectedScope === 'relations' ? 'selected' : ''}>孤立关联</option><option value="all" ${selectedScope === 'all' ? 'selected' : ''}>全部资源</option></select><select data-resource-data-cleanup-type="1" ${['actors', 'works'].includes(selectedScope) ? '' : 'disabled'}><option value="all" ${selectedType === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${selectedType === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${selectedType === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${selectedType === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${selectedType === 'unknown' ? 'selected' : ''}>未知</option></select><button type="button" data-resource-data-cleanup="1">预览清理范围</button></div>${pending}</div>`;
    }
    function renderBackup() {
     const library = getState(); const recovery = getRecoverySnapshot(); const webdav = getWebdavConfig();
     const historyLabels = { export: '本地导出', import: '本地导入', upload: '云端上传', download: '云端下载', delete: '云端删除', cleanup: '清理辅助数据', resource_cleanup: '清理资源数据' };
     const history = getBackupHistory();
-    backupEl.innerHTML = `<div class="jav-resource-backup-intro"><span class="jav-resource-backup-kicker">数据安全</span><h2>备份与恢复</h2><p>导出、导入和管理本地资源数据。导入会先预览，再与现有数据合并，不会静默覆盖。</p></div><div class="jav-resource-backup-stats"><div><strong>${Object.keys(library.actors).length}</strong><span>演员记录</span></div><div><strong>${Object.keys(library.works).length}</strong><span>作品记录</span></div><div><strong>${Object.keys(library.relations).length}</strong><span>关联记录</span></div></div><div class="jav-resource-backup-actions"><button type="button" data-resource-export="1">导出 JSON</button><button type="button" data-resource-import="1">选择备份文件</button><input class="jav-resource-file-input" type="file" accept="application/json,.json" data-resource-file-input="1"><span>最大支持 25 MB</span></div><div class="jav-resource-backup-tools"><button type="button" data-resource-health="1">检查数据</button><span>${healthReport ? `检查于 ${escape(formatDate(healthReport.checkedAt))}，${healthReport.issues.length ? `发现 ${healthReport.issues.length} 个问题` : '数据正常'}` : '尚未检查数据'}</span><button type="button" data-resource-recovery-restore="1" ${recovery ? '' : 'disabled'} title="用最近一次导入前自动保存的数据覆盖当前资源库">恢复导入前数据</button><span>${recovery ? `最近导入前快照：${escape(formatDate(recovery.createdAt))}` : '暂无导入前快照'}</span></div>${healthReport ? `<div class="jav-resource-health ${healthReport.issues.length ? 'has-errors' : ''}"><strong>${healthReport.issues.length ? '发现数据问题' : '数据完整性正常'}</strong><span>${healthReport.issues.length ? healthReport.issues.map(escape).join('<br>') : `已检查 ${healthReport.works} 条作品、${healthReport.actors} 条演员、${healthReport.relations} 条关联`}</span>${healthReport.issues.length ? '<button type="button" class="jav-resource-health-repair" data-resource-health-repair="1">修复数据</button>' : ''}</div>` : ''}${pendingImport ? `<div class="jav-resource-import-preview"><div class="jav-resource-backup-summary"><strong>导入预览：${escape(pendingImport.fileName || '备份文件')}</strong><span>演员 ${Object.keys(pendingImport.data.actors || {}).length}</span><span>作品 ${Object.keys(pendingImport.data.works || {}).length}</span><span>关联 ${Object.keys(pendingImport.data.relations || {}).length}</span></div>${pendingImport.errors?.length ? `<div class="jav-resource-import-errors">${pendingImport.errors.map(escape).join('<br>')}</div>` : '<div class="jav-resource-import-ok">文件格式有效，可以合并到本地资源库。</div>'}<button type="button" class="jav-resource-backup-apply" data-resource-import-apply="1" ${pendingImport.errors?.length ? 'disabled' : ''}>确认合并</button><button type="button" class="jav-resource-backup-cancel" data-resource-import-cancel="1">取消</button></div>` : ''}<div class="jav-resource-webdav"><div class="jav-resource-webdav-title">WebDAV 云端备份</div><div class="jav-resource-webdav-grid"><input type="url" placeholder="WebDAV 地址" value="${escape(webdav.url)}" data-webdav-url="1"><input type="text" placeholder="用户名" value="${escape(webdav.username)}" data-webdav-username="1"><input type="password" placeholder="密码" value="${escape(webdav.password)}" data-webdav-password="1"><input type="text" placeholder="文件名" value="${escape(webdav.filename)}" data-webdav-filename="1"></div><div class="jav-resource-webdav-actions"><button type="button" data-webdav-test="1">测试连接</button><button type="button" data-webdav-upload="1">上传备份</button><button type="button" data-webdav-download="1">下载备份</button><button type="button" data-webdav-list="1" ${webdavListingLoading ? 'disabled' : ''}>${webdavListingLoading ? '读取中...' : '云端列表'}</button><span>凭据仅保存在当前浏览器</span></div>${webdavConflict ? `<div class="jav-resource-conflict"><strong>检测到云端备份冲突</strong><span>云端文件与上次同步记录不同。请选择下载云端内容，或确认覆盖。</span><div class="jav-resource-conflict-actions"><button type="button" data-webdav-conflict-download="1" ${webdavConflictLoading ? 'disabled' : ''}>读取云端</button><button type="button" data-webdav-conflict-overwrite="1" ${webdavConflictLoading ? 'disabled' : ''}>覆盖云端</button><button type="button" data-webdav-conflict-cancel="1">取消</button></div></div>` : ''}${webdavListing ? `<div class="jav-resource-cloud-list"><div class="jav-resource-cloud-title">云端 JSON 备份</div>${webdavListing.length ? webdavListing.map(item => `<div class="jav-resource-cloud-item"><div class="jav-resource-cloud-file"><strong>${escape(item.filename)}</strong><span>${formatSize(item.size)} · ${escape(item.modifiedAt || '时间未知')}</span></div><button type="button" data-webdav-backup-download="${escape(item.filename)}">读取</button><button type="button" data-webdav-backup-delete="${escape(item.filename)}">删除</button></div>`).join('') : '<div class="jav-resource-cloud-empty">没有找到 JSON 备份</div>'}</div>` : ''}</div><div class="jav-resource-history"><div class="jav-resource-cloud-title">备份操作历史</div>${history.length ? history.map(item => `<div class="jav-resource-history-item"><span class="jav-resource-history-status ${item.status === 'success' ? 'is-ok' : item.status === 'conflict' ? 'is-conflict' : 'is-error'}">${item.status === 'success' ? '成功' : item.status === 'conflict' ? '冲突' : '失败'}</span><div class="jav-resource-history-main"><strong>${escape(historyLabels[item.action] || item.action)}${item.filename ? ` · ${escape(item.filename)}` : ''}</strong><span>${escape(item.message || '')}</span></div><time>${escape(formatDate(item.at))}</time></div>`).join('') : '<div class="jav-resource-cloud-empty">暂无操作记录</div>'}</div><div class="jav-resource-cleanup"><p>仅清理本地备份辅助数据，不会删除资源库内容或 WebDAV 配置。</p>${cleanupPending ? '<div class="jav-resource-cleanup-confirm"><strong>确认清理备份历史、冲突检测记录和本地缓存？</strong><div><button type="button" data-resource-cleanup-confirm="1">确认清理</button><button type="button" data-resource-cleanup-cancel="1">取消</button></div></div>' : '<div class="jav-resource-cleanup-actions"><button type="button" data-resource-cleanup="1">清理本地辅助数据</button></div>'}</div>`;
+    backupEl.innerHTML =`<div class="jav-resource-backup-intro"><span class="jav-resource-backup-kicker">数据安全</span><h2>备份与恢复</h2><p>导出、导入和管理本地资源数据。导入会先预览，再与现有数据合并，不会静默覆盖。</p></div><div class="jav-resource-backup-stats"><div><strong>${Object.keys(library.actors).length}</strong><span>演员记录</span></div><div><strong>${Object.keys(library.works).length}</strong><span>作品记录</span></div><div><strong>${Object.keys(library.relations).length}</strong><span>关联记录</span></div></div><div class="jav-resource-backup-actions"><button type="button" data-resource-export="1">导出 JSON</button><button type="button" data-resource-import="1">选择备份文件</button><input class="jav-resource-file-input" type="file" accept="application/json,.json" data-resource-file-input="1"><span>最大支持 25 MB</span></div><div class="jav-resource-backup-tools"><button type="button" data-resource-health="1">检查数据</button><span>${healthReport ? `检查于 ${escape(formatDate(healthReport.checkedAt))}，${healthReport.issues.length ? `发现 ${healthReport.issues.length} 个问题` : '数据正常'}` : '尚未检查数据'}</span><button type="button" data-resource-recovery-restore="1" ${recovery ? '' : 'disabled'} title="用最近一次导入前自动保存的数据覆盖当前资源库">恢复导入前数据</button><span>${recovery ? `最近导入前快照：${escape(formatDate(recovery.createdAt))}` : '暂无导入前快照'}</span></div>${healthReport ? `<div class="jav-resource-health ${healthReport.issues.length ? 'has-errors' : ''}"><strong>${healthReport.issues.length ? '发现数据问题' : '数据完整性正常'}</strong><span>${healthReport.issues.length ? healthReport.issues.map(escape).join('<br>') : `已检查 ${healthReport.works} 条作品、${healthReport.actors} 条演员、${healthReport.relations} 条关联`}</span>${healthReport.issues.length ? '<button type="button" class="jav-resource-health-repair" data-resource-health-repair="1">修复数据</button>' : ''}</div>` : ''}${pendingImport ? `<div class="jav-resource-import-preview"><div class="jav-resource-backup-summary"><strong>导入预览：${escape(pendingImport.fileName || '备份文件')}</strong><span>演员 ${Object.keys(pendingImport.data.actors || {}).length}</span><span>作品 ${Object.keys(pendingImport.data.works || {}).length}</span><span>关联 ${Object.keys(pendingImport.data.relations || {}).length}</span></div>${pendingImport.errors?.length ? `<div class="jav-resource-import-errors">${pendingImport.errors.map(escape).join('<br>')}</div>` : '<div class="jav-resource-import-ok">文件格式有效，可以合并到本地资源库。</div>'}<button type="button" class="jav-resource-backup-apply" data-resource-import-apply="1" ${pendingImport.errors?.length ? 'disabled' : ''}>确认合并</button><button type="button" class="jav-resource-backup-cancel" data-resource-import-cancel="1">取消</button></div>` : ''}<div class="jav-resource-webdav"><div class="jav-resource-webdav-title">WebDAV 云端备份</div><div class="jav-resource-webdav-grid"><input type="url" placeholder="WebDAV 地址" value="${escape(webdav.url)}" data-webdav-url="1"><input type="text" placeholder="用户名" value="${escape(webdav.username)}" data-webdav-username="1"><input type="password" placeholder="密码" value="${escape(webdav.password)}" data-webdav-password="1"><input type="text" placeholder="文件名" value="${escape(webdav.filename)}" data-webdav-filename="1"></div><div class="jav-resource-webdav-actions"><button type="button" data-webdav-test="1">测试连接</button><button type="button" data-webdav-upload="1">上传备份</button><button type="button" data-webdav-download="1">下载备份</button><button type="button" data-webdav-list="1" ${webdavListingLoading ? 'disabled' : ''}>${webdavListingLoading ? '读取中...' : '云端列表'}</button><span>凭据仅保存在当前浏览器</span></div>${webdavConflict ? `<div class="jav-resource-conflict"><strong>检测到云端备份冲突</strong><span>云端文件与上次同步记录不同。请选择下载云端内容，或确认覆盖。</span><div class="jav-resource-conflict-actions"><button type="button" data-webdav-conflict-download="1" ${webdavConflictLoading ? 'disabled' : ''}>读取云端</button><button type="button" data-webdav-conflict-overwrite="1" ${webdavConflictLoading ? 'disabled' : ''}>覆盖云端</button><button type="button" data-webdav-conflict-cancel="1">取消</button></div></div>` : ''}${webdavListing ? `<div class="jav-resource-cloud-list"><div class="jav-resource-cloud-title">云端 JSON 备份</div>${webdavListing.length ? webdavListing.map(item => `<div class="jav-resource-cloud-item"><div class="jav-resource-cloud-file"><strong>${escape(item.filename)}</strong><span>${formatSize(item.size)} · ${escape(item.modifiedAt || '时间未知')}</span></div><button type="button" data-webdav-backup-download="${escape(item.filename)}">读取</button><button type="button" data-webdav-backup-delete="${escape(item.filename)}">删除</button></div>`).join('') : '<div class="jav-resource-cloud-empty">没有找到 JSON 备份</div>'}</div>` : ''}</div><div class="jav-resource-history"><div class="jav-resource-cloud-title">备份操作历史</div>${history.length ? history.map(item => `<div class="jav-resource-history-item"><span class="jav-resource-history-status ${item.status === 'success' ? 'is-ok' : item.status === 'conflict' ? 'is-conflict' : 'is-error'}">${item.status === 'success' ? '成功' : item.status === 'conflict' ? '冲突' : '失败'}</span><div class="jav-resource-history-main"><strong>${escape(historyLabels[item.action] || item.action)}${item.filename ? ` · ${escape(item.filename)}` : ''}</strong><span>${escape(item.message || '')}</span></div><time>${escape(formatDate(item.at))}</time></div>`).join('') : '<div class="jav-resource-cloud-empty">暂无操作记录</div>'}</div><div class="jav-resource-cleanup"><p>仅清理本地备份辅助数据，不会删除资源库内容或 WebDAV 配置。</p>${cleanupPending ? '<div class="jav-resource-cleanup-confirm"><strong>确认清理备份历史、冲突检测记录和本地缓存？</strong><div><button type="button" data-resource-cleanup-confirm="1">确认清理</button><button type="button" data-resource-cleanup-cancel="1">取消</button></div></div>' : '<div class="jav-resource-cleanup-actions"><button type="button" data-resource-cleanup="1">清理本地辅助数据</button></div>'}</div>`;
     backupEl.insertAdjacentHTML('beforeend', renderResourceCleanup()); }
    overlay.addEventListener('wheel', event => {
     if (!event.deltaY) return;
@@ -10342,7 +11200,7 @@
      if (!work?.url || historyActorEnrichmentScheduled.has(code)) return;
      historyActorEnrichmentScheduled.add(code); renderActiveView();
      enrichWorkActors(code, work.url, { force: true }).then(updated => {
-      Utils.showToast(updated ? '演员已关联' : '未找到演员', updated ? code : `${code} 未解析到演员信息`, updated ? 2200 : 3000);
+      Utils.showToast(updated ? '演员已关联' : '未找到演员', updated ? code :`${code} 未解析到演员信息`, updated ? 2200 : 3000);
      }).catch(error => {
       Utils.showToast('演员查询失败', error.message || '请稍后重试', 3500);
      }).finally(() => {
@@ -10356,26 +11214,43 @@
     const historyRemoveConfirm = event.target.closest('[data-resource-history-remove-confirm]');
     if (historyRemoveConfirm) {
      removeWorkFromHistory(historyRemoveConfirm.dataset.resourceHistoryRemoveConfirm); historyRemoveCode = ''; Utils.showToast('已移出鉴定记录', historyRemoveConfirm.dataset.resourceHistoryRemoveConfirm); return renderActiveView(); }
+    if (event.target.closest('[data-resource-task-expand]')) { expandResourceFromBackground(); return; }
+    if (event.target.closest('[data-resource-background]')) { collapseResourceToBackground(); return; }
+    if (event.target.closest('[data-resource-task-stop]')) {
+     activeResourceOperation?.cancel(); const button = event.target.closest('[data-resource-task-stop]');
+     if (button) { button.disabled = true; button.textContent = '正在停止...'; }
+     operationMessage = '正在停止操作...'; renderTaskStatus(false); return; }
     if (event.target.closest('[data-resource-close]')) { activeResourceOperation?.cancel(); activeResourceOperation = null; overlay.dispatchEvent(new Event('laosiji-resource-dispose')); overlay.remove(); document.body.style.overflow = previousBodyOverflow; document.documentElement.style.overflow = previousDocumentOverflow; return; }
-    if (event.target.closest('[data-resource-stop]')) { activeResourceOperation?.cancel(); operationMessage = '\u6b63\u5728\u505c\u6b62\u64cd\u4f5c...'; return; }
+    const stopOperation = event.target.closest('[data-resource-stop]');
+    if (stopOperation) {
+     activeResourceOperation?.cancel(); operationMessage = '正在停止操作...'; stopOperation.disabled = true; stopOperation.textContent = '正在停止...'; renderTaskStatus(false); return; }
     const workPageClick = event.target.closest('[data-resource-works-page]'); const actorPageClick = event.target.closest('[data-resource-actors-page]');
     if (actorPageClick) { const nextPage = Number(actorPageClick.dataset.resourceActorsPage); if (Number.isFinite(nextPage) && nextPage >= 1) { actorsPage = nextPage; renderActiveView(); requestAnimationFrame(() => { const scroll = contentEl.querySelector('.jav-resource-content-scroll'); if (scroll) scroll.scrollTop = 0; }); } return; }
     if (workPageClick) { const nextPage = Number(workPageClick.dataset.resourceWorksPage); if (Number.isFinite(nextPage) && nextPage >= 1) { worksPage = nextPage; renderActiveView(); requestAnimationFrame(() => { const scroll = contentEl.querySelector('.jav-resource-content-scroll'); if (scroll) scroll.scrollTop = 0; }); } return; }
+    const actorWorks = event.target.closest('[data-resource-actor-works]');
+    if (actorWorks) {
+     worksActorId = actorWorks.dataset.resourceActorWorks || ''; worksSearch = ''; worksPage = 1; activeView = 'works'; operationMessage = ''; renderActiveView(); return; }
     if (event.target.closest('[data-resource-sync-actors]')) {
      if (operationBusy) return;
-     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在同步演员...'; renderActiveView();
-     syncActors(message => { operationMessage = message; renderActiveView(); }, activeResourceOperation).then(result => { operationMessage = `演员同步完成：${result.actors} 位，${result.pages} 页`; Utils.showToast('演员同步完成', `${result.actors} 位演员`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `演员同步失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); });
+     operationBusy = true; activeResourceOperation = createResourceOperation();
+     operationProgress = { actorIndex: 0, actorTotal: 0, completed: 0, total: 0, page: 0, pages: 0, works: 0, found: 0, added: 0 };
+     operationMessage = '正在同步演员...'; renderActiveView();
+     syncActors((message, details = {}) => updateOperationProgress(message, details), activeResourceOperation).then(result => { operationProgress = { ...operationProgress, actorIndex: result.actors, actorTotal: result.actors, completed: result.actors, total: result.actors, pages: result.pages }; operationMessage =`演员同步完成：${result.actors} 位演员，${result.pages} 页`; Utils.showToast('演员同步完成',`${result.actors} 位演员`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`演员同步失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); finishBackgroundTask(); });
      return; }
     if (event.target.closest('[data-resource-check-all]')) {
      if (operationBusy) return;
-     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在检测演员最新作品...'; renderActiveView();
-     syncAllActorWorks(null, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation).then(result => { operationMessage = `作品检测完成：${result.actors} 位演员，新增 ${result.added} 部作品`; Utils.showToast('作品检测完成', `新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `作品检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); });
+     operationBusy = true; activeResourceOperation = createResourceOperation();
+     operationProgress = { actorIndex: 0, actorTotal: Object.keys(getState().actors).length, completed: 0, total: Object.keys(getState().actors).length, page: 0, pages: 0, works: 0, found: 0, added: 0 };
+     operationMessage = '正在检测演员最新作品...'; renderActiveView();
+     syncAllActorWorks(null, updateOperationProgress, activeResourceOperation).then(result => { operationProgress = { ...operationProgress, actorIndex: result.actors, actorTotal: result.actors, completed: result.actors, total: result.actors, page: result.pages, pages: result.pages, works: result.found, found: result.found, added: result.added }; operationMessage =`作品检测完成：${result.actors} 位演员，读取 ${result.pages} 页，新增 ${result.added} 部作品${result.errors?.length ? `，失败 ${result.errors.length} 位` : ''}`; Utils.showToast('作品检测完成',`新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`作品检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); finishBackgroundTask(); });
      return; }
     const actorCheck = event.target.closest('[data-resource-check-actor]');
     if (actorCheck) {
      if (operationBusy) return;
-     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在检测演员最新作品...'; renderActiveView();
-     syncActorWorks(actorCheck.dataset.resourceCheckActor, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation).then(result => { operationMessage = `检测完成：发现 ${result.found} 部，新增 ${result.added} 部`; Utils.showToast('作品检测完成', `新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); });
+     operationBusy = true; activeResourceOperation = createResourceOperation();
+     operationProgress = { actorIndex: 0, actorTotal: 1, completed: 0, total: 1, page: 0, pages: 0, works: 0, found: 0, added: 0 };
+     operationMessage = '正在检测演员最新作品...'; renderActiveView();
+     syncActorWorks(actorCheck.dataset.resourceCheckActor, updateOperationProgress, activeResourceOperation).then(result => { operationProgress = { ...operationProgress, actorIndex: 1, actorTotal: 1, completed: 1, total: 1, pages: result.pages, page: result.pages, works: result.found, found: result.found, added: result.added }; operationMessage =`检测完成：读取 ${result.pages} 页，发现 ${result.found} 部，新增 ${result.added} 部`; Utils.showToast('作品检测完成',`新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); finishBackgroundTask(); });
      return; }
     const uncollect = event.target.closest('[data-resource-uncollect-actor]');
     if (uncollect) {
@@ -10386,8 +11261,8 @@
      uncollectResourceActor(actorId).then(() => {
       const library = getState(); delete library.actors[actorId];
       Object.entries(library.relations).forEach(([key, relation]) => { if (relation.actorId === actorId) delete library.relations[key]; });
-      persist(); Utils.showToast('已取消收藏', actor.name || actorId);
-     }).catch(error => { operationMessage = `取消收藏失败：${error.message || error}`; Utils.showToast('取消收藏失败', error.message || '请稍后重试', 3500); }).finally(() => { operationBusy = false; renderActiveView(); });
+      persist(); operationMessage = ''; Utils.showToast('已取消收藏', actor.name || actorId);
+     }).catch(error => { operationMessage =`取消收藏失败：${error.message || error}`; Utils.showToast('取消收藏失败', error.message || '请稍后重试', 3500); }).finally(() => { operationBusy = false; renderActiveView(); });
      return; }
     const workBlacklist = event.target.closest('[data-resource-work-blacklist]'); const workFlag = event.target.closest('[data-resource-work-flag]');
     if (workBlacklist) {
@@ -10403,13 +11278,13 @@
      if (!pendingImport?.data) return;
      const imported = pendingImport;
      const count = kind => Object.keys(imported.data[kind] || {}).length;
-     mergeImportedState(imported.data);
-     recordBackupHistory('import', 'success', { filename: imported.fileName, message: `演员 ${count('actors')}，作品 ${count('works')}，关联 ${count('relations')}` });
+     mergeImportedState({ ...imported.data, source: imported.source });
+     recordBackupHistory('import', 'success', { filename: imported.fileName, message:`演员 ${count('actors')}，作品 ${count('works')}，关联 ${count('relations')}` });
      pendingImport = null;
-     Utils.showToast('备份已合并', `作品 ${count('works')}，演员 ${count('actors')}`);
+     Utils.showToast('备份已合并',`作品 ${count('works')}，演员 ${count('actors')}`);
      return renderBackup(); }
     if (event.target.closest('[data-resource-health]')) { healthReport = checkIntegrity(); return renderBackup(); }
-    if (event.target.closest('[data-resource-health-repair]')) { const result = repairIntegrity(); healthReport = result.report; Utils.showToast('数据修复完成', `清理异常记录 ${result.removedRecords} 条`); return renderBackup(); }
+    if (event.target.closest('[data-resource-health-repair]')) { const result = repairIntegrity(); healthReport = result.report; Utils.showToast('数据修复完成',`清理异常记录 ${result.removedRecords} 条`); return renderBackup(); }
     if (event.target.closest('[data-resource-recovery-restore]')) {
      if (!window.confirm('恢复会用最近一次导入前保存的数据覆盖当前资源库。是否继续？')) return;
      try { restoreRecoverySnapshot(); healthReport = checkIntegrity(); Utils.showToast('已恢复导入前数据', '当前资源库已回到最近一次导入前状态'); } catch (error) { Utils.showToast('恢复失败', error.message || '本地快照不可用', 3500); }
@@ -10426,9 +11301,9 @@
      return renderBackup(); }
     if (event.target.closest('[data-resource-data-cleanup-confirm]') && resourceCleanupPending) {
      const selection = resourceCleanupPending; const result = clearResourceData(selection.scope, selection.type);
-     recordBackupHistory('resource_cleanup', 'success', { message: `${cleanupScopeLabel(selection.scope)}：演员 ${result.actors || 0}，作品 ${result.works || 0}，鉴定记录 ${result.history || 0}，关联 ${result.relations || 0}，黑名单 ${result.blacklist || 0}` });
+     recordBackupHistory('resource_cleanup', 'success', { message:`${cleanupScopeLabel(selection.scope)}：演员 ${result.actors || 0}，作品 ${result.works || 0}，鉴定记录 ${result.history || 0}，关联 ${result.relations || 0}，黑名单 ${result.blacklist || 0}` });
      resourceCleanupPending = null; healthReport = null;
-     Utils.showToast('资源数据已清理', `${cleanupScopeLabel(selection.scope)}已清理`);
+     Utils.showToast('资源数据已清理',`${cleanupScopeLabel(selection.scope)}已清理`);
      return renderBackup(); }
     const checkBlacklistActor = event.target.closest('[data-resource-blacklist-check-actor]');
     if (checkBlacklistActor) {
@@ -10437,8 +11312,8 @@
      if (!actorId || !getBlacklist().actors[actorId]) return;
      operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在继续检测演员作品...'; renderActiveView();
      syncBlacklistedActor(actorId, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation)
-      .then(result => Utils.showToast('演员作品已更新', `发现 ${result.found} 部，新增 ${result.added} 部`))
-      .catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' : `继续检测失败：${error.message || error}`; Utils.showToast('演员作品检测失败', error.message || '资源库写入失败', 3500); })
+      .then(result => Utils.showToast('演员作品已更新',`发现 ${result.found} 部，新增 ${result.added} 部`))
+      .catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`继续检测失败：${error.message || error}`; Utils.showToast('演员作品检测失败', error.message || '资源库写入失败', 3500); })
       .finally(() => { operationBusy = false; activeResourceOperation = null; operationMessage = ''; if (overlay.isConnected) renderActiveView(); });
      return; }
     const removeActor = event.target.closest('[data-resource-blacklist-remove-actor]');
@@ -10461,7 +11336,7 @@
     const listButton = event.target.closest('[data-webdav-list]');
     if (listButton) {
      const config = readWebdavForm(); webdavListingLoading = true; renderBackup();
-     webdavList(config).then(result => { webdavListing = result.items; Utils.showToast('云端列表已更新', `找到 ${result.items.length} 个 JSON 备份`); }).catch(error => { webdavListing = null; Utils.showToast('读取云端列表失败', error.message || '请检查 WebDAV 配置', 3500); }).finally(() => { webdavListingLoading = false; renderBackup(); });
+     webdavList(config).then(result => { webdavListing = result.items; Utils.showToast('云端列表已更新',`找到 ${result.items.length} 个 JSON 备份`); }).catch(error => { webdavListing = null; Utils.showToast('读取云端列表失败', error.message || '请检查 WebDAV 配置', 3500); }).finally(() => { webdavListingLoading = false; renderBackup(); });
      return; }
     const cloudDownload = event.target.closest('[data-webdav-backup-download]');
     if (cloudDownload) {
@@ -10472,7 +11347,7 @@
     const cloudDelete = event.target.closest('[data-webdav-backup-delete]');
     if (cloudDelete) {
      const filename = cloudDelete.dataset.webdavBackupDelete; const confirm = document.createElement('div'); confirm.className = 'jav-resource-confirm';
-     confirm.innerHTML = `<div class="jav-resource-confirm-box"><strong>删除云端备份？</strong><span>${escape(filename)} 将从 WebDAV 中删除，此操作无法撤销。</span><div><button type="button" data-confirm-delete="1">确认删除</button><button type="button" data-cancel-delete="1">取消</button></div></div>`;
+     confirm.innerHTML =`<div class="jav-resource-confirm-box"><strong>删除云端备份？</strong><span>${escape(filename)} 将从 WebDAV 中删除，此操作无法撤销。</span><div><button type="button" data-confirm-delete="1">确认删除</button><button type="button" data-cancel-delete="1">取消</button></div></div>`;
      overlay.appendChild(confirm);
      confirm.addEventListener('click', confirmEvent => {
       if (confirmEvent.target.closest('[data-cancel-delete]')) { confirm.remove(); return; }
@@ -10498,12 +11373,26 @@
     }
    });
    overlay.addEventListener('change', event => {
+    const setting = event.target.closest('[data-resource-setting]');
+    if (setting) {
+     const key = setting.dataset.resourceSetting; const value = setting.type === 'checkbox' ? setting.checked : setting.value; const settings = readResourceSettings();
+     const nextValues = { [key]: value };
+     if (key === 'scheduleSyncActors' || key === 'scheduleCheckWorks') {
+      const syncActorsEnabled = key === 'scheduleSyncActors' ? value : settings.scheduleSyncActors; const checkWorksEnabled = key === 'scheduleCheckWorks' ? value : settings.scheduleCheckWorks;
+      nextValues.scheduleEnabled = syncActorsEnabled || checkWorksEnabled; }
+     saveResourceSettings(nextValues);
+     if (key === 'scheduleSyncActors' || key === 'scheduleCheckWorks' || key === 'scheduleActorHours' || key === 'scheduleWorksHours') restartResourceSchedule();
+     Utils.showToast('检测设置已保存', key === 'scheduleEnabled' && !setting.checked ? '定时检测已关闭' : '设置已即时生效', 1800); return; }
     const actorFilter = event.target.closest('[data-resource-actors-filter]');
     if (actorFilter) { actorsFilter = actorFilter.value; actorsPage = 1; return renderActiveView(); }
+    const actorSort = event.target.closest('[data-resource-actors-sort]');
+    if (actorSort) { actorsSort = ['pending', 'added', 'updated'].includes(actorSort.value) ? actorSort.value : 'pending'; saveResourceViewState({ actorsSort }); actorsPage = 1; return renderActiveView(); }
     const workFilter = event.target.closest('[data-resource-works-filter]');
     if (workFilter) { worksFilter = workFilter.value; worksPage = 1; return renderActiveView(); }
     const workStatusFilter = event.target.closest('[data-resource-works-status-filter]');
     if (workStatusFilter) { worksStatusFilter = workStatusFilter.value; worksPage = 1; return renderActiveView(); }
+    const workSort = event.target.closest('[data-resource-works-sort]');
+    if (workSort) { worksSort = ['published', 'added', 'updated'].includes(workSort.value) ? workSort.value : 'published'; saveResourceViewState({ worksSort }); worksPage = 1; return renderActiveView(); }
     const historyFilterControl = event.target.closest('[data-resource-history-filter]');
     if (historyFilterControl) { historyFilter = historyFilterControl.value; return renderActiveView(); }
     const workPage = event.target.closest('[data-resource-works-page]');
@@ -10536,8 +11425,30 @@
     if (event.target.closest('[data-resource-blacklist-search]')) renderActiveView();
    });
    renderActiveView(); hydrateResourceState(() => renderActiveView()); }
-  hydrateResourceState().then(() => syncPendingBlacklistedActors().catch(error => errorLog('pending actor blacklist migration failed:', error?.message || error)));
-  return { open, getState, isSupported, toggleWorkFlag: toggleResourceWorkFlag, toggleActorBlacklist: toggleResourceActorBlacklist, isActorBlacklisted, isWorkBlacklisted, enrichWorkActors, getWorkFlags: work => ({ favorite: !!(work?.flags?.favorite ?? work?.favorite), watched: !!(work?.flags?.watched ?? work?.hasWatch), downloaded: !!(work?.flags?.downloaded ?? work?.hasDown), blocked: isWorkBlacklisted(work) }) };
+  hydrateResourceState().then(() => syncPendingBlacklistedActors().catch(error => errorLog('pending actor blacklist migration failed:', error?.message || error))).then(() => restartResourceSchedule());
+  return {
+   open,
+   getState,
+   getFullState,
+   getActiveSource,
+   getResourceSettings: readResourceSettings,
+   saveResourceSettings,
+   whenReady: () => hydrateResourceState(),
+   syncActors,
+   syncActorsWithStatus,
+   getActorSyncState,
+   getLoginState: getResourceLoginState,
+   isChallengePage: () => isCloudflareChallengePage(),
+   getSourceLabels: () => ({ ...RESOURCE_SOURCES }),
+   getSourceAdapter,
+   registerSourceAdapter,
+   isSupported,
+   toggleWorkFlag: toggleResourceWorkFlag,
+   toggleActorBlacklist: toggleResourceActorBlacklist,
+   isActorBlacklisted,
+   isWorkBlacklisted,
+   enrichWorkActors,
+   getWorkFlags: work => ({ favorite: !!(work?.flags?.favorite ?? work?.favorite), watched: !!(work?.flags?.watched ?? work?.hasWatch), downloaded: !!(work?.flags?.downloaded ?? work?.hasDown), blocked: isWorkBlacklisted(work) }), };
  })();
   Core.expose('__LAOSIJI_RESOURCE_LIBRARY__', ResourceLibrary);
  const JumpSites = [
@@ -10569,7 +11480,10 @@
   {
    id: 'javbus',
    name: 'JavBus',
-   match: (url) => /javbus\.com/.test(url) && !/search|genre|actresses|uncensored|forum|page|series|studio|label|director|star/.test(url),
+   match: (url) => {
+    try {
+     const parsed = new URL(url, location.href); return isJavBusHost(parsed.hostname) && !/search|genre|actresses|uncensored|forum|page|series|studio|label|director|star/.test(parsed.href);
+    } catch { return false; } },
    titleSelector: 'h3',
    getCode(titleElem) {
     const infoCode = [...document.querySelectorAll('.col-md-3.info p, .info p')] .find(node => /(?:識別碼|識別码|识别码|番号|番號)/i.test(node.textContent || '')) ?.textContent || '';
@@ -10577,14 +11491,21 @@
   {
    id: 'javdb',
    name: 'JavDB',
-   match: (url) => /javdb\d*\.com/.test(url) && (/\/v\/\w+/.test(url) || /[?&]laosiji_123av_fc2_detail=/.test(url)),
+   match: (url) => {
+    try {
+     const parsed = new URL(url, location.href); return isJavDbHost(parsed.hostname) && (/\/v\/\w+/.test(parsed.pathname) || parsed.searchParams.has('laosiji_123av_fc2_detail'));
+    } catch { return false; } },
    titleSelector: 'h2.title, .javdb-api-detail-title',
    getCode(titleElem) {
     const explicitCode = titleElem?.dataset?.laosijiCode || titleElem?.closest?.('[data-laosiji-code]')?.dataset?.laosijiCode || ''; return explicitCode ? Utils.normalizeCode(explicitCode) : Utils.extractCode(titleElem?.textContent || ''); } },
   {
    id: 'javlibrary',
    name: 'JAVLibrary',
-   match: (url) => /(javlibrary|javlib|r86m|s87n)/i.test(url) && (/\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?jav\w+\.html/i.test(new URL(url).pathname) || /[?&]laosiji_123av_fc2_detail=/.test(url)),
+   match: (url) => {
+    try {
+     const parsed = new URL(url, location.href);
+     return isJavLibraryHost(parsed.hostname) && (/\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?jav\w+\.html/i.test(parsed.pathname) || parsed.searchParams.has('laosiji_123av_fc2_detail'));
+    } catch { return false; } },
    titleSelector: '.post-title' },
   {
    id: 'javrate',
@@ -10638,7 +11559,7 @@
    getTitleElement() { return this.getInfoTable()?.querySelector('tr:first-child td') || null; },
    getCode(titleElem) {
     const raw = String(titleElem?.textContent || '').match(/\b(\d{6,9})\b/)?.[1] || '';
-    return raw ? `FC2-PPV-${raw}` : '';
+    return raw ?`FC2-PPV-${raw}` : '';
    } }
  ]; Core.expose('__LAOSIJI_JUMP_SITES__', JumpSites);
  function clearMobileJumpMenuPosition(subMenu) {
@@ -10676,14 +11597,14 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    if (!isMobile()) return;
    const gutter = 8; const viewportWidth = document.documentElement.clientWidth || window.innerWidth; const viewportHeight = window.innerHeight; const triggerRect = menuDiv.getBoundingClientRect();
    const menuWidth = Math.max(0, Math.min(176, viewportWidth - gutter * 2)); subMenu.style.setProperty('position', 'fixed'); subMenu.style.setProperty('top', '0px'); subMenu.style.setProperty('left', '0px');
-   subMenu.style.setProperty('width', `${menuWidth}px`, 'important');
+   subMenu.style.setProperty('width',`${menuWidth}px`, 'important');
    subMenu.style.setProperty('min-width', '0px', 'important'); subMenu.style.setProperty('visibility', 'hidden'); const menuHeight = subMenu.getBoundingClientRect().height; const minimumTop = Math.min(viewportHeight - gutter, getFixedHeaderBottom());
    const preferredTop = Math.max(minimumTop, triggerRect.bottom + 4); const availableBelow = viewportHeight - gutter - preferredTop; const availableAbove = triggerRect.top - gutter - minimumTop;
    const shouldOpenAbove = menuHeight > availableBelow && availableAbove > availableBelow; const top = shouldOpenAbove ? Math.max(minimumTop, triggerRect.top - 4 - menuHeight) : preferredTop; const availableHeight = Math.max(0, viewportHeight - gutter - top);
    const maxLeft = Math.max(gutter, viewportWidth - gutter - menuWidth); const left = Math.min(Math.max(gutter, triggerRect.left), maxLeft);
-   subMenu.style.setProperty('top', `${top}px`);
-   subMenu.style.setProperty('left', `${left}px`);
-   subMenu.style.setProperty('max-height', `${availableHeight}px`);
+   subMenu.style.setProperty('top',`${top}px`);
+   subMenu.style.setProperty('left',`${left}px`);
+   subMenu.style.setProperty('max-height',`${availableHeight}px`);
    subMenu.style.setProperty('overflow-y', 'auto'); subMenu.style.removeProperty('visibility'); };
   const scheduleClose = () => {
    clearCloseTimer();
@@ -10714,7 +11635,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   window.addEventListener('resize', closeMenu, { passive: true }); }
  function createJumpMenu({ accent, mainBtn, subButtons, toggleTitle, className = '', stretchSubButtons = true }) {
   const menuDiv = document.createElement('div');
-  menuDiv.className = `search-menu${className ? ` ${className}` : ''}`;
+  menuDiv.className =`search-menu${className ? ` ${className}` : ''}`;
   menuDiv.style.setProperty('--jav-btn-accent', accent); mainBtn.classList.add('search-main-btn'); menuDiv.appendChild(mainBtn); const toggleBtn = document.createElement('button'); toggleBtn.type = 'button'; toggleBtn.className = 'search-toggle-btn';
   toggleBtn.title = toggleTitle; toggleBtn.setAttribute('aria-label', toggleTitle); toggleBtn.setAttribute('aria-haspopup', 'menu'); toggleBtn.setAttribute('aria-expanded', 'false'); toggleBtn.innerHTML = '<span class="search-arrow">▼</span>';
   menuDiv.appendChild(toggleBtn); const subMenu = document.createElement('div'); subMenu.className = 'search-submenu';
@@ -10727,47 +11648,47 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
  function addNyaaBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_nyaa', true)) return;
   if (/sukebei\.nyaa/i.test(location.hostname)) return;
-  const btn = Utils.createJumpLinkBtn('🔍 Sukebei', '#17a2b8', `https://sukebei.nyaa.si/?f=0&c=0_0&q=${encodeURIComponent(code)}`);
+  const btn = Utils.createJumpLinkBtn('🔍 Sukebei', '#17a2b8',`https://sukebei.nyaa.si/?f=0&c=0_0&q=${encodeURIComponent(code)}`);
   container.appendChild(btn); }
  function addJavbusBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_javbus', true)) return;
-  if (/javbus\.com/i.test(location.hostname)) return;
+  if (isJavBusHost()) return;
   const url = Utils.getJavBusUrl(code); const btn = Utils.createJumpLinkBtn('🎬 JavBus', '#007bff', url); container.appendChild(btn); }
  function addJavdbBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_javdb', true)) return;
-  if (/javdb\.com/i.test(location.hostname)) return;
-  const btn = Utils.createJumpLinkBtn('📀 JavDB', '#6f42c1', `https://javdb.com/search?q=${encodeURIComponent(code)}`);
+  if (isJavDbHost()) return;
+  const btn = Utils.createJumpLinkBtn('📀 JavDB', '#6f42c1',`https://javdb.com/search?q=${encodeURIComponent(code)}`);
   container.appendChild(btn); }
  function getFc2Number(code) { return String(code || '').trim().match(/^FC2[-_\s]?(?:PPV[-_\s]?)?(\d{6,9})$/i)?.[1] || ''; }
  function getFc2CmaArticleUrl(code) {
   const fc2Number = getFc2Number(code);
-  return fc2Number ? `https://fc2cmadb.com/articles/${fc2Number}` : '';
+  return fc2Number ?`https://fc2cmadb.com/articles/${fc2Number}` : '';
  }
  function getMissavSlug(code) {
   const codeLower = String(code || '').trim().toLowerCase(); const fc2Number = getFc2Number(code);
-  if (fc2Number) return `fc2-ppv-${fc2Number}`;
+  if (fc2Number) return`fc2-ppv-${fc2Number}`;
   const gachiMatch = codeLower.match(/^gachi[-_](\d+)$/);
-  if (gachiMatch) return `gachi${gachiMatch[1]}`;
+  if (gachiMatch) return`gachi${gachiMatch[1]}`;
   const dateNumberMatch = codeLower.match(/^(\d{6})([_-])(\d{2,3})$/);
   if (dateNumberMatch) {
    const [, date, separator, serial] = dateNumberMatch; const prefix = serial.length === 2 ? 'musume' : serial === '100' ? 'pacopacomama' : separator === '_' ? 'pondo' : 'caribbeancom';
-   return `${prefix}-${date}${separator}${serial}`;
+   return`${prefix}-${date}${separator}${serial}`;
   }
   return codeLower .replace(/^10musume-/, 'musume-') .replace(/^1pondo-/, 'pondo-') .replace(/^heyzo_/, 'heyzo-'); }
  function addMissAVBtn(code, container, useCapture = false) {
   const showMissav = GM_getValue('btn_show_missav', true);
   if (!showMissav) return;
   const codeLower = String(code || '').trim().toLowerCase(); const codeCompactLower = codeLower.replace(/-/g, ''); const fc2Number = getFc2Number(code);
-  const fc2Slug = fc2Number ? `fc2-ppv-${fc2Number}` : '';
-  const fc2JavdaySlug = fc2Number ? `FC2PPV${fc2Number}` : '';
+  const fc2Slug = fc2Number ?`fc2-ppv-${fc2Number}` : '';
+  const fc2JavdaySlug = fc2Number ?`FC2PPV${fc2Number}` : '';
   const code123AvSlug = typeof Javdb123AvPlayer !== 'undefined' ? Javdb123AvPlayer.getSlug(code) : (fc2Slug || codeLower); const get123AvLocalePrefix = () => typeof Javdb123AvPlayer !== 'undefined' ? Javdb123AvPlayer.getLocalePrefix(location.href) : '/cn';
   const videoUrlMap = {
-   missav: fc2Number ? `https://missav123.com/${fc2Slug}` : `https://missav123.com/cn/${getMissavSlug(code)}`,
-   jable: `https://jable.tv/videos/${codeLower}/`,
-   '123av': `https://123av.com${get123AvLocalePrefix()}/v/${code123AvSlug}`,
-   javday: fc2JavdaySlug ? `https://javday.app/index.php/videos/${fc2JavdaySlug}/` : `https://javday.app/videos/${codeCompactLower}/`,
-   supjav: `https://supjav.com/zh/?s=${encodeURIComponent(fc2Number || code)}`,
-   javrate: `https://www.javrate.com/search/${encodeURIComponent(codeLower)}`,
+   missav: fc2Number ?`https://missav123.com/${fc2Slug}` :`https://missav123.com/cn/${getMissavSlug(code)}`,
+   jable:`https://jable.tv/videos/${codeLower}/`,
+   '123av':`https://123av.com${get123AvLocalePrefix()}/v/${code123AvSlug}`,
+   javday: fc2JavdaySlug ?`https://javday.app/index.php/videos/${fc2JavdaySlug}/` :`https://javday.app/videos/${codeCompactLower}/`,
+   supjav:`https://supjav.com/zh/?s=${encodeURIComponent(fc2Number || code)}`,
+   javrate:`https://www.javrate.com/search/${encodeURIComponent(codeLower)}`,
   };
   const enabledVideoKeys = new Set([ ...(showMissav ? ['missav', 'jable', '123av', 'javday', 'supjav', 'javrate'] : []),
   ]);
@@ -10792,7 +11713,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
      window.open(fc2CmaUrl);
     }, useCapture);
    btn.classList?.add('jav-fc2cma-btn'); container.appendChild(btn); return; }
-  const fanzaUrl = `https://www.dmm.co.jp/mono/-/search/=/searchstr=${encodeURIComponent(code)}/`;
+  const fanzaUrl =`https://www.dmm.co.jp/mono/-/search/=/searchstr=${encodeURIComponent(code)}/`;
   const btn = typeof Utils.createJumpLinkBtn === 'function' ? Utils.createJumpLinkBtn('▶ FANZA', '#c0392b', fanzaUrl) : Utils.createBtn('▶ FANZA', '#c0392b', () => {
     window.open(fanzaUrl);
    }, useCapture);
@@ -10851,11 +11772,11 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
  function normalizePan115Matches(value) {
   return (Array.isArray(value) ? value : value?.pickcode ? [value] : []) .filter(item => item?.pickcode); }
  function pan115DisplayLabel(base, matches) {
-  return matches.length > 1 ? `${base}×${matches.length}` : base;
+  return matches.length > 1 ?`${base}×${matches.length}` : base;
  }
  function pan115MatchTitle(matches, code) {
   return normalizePan115Matches(matches) .map(item => [item.name, item.sizeText || Pan115.formatSize(item.size)].filter(Boolean).join(' · '))
-   .join('\n') || `115播放：${Pan115.normalizeKeepSeparator(code)}`;
+   .join('\n') ||`115播放：${Pan115.normalizeKeepSeparator(code)}`;
  }
  function refreshPan115Control(control, code, matches) {
   const list = normalizePan115Matches(matches);
@@ -10950,7 +11871,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    button.disabled = false; button.textContent = oldText; } }
  function createPan115CandidateAction(action, context) {
   const button = document.createElement('button'); const disabled = typeof action.disabled === 'function' && action.disabled(context); button.type = 'button';
-  button.className = `jav-pan115-candidate-action ${action.className || ''}`.trim();
+  button.className =`jav-pan115-candidate-action ${action.className || ''}`.trim();
   button.dataset.pan115Action = action.key || ''; button.textContent = typeof action.label === 'function' ? action.label(context) : action.label; button.disabled = !!disabled;
   button.title = typeof action.title === 'function' ? action.title(context) : action.title || '';
   button.addEventListener('click', event => {
@@ -10986,7 +11907,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
      if (!match.fileId) return;
      const confirmed = await confirmPan115Action({
       title: '删除 115 文件',
-      message: `确定删除这个文件吗？\n\n${match.name || match.fileId}`,
+      message:`确定删除这个文件吗？\n\n${match.name || match.fileId}`,
       confirmText: '删除',
      });
      if (!confirmed) return;
@@ -11008,19 +11929,19 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   }, true);
   const dialog = document.createElement('div'); dialog.className = 'jav-pan115-chooser'; overlay.appendChild(dialog); const header = document.createElement('div'); header.className = 'jav-pan115-chooser-header'; dialog.appendChild(header);
   const titleWrap = document.createElement('div'); header.appendChild(titleWrap); const title = document.createElement('div'); title.className = 'jav-pan115-chooser-title';
-  title.textContent = `${normalized || code} 的 115 匹配`;
+  title.textContent =`${normalized || code} 的 115 匹配`;
   titleWrap.appendChild(title); const desc = document.createElement('div'); desc.className = 'jav-pan115-chooser-desc'; titleWrap.appendChild(desc); const close = document.createElement('button'); close.type = 'button';
   close.className = 'jav-pan115-chooser-close'; close.textContent = '×'; close.title = '关闭'; close.addEventListener('click', closePan115Chooser, true); header.appendChild(close); const list = document.createElement('div');
   list.className = 'jav-pan115-candidate-list'; dialog.appendChild(list);
   const refreshDesc = () => {
-   desc.textContent = `共 ${matches.length} 个候选，可选择播放或管理文件。`;
+   desc.textContent =`共 ${matches.length} 个候选，可选择播放或管理文件。`;
   };
   refreshDesc();
   matches.forEach((match, index) => {
    const row = document.createElement('div');
-   row.className = `jav-pan115-candidate${match.lowPriorityReason ? ' is-low-priority' : ''}`;
+   row.className =`jav-pan115-candidate${match.lowPriorityReason ? ' is-low-priority' : ''}`;
    list.appendChild(row); const main = document.createElement('div'); main.className = 'jav-pan115-candidate-main'; row.appendChild(main); const name = document.createElement('div'); name.className = 'jav-pan115-candidate-name';
-   name.textContent = match.name || `候选 ${index + 1}`;
+   name.textContent = match.name ||`候选 ${index + 1}`;
    name.title = match.name || ''; main.appendChild(name); const meta = document.createElement('div'); meta.className = 'jav-pan115-candidate-meta';
    meta.textContent = [match.sizeText || Pan115.formatSize(match.size), match.lowPriorityReason].filter(Boolean).join(' · ') || '未返回文件大小'; main.appendChild(meta); const actions = document.createElement('div');
    actions.className = 'jav-pan115-candidate-actions'; row.appendChild(actions);
@@ -11090,12 +12011,12 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   return badge; }
  let pan115ListRunning = false;
  async function renderPan115ListBadges() {
-  if (!Pan115.enabled() || pan115ListRunning || SiteManager.isDetailPage() || document.querySelector('#jav-resource-overlay')) return;
+  if (!Pan115.enabled() || Pan115.isSearchBlocked?.() || pan115ListRunning || SiteManager.isDetailPage() || document.querySelector('#jav-resource-overlay')) return;
   pan115ListRunning = true; const targets = SiteManager.collectPan115ListTargets();
   try {
    let nextIndex = 0;
    const worker = async () => {
-    while (nextIndex < targets.length) {
+    while (nextIndex < targets.length && !Pan115.isSearchBlocked?.()) {
      const target = targets[nextIndex++];
      const { anchor, code } = target;
      if (!anchor?.isConnected) continue;
@@ -11104,15 +12025,15 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
       const matches = await Pan115.searchAllCached(code);
       if (anchor.isConnected) SiteManager.insertPan115ListBadge(anchor, matches, code);
      } catch (err) {
-      if (anchor.isConnected) delete anchor.dataset.pan115Checked;
+      if (anchor.isConnected && !Pan115.isSearchBlocked?.()) delete anchor.dataset.pan115Checked;
       errorLog('115列表单项查询失败:', err); } } };
-   const isJavdbApiList = !!document.querySelector('.javdb-api-shell .movie-list'); const workerCount = isJavdbApiList ? Math.min(4, targets.length) : targets.length;
+   const isJavdbApiList = !!document.querySelector('.javdb-api-shell .movie-list'); const workerCount = Math.min(4, targets.length);
    await Promise.all(Array.from({ length: workerCount }, worker));
   } catch (err) {
    errorLog('115列表自动查询失败:', err);
   } finally {
    pan115ListRunning = false;
-   if (Pan115.enabled() && !document.querySelector('#jav-resource-overlay') && SiteManager.collectPan115ListTargets().length) schedulePan115ListBadges();
+   if (Pan115.enabled() && !Pan115.isSearchBlocked?.() && !document.querySelector('#jav-resource-overlay') && SiteManager.collectPan115ListTargets().length) schedulePan115ListBadges();
   } }
  function removePan115Ui() {
   clearTimeout(pan115ListTimer); closePan115Chooser(); document.querySelectorAll('.jav-pan115-badge, .jav-pan115-play-btn').forEach(el => el.remove());
@@ -11133,7 +12054,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   } else { schedulePan115ListBadges(); } }
  function syncPan115AfterSettingsSave(enabled = Pan115.enabled()) {
   if (!enabled) { removePan115Ui(); return; }
-  removePan115Ui(); setTimeout(forceRenderPan115Ui, 0); }
+  Pan115.clearSearchBlock?.(); removePan115Ui(); setTimeout(forceRenderPan115Ui, 0); }
  Core.expose('__LAOSIJI_SYNC_PAN115__', syncPan115AfterSettingsSave);
  const TitleTranslate = (() => {
   const CACHE_PREFIX = 'title_translate_pa_v1_';
@@ -11225,7 +12146,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    if (!target) { clear(); return; }
    ensureStyle(); let row = Array.from(info.anchor.parentNode?.children || []).find(el => el.classList?.contains('jav-title-translation'));
    if (!row) { row = document.createElement('div'); row.className = 'jav-title-translation is-loading'; info.anchor.insertAdjacentElement('afterend', row); }
-   const id =`${info.site}:${target}:${info.text}`;
+   const id = `${info.site}:${target}:${info.text}`;
    if (row.dataset.translateId === id && ['loading', 'loaded'].includes(row.dataset.state)) return;
    row.dataset.translateId = id; row.dataset.state = 'loading'; row.className = 'jav-title-translation is-loading'; row.textContent = translateMessage(target);
    try {
@@ -11240,7 +12161,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
  Core.expose('__LAOSIJI_TITLE_TRANSLATE__', TitleTranslate);
  function isCurrentDetailPage() {
   if (typeof Javdb123AvFc2 !== 'undefined' && Javdb123AvFc2.isDetailRoute?.()) return true;
-  if (/javbus\.com/i.test(location.hostname)) {
+  if (isJavBusHost()) {
    if (document.querySelector('.row.movie')) { return !document.querySelector('#waterfall div.item'); }
    return /^\/(?:[a-z]{2}\/)?(?:[A-Z]{2,15}-?\d{2,10}(?:-\d{1,3})?|[A-Z]{2,10}\d{3,6}|FC2(?:-PPV)?-\d{6,9})\/?$/i.test(location.pathname); }
   return JumpSites.some(site => site.match(window.location.href)); }
@@ -11332,7 +12253,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
     let style = btn.getAttribute('style') || ''; style = style.replace(/background:\s*([^;]+);/g, 'background: $1 !important;'); style = style.replace(/color:\s*([^;]+);/g, 'color: $1 !important;'); btn.setAttribute('style', style);
    });
   } else if (site.id === 'missav') {
-   btnGroup.style.cssText =`margin:10px 0 6px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative;z-index:9999;`;
+   btnGroup.style.cssText = `margin:10px 0 6px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative;z-index:9999;`;
   }
   if (site.id === 'emby') {
    btnGroup.classList.add('emby-fix'); btnGroup.dataset.embyRenderKey = SiteManager.getEmbyRenderKey(titleElem); SiteManager.getEmbyInsertAnchor(titleElem).insertAdjacentElement('afterend', btnGroup);
@@ -11470,7 +12391,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   cacheKey(config = this.state) {
    if (!config?.site) return '';
    const url = new URL(location.href); url.hash = '';
-   return`${this.cachePrefix}${config.site}_${url.href}`;
+   return `${this.cachePrefix}${config.site}_${url.href}`;
   },
   readSnapshot(config = this.state) {
    const key = this.cacheKey(config);
@@ -11546,7 +12467,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   setStatus(text, className = '') {
    const sentinel = this.state?.sentinel;
    if (!sentinel) return;
-   sentinel.className =`jav-infinite-sentinel ${className}`.trim();
+   sentinel.className = `jav-infinite-sentinel ${className}`.trim();
    sentinel.textContent = text; },
   async fetchDoc(url, requestContext = null) {
    const target = new URL(url, location.href);
@@ -11684,8 +12605,19 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    ListPreview.sync(); },
   syncCoverHoverPreview() {
    CoverHoverPreview.sync(); },
+  syncJavdbAppCover(enabled = CFG.javdbAppCover) {
+   JavdbAppCover.sync(enabled); },
   syncDetailPreview() {
    DetailPreviewInline.sync(); },
+  syncActorInfo() {
+   ActorInfo.sync(); },
+  syncFavoriteActorHighlight(enabled = CFG.javdbFavoriteActorHighlight) {
+   if (SiteJavDB.match()) {
+    FavoriteActorHighlight.sync('javdb', { enabled });
+   } else if (SiteJavBus.match()) {
+    FavoriteActorHighlight.sync('javbus', { enabled });
+   } else if (SiteJavLib.match()) {
+    FavoriteActorHighlight.sync('javlibrary', { enabled }); } },
   syncTitleTranslate() {
    TitleTranslate.sync(); },
   syncListOpenNewTab() {
@@ -11808,7 +12740,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   _start() {
    MobilePolicy.start(); MobileSettingsEntry.install(); Pan115SettingsEntry.install(); CardFx.apply(MobilePolicy.featureEnabled('cardFx', CFG.cardFx)); Trailer.installFallbackDebugHelper(); this.initRuntimeObserver(); this.initNavigationHooks();
    JavdbAppCover.start?.(); SiteManager.setupJavDbGuards(); StillsGallery.start?.();
-   if (location.hostname.includes('javdb') && location.pathname.startsWith('/v/')) {
+   if (isJavDbHost() && location.pathname.startsWith('/v/')) {
     SiteJavDB._insertTopSettingsButton?.(); JavdbContent.installNavigation?.(); SiteJavDB._removePromoAndMoveSearch?.(); setTimeout(mainRun, 600);
    } else { mainRun(); }
    if (SiteManager.isEmbyPage()) {
