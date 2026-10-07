@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         JAV老司机-新
+// @name         JAV老司機-新
 // @namespace    https://github.com/ZiPenOk/scripts
 // @version      2.9.0
-// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、115改名与删除操作、完整正片播放、多画质预告片与预览图、高清2K封面下载、JavDB 无水印封面、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序；支持 JavBus、JavDB、JavLibrary 分站独立的资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
+// @description  JAV 站台瀏覽與資源管理工具：統一處理 JavBus、JavDB、JavLibrary 的番號辨識、詳情頁與列表頁操作，支援自訂頁面版面比例；提供磁力搜尋、115 比對播放、115 檔名變更與刪除、正片播放、多畫質預告片與預覽圖、高清 2K 封面下載、JavDB 無浮水印封面、跨站搜尋、標題翻譯、卡片版面、頁面縮放、行動裝置支援、劇照瀏覽、瀑布流，以及 JavDB 評分與評價排序。支援 JavBus、JavDB、JavLibrary 各站獨立的資源管理中心，可管理演員、作品、鑑定記錄、黑名單，以及本機／WebDAV 備份與還原；另提供 Sukebei、MissAV、Jable、123AV、Emby 等站台的快速入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
 // @match        https://www.javlibrary.com/*
@@ -543,28 +543,28 @@
  const CACHE_CATEGORY_META = [
   {
    id: 'media',
-   label: '预览图与封面',
-   description: '列表预览图、封面悬浮图和 115 封面',
+   label: '預覽圖與封面',
+   description: '列表預覽圖、封面懸浮圖和 115 封面',
    prefixes: ['thumb_cache_', 'pan115_javdb_cover_v1_', 'pan115_cover_v2_', 'pan115_cover_v3_', 'pan115_cover_v4_'], },
   {
    id: 'trailer',
-   label: '预告片与播放进度',
-   description: '预告片解析、播放进度和日本源临时失败记录',
+   label: '預告片與播放進度',
+   description: '預告片解析、播放進度和日本源臨時失敗記錄',
    prefixes: ['trailer_cache_', 'trailer_playback_', 'javxy_jp_source_failed_until_'], },
   {
    id: 'pan115',
-   label: '115 匹配',
-   description: '115 单项匹配与列表匹配结果',
+   label: '115 比對',
+   description: '115 單項比對與列表比對結果',
    prefixes: ['pan115_cache_', 'pan115_list_cache_'], },
   {
    id: 'page',
-   label: '页面数据',
-   description: '瀑布流恢复、123AV/FC2 数据和标题翻译',
+   label: '頁面數據',
+   description: '瀑布流還原、123AV/FC2 數據和標題翻譯',
    prefixes: ['laosiji_infinite_v1_', 'javdb_123av_fc2_cache_v3_', 'title_translate_pa_v1_', 'javdb_over18_confirming'], },
   {
    id: 'actor-info',
-   label: '演员信息',
-   description: '后端演员资料的本地长期缓存',
+   label: '演員資訊',
+   description: '后端演員資料的本機長期緩存',
    clear: () => window.__LAOSIJI_ACTOR_INFO__?.clearCache?.() || Promise.resolve(false), }, ];
  const Ui = {
   on(el, event, handler, options) {
@@ -631,8 +631,8 @@
  Core.expose('__LAOSIJI_UI__', Ui); Core.expose('__LAOSIJI_CACHE_CATEGORIES__', CACHE_CATEGORY_META);
  function getNotifyTone(title, text) {
   const raw =`${title || ''} ${text || ''}`;
-  if (/失败|錯誤|错误|未登录|未登入|异常|失效|无法|失敗|請先|请先/i.test(raw)) return 'error';
-  if (/成功|已保存|已添加|任务已添加|已保存授权|登录成功/i.test(raw)) return 'success';
+  if (/失败|錯誤|错误|未登入|未登入|异常|失效|无法|失敗|請先|请先/i.test(raw)) return 'error';
+  if (/成功|已儲存|已添加|任務已新增|已儲存授权|登入成功/i.test(raw)) return 'success';
   return 'info'; }
  function showPageNotify(title, text, url) {
   const parent = document.body || document.documentElement;
@@ -641,9 +641,9 @@
   document.querySelector('.jav-page-notify')?.remove(); const toast = document.createElement('div');
   toast.className =`jav-page-notify is-${getNotifyTone(title, text)}${url ? ' is-clickable' : ''}`;
   toast.setAttribute('role', 'status');
-  if (url) { toast.title = '点击打开相关页面'; toast.addEventListener('click', () => window.open(url, '_blank', 'noopener,noreferrer')); }
+  if (url) { toast.title = '點選開啟相關頁面'; toast.addEventListener('click', () => window.open(url, '_blank', 'noopener,noreferrer')); }
   const icon = document.createElement('div'); icon.className = 'jav-page-notify-icon'; icon.textContent = getNotifyTone(title, text) === 'success' ? '✓' : getNotifyTone(title, text) === 'info' ? 'i' : '!'; toast.appendChild(icon);
-  const body = document.createElement('div'); body.className = 'jav-page-notify-body'; const titleEl = document.createElement('p'); titleEl.className = 'jav-page-notify-title'; titleEl.textContent = title || 'JAV 老司机'; body.appendChild(titleEl);
+  const body = document.createElement('div'); body.className = 'jav-page-notify-body'; const titleEl = document.createElement('p'); titleEl.className = 'jav-page-notify-title'; titleEl.textContent = title || 'JAV 老司機'; body.appendChild(titleEl);
   if (text) {
    const textEl = document.createElement('p'); textEl.className = 'jav-page-notify-text'; textEl.textContent = text; body.appendChild(textEl); }
   toast.appendChild(body); parent.appendChild(toast); requestAnimationFrame(() => toast.classList.add('show'));
@@ -699,12 +699,12 @@
  function insertAvidCopyBtn(anchor, avid, nativeCopyBtn = null, append = false) {
   if (!anchor || !avid) return;
   const code = normalizeAvid(avid); const parent = anchor.parentElement || anchor; parent.querySelectorAll('.jav-avid-copy').forEach(btn => btn.remove()); nativeCopyBtn?.style.setProperty('display', 'none', 'important');
-  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'jav-avid-copy'; btn.textContent = '复制番号';
-  btn.title =`复制番号：${code}`;
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'jav-avid-copy'; btn.textContent = '複製番號';
+  btn.title =`複製番號：${code}`;
   btn.style.cssText = 'display:inline-block;min-width:62px;margin-left:8px;padding:2px 8px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,"Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Segoe UI",sans-serif;font-weight:600;text-align:center;background:#e8f4fd;border:1px solid #90c5e8;border-radius:4px;cursor:pointer;color:#1a6fa8;vertical-align:middle;white-space:nowrap;box-sizing:border-box;';
   btn.addEventListener('click', e => {
-   e.preventDefault(); e.stopPropagation(); GM_setClipboard(code); btn.textContent = '已复制';
-   setTimeout(() => { btn.textContent = '复制番号'; }, 900);
+   e.preventDefault(); e.stopPropagation(); GM_setClipboard(code); btn.textContent = '已複製';
+   setTimeout(() => { btn.textContent = '複製番號'; }, 900);
   });
   if (append) anchor.appendChild(btn);
   else anchor.after(btn);
@@ -740,7 +740,7 @@
    const changed = mobile !== next; mobile = next; applyRootState();
    if (changed && notify) {
     listeners.forEach(listener => {
-     try { listener(mobile); } catch (err) { errorLog('移动端策略监听失败:', err); }
+     try { listener(mobile); } catch (err) { errorLog('行動裝置策略監聽失敗：', err); }
     });
     syncConsumers(); } }
   function start() {
@@ -775,27 +775,27 @@
    { key: 'nyaa', cfgKey: 'btnShowNyaa', label: 'Sukebei' },
    { key: 'javbus', cfgKey: 'btnShowJavbus', label: 'JavBus' },
    { key: 'javdb', cfgKey: 'btnShowJavdb', label: 'JavDB' },
-   { key: 'missav', cfgKey: 'btnShowMissav', label: '视频组' },
+   { key: 'missav', cfgKey: 'btnShowMissav', label: '影片組' },
    { key: 'fanza', cfgKey: 'btnShowFanza', label: 'FANZA' },
-   { key: 'search', cfgKey: 'btnShowSearch', label: '搜索组' },
+   { key: 'search', cfgKey: 'btnShowSearch', label: '搜尋組' },
    { key: 'subtitle', cfgKey: 'btnShowSubtitle', label: '字幕' },
-   { key: 'trailer', cfgKey: 'btnShowTrailer', label: '预告片' },
-   { key: 'preview', cfgKey: 'btnShowPreview', label: '预览图' },
-   { key: 'pan115', cfgKey: 'btnShowPan115', label: '115匹配' }, ];
-  const PANEL_SECTIONS = [ { id: 'common', label: '常用' }, { id: 'layout', label: '界面相关' }, { id: 'search', label: '搜索与播放' }, { id: 'sites', label: '站点与按钮' }, { id: 'advanced', label: '缓存与高级' } ];
+   { key: 'trailer', cfgKey: 'btnShowTrailer', label: '預告片' },
+   { key: 'preview', cfgKey: 'btnShowPreview', label: '預覽圖' },
+   { key: 'pan115', cfgKey: 'btnShowPan115', label: '115比對' }, ];
+  const PANEL_SECTIONS = [ { id: 'common', label: '常用' }, { id: 'layout', label: '介面相關' }, { id: 'search', label: '搜尋與播放' }, { id: 'sites', label: '站點與按鈕' }, { id: 'advanced', label: '緩存與進階' } ];
   const THUMB_META = { javfree:    { label: 'javfree.me',     color: '#16a34a' }, projectjav: { label: 'projectjav.com', color: '#ca8a04' }, javstore:   { label: 'javstore.net',   color: '#dc2626' } };
   const CACHE_CATEGORIES = typeof Ui?.getCacheCategories === 'function' ? Ui.getCacheCategories() : [];
   function renderButtonToggles() {
-   return BUTTON_TOGGLE_META.map(({ key, label }) =>`<label class="sp-chip sp-setting-row"><input id="sp-btn-${key}" type="checkbox"><span class="sp-setting-copy"><strong>${label}</strong><small>在支持的页面显示此入口</small></span><span class="sp-toggle"><span class="sp-toggle-track"></span></span></label>`).join('');
+   return BUTTON_TOGGLE_META.map(({ key, label }) =>`<label class="sp-chip sp-setting-row"><input id="sp-btn-${key}" type="checkbox"><span class="sp-setting-copy"><strong>${label}</strong><small>在支援的頁面顯示此入口</small></span><span class="sp-toggle"><span class="sp-toggle-track"></span></span></label>`).join('');
   }
   function renderSectionNav() {
    return PANEL_SECTIONS.map((section, index) =>`<button class="sp-nav-item${index === 0 ? ' is-active' : ''}" type="button" role="tab" aria-selected="${index === 0 ? 'true' : 'false'}" data-sp-section="${section.id}"><span class="sp-nav-label">${section.label}</span></button>`).join('');
   }
   function renderCacheControls() {
-   return`<div class="sp-cache-panel"><div class="sp-cache-panel-head"><div><strong>按类别清理</strong><small>仅清理脚本运行缓存，不影响设置和资源管理数据</small></div><button class="sp-cache-all-btn" id="sp-clear-all-cache" type="button" title="清理全部脚本缓存"><span aria-hidden="true">↻</span>全部清理</button></div><div class="sp-cache-list"> ${CACHE_CATEGORIES.map(category => `
+   return`<div class="sp-cache-panel"><div class="sp-cache-panel-head"><div><strong>按類別清理</strong><small>僅清理腳本運行快取，不影響設定和資源管理資料</small></div><button class="sp-cache-all-btn" id="sp-clear-all-cache" type="button" title="全部清除腳本緩存"><span aria-hidden="true">↻</span>全部清除</button></div><div class="sp-cache-list"> ${CACHE_CATEGORIES.map(category => `
                             <div class="sp-cache-item">
                                 <div class="sp-cache-copy"><strong>${category.label}</strong><small>${category.description}</small></div>
-                                <button class="sp-cache-clear-btn" data-cache-category="${category.id}" type="button" title="清理${category.label}"><span aria-hidden="true">↻</span><span>清理</span></button>
+                                <button class="sp-cache-clear-btn" data-cache-category="${category.id}" type="button" title="清除${category.label}"><span aria-hidden="true">↻</span><span>清除</span></button>
                             </div>
                         `).join('')} </div><div class="sp-cache-feedback" id="sp-cache-feedback" role="status" aria-live="polite"></div></div>`;
   }
@@ -804,7 +804,7 @@
    document.getElementById('jav-settings-overlay')?.remove(); injectSettingsPanelStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-settings-overlay';
    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
    const panel = document.createElement('div'); panel.id = 'jav-settings-panel';
-   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司机设置</div></div><button class="sp-close" type="button" title="关闭">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="设置分类" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首页快捷功能</strong><small>在列表卡片上显示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>标题翻译</strong><small>选择翻译列表标题、详情标题或全部</small></span><select class="sp-select" id="sp-title-translate"><option value="list">列表</option><option value="detail">详情</option><option value="all">全部</option><option value="off">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新标签打开页面</strong><small>列表链接在新标签页打开</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>竖图模式</strong><small>使用更适合封面的纵向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮动画</strong><small>封面缩放始终开启，不受此项影响</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面悬浮大图</strong><small>鼠标悬停时预览高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>详情页预览图直显</strong><small>在详情页直接展开预览图</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">界面相关</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 发布日期排序</strong><small>列表页默认按发布日期排序</small></span><span class="sp-toggle"><input id="sp-javdb-release-sort" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评默认展开</strong><small>打开详情页时展开短评列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短评字号</strong><small>调整短评区域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 详情默认页</strong><small>打开详情时优先显示的内容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短评</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演员高亮</strong><small>在作品页面突出显示收藏演员</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>演员信息</strong><small>在作品详情页显示演员资料</small></span><span class="sp-toggle"><input id="sp-actor-info" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 无水印封面</strong><small>替换为JavDB APP CDN无水印封面</small></span><span class="sp-toggle"><input id="sp-javdb-app-cover" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流历史恢复</strong><small>刷新或返回时恢复已加载内容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流加载</strong><small>列表滚动到底部时自动加载</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜索显示</strong><small>详情页磁力区域的显示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">独立磁力表</option><option value="native-replace">原页面增强</option><option value="native">关闭</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原页面默认标签</strong><small>原页面增强时优先显示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原页面</option><option value="aggregate">聚合结果</option></select></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜索与播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认磁力引擎</strong><small>聚合搜索默认使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎域名</strong><small>选择引擎并修改域名</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表默认排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">文件大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 匹配结果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整视频播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放开关</strong><small>详情区封面加载完整视频播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>优先选择，没有则回落普通</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">默认有码</option><option value="uncensored">无码优先</option><option value="subtitle">中字优先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>预告片中转播放</strong><small>使用老司机服务器中转播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清预告片</strong><small>最高4K播放，关闭时最高画质为720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>预览图来源顺序</strong><small>使用左右按钮调整优先级</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站点与按钮</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认搜索入口</strong><small>跳转菜单打开时使用的搜索站点</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>默认视频入口</strong><small>视频按钮默认打开的站点</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳转开关</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">缓存与高级</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群组</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">反馈</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">保存设置</button></div>`;
+   panel.innerHTML =`<div class="sp-header"><div><div class="sp-title">老司機設定</div></div><button class="sp-close" type="button" title="關閉">×</button></div><div class="sp-body"><div class="sp-layout"><nav class="sp-nav" aria-label="設定分類" role="tablist">${renderSectionNav()}</nav><div class="sp-content"><section class="sp-section is-active" data-sp-panel="common" role="tabpanel"><div class="sp-section-head"><div class="sp-section-title">常用</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>首頁快捷功能</strong><small>在列表卡片上顯示快捷操作</small></span><span class="sp-toggle"><input id="sp-list-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>標題翻譯</strong><small>選擇翻譯列表標題、詳情標題或全部</small></span><select class="sp-select" id="sp-title-translate"><option value="list">列表</option><option value="detail">詳情</option><option value="all">全部</option><option value="off">關閉</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>新標籤開啟頁面</strong><small>列表連結在新標籤頁開啟</small></span><span class="sp-toggle"><input id="sp-list-new-tab" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>豎圖模式</strong><small>使用更適合封面的縱向卡片</small></span><span class="sp-toggle"><input id="sp-portrait-cards" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>卡片上浮動畫</strong><small>封面縮放始終開啟，不受此項影響</small></span><span class="sp-toggle"><input id="sp-card-fx" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>封面懸浮大圖</strong><small>滑鼠懸停時預覽高清封面</small></span><span class="sp-toggle"><input id="sp-cover-hover-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>詳情頁預覽圖直顯</strong><small>在詳情頁直接展開預覽圖</small></span><span class="sp-toggle"><input id="sp-detail-preview" type="checkbox"><span class="sp-toggle-track"></span></span></label></div></section><section class="sp-section" data-sp-panel="layout" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">介面相關</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 發布日期排序</strong><small>列表頁預設按發布日期排序</small></span><span class="sp-toggle"><input id="sp-javdb-release-sort" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短評預設展開</strong><small>開啟詳情頁時展開短評列表</small></span><span class="sp-toggle"><input id="sp-reviews-expanded" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>短評字級</strong><small>調整短評區域文字大小</small></span><select class="sp-select" id="sp-review-font"><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 詳情預設頁</strong><small>開啟詳情時優先顯示的內容</small></span><select class="sp-select" id="sp-api-tab"><option value="reviews">短評</option><option value="magnets">磁力</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>收藏演員高亮</strong><small>在作品頁面突出顯示收藏演員</small></span><span class="sp-toggle"><input id="sp-actor-highlight" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>演員資訊</strong><small>在作品詳情頁顯示演員資料</small></span><span class="sp-toggle"><input id="sp-actor-info" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>JavDB 無水印封面</strong><small>替換為JavDB APP CDN無水印封面</small></span><span class="sp-toggle"><input id="sp-javdb-app-cover" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流歷史還原</strong><small>刷新或返回時還原已載入內容</small></span><span class="sp-toggle"><input id="sp-infinite-scroll-restore" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>瀑布流載入</strong><small>列表滾動到底部時自動載入</small></span><span class="sp-toggle"><input id="sp-infinite-scroll" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>聚合搜尋顯示</strong><small>詳情頁磁力區域的顯示方式</small></span><select class="sp-select" id="sp-magnet-display"><option value="sidebar">獨立磁力表</option><option value="native-replace">原頁面增強</option><option value="native">關閉</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>原頁面預設標籤</strong><small>原頁面增強時優先顯示</small></span><select class="sp-select" id="sp-native-magnet-tab"><option value="native">原頁面</option><option value="aggregate">聚合結果</option></select></label></div></section><section class="sp-section" data-sp-panel="search" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">搜尋與播放</div></div><div class="sp-settings-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>預設磁力引擎</strong><small>聚合搜尋預設使用的引擎</small></span><select class="sp-select" id="sp-default-engine"></select></label><div class="sp-setting-row sp-engine-editor"><span class="sp-setting-copy"><strong>磁力引擎網域</strong><small>選擇引擎並修改網域</small></span><div class="sp-engine-controls"><select class="sp-select" id="sp-engine-picker"></select><input class="sp-input" id="sp-engine-domain"></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>磁力排序</strong><small>磁力列表預設排序方式</small></span><select class="sp-select" id="sp-magnet-sort"><option value="size">檔案大小</option><option value="newest">最新</option><option value="oldest">最早</option></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>115 播放器</strong><small>115 比對結果的播放方式</small></span><select class="sp-select" id="sp-pan115-player"><option value="official">官方</option><option value="115master">Master</option><option value="potplayer">PotPlayer</option></select></label><div class="sp-subsection-title">完整影片播放</div><div class="sp-full-video-block"><div class="sp-full-video-controls"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放開關</strong><small>詳情區封面載入完整影片播放器</small></span><span class="sp-toggle"><input id="sp-full-video-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>播放版本</strong><small>優先選擇，沒有則回落普通</small></span><select class="sp-select" id="sp-full-video-preference"><option value="censored">預設有碼</option><option value="uncensored">無碼優先</option><option value="subtitle">中字優先</option></select></label></div></div><label class="sp-setting-row"><span class="sp-setting-copy"><strong>預告片中轉播放</strong><small>使用老司機伺服器中轉播放</small></span><span class="sp-toggle"><input id="sp-trailer-proxy-playback" type="checkbox"><span class="sp-toggle-track"></span></span></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>高清預告片</strong><small>最高4K播放，關閉時最高畫質為720P</small></span><span class="sp-toggle"><input id="sp-trailer-multi-quality" type="checkbox"><span class="sp-toggle-track"></span></span></label><div class="sp-order-block"><div class="sp-setting-copy"><strong>預覽圖來源順序</strong><small>使用左右按鈕調整優先順序</small></div><div class="sp-order-list" id="sp-thumb-order"></div></div></div></section><section class="sp-section" data-sp-panel="sites" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">站點與按鈕</div></div><div class="sp-settings-grid sp-button-grid"><label class="sp-setting-row"><span class="sp-setting-copy"><strong>預設搜尋入口</strong><small>跳轉菜單開啟時使用的搜尋站點</small></span><select class="sp-select" id="sp-jump-engine"></select></label><label class="sp-setting-row"><span class="sp-setting-copy"><strong>預設影片入口</strong><small>影片按鈕預設開啟的站點</small></span><select class="sp-select" id="sp-video-engine"></select></label><div class="sp-subsection-title">跳轉開關</div> ${renderButtonToggles()} </div></section><section class="sp-section" data-sp-panel="advanced" role="tabpanel" hidden><div class="sp-section-head"><div class="sp-section-title">快取與進階</div></div><div class="sp-settings-grid"> ${renderCacheControls()} </div></section></div></div></div><div class="sp-footer"><div class="sp-footer-links"><a class="sp-footer-link" href="https://t.me/+cE2dFwl5DFM5YTBl" target="_blank" rel="noopener noreferrer">TG 群組</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://github.com/ZiPenOk/scripts" target="_blank" rel="noopener noreferrer">Github</a><span class="sp-footer-sep"></span><a class="sp-footer-link" href="https://sleazyfork.org/zh-CN/scripts/576375-jav%E8%80%81%E5%8F%B8%E6%9C%BA-%E6%96%B0/feedback" target="_blank" rel="noopener noreferrer">意見回饋</a><span class="sp-footer-sep"></span><span class="sp-footer-link" style="cursor:default;color:#94a3b8;">v${SCRIPT_VERSION}</span></div><button class="sp-btn sp-btn-cancel" type="button">取消</button><button class="sp-btn sp-btn-save" type="button">儲存設定</button></div>`;
    overlay.appendChild(panel); document.body.appendChild(overlay); const navItems = [...panel.querySelectorAll('[data-sp-section]')]; const sectionPanels = [...panel.querySelectorAll('[data-sp-panel]')];
    navItems.forEach(item => item.addEventListener('click', () => {
     const section = item.dataset.spSection;
@@ -836,7 +836,7 @@
     if (status.available) return true;
     trailerProxyPlaybackCheckbox.checked = false; CFG.trailerProxyPlayback = false;
     if (status.banned) return false;
-    Utils.showToast( status.closed ? '服务器已关闭' : '服务器不可用', status.closed ? '预告片中转播放已关闭' : '无法验证预告片中转播放服务', 2800 ); return false; };
+    Utils.showToast( status.closed ? '伺服器已關閉' : '伺服器無法使用', status.closed ? '預告片中轉播放功能已關閉' : '無法驗證預告片中轉播放服務', 2800 ); return false; };
    const cacheFeedback = panel.querySelector('#sp-cache-feedback'); const clearAllCacheBtn = panel.querySelector('#sp-clear-all-cache'); const cacheClearButtons = [...panel.querySelectorAll('[data-cache-category]')];
    const orderList = panel.querySelector('#sp-thumb-order'); const domainDraft = Object.fromEntries(MAGNET_ENGINES.map(item => [item.key, CFG[item.key]])); let currentOrder = GM_getValue('thumb_source_order', ['javfree', 'projectjav', 'javstore']);
    Object.keys(THUMB_META).forEach(src => { if (!currentOrder.includes(src)) currentOrder.push(src); });
@@ -907,16 +907,16 @@
     btn.classList.remove('is-done'); btn.classList.add('is-clearing');
     setTimeout(() => {
      btn.classList.remove('is-clearing'); btn.classList.add('is-done');
-     cacheFeedback.textContent = count ?`${label} ${count} 项` :`${label}无缓存`;
+     cacheFeedback.textContent = count ?`${label} ${count} 項` :`${label}無快取`;
      setTimeout(() => btn.classList.remove('is-done'), 900);
      setTimeout(() => { cacheFeedback.textContent = ''; }, 1800);
     }, 260); };
    cacheClearButtons.forEach(btn => btn.addEventListener('click', async () => {
     const category = CACHE_CATEGORIES.find(item => item.id === btn.dataset.cacheCategory); const count = await Ui.clearCacheCategory(btn.dataset.cacheCategory);
-    flashCacheButton(btn,`${category?.label || '缓存'}已清理`, count);
+    flashCacheButton(btn,`${category?.label || '快取'}已清理`, count);
    }));
    clearAllCacheBtn?.addEventListener('click', async () => {
-    const count = typeof Ui.clearAllCacheCategories === 'function' ? await Ui.clearAllCacheCategories() : 0; flashCacheButton(clearAllCacheBtn, '全部缓存已清理', count);
+    const count = typeof Ui.clearAllCacheCategories === 'function' ? await Ui.clearAllCacheCategories() : 0; flashCacheButton(clearAllCacheBtn, '已清除所有快取', count);
    });
    picker.value = 'javdbSearchUrl'; loadPickedDomain(); syncDefaultOptions(); renderOrder(); const closePanel = () => overlay.remove(); panel.querySelector('.sp-close').addEventListener('click', closePanel);
    panel.querySelector('.sp-btn-cancel').addEventListener('click', closePanel);
@@ -975,30 +975,30 @@
    }); }
   return { open };
  })();
- Core.expose('__LAOSIJI_OPEN_SETTINGS__', () => SettingsPanel.open()); GM_registerMenuCommand('⚙️ 老司机设置', () => SettingsPanel.open());
+ Core.expose('__LAOSIJI_OPEN_SETTINGS__', () => SettingsPanel.open()); GM_registerMenuCommand('⚙️ 老司機設定', () => SettingsPanel.open());
  function ensureQuickSettingsPanelStyles() {
   injectStyle('jav-quick-settings-style',`#jav-quick-settings-popover{position:fixed;z-index:10000030;width:320px;padding:10px;border:1px solid rgba(203,213,225,.85);border-radius:10px;background:rgba(255,255,255,.985);color:#0f172a;box-shadow:0 12px 28px rgba(15,23,42,.16);backdrop-filter:blur(6px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-sizing:border-box}#jav-quick-settings-popover *{box-sizing:border-box}#jav-quick-settings-popover .qs-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}#jav-quick-settings-popover .qs-title{font-size:13px;font-weight:800;color:#1e293b}#jav-quick-settings-popover .qs-site{margin-top:1px;font-size:11px;font-weight:650;color:#64748b}#jav-quick-settings-popover .qs-close{width:24px;height:24px;border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#64748b;cursor:pointer;line-height:1;font-size:14px}#jav-quick-settings-popover .qs-close:hover{color:#1d4ed8;border-color:#93c5fd;background:#eff6ff}#jav-quick-settings-popover .qs-row{display:grid;grid-template-columns:72px 1fr 42px;align-items:center;gap:9px;padding:4px 0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-row+.qs-row{margin-top:4px}#jav-quick-settings-popover .qs-mobile-columns-row{grid-template-columns:72px minmax(0,1fr)}#jav-quick-settings-popover .qs-segmented{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden;border:1px solid #bfdbfe;border-radius:6px}#jav-quick-settings-popover .qs-landscape-columns-segmented{grid-template-columns:repeat(3,minmax(0,1fr))}#jav-quick-settings-popover .qs-title-translate-row{display:grid;grid-template-columns:52px minmax(0,1fr);gap:6px}#jav-quick-settings-popover .qs-title-translate-group{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:190px;justify-self:end;min-width:0;padding:2px;border:1px solid #bfdbfe;border-radius:999px;background:#eff6ff;overflow:hidden}#jav-quick-settings-popover .qs-title-translate-group button{min-width:0;height:22px;padding:0 7px;border:0;border-radius:999px;background:transparent;color:#475569;font-family:inherit;font-size:12px;font-weight:750;line-height:22px;white-space:nowrap;cursor:pointer;transition:background .16s ease,color .16s ease,box-shadow .16s ease}#jav-quick-settings-popover .qs-title-translate-group button:hover{color:#1d4ed8}#jav-quick-settings-popover .qs-title-translate-group button.is-active{background:#2563eb;color:#fff;box-shadow:0 1px 3px rgba(37,99,235,.25)}#jav-quick-settings-popover .qs-title-translate-group button:focus-visible{position:relative;z-index:1;outline:2px solid #1d4ed8;outline-offset:-2px}#jav-quick-settings-popover .qs-segment{min-height:28px;padding:0 8px;border:0;border-right:1px solid #bfdbfe;background:#fff;color:#475569;font-size:12px;font-weight:750;cursor:pointer}#jav-quick-settings-popover .qs-segment:last-child{border-right:0}#jav-quick-settings-popover .qs-segment.is-active{background:#2563eb;color:#fff}#jav-quick-settings-popover .qs-segment:focus-visible{position:relative;outline:2px solid #1d4ed8;outline-offset:-2px}#jav-quick-settings-popover .qs-detail-flex{display:none;margin-top:8px;padding-top:7px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-detail-flex.is-visible{display:block}#jav-quick-settings-popover .qs-section-title{margin-bottom:3px;font-size:12px;font-weight:850;color:#1e293b}#jav-quick-settings-popover .qs-row.is-disabled{opacity:.48}#jav-quick-settings-popover .qs-row.is-disabled .qs-range{cursor:not-allowed;background:#e2e8f0}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-webkit-slider-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-row.is-disabled .qs-range::-moz-range-thumb{background:#94a3b8;cursor:not-allowed}#jav-quick-settings-popover .qs-switch-grid{display:grid;grid-template-columns:1fr;gap:6px;margin-top:6px}#jav-quick-settings-popover .qs-switch-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0;border:0;border-radius:0;background:transparent}#jav-quick-settings-popover .qs-name{font-size:12px;font-weight:750;color:#334155;white-space:nowrap}#jav-quick-settings-popover .qs-detail-magnet-help{display:inline-grid;place-items:center;width:15px;height:15px;margin-left:2px;padding:0;border:1px solid #f59e0b;border-radius:50%;background:#fffbeb;color:#b45309;font:800 10px/1 inherit;cursor:pointer;vertical-align:1px}#jav-quick-settings-popover .qs-detail-magnet-help:hover,#jav-quick-settings-popover .qs-detail-magnet-help:focus-visible{border-color:#d97706;background:#fef3c7;color:#92400e}#jav-quick-settings-popover .qs-value{display:grid;place-items:center;min-width:34px;height:22px;border-radius:999px;background:#fff;color:#1d4ed8;font-size:12px;font-weight:800;border:1px solid #dbeafe}#jav-quick-settings-popover .qs-range{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:999px;background:linear-gradient(90deg,#93c5fd 0%,#dbeafe 100%);outline:none}#jav-quick-settings-popover .qs-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;border:2px solid #fff;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-range::-moz-range-thumb{width:16px;height:16px;border:none;border-radius:50%;background:#2563eb;box-shadow:0 3px 8px rgba(37,99,235,.22);cursor:pointer}#jav-quick-settings-popover .qs-toggle{position:relative;display:inline-block;width:54px;height:26px;flex:0 0 auto}#jav-quick-settings-popover .qs-toggle input{opacity:0;width:0;height:0}#jav-quick-settings-popover .qs-toggle-track{position:absolute;inset:0;border-radius:999px;background:#aeb4bc;border:1px solid rgba(71,85,105,.28);box-shadow:inset 0 2px 4px rgba(15,23,42,.18),inset 0 -1px 1px rgba(255,255,255,.38);cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s}#jav-quick-settings-popover .qs-toggle-track::before{content:'';position:absolute;width:20px;height:20px;left:2px;top:2px;border-radius:50%;background:linear-gradient(145deg,#fff 0%,#f1f3f5 100%);border:1px solid rgba(148,163,184,.42);box-shadow:0 2px 5px rgba(15,23,42,.28),0 1px 1px rgba(255,255,255,.86) inset;transition:transform .2s cubic-bezier(.2,.8,.2,1)}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track{background:#35b96f;border-color:#238653;box-shadow:inset 0 2px 4px rgba(20,91,55,.24),inset 0 -1px 1px rgba(255,255,255,.34)}#jav-quick-settings-popover .qs-toggle input:checked+.qs-toggle-track::before{transform:translateX(28px)}#jav-quick-settings-popover .qs-toggle input:focus-visible+.qs-toggle-track{outline:3px solid rgba(37,99,235,.28);outline-offset:2px}#jav-quick-settings-popover .qs-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0}#jav-quick-settings-popover .qs-more{height:28px;padding:0 12px;border:1px solid #c7d2fe;border-radius:7px;background:#eef2ff;color:#4338ca;font-size:11px;font-weight:800;cursor:pointer}#jav-quick-settings-popover .qs-resource{height:28px;padding:0 12px;border:1px solid #bbf7d0;border-radius:7px;background:#f0fdf4;color:#166534;font-size:11px;font-weight:800;cursor:pointer}#jav-quick-settings-popover .qs-resource:hover{background:#dcfce7;border-color:#86efac}#jav-quick-settings-popover .qs-more:hover{background:#e0e7ff;border-color:#a5b4fc}#jav-quick-settings-popover.is-mobile{left:10px!important;right:10px!important;bottom:max(10px,env(safe-area-inset-bottom))!important;top:auto!important;width:auto!important;max-height:calc(100dvh - 20px);overflow:auto}#jav-quick-settings-popover.is-mobile .qs-page-zoom-row,#jav-quick-settings-popover.is-mobile .qs-columns-row,#jav-quick-settings-popover.is-mobile .qs-detail-flex{display:none!important}#jav-quick-settings-popover.is-mobile .qs-switch-row[data-mobile-disabled="1"]{opacity:.5}#jav-quick-settings-popover.is-mobile .qs-toggle-track,#jav-quick-settings-popover.is-mobile .qs-toggle input:disabled{cursor:not-allowed}`);
  }
  const QuickSettingsPanel = (() => {
   const siteLabelMap = { javbus: 'JavBus', javdb: 'JavDB', javlib: 'JavLibrary', pan115: '115网盘' };
   const TOGGLE_META = [
-   { id: 'pan115', label: '115匹配', cfgKey: 'btnShowPan115', sync: 'syncPan115' },
+   { id: 'pan115', label: '115比對', cfgKey: 'btnShowPan115', sync: 'syncPan115' },
    { id: 'infinite-scroll', label: '瀑布流', cfgKey: 'infiniteScroll', sync: 'syncInfiniteScroll' },
-   { id: 'card-fx', label: '卡片上浮动画', cfgKey: 'cardFx', sync: 'syncCardFx', mobileDisabled: true },
-   { id: 'cover-hover-preview', label: '封面悬浮大图', cfgKey: 'coverHoverPreview', sync: 'syncCoverHoverPreview', mobileDisabled: true },
-   { id: 'javdb-app-cover', label: 'JavDB 无水印封面', cfgKey: 'javdbAppCover', sync: 'syncJavdbAppCover', javdbOnly: true },
-   { id: 'portrait-cards', label: '竖图模式', cfgKey: 'portraitCards', sync: 'syncPortraitCards', persist: false, refreshColumns: true, mobileDisabled: true },
-   { id: 'list-open-new-tab', label: '新标签打开页面', cfgKey: 'listOpenNewTab', sync: 'syncListOpenNewTab' },
-   { id: 'list-preview', label: '\u9996\u9875\u5feb\u6377\u529f\u80fd', cfgKey: 'listPreviewQuick', sync: 'syncListPreview' },
-   { id: 'detail-preview-inline', label: '详情页预览图直显', cfgKey: 'detailPreviewInline', sync: 'syncDetailPreview', mobileDisabled: true },
-   { id: 'actor-info', label: '演员信息', cfgKey: 'actorInfoEnabled', sync: 'syncActorInfo', detailOnly: true }, ];
-  const TOGGLE_META_EXTRA = [ { id: 'actor-highlight', label: '收藏演员高亮', cfgKey: 'javdbFavoriteActorHighlight', sync: 'syncFavoriteActorHighlight' } ];
-  const PAN115_TOGGLE_META = [ { id: 'pan115-cover-hover-preview', label: '115封面预览', cfgKey: 'pan115CoverHoverPreview', sync: 'syncCoverHoverPreview', mobileDisabled: true } ];
+   { id: 'card-fx', label: '卡片上浮動畫', cfgKey: 'cardFx', sync: 'syncCardFx', mobileDisabled: true },
+   { id: 'cover-hover-preview', label: '封面懸浮大圖', cfgKey: 'coverHoverPreview', sync: 'syncCoverHoverPreview', mobileDisabled: true },
+   { id: 'javdb-app-cover', label: 'JavDB 無水印封面', cfgKey: 'javdbAppCover', sync: 'syncJavdbAppCover', javdbOnly: true },
+   { id: 'portrait-cards', label: '豎圖模式', cfgKey: 'portraitCards', sync: 'syncPortraitCards', persist: false, refreshColumns: true, mobileDisabled: true },
+   { id: 'list-open-new-tab', label: '新標簽打開頁面', cfgKey: 'listOpenNewTab', sync: 'syncListOpenNewTab' },
+   { id: 'list-preview', label: '首頁快捷功能', cfgKey: 'listPreviewQuick', sync: 'syncListPreview' },
+   { id: 'detail-preview-inline', label: '詳情頁預覽圖直顯', cfgKey: 'detailPreviewInline', sync: 'syncDetailPreview', mobileDisabled: true },
+   { id: 'actor-info', label: '演員資訊', cfgKey: 'actorInfoEnabled', sync: 'syncActorInfo', detailOnly: true }, ];
+  const TOGGLE_META_EXTRA = [ { id: 'actor-highlight', label: '收藏演員高亮', cfgKey: 'javdbFavoriteActorHighlight', sync: 'syncFavoriteActorHighlight' } ];
+  const PAN115_TOGGLE_META = [ { id: 'pan115-cover-hover-preview', label: '115封面預覽', cfgKey: 'pan115CoverHoverPreview', sync: 'syncCoverHoverPreview', mobileDisabled: true } ];
   function renderToggleRows(toggleMeta = TOGGLE_META) {
    return toggleMeta.map(({ id, label, mobileDisabled }) =>`<div class="qs-switch-row"${mobileDisabled ? ' data-mobile-disabled="1"' : ''}><div class="qs-name">${label}</div><label class="qs-toggle"><input id="qs-${id}" type="checkbox"><span class="qs-toggle-track"></span></label></div>`).join('');
   }
   function renderTitleTranslateRow() {
-   return`<div class="qs-switch-row qs-title-translate-row"><span class="qs-name">翻译标题</span><span class="qs-title-translate-group" role="group" aria-label="标题翻译范围"><button type="button" data-title-translate-mode="list" aria-pressed="false">列表</button><button type="button" data-title-translate-mode="detail" aria-pressed="false">详情</button><button type="button" data-title-translate-mode="all" aria-pressed="false">全部</button><button type="button" data-title-translate-mode="off" aria-pressed="false">关闭</button></span></div>`;
+   return`<div class="qs-switch-row qs-title-translate-row"><span class="qs-name">翻譯標題</span><span class="qs-title-translate-group" role="group" aria-label="標題翻譯范圍"><button type="button" data-title-translate-mode="list" aria-pressed="false">列表</button><button type="button" data-title-translate-mode="detail" aria-pressed="false">詳情</button><button type="button" data-title-translate-mode="all" aria-pressed="false">全部</button><button type="button" data-title-translate-mode="off" aria-pressed="false">關閉</button></span></div>`;
   }
   function getCurrentSite() {
    if (/^(?:www\.)?115\.com$/i.test(location.hostname)) return 'pan115';
@@ -1019,33 +1019,33 @@
     : TOGGLE_META.concat(TOGGLE_META_EXTRA).filter(item => (!item.javdbOnly || site === 'javdb') && (!item.detailOnly || site !== 'pan115') && (item.id !== 'actor-highlight' || ['javdb', 'javbus', 'javlib'].includes(site)));
    const mobileLandscape = !!window.matchMedia?.('(orientation:landscape)').matches; const showMobilePortraitColumns = !isPan115 && MobilePolicy.isMobile() && !mobileLandscape;
    const showMobileLandscapeColumns = !isPan115 && MobilePolicy.isMobile() && mobileLandscape;
-   panel.innerHTML =`<div class="qs-head"><div><div class="qs-title">快捷设置</div><div class="qs-site"> ${siteLabelMap[site] || '当前站点'} </div></div><button class="qs-close" type="button" title="关闭">×</button></div> ${isPan115 ? '' : `<div class="qs-row qs-columns-row">
-                    <div class="qs-name">卡片列数</div>
+   panel.innerHTML =`<div class="qs-head"><div><div class="qs-title">快捷設定</div><div class="qs-site"> ${siteLabelMap[site] || '當前站點'} </div></div><button class="qs-close" type="button" title="關閉">×</button></div> ${isPan115 ? '' : `<div class="qs-row qs-columns-row">
+                    <div class="qs-name">卡片列數</div>
                     <input class="qs-range" id="qs-columns" type="range" min="2" max="10" step="1">
                     <span class="qs-value" id="qs-columns-value">5</span>
                 </div>`} ${showMobilePortraitColumns ? `
                 <div class="qs-row qs-mobile-columns-row">
-                    <div class="qs-name">竖屏卡片</div>
-                    <div class="qs-segmented" role="group" aria-label="竖屏卡片列数">
-                        <button class="qs-segment" type="button" data-mobile-columns="1">单列</button>
-                        <button class="qs-segment" type="button" data-mobile-columns="2">双列</button>
+                    <div class="qs-name">豎屏卡片</div>
+                    <div class="qs-segmented" role="group" aria-label="豎屏卡片列數">
+                        <button class="qs-segment" type="button" data-mobile-columns="1">單列</button>
+                        <button class="qs-segment" type="button" data-mobile-columns="2">雙列</button>
                     </div>
                 </div>` : ''} ${showMobileLandscapeColumns ? `
                 <div class="qs-row qs-mobile-columns-row">
-                    <div class="qs-name">\u6a2a\u5c4f\u5217\u6570</div>
-                    <div class="qs-segmented qs-landscape-columns-segmented" role="group" aria-label="\u6a2a\u5c4f\u5217\u6570">
-                        <button class="qs-segment" type="button" data-mobile-landscape-columns="2">\u53cc\u5217</button>
-                        <button class="qs-segment" type="button" data-mobile-landscape-columns="3">\u4e09\u5217</button>
-                        <button class="qs-segment" type="button" data-mobile-landscape-columns="4">\u56db\u5217</button>
+                    <div class="qs-name">橫向畫面欄數</div>
+                    <div class="qs-segmented qs-landscape-columns-segmented" role="group" aria-label="橫向畫面欄數">
+                        <button class="qs-segment" type="button" data-mobile-landscape-columns="2">雙欄</button>
+                        <button class="qs-segment" type="button" data-mobile-landscape-columns="3">三欄</button>
+                        <button class="qs-segment" type="button" data-mobile-landscape-columns="4">四欄</button>
                     </div>
                 </div>` : ''} ${isPan115 ? '' : `<div class="qs-row qs-page-zoom-row">
-                    <div class="qs-name">页面宽度</div>
+                    <div class="qs-name">頁面寬度</div>
                     <input class="qs-range" id="qs-zoom" type="range" min="60" max="100" step="1">
                     <span class="qs-value" id="qs-zoom-value">100%</span>
-                </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">详情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">信息</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力 <button class="qs-detail-magnet-help" type="button" title="查看磁力比例说明" aria-label="查看磁力比例说明">!</button></div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">关闭</span></div></div><div class="qs-switch-grid"> ${isPan115 ? '' : renderTitleTranslateRow()} ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"> ${['javdb', 'javlib'].includes(site) && window.__LAOSIJI_RESOURCE_LIBRARY__?.isSupported?.() ? '<button class="qs-resource" type="button">资源管理</button>' : ''} <button class="qs-more" type="button">更多设置</button></div>`;
+                </div>`} <div class="qs-detail-flex" id="qs-detail-flex"><div class="qs-section-title">詳情比例</div><div class="qs-row" data-detail-flex-row="cover"><div class="qs-name">封面</div><input class="qs-range" id="qs-detail-cover" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-cover-value">1.0</span></div><div class="qs-row" data-detail-flex-row="info"><div class="qs-name">資訊</div><input class="qs-range" id="qs-detail-info" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-info-value">1.0</span></div><div class="qs-row" data-detail-flex-row="magnet"><div class="qs-name">磁力 <button class="qs-detail-magnet-help" type="button" title="查看磁力比例說明" aria-label="查看磁力比例說明">!</button></div><input class="qs-range" id="qs-detail-magnet" type="range" min="50" max="200" step="5"><span class="qs-value" id="qs-detail-magnet-value">關閉</span></div></div><div class="qs-switch-grid"> ${isPan115 ? '' : renderTitleTranslateRow()} ${renderToggleRows(toggleMeta)} </div><div class="qs-footer"> ${['javdb', 'javlib'].includes(site) && window.__LAOSIJI_RESOURCE_LIBRARY__?.isSupported?.() ? '<button class="qs-resource" type="button">資源管理</button>' : ''} <button class="qs-more" type="button">更多設定</button></div>`;
    document.body.appendChild(panel);
    if (site === 'javbus' && window.__LAOSIJI_RESOURCE_LIBRARY__?.isSupported?.()) {
-    const resourceButton = document.createElement('button'); resourceButton.className = 'qs-resource'; resourceButton.type = 'button'; resourceButton.textContent = '\u8d44\u6e90\u7ba1\u7406'; panel.querySelector('.qs-footer')?.prepend(resourceButton); }
+    const resourceButton = document.createElement('button'); resourceButton.className = 'qs-resource'; resourceButton.type = 'button'; resourceButton.textContent = '資源管理'; panel.querySelector('.qs-footer')?.prepend(resourceButton); }
    const close = () => panel.remove(); const columnsInput = panel.querySelector('#qs-columns'); const columnsValue = panel.querySelector('#qs-columns-value'); const mobileColumnButtons = [...panel.querySelectorAll('[data-mobile-columns]')];
    const mobileLandscapeColumnButtons = [...panel.querySelectorAll('[data-mobile-landscape-columns]')]; const zoomInput = panel.querySelector('#qs-zoom'); const zoomValue = panel.querySelector('#qs-zoom-value');
    const detailSite = DetailFlex.detectCurrentSite(); const detailWrap = panel.querySelector('#qs-detail-flex');
@@ -1062,9 +1062,9 @@
     if (row) row.classList.toggle('is-disabled', !hasMagnet);
     if (detailInputs.magnet) detailInputs.magnet.disabled = !hasMagnet;
     if (detailValues.magnet && !hasMagnet) {
-     detailValues.magnet.textContent = nativeReplace ? '不可调' : (MobilePolicy.usesDesktopMagnetTable() ? '未渲染' : '关闭'); }
+     detailValues.magnet.textContent = nativeReplace ? '不可調' : (MobilePolicy.usesDesktopMagnetTable() ? '未渲染' : '關閉'); }
     return hasMagnet; };
-   Ui.click(panel.querySelector('.qs-detail-magnet-help'), () => { Utils.showToast('磁力比例不可调', '聚合搜索显示方式原页面增强时，此设置不可调', 2800); });
+   Ui.click(panel.querySelector('.qs-detail-magnet-help'), () => { Utils.showToast('無法調整磁力比例', '啟用「聚合搜尋顯示方式」的「原頁面增強」時，無法調整此設定', 2800); });
    Ui.bindRange(columnsInput, columnsValue, CardColumns.get(site), v => String(CardColumns.clamp(v)), value => { const next = CardColumns.clamp(value); CardColumns.set(site, next); CardColumns.apply(site, next); });
    const syncMobileColumnsControl = () => {
     const value = CardColumns.getMobilePortrait(); mobileColumnButtons.forEach(button => button.classList.toggle('is-active', Number(button.dataset.mobileColumns) === value)); };
@@ -1203,8 +1203,8 @@
     pending = false; sync();
    }); }
   function createButton() {
-   const button = document.createElement('button'); button.id = BUTTON_ID; button.type = 'button'; button.textContent = '\u2699'; button.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
-   button.setAttribute('aria-label', '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e'); button.setAttribute('aria-description', '\u53ef\u62d6\u52a8\u8c03\u6574\u4f4d\u7f6e'); installDragging(button);
+   const button = document.createElement('button'); button.id = BUTTON_ID; button.type = 'button'; button.textContent = '\u2699'; button.title = '開啟老司機設定';
+   button.setAttribute('aria-label', '開啟老司機設定'); button.setAttribute('aria-description', '可拖曳調整位置'); installDragging(button);
    button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); QuickSettingsPanel.open(button); });
    return button; }
   function sync() {
@@ -1248,8 +1248,8 @@
    const entry = document.createElement(modern ? 'button' : 'a'); entry.id = ENTRY_ID; entry.className = modern ? 'is-modern flex items-center gap-1' : 'button btn-line';
    if (modern) entry.type = 'button';
    else entry.href = 'javascript:void(0)';
-   entry.title = '打开老司机快捷设置'; entry.setAttribute('aria-label', '打开老司机快捷设置');
-   entry.innerHTML =`<span class="entry-icon" aria-hidden="true">⚙</span><span>老司机设置</span>`;
+   entry.title = '開啟老司機快捷設定'; entry.setAttribute('aria-label', '開啟老司機快捷設定');
+   entry.innerHTML =`<span class="entry-icon" aria-hidden="true">⚙</span><span>老司機設定</span>`;
    entry.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); QuickSettingsPanel.open(event.currentTarget); });
    return entry; }
   function sync() {
@@ -1393,10 +1393,10 @@
     timeout: 20000,
    });
    if (!r.loadstuts || r.status < 200 || r.status >= 400) {
-    throw new Error(`JavDB API 请求失败: HTTP ${r.status || 0}`);
+    throw new Error(`JavDB API 請求失敗: HTTP ${r.status || 0}`);
    }
    const json = parseJson(r.responseText);
-   if (!json) throw new Error('JavDB API 返回异常');
+   if (!json) throw new Error('JavDB API 返回異常');
    return json; }
   function javdbMovieThumbURL(movie) {
    const id = String(movie?.id || '');
@@ -1447,10 +1447,10 @@
      Accept: 'application/json, text/plain, */*',
      Referer: offlineUrl, },
    });
-   if (!tokenR.loadstuts) { notify('115 错误', '无法获取签名，请检查跨源权限或115登录状态', loginUrl); return; }
-   if (tokenR.responseText.includes('html')) { notify('115 未登录', '请先登录115账户后再离线下载', loginUrl); return; }
+   if (!tokenR.loadstuts) { notify('115 錯誤', '無法取得簽名，請檢查跨源權限或115登入狀態', loginUrl); return; }
+   if (tokenR.responseText.includes('html')) { notify('115 未登入', '請先登入 115 帳戶再離線下載', loginUrl); return; }
    const json = parseJson(tokenR.responseText);
-   if (!json?.sign || !json?.time) { notify('115 错误', '签名返回异常，请确认115已登录并允许跨源访问', offlineUrl); return; }
+   if (!json?.sign || !json?.time) { notify('115 錯誤', '簽名回傳異常，請確認 115 已登入並允許跨來源存取', offlineUrl); return; }
    const uid = GM_getValue('jav_115_uid', '');
    return new Promise(resolve => {
     const done = () => resolve();
@@ -1467,21 +1467,21 @@
      data:`url=${encodeURIComponent(maglink)}&uid=${uid}&sign=${json.sign}&time=${json.time}`,
      onload(r) {
       if (r.status < 200 || r.status >= 400) {
-       notify('115 离线失败',`请求失败：HTTP ${r.status || 0}`, offlineUrl);
+       notify('115 離線失敗',`請求失敗：HTTP ${r.status || 0}`, offlineUrl);
        done(); return; }
       const res = parseJson(r.responseText);
-      if (!res) { notify('115 离线失败', '115返回异常，可能是登录失效或跨源权限未完整允许', offlineUrl); done(); return; }
+      if (!res) { notify('115 離線失敗', '115 回傳異常，可能是登入失效或跨來源權限未完整授權', offlineUrl); done(); return; }
       if (res.state) {
-       notify('115 离线成功', '任务已添加', offlineUrl);
+       notify('115 離線成功', '任務已加入', offlineUrl);
       } else {
-       const msg = res.errcode === '911' ? '账号使用异常，请手工验证' : (res.error_msg || res.msg || res.error || '未知错误'); notify('115 离线失败', msg, offlineUrl); }
+       const msg = res.errcode === '911' ? '帳戶使用異常，請手動驗證' : (res.error_msg || res.msg || res.error || '未知錯誤'); notify('115 離線失敗', msg, offlineUrl); }
       done(); },
      onerror() {
-      notify('115 离线失败', '推送请求失败，请检查跨源权限或网络状态', offlineUrl); done(); },
+      notify('115 離線失敗', '推送請求失敗，請檢查跨來源權限或網路連線', offlineUrl); done(); },
      ontimeout() {
-      notify('115 离线失败', '推送请求超时，请稍后重试', offlineUrl); done(); },
+      notify('115 離線失敗', '推送請求逾時，請稍後再試', offlineUrl); done(); },
      onabort() {
-      notify('115 离线失败', '推送请求已取消，可能是跨源权限被拒绝', offlineUrl); done(); },
+      notify('115 離線失敗', '推送請求已取消，可能是跨來源權限遭拒', offlineUrl); done(); },
     });
    }); }
   function formatBytes(bytes) {
@@ -1492,14 +1492,14 @@
    return`${value.toFixed(index >= 3 ? 2 : 1)} ${units[index]}`;
   }
   function showWhatslinkModal(payload, magnet) {
-   document.querySelector('.whatslink-overlay')?.remove(); const shots = Array.isArray(payload?.screenshots) ? payload.screenshots.map(item => item?.screenshot).filter(Boolean) : []; let index = 0; const resourceName = payload?.name || '未知资源';
+   document.querySelector('.whatslink-overlay')?.remove(); const shots = Array.isArray(payload?.screenshots) ? payload.screenshots.map(item => item?.screenshot).filter(Boolean) : []; let index = 0; const resourceName = payload?.name || '未知資源';
    const resourceCount = payload?.count ?? '-'; const resourceSize = formatBytes(payload?.size ?? payload?.file_size ?? payload?.fileSize ?? 0); const overlay = document.createElement('div'); overlay.className = 'whatslink-overlay';
    const modal = document.createElement('section');
    modal.className =`whatslink-modal${shots.length ? '' : ' no-shots'}`;
-   modal.innerHTML =`<div class="whatslink-gallery-scene"><div class="whatslink-gallery-visual"><button class="whatslink-gallery-close" type="button" aria-label="关闭">×</button><button class="whatslink-gallery-arrow whatslink-gallery-prev" type="button" aria-label="上一张">‹</button><img class="whatslink-gallery-hero" alt="截图预览"><button class="whatslink-gallery-arrow whatslink-gallery-next" type="button" aria-label="下一张">›</button><div class="whatslink-gallery-empty"><div class="whatslink-gallery-empty-icon">?</div><div class="whatslink-gallery-empty-title">暂无截图</div><p class="whatslink-gallery-empty-text">当前资源没有可展示的截图，可以结合资源名称和文件数量判断。</p></div></div><div class="whatslink-gallery-info"><span class="whatslink-gallery-name"></span><span class="whatslink-gallery-count"></span><span class="whatslink-gallery-size"></span><span class="whatslink-gallery-index"></span></div><div class="whatslink-gallery-thumbs"></div></div>`;
+   modal.innerHTML =`<div class="whatslink-gallery-scene"><div class="whatslink-gallery-visual"><button class="whatslink-gallery-close" type="button" aria-label="關閉">×</button><button class="whatslink-gallery-arrow whatslink-gallery-prev" type="button" aria-label="上一張">‹</button><img class="whatslink-gallery-hero" alt="截圖預覽"><button class="whatslink-gallery-arrow whatslink-gallery-next" type="button" aria-label="下一張">›</button><div class="whatslink-gallery-empty"><div class="whatslink-gallery-empty-icon">?</div><div class="whatslink-gallery-empty-title">暫無截圖</div><p class="whatslink-gallery-empty-text">當前資源沒有可展示的截圖，可以結合資源名稱和檔案數量判斷。</p></div></div><div class="whatslink-gallery-info"><span class="whatslink-gallery-name"></span><span class="whatslink-gallery-count"></span><span class="whatslink-gallery-size"></span><span class="whatslink-gallery-index"></span></div><div class="whatslink-gallery-thumbs"></div></div>`;
    overlay.appendChild(modal); document.body.appendChild(overlay); modal.querySelector('.whatslink-gallery-name').textContent = resourceName;
-   modal.querySelector('.whatslink-gallery-count').textContent =`${resourceCount} 个文件`;
-   modal.querySelector('.whatslink-gallery-size').textContent =`大小 ${resourceSize}`;
+   modal.querySelector('.whatslink-gallery-count').textContent =`${resourceCount} 個檔案`;
+   modal.querySelector('.whatslink-gallery-size').textContent =`大小：${resourceSize}`;
    const visual = modal.querySelector('.whatslink-gallery-visual'); const hero = modal.querySelector('.whatslink-gallery-hero'); const thumbs = modal.querySelector('.whatslink-gallery-thumbs');
    const currentIndex = modal.querySelector('.whatslink-gallery-index'); const closeButton = modal.querySelector('.whatslink-gallery-close'); const prevButton = modal.querySelector('.whatslink-gallery-prev');
    const nextButton = modal.querySelector('.whatslink-gallery-next');
@@ -1534,7 +1534,7 @@
    };
    shots.forEach((url, i) => {
     const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'whatslink-gallery-thumb';
-    btn.innerHTML =`<img src="${url}" alt="截图${i + 1}">`;
+    btn.innerHTML =`<img src="${url}" alt="截圖${i + 1}">`;
     btn.addEventListener('click', () => { index = i; render(); });
     thumbs.appendChild(btn);
    });
@@ -1563,20 +1563,20 @@
    hero.addEventListener('load', () => { sizeGallery(); positionControls(); });
    window.addEventListener('resize', onResize); document.addEventListener('keydown', onKeydown); render(); }
   async function checkWhatslink(magnet) {
-   document.querySelector('.whatslink-overlay')?.remove(); const overlay = document.createElement('div'); overlay.className = 'whatslink-overlay'; overlay.innerHTML = '<div class="whatslink-modal no-shots"><div class="whatslink-loading">正在验车...</div></div>';
+   document.querySelector('.whatslink-overlay')?.remove(); const overlay = document.createElement('div'); overlay.className = 'whatslink-overlay'; overlay.innerHTML = '<div class="whatslink-modal no-shots"><div class="whatslink-loading">正在驗車...</div></div>';
    document.body.appendChild(overlay);
    try {
     const url =`https://whatslink.info/api/v1/link?url=${encodeURIComponent(magnet)}`;
     const r = await gmFetch(url, { timeout: 20000 });
-    if (!r.loadstuts) throw new Error('WhatsLink 请求失败');
+    if (!r.loadstuts) throw new Error('WhatsLink 請求失敗');
     const data = JSON.parse(r.responseText || '{}');
     overlay.remove(); const shots = Array.isArray(data?.screenshots) ? data.screenshots.filter(item => item?.screenshot) : [];
     if (!shots.length) {
-     notify('暂无截图', data?.name ?`${data.name} 未找到可显示的截图` : '未找到可显示的截图');
+     notify('暫無截圖', data?.name ?`${data.name} 找不到可顯示的截圖` : '找不到可顯示的截圖');
      return; }
     showWhatslinkModal(data, magnet);
    } catch (e) {
-    overlay.remove(); notify('验车失败', e.message || '无法获取磁力信息，请稍后重试'); } }
+    overlay.remove(); notify('驗車失敗', e.message || '無法取得磁力資訊，請稍後再試'); } }
   return { offline115, checkWhatslink, formatBytes };
  })();
  const MagnetEngines = (() => {
@@ -1854,7 +1854,7 @@
    [
     ['size', '大小'],
     ['newest', '最新'],
-    ['oldest', '最旧'],
+    ['oldest', '最舊'],
    ].forEach(([value, label]) => sortSel.add(new Option(label, value))); sortSel.value = CFG.magnetSort; sortSel.disabled = true; table.dataset.sortMode = CFG.magnetSort;
    sortSel.addEventListener('change', () => {
     table.dataset.sortMode = sortSel.value; CFG.magnetSort = sortSel.value;
@@ -1864,13 +1864,13 @@
    ['大小', '文件', '操作', '115'].forEach(txt => {
     const th = document.createElement('th'); th.textContent = txt;
     if (txt === '大小') th.className = 'nong-size-head';
-    if (txt === '文件') th.className = 'nong-file-count-head';
+    if (txt === '檔案') th.className = 'nong-file-count-head';
     if (txt === '操作') th.className = 'nong-op-head';
     if (txt === '115') th.className = 'nong-115-head';
     headRow.appendChild(th);
    });
    syncFileCountColumn(table, curKey); table.appendChild(headRow); const loadRow = document.createElement('tr'); const loadTd = document.createElement('td'); loadTd.colSpan = magnetTableColSpan(table); loadTd.id = 'jav-nong-notice';
-   const loadText = document.createTextNode('Loading…'); const refreshBtn = document.createElement('a'); refreshBtn.id = 'jav-nong-refresh'; refreshBtn.href = '#'; refreshBtn.textContent = '🔄 刷新'; refreshBtn.title = '网络加载失败，点击重试';
+   const loadText = document.createTextNode('Loading…'); const refreshBtn = document.createElement('a'); refreshBtn.id = 'jav-nong-refresh'; refreshBtn.href = '#'; refreshBtn.textContent = '🔄 重新整理'; refreshBtn.title = '網路載入失敗，點選重試';
    refreshBtn.addEventListener('click', e => {
     e.preventDefault(); runSearch(table, avid, sel.value);
    });
@@ -1881,8 +1881,8 @@
    if (sortSelect) sortSelect.disabled = !data.length;
    if (!data.length) {
     const emptyRow = document.createElement('tr'); const td = document.createElement('td'); td.colSpan = magnetTableColSpan(table);
-    td.innerHTML =`无搜索结果 <a href="${engineUrl}" target="_blank" style="color:red">前往查看</a>`;
-    const refresh = document.createElement('a'); refresh.href = '#'; refresh.textContent = ' 🔄 刷新'; refresh.style.cssText = 'margin-left:8px;color:#e74c3c;font-weight:bold;cursor:pointer;';
+    td.innerHTML =`無搜尋結果 <a href="${engineUrl}" target="_blank" style="color:red">前往檢視</a>`;
+    const refresh = document.createElement('a'); refresh.href = '#'; refresh.textContent = ' 🔄 重新整理'; refresh.style.cssText = 'margin-left:8px;color:#e74c3c;font-weight:bold;cursor:pointer;';
     refresh.addEventListener('click', e => { e.preventDefault(); const engineKey = table.querySelector('[data-magnet-engine]')?.value || CFG.defaultEngine; runSearch(table, table.dataset.avid || '', engineKey); });
     td.appendChild(refresh); emptyRow.appendChild(td); table.appendChild(emptyRow); return; }
    data.forEach(item => {
@@ -1907,7 +1907,7 @@
     const titleLink = document.createElement('a'); titleLink.href = item.maglink; titleLink.target = '_self'; titleLink.textContent = item.title; nameSpan.appendChild(titleLink); const displayDate = formatMagnetDate(item);
     if (displayDate) {
      const dateSpan = document.createElement('span'); dateSpan.className = 'nong-magnet-date'; dateSpan.textContent = displayDate;
-     dateSpan.title = item.date ?`收录时间：${item.date}` : '收录时间';
+     dateSpan.title = item.date ?`收录时间：${item.date}` : '收錄時間';
      nameSpan.appendChild(dateSpan); }
     tdTitle.appendChild(nameSpan); tr.appendChild(tdTitle); const tdSize = document.createElement('td'); tdSize.className = 'nong-size-cell'; tdSize.style.whiteSpace = 'nowrap'; tdSize.textContent = item.size; tr.appendChild(tdSize);
     if (showFileCount) {
@@ -1915,12 +1915,12 @@
     const tdOp = document.createElement('td'); tdOp.className = 'nong-op-cell'; tdOp.style.cssText = 'white-space:nowrap;padding-left:3px;padding-right:3px;'; const copyBtn = document.createElement('a'); const magShort = item.maglink.substring(0, 60);
     const dnCode = Utils.extractCode(item.title) || Utils.extractCode(item.maglink);
     const magWithDn = magShort + (dnCode ?`&dn=${encodeURIComponent(dnCode)}` : '');
-    copyBtn.href = magShort; copyBtn.title = magShort; copyBtn.className = 'nong-copy'; copyBtn.textContent = '复制';
+    copyBtn.href = magShort; copyBtn.title = magShort; copyBtn.className = 'nong-copy'; copyBtn.textContent = '複製';
     copyBtn.addEventListener('click', e => {
      e.preventDefault(); GM_setClipboard(magWithDn); copyBtn.textContent = '✓';
-     setTimeout(() => { copyBtn.textContent = '复制'; }, 1000);
+     setTimeout(() => { copyBtn.textContent = '複製'; }, 1000);
     });
-    tdOp.appendChild(copyBtn); const checkBtn = document.createElement('a'); checkBtn.href = '#'; checkBtn.className = 'nong-check'; checkBtn.textContent = '验车';
+    tdOp.appendChild(copyBtn); const checkBtn = document.createElement('a'); checkBtn.href = '#'; checkBtn.className = 'nong-check'; checkBtn.textContent = '驗車';
     checkBtn.addEventListener('click', e => {
      e.preventDefault(); MagnetActions.checkWhatslink(item.maglink);
     });
@@ -1935,12 +1935,12 @@
    [...table.querySelectorAll('tr:not(.nong-head-row)')].forEach(r => r.remove()); table._laosijiMagnetData = null; table._laosijiMagnetEngineUrl = ''; const sortSelect = table.querySelector('[data-magnet-sort]');
    if (sortSelect) sortSelect.disabled = true;
    syncFileCountColumn(table, engineKey); const loadRow = document.createElement('tr'); const loadTd = document.createElement('td'); loadTd.colSpan = magnetTableColSpan(table); loadTd.id = 'jav-nong-notice';
-   const loadText = document.createTextNode('Loading…'); const refreshBtn = table.querySelector('#jav-nong-refresh') || document.createElement('a'); refreshBtn.id = 'jav-nong-refresh'; refreshBtn.href = '#'; refreshBtn.textContent = '🔄 刷新';
+   const loadText = document.createTextNode('Loading…'); const refreshBtn = table.querySelector('#jav-nong-refresh') || document.createElement('a'); refreshBtn.id = 'jav-nong-refresh'; refreshBtn.href = '#'; refreshBtn.textContent = '🔄 重新整理';
    refreshBtn.style.cssText = 'display:none;margin-left:8px;color:#e74c3c;font-weight:bold;cursor:pointer;';
    refreshBtn.onclick = e => { e.preventDefault(); runSearch(table, avid, engineKey); };
    loadTd.appendChild(loadText); loadTd.appendChild(refreshBtn); loadRow.appendChild(loadTd); table.appendChild(loadRow); let timedOut = false;
    const timer = setTimeout(() => {
-    timedOut = true; loadText.textContent = '加载超时 '; refreshBtn.style.display = 'inline';
+    timedOut = true; loadText.textContent = '載入逾時 '; refreshBtn.style.display = 'inline';
    }, 8000);
    try {
     const allEngines = MagnetEngines.getAll(); const fn = allEngines[engineKey] || Object.values(allEngines)[0]; const keyword = MagnetApi.normalizeMagnetSearchKeyword(avid); const result = await fn(keyword);
@@ -1951,12 +1951,12 @@
     if (timedOut) return;
     fillTable(table, data, result.url);
    } catch(e) {
-    clearTimeout(timer); errorLog('磁力搜索出错:', e); loadText.textContent = '搜索出错 '; refreshBtn.style.display = 'inline'; } }
+    clearTimeout(timer); errorLog('磁力搜尋出錯:', e); loadText.textContent = '搜尋發生錯誤 '; refreshBtn.style.display = 'inline'; } }
   function createMagnetWidget(avid) {
    const wrapper = document.createElement('div'); wrapper.className = 'jav-nong-wrapper';
    wrapper.style.cssText =`display:inline-block;width:min(560px,100%);max-width:100%;box-sizing:border-box;padding:12px 12px 10px;background:#fafafa;border:1px solid #ebebeb;border-radius:6px;overflow:hidden;`;
    const header = document.createElement('div'); header.style.cssText = 'margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;'; const title = document.createElement('span');
-   title.style.cssText = 'color:#0066cc;font-size:14px;font-weight:600;'; title.textContent = '🔥 磁力搜索'; header.appendChild(title); wrapper.appendChild(header); const table = buildTable(avid); wrapper.appendChild(table);
+   title.style.cssText = 'color:#0066cc;font-size:14px;font-weight:600;'; title.textContent = '🔥 磁力搜尋'; header.appendChild(title); wrapper.appendChild(header); const table = buildTable(avid); wrapper.appendChild(table);
    const engineKey = table.querySelector('[data-magnet-engine]')?.value || CFG.defaultEngine; runSearch(table, avid, engineKey); return wrapper; }
   return { createMagnetWidget, formatDate: formatMagnetDate, sortData: sortMagnetData, classifyQuality, javdbApi: MagnetApi.client };
  })();
@@ -2064,11 +2064,11 @@
    return tags; }
   function appendFallbackActions(actions, item) {
    const copyButton = createButton('复制', 'laosiji-native-magnet-action laosiji-native-magnet-action-copy', () => {
-    GM_setClipboard(item.maglink); copyButton.textContent = '已复制';
-    setTimeout(() => { copyButton.textContent = '复制'; }, 900);
+    GM_setClipboard(item.maglink); copyButton.textContent = '已複製';
+    setTimeout(() => { copyButton.textContent = '複製'; }, 900);
    });
-   const checkButton = createButton('验车', 'laosiji-native-magnet-action laosiji-native-magnet-action-check', () => { MagnetActions.checkWhatslink(item.maglink); });
-   const offlineButton = createButton('115离线', 'laosiji-native-magnet-action laosiji-native-magnet-action-offline', () => { MagnetActions.offline115(item.maglink); });
+   const checkButton = createButton('驗車', 'laosiji-native-magnet-action laosiji-native-magnet-action-check', () => { MagnetActions.checkWhatslink(item.maglink); });
+   const offlineButton = createButton('115離線', 'laosiji-native-magnet-action laosiji-native-magnet-action-offline', () => { MagnetActions.offline115(item.maglink); });
    actions.append(copyButton, checkButton, offlineButton); }
   function appendActions(actions, item) {
    if (item.assistant?.group) { item.assistant.group._laosijiNativeOrigin = item.assistant; actions.appendChild(item.assistant.group); return; }
@@ -2084,11 +2084,11 @@
   function renderRows(state) {
    const rows = state.panel.querySelector('.laosiji-native-magnet-rows'); const count = state.panel.querySelector('.laosiji-native-magnet-count'); const source = state.panel.querySelector('.laosiji-native-magnet-source');
    const items = state.activeTab === 'aggregate' ? Magnet.sortData(state.aggregateItems, CFG.magnetSort) : state.nativeItems; restoreAssistantGroups(rows); rows.replaceChildren();
-   count.textContent =`${items.length} 条`;
+   count.textContent =`${items.length} 條`;
    source.textContent = state.activeTab === 'aggregate'
-    ?`聚合：${MagnetEngines.labels()[state.engineKey] || state.engineKey}`                : '站内原始条目';
+    ?`聚合：${MagnetEngines.labels()[state.engineKey] || state.engineKey}`                : '站內原始條目';
    if (!items.length) {
-    const empty = document.createElement('div'); empty.className = 'laosiji-native-magnet-empty'; empty.textContent = state.activeTab === 'aggregate' ? '没有搜索到可用磁力' : '站内暂时没有可用磁力'; rows.appendChild(empty); return; }
+    const empty = document.createElement('div'); empty.className = 'laosiji-native-magnet-empty'; empty.textContent = state.activeTab === 'aggregate' ? '沒有搜尋到可用磁力' : '站內暫時沒有可用磁力'; rows.appendChild(empty); return; }
    items.forEach((item, index) => {
     const row = document.createElement('article'); row.className = 'laosiji-native-magnet-row'; const rowIndex = document.createElement('span'); rowIndex.className = 'laosiji-native-magnet-index'; rowIndex.textContent = String(index + 1).padStart(2, '0');
     const name = document.createElement('div'); name.className = 'laosiji-native-magnet-name'; const titleLine = document.createElement('div'); titleLine.className = 'laosiji-native-magnet-title-line'; const title = document.createElement('a');
@@ -2105,7 +2105,7 @@
    aggregateButton?.setAttribute('aria-selected', String(isAggregate)); aggregateControls.hidden = !isAggregate; }
   async function loadAggregate(state) {
    const rows = state.panel.querySelector('.laosiji-native-magnet-rows'); const select = state.panel.querySelector('[data-native-magnet-engine]'); const refresh = state.panel.querySelector('.laosiji-native-magnet-refresh');
-   const empty = document.createElement('div'); empty.className = 'laosiji-native-magnet-empty'; empty.textContent = '正在搜索聚合磁力…'; rows.replaceChildren(empty); select.disabled = true; refresh.disabled = true;
+   const empty = document.createElement('div'); empty.className = 'laosiji-native-magnet-empty'; empty.textContent = '正在搜尋聚合磁力…'; rows.replaceChildren(empty); select.disabled = true; refresh.disabled = true;
    try {
     const engines = MagnetEngines.getAll(); const search = engines[state.engineKey] || Object.values(engines)[0]; const keyword = MagnetApi.normalizeMagnetSearchKeyword(state.avid); const result = await search(keyword);
     state.aggregateItems = normalizeAggregateItems(result?.data || [], {
@@ -2115,7 +2115,7 @@
     });
     state.aggregateUrl = result?.url || ''; renderRows(state);
    } catch (error) {
-    errorLog('磁力聚合搜索出错:', error); empty.textContent = '聚合搜索失败，请刷新重试';
+    errorLog('磁力聚合搜尋發生錯誤：', error); empty.textContent = '聚合搜尋失敗，請重新整理後再試';
    } finally {
     select.disabled = false; refresh.disabled = false; } }
   function activateTab(state, tab) {
@@ -2131,13 +2131,13 @@
    panel.dataset.site = site;
    const state = { panel, site, avid, nativeItems, aggregateItems: null, aggregateUrl: '', engineKey: CFG.defaultEngine, activeTab: nativeItems.length ? CFG.nativeMagnetDefaultTab : 'aggregate' };
    const head = document.createElement('header'); head.className = 'laosiji-native-magnet-head'; const heading = document.createElement('div'); const title = document.createElement('span'); title.className = 'laosiji-native-magnet-title';
-   title.textContent = '磁力资源'; const count = document.createElement('span'); count.className = 'laosiji-native-magnet-count'; heading.append(title, count); const tabs = document.createElement('div'); tabs.className = 'laosiji-native-magnet-tabs';
+   title.textContent = '磁力資源'; const count = document.createElement('span'); count.className = 'laosiji-native-magnet-count'; heading.append(title, count); const tabs = document.createElement('div'); tabs.className = 'laosiji-native-magnet-tabs';
    if (nativeItems.length) { const nativeButton = createButton('站内磁力', 'laosiji-native-magnet-tab', () => activateTab(state, 'native')); nativeButton.dataset.nativeMagnetTab = 'native'; tabs.appendChild(nativeButton); }
-   const aggregateButton = createButton('聚合搜索', 'laosiji-native-magnet-tab', () => activateTab(state, 'aggregate')); aggregateButton.dataset.nativeMagnetTab = 'aggregate'; tabs.appendChild(aggregateButton); const tabTools = document.createElement('div');
+   const aggregateButton = createButton('聚合搜尋', 'laosiji-native-magnet-tab', () => activateTab(state, 'aggregate')); aggregateButton.dataset.nativeMagnetTab = 'aggregate'; tabs.appendChild(aggregateButton); const tabTools = document.createElement('div');
    tabTools.className = 'laosiji-native-magnet-tab-tools'; tabTools.appendChild(tabs);
    if (nativeItems.length) {
-    const defaultTabSelect = document.createElement('select'); defaultTabSelect.className = 'laosiji-native-magnet-default-tab'; defaultTabSelect.setAttribute('aria-label', '默认显示的磁力页签'); defaultTabSelect.title = '设置以后进入详情页时默认显示的页签';
-    defaultTabSelect.add(new Option('默认：站内磁力', 'native')); defaultTabSelect.add(new Option('默认：聚合搜索', 'aggregate')); defaultTabSelect.value = CFG.nativeMagnetDefaultTab;
+    const defaultTabSelect = document.createElement('select'); defaultTabSelect.className = 'laosiji-native-magnet-default-tab'; defaultTabSelect.setAttribute('aria-label', '預設顯示的磁力分頁'); defaultTabSelect.title = '設定後進入詳情頁時預設顯示的分頁';
+    defaultTabSelect.add(new Option('預設：站內磁力', 'native')); defaultTabSelect.add(new Option('預設：聚合搜尋', 'aggregate')); defaultTabSelect.value = CFG.nativeMagnetDefaultTab;
     defaultTabSelect.addEventListener('change', () => {
      CFG.nativeMagnetDefaultTab = defaultTabSelect.value; activateTab(state, defaultTabSelect.value);
     });
@@ -2158,7 +2158,7 @@
     } else { renderRows(state); }
    });
    controls.append(engineSelect, sortSelect, refresh); const rows = document.createElement('div'); rows.className = 'laosiji-native-magnet-rows'; const foot = document.createElement('footer'); foot.className = 'laosiji-native-magnet-foot';
-   const source = document.createElement('span'); source.className = 'laosiji-native-magnet-source'; const hint = document.createElement('span'); hint.textContent = nativeItems.length ? '聚合结果不会覆盖站内磁力' : '聚合搜索沿用已配置的磁力引擎'; foot.append(source, hint);
+   const source = document.createElement('span'); source.className = 'laosiji-native-magnet-source'; const hint = document.createElement('span'); hint.textContent = nativeItems.length ? '聚合結果不會覆蓋站內磁力' : '聚合搜尋沿用已配置的磁力引擎'; foot.append(source, hint);
    panel.append(head, controls, rows, foot); panel._laosijiNativeMagnetState = state; let assistantSyncPending = false;
    const assistantObserver = new MutationObserver(() => {
     if (assistantSyncPending) return;
@@ -2270,14 +2270,14 @@
    const anchor = toolbar.querySelector('[data-resource-entry="blacklist-actors"]');
    if (!anchor) return;
    const nameNode = document.querySelector('.avatar-box .photo-info .mleft, .avatar-box .photo-info .pb10, .avatar-box .photo-info'); const actorName = nameNode?.textContent?.replace(/\s+/g, ' ').trim() || actorId;
-   const button = document.createElement('button'); button.type = 'button'; button.dataset.resourceActorBlacklist = '1'; button.className = 'javbus-actor-blacklist-btn'; button.title = '屏蔽该演员的所有作品';
+   const button = document.createElement('button'); button.type = 'button'; button.dataset.resourceActorBlacklist = '1'; button.className = 'javbus-actor-blacklist-btn'; button.title = '屏蔽該演員的所有作品';
    const syncButtonState = () => {
-    const blocked = !!resourceApi.isActorBlacklisted?.(actorId); button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.classList.toggle('is-active', blocked); };
+    const blocked = !!resourceApi.isActorBlacklisted?.(actorId); button.textContent = blocked ? '移出黑名單' : '加入黑名單'; button.classList.toggle('is-active', blocked); };
    syncButtonState();
    button.addEventListener('click', async event => {
     event.preventDefault(); event.stopPropagation();
     if (button.dataset.loading === '1') return;
-    button.dataset.loading = '1'; button.disabled = true; button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名单...' : '正在读取作品...'; let feedback;
+    button.dataset.loading = '1'; button.disabled = true; button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名單...' : '正在載入作品...'; let feedback;
     try {
      feedback = Utils.createActorBlacklistFeedback(actorName);
      const blocked = await resourceApi.toggleActorBlacklist(actorId, {
@@ -2288,10 +2288,10 @@
       type: /\/uncensored\/star\//i.test(location.pathname) ? 'uncensored' : 'censored',
       source: 'javbus',
      }, feedback.onProgress);
-     button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.classList.toggle('is-active', blocked); feedback.showResult(blocked); document.dispatchEvent(new CustomEvent('laosiji-resource-blacklist-changed'));
+     button.textContent = blocked ? '移出黑名單' : '加入黑名單'; button.classList.toggle('is-active', blocked); feedback.showResult(blocked); document.dispatchEvent(new CustomEvent('laosiji-resource-blacklist-changed'));
     } catch (error) {
      if (feedback) feedback.showFailure(error);
-     else Utils.showToast('黑名单操作失败', error?.message || '资源库写入失败', 3500);
+     else Utils.showToast('黑名單操作失敗', error?.message || '資源庫寫入失敗', 3500);
     } finally {
      syncButtonState(); button.disabled = false; delete button.dataset.loading; }
    });
@@ -2313,7 +2313,7 @@
      if (existingItem.previousElementSibling !== parent) parent.insertAdjacentElement('afterend', existingItem);
      return; }
     const item = document.createElement('li'); item.className = 'javbus-123av-fc2-nav';
-    item.innerHTML =`<a href="/?laosiji_123av_fc2=1" title="打开 123AV-FC2"><span>123AV-FC2</span></a>`;
+    item.innerHTML =`<a href="/?laosiji_123av_fc2=1" title="打開 123AV-FC2"><span>123AV-FC2</span></a>`;
     parent.insertAdjacentElement('afterend', item);
    }); },
   _insert123AvFc2MobileLink() {
@@ -2326,7 +2326,7 @@
     });
     const anchor = forumLink?.closest('.col-xs-6') || overlay.querySelector('.overlay-close');
     if (!anchor) return;
-    const item = document.createElement('div'); item.className = 'col-xs-6 text-center javbus-123av-fc2-mobile'; item.innerHTML = '<a href="/?laosiji_123av_fc2=1" title="打开 123AV-FC2">123AV-FC2</a>';
+    const item = document.createElement('div'); item.className = 'col-xs-6 text-center javbus-123av-fc2-mobile'; item.innerHTML = '<a href="/?laosiji_123av_fc2=1" title="打開 123AV-FC2">123AV-FC2</a>';
     anchor.insertAdjacentElement(forumLink ? 'afterend' : 'beforebegin', item);
    }); },
   _insertTopSettingsButton() {
@@ -2334,7 +2334,7 @@
    if (!navbar || navbar.querySelector('.javbus-top-settings-nav')) return;
    const magnetNav = [...navbar.querySelectorAll(':scope > ul.nav.navbar-nav.navbar-right')].find(ul => { return ul.querySelector('.glyphicon-magnet') || /\u5df2\u6709\u78c1\u529b/.test(ul.textContent || ''); });
    const settingsNav = document.createElement('ul'); settingsNav.className = 'nav navbar-nav navbar-right javbus-top-settings-nav';
-   settingsNav.innerHTML =`<li><a href="javascript:void(0)" class="javbus-top-settings-btn" title="\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e"><span class="glyphicon glyphicon-cog" style="font-size:12px;"></span><span class="hidden-md hidden-sm">\u8001\u53f8\u673a\u8bbe\u7f6e</span></a></li>`;
+   settingsNav.innerHTML =`<li><a href="javascript:void(0)" class="javbus-top-settings-btn" title="開啟老司機設定"><span class="glyphicon glyphicon-cog" style="font-size:12px;"></span><span class="hidden-md hidden-sm">老司機設定</span></a></li>`;
    settingsNav.querySelector('.javbus-top-settings-btn')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget); });
    if (magnetNav) {
     magnetNav.insertAdjacentElement('afterend', settingsNav);
@@ -2414,7 +2414,7 @@
    const heading = this._findRecommendHeading();
    if (!heading && !this._findMagnetSubmitHeading()) return;
    this._ensureJavdbReviewsStyle(); const panel = document.createElement('section'); panel.className = 'javbus-javdb-reviews'; panel.dataset.avid = avid;
-   panel.innerHTML =`<div class="javbus-javdb-reviews-head"><button type="button" class="javbus-javdb-reviews-toggle" aria-expanded="false">JavDB 短评<span class="javbus-javdb-reviews-badge" title="此区块已由 JAV 老司机脚本替换">老司机</span></button><div class="javbus-javdb-reviews-actions"> ${JavdbReviews.renderDefaultToggle()} <button type="button" class="javdb-api-review-collapse javbus-javdb-reviews-collapse" data-javbus-reviews-collapse="1">收起短评</button><a class="javbus-javdb-reviews-link" href="https://javdb.com/search?q= ${encodeURIComponent(avid)} " target="_blank" rel="noopener noreferrer">JavDB</a></div></div><div class="javbus-javdb-reviews-body" hidden><div class="javdb-api-tab-loading">正在读取短评...</div></div>`;
+   panel.innerHTML =`<div class="javbus-javdb-reviews-head"><button type="button" class="javbus-javdb-reviews-toggle" aria-expanded="false">JavDB 短評<span class="javbus-javdb-reviews-badge" title="此區塊已由 JAV 老司機腳本替換">老司機</span></button><div class="javbus-javdb-reviews-actions"> ${JavdbReviews.renderDefaultToggle()} <button type="button" class="javdb-api-review-collapse javbus-javdb-reviews-collapse" data-javbus-reviews-collapse="1">收起短評</button><a class="javbus-javdb-reviews-link" href="https://javdb.com/search?q= ${encodeURIComponent(avid)} " target="_blank" rel="noopener noreferrer">JavDB</a></div></div><div class="javbus-javdb-reviews-body" hidden><div class="javdb-api-tab-loading">正在載入短評...</div></div>`;
    if (this._placeJavbusReviewsPanel(panel)) {
     this._removeRecommendBlock();
    } else {
@@ -2424,11 +2424,11 @@
    this._bindJavbusReviewLoadMore(panel); this._applyJavbusReviewsDefault(panel); },
   _renderJavbusReviewFooter(hasMore, shownCount) {
    return`<div class="javdb-api-tab-footer javbus-javdb-reviews-footer"> ${hasMore
-                                ? `<button type="button" class="javdb-api-tab-load-more javbus-javdb-reviews-load-more" data-shown-count="${shownCount}" data-load-limit="${JAVDB_REVIEW_MORE_LIMIT}">加载更多短评</button>`
-                                : `<div class="javdb-api-tab-end">已加载全部短评</div>`} </div>`;
+                                ? `<button type="button" class="javdb-api-tab-load-more javbus-javdb-reviews-load-more" data-shown-count="${shownCount}" data-load-limit="${JAVDB_REVIEW_MORE_LIMIT}">載入更多短評</button>`
+                                : `<div class="javdb-api-tab-end">已載入全部短評</div>`} </div>`;
   },
   _renderJavbusReviews(reviews, offset = 0, hasMore = false) {
-   const list = Array.isArray(reviews) ? reviews.slice(0, JAVDB_REVIEW_MORE_LIMIT) : []; const items = list.length ? JavdbReviews.renderItems(list, offset, JAVDB_REVIEW_MORE_LIMIT) : '<dt class="javdb-api-tab-empty">暂无短评</dt>';
+   const list = Array.isArray(reviews) ? reviews.slice(0, JAVDB_REVIEW_MORE_LIMIT) : []; const items = list.length ? JavdbReviews.renderItems(list, offset, JAVDB_REVIEW_MORE_LIMIT) : '<dt class="javdb-api-tab-empty">暫無短評</dt>';
    return`<article class="message video-panel javdb-api-review-panel"><div class="message-body"><dl class="review-items javdb-api-tab-items"> ${items} </dl></div></article> ${this._renderJavbusReviewFooter(hasMore, offset + list.length)}`;
   },
   _setJavbusReviewsExpanded(panel, expanded) {
@@ -2471,22 +2471,22 @@
    try {
     const movie = await Magnet.javdbApi.searchMovieByNumber(avid, { limit: 5 });
     if (!movie?.id) {
-     body.innerHTML =`<div class="javdb-api-tab-empty">JavDB 未找到 ${JavdbReviews.escapeHtml(avid)} 的短评</div>`;
+     body.innerHTML =`<div class="javdb-api-tab-empty">JavDB 找不到 ${JavdbReviews.escapeHtml(avid)} 的短評</div>`;
      return; }
     const link = panel.querySelector('.javbus-javdb-reviews-link');
     if (link) link.href =`https://javdb.com/v/${encodeURIComponent(movie.id)}`;
     panel.dataset.movieId = movie.id;
     const json = await Magnet.javdbApi.movieReviews(movie.id, { page: 1, limit: JAVDB_REVIEW_INITIAL_LIMIT + 1 });
     const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : []; const reviews = allReviews.slice(0, JAVDB_REVIEW_INITIAL_LIMIT);
-    body.innerHTML = reviews.length ? this._renderJavbusReviews(reviews, 0, allReviews.length > JAVDB_REVIEW_INITIAL_LIMIT) : '<div class="javdb-api-tab-empty">暂无短评</div>';
+    body.innerHTML = reviews.length ? this._renderJavbusReviews(reviews, 0, allReviews.length > JAVDB_REVIEW_INITIAL_LIMIT) : '<div class="javdb-api-tab-empty">暫無短評</div>';
    } catch (err) {
-    errorLog('JavBus JavDB 短评读取失败:', err);
-    body.innerHTML =`<div class="javdb-api-tab-error"> ${JavdbReviews.escapeHtml(err.message || '短评读取失败')} </div>`;
+    errorLog('JavBus JavDB 短評讀取失敗:', err);
+    body.innerHTML =`<div class="javdb-api-tab-error"> ${JavdbReviews.escapeHtml(err.message || '短評讀取失敗')} </div>`;
    } },
   async _loadMoreJavdbReviewsForJavbus(panel, btn) {
    const movieId = panel?.dataset?.movieId || ''; const body = panel?.querySelector('.javbus-javdb-reviews-body');
    if (!movieId || !body || !btn) return;
-   const shown = body.querySelectorAll('.javdb-api-review').length; const take = Math.max(1, parseInt(btn.dataset.loadLimit, 10) || JAVDB_REVIEW_MORE_LIMIT); const oldText = btn.textContent; btn.textContent = '加载中...'; btn.disabled = true;
+   const shown = body.querySelectorAll('.javdb-api-review').length; const take = Math.max(1, parseInt(btn.dataset.loadLimit, 10) || JAVDB_REVIEW_MORE_LIMIT); const oldText = btn.textContent; btn.textContent = '載入中...'; btn.disabled = true;
    try {
     const json = await Magnet.javdbApi.movieReviews(movieId, { page: 1, limit: shown + take + 1 });
     const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : []; const nextReviews = allReviews.slice(shown, shown + take); const items = body.querySelector('.javdb-api-tab-items');
@@ -2497,7 +2497,7 @@
     items?.insertAdjacentHTML('beforeend', JavdbReviews.renderItems(nextReviews, shown, take)); const nextShown = shown + nextReviews.length; const hasMore = allReviews.length > nextShown;
     if (footer) footer.outerHTML = this._renderJavbusReviewFooter(hasMore, nextShown);
    } catch (err) {
-    errorLog('JavBus JavDB 更多短评读取失败:', err); btn.textContent = '加载失败，点击重试'; btn.disabled = false; return; }
+    errorLog('JavBus JavDB 更多短評讀取失敗：', err); btn.textContent = '載入失敗，點選重試'; btn.disabled = false; return; }
    btn.textContent = oldText; btn.disabled = false; }, };
  Object.assign(SiteJavBus, JavbusReviews);
  const JavbusList = {
@@ -2578,7 +2578,7 @@
    let toolbar = parent.querySelector(':scope > .javbus-resource-toolbar');
    if (!toolbar) {
     toolbar = document.createElement('div'); toolbar.className = 'javbus-resource-toolbar';
-    toolbar.innerHTML =`<div class="javbus-resource-toolbar-group javbus-resource-toolbar-group-left"><button type="button" data-resource-entry="manager" title="打开资源管理">资源管理</button><button type="button" data-resource-entry="history" title="打开鉴定记录">鉴定记录</button><button type="button" data-resource-entry="blacklist-works" title="打开作品黑名单">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors" title="打开演员黑名单">演员黑名单</button></div><div class="javbus-resource-toolbar-group javbus-resource-toolbar-group-right"><button type="button" data-resource-entry="works-favorite" title="查看作品库中已收藏的作品">已收藏</button><button type="button" data-resource-entry="works-downloaded" title="查看作品库中已下载的作品">已下载</button><button type="button" data-resource-entry="works-watched" title="查看作品库中已观看的作品">已观看</button></div>`;
+    toolbar.innerHTML =`<div class="javbus-resource-toolbar-group javbus-resource-toolbar-group-left"><button type="button" data-resource-entry="manager" title="打開資源管理">資源管理</button><button type="button" data-resource-entry="history" title="打開鑒定記錄">鑒定記錄</button><button type="button" data-resource-entry="blacklist-works" title="打開作品黑名單">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors" title="打開演員黑名單">演員黑名單</button></div><div class="javbus-resource-toolbar-group javbus-resource-toolbar-group-right"><button type="button" data-resource-entry="works-favorite" title="查看作品庫中已收藏的作品">已收藏</button><button type="button" data-resource-entry="works-downloaded" title="查看作品庫中已下載的作品">已下載</button><button type="button" data-resource-entry="works-watched" title="查看作品庫中已觀看的作品">已觀看</button></div>`;
     const open = (selector, ...args) => {
      toolbar.querySelector(selector)?.addEventListener('click', event => {
       event.preventDefault(); resourceApi.open(...args);
@@ -2726,7 +2726,7 @@
     const path = getActorPath(source, anchor.getAttribute('href')); const id = getActorId(source, path).toLowerCase(); const name = normalizeActorKey(anchor.textContent);
     const matched = id ? favorite.ids.has(id) : (path && favorite.paths.has(path)) || (name && favorite.names.has(name)); anchor.classList.toggle('laosiji-favorite-actor', !!matched);
     anchor.classList.toggle(`${source}-favorite-actor`, !!matched);
-    if (matched) anchor.title = anchor.title || '\u5df2收藏演员';
+    if (matched) anchor.title = anchor.title || '已收藏演員';
    }); }
   function ensureStyle() {
    injectStyle('favorite-actor-highlight-style',`a.laosiji-favorite-actor{color:#d97706!important;font-weight:700!important;text-shadow:0 0 0 rgba(217,119,6,.2)}a.laosiji-favorite-actor::after{content:"已收藏";display:inline-block;margin-left:4px;padding:1px 5px;border-radius:999px;background:rgba(245,158,11,.14);color:#d97706;font-size:11px;font-weight:700;vertical-align:1px}html[data-theme="dark"] a.laosiji-favorite-actor{color:#fbbf24!important}html[data-theme="dark"] a.laosiji-favorite-actor::after{background:rgba(251,191,36,.16);color:#fde68a}`);
@@ -2752,7 +2752,7 @@
    try {
     await resourceApi.syncActors(); await highlight(source, options);
    } catch (error) {
-    debugLog(`${source} 收藏演员同步失败:`, error?.message || error);
+    debugLog(`${source} 收藏演员同步失敗:`, error?.message || error);
    } }
   async function maybeInitialSync(source, options = {}) {
    const config = getConfig(source);
@@ -2769,7 +2769,7 @@
      if (resourceApi.getLoginState() !== true) return;
      const syncActors = resourceApi.syncActorsWithStatus || resourceApi.syncActors; await syncActors(); await highlight(source, options);
     } catch (error) {
-     debugLog(`${source} 首次收藏演员同步失败:`, error?.message || error);
+     debugLog(`${source} 首次收藏演员同步失敗:`, error?.message || error);
     }
    })().finally(() => initialSyncInFlight.delete(source));
    initialSyncInFlight.set(source, task); return task; }
@@ -2829,11 +2829,11 @@
    const value = Math.max(0, Math.min(5, parseInt(score, 10) || 0));
    return `<span class="score-stars"> ${Array.from({ length: 5 }, (_, index) => `<i class="icon-star${index < value ? '' : ' gray'}"></i>`).join('')} </span>`;
   },
-  renderLoading(text = '读取中...') {
+  renderLoading(text = '讀取中...') {
    return `<div class="javdb-api-tab-loading"> ${this._escapeHtml(text)} </div>`;
   },
   renderError(text) {
-   return `<div class="javdb-api-tab-error"> ${this._escapeHtml(text || '读取失败')} </div>`;
+   return `<div class="javdb-api-tab-error"> ${this._escapeHtml(text || '讀取失敗')} </div>`;
   },
   renderFooter(tab, nextPage, hasNext, doneText, moreText, pageSize = 20, shownCount = 0, loadLimit = pageSize) {
    return `<div class="javdb-api-tab-footer"> ${hasNext
@@ -2842,7 +2842,7 @@
   },
   renderMagnetRows(magnets) {
    const list = Array.isArray(magnets) ? magnets : [];
-   if (!list.length) return '<div class="javdb-api-tab-empty">暂无磁力信息</div>';
+   if (!list.length) return '<div class="javdb-api-tab-empty">暫無磁力資訊</div>';
    return list.map((item, index) => {
     const hash = String(item?.hash || '').trim();
     if (!hash) return '';
@@ -2850,7 +2850,7 @@
     const magnet = `magnet:?xt=urn:btih:${hash}&dn=${encodeURIComponent(`[javdb.com]${name}`)}`;
     const meta = [
      this._formatApiSize(item?.size),
-     Number(item?.files_count || 0) > 0 ? `${item.files_count}個文件` : '',
+     Number(item?.files_count || 0) > 0 ? `${item.files_count}個檔案` : '',
     ].filter(Boolean).join(', ');
     const tags = [
      item?.hd ? '<span class="tag is-primary is-small is-light">高清</span>' : '',
@@ -2863,18 +2863,18 @@
    return `<article class="message video-panel"><div class="message-body"><div id="magnets-content" class="magnet-links" data-laosiji-api-source="1"> ${this._renderApiMagnetRows(magnets)} </div></div></article>`;
   },
   renderReviews(reviews, page, limit) {
-   const list = Array.isArray(reviews) ? reviews.slice(0, limit) : []; const items = list.length ? this._renderApiReviewItems(list, (page - 1) * limit, limit) : '<dt class="javdb-api-tab-empty">暂无短评</dt>';
-   return `${this._renderApiReviewCollapseBar()} <article class="message video-panel javdb-api-review-panel"><div class="message-body"><dl class="review-items javdb-api-tab-items"> ${items} </dl></div></article> ${this._renderApiTabFooter('reviews', page + 1, list.length >= limit, '已加载全部短评', '加载更多短评', limit, list.length, JAVDB_REVIEW_MORE_LIMIT)}`;
+   const list = Array.isArray(reviews) ? reviews.slice(0, limit) : []; const items = list.length ? this._renderApiReviewItems(list, (page - 1) * limit, limit) : '<dt class="javdb-api-tab-empty">暫無短評</dt>';
+   return `${this._renderApiReviewCollapseBar()} <article class="message video-panel javdb-api-review-panel"><div class="message-body"><dl class="review-items javdb-api-tab-items"> ${items} </dl></div></article> ${this._renderApiTabFooter('reviews', page + 1, list.length >= limit, '已載入全部短評', '載入更多短評', limit, list.length, JAVDB_REVIEW_MORE_LIMIT)}`;
   },
   renderRelatedItems(lists, offset = 0) {
    const list = Array.isArray(lists) ? lists : [];
    return list.map((item, index) => {
     const href = `/lists/${encodeURIComponent(item?.id || '')}`;
-    return `<div class="javdb-api-related"><div class="javdb-api-related-head"><span><strong>#${offset + index + 1}</strong><a href="${this._escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${this._escapeHtml(item?.name || '未命名清單')}</a></span><span>${this._escapeHtml(this._formatApiDate(item?.created_at))}</span></div> ${item?.description ? `<div class="javdb-api-related-desc">${this._renderApiLinkedText(item.description)}</div>` : ''} <div class="javdb-api-related-meta"><span>影片:${this._escapeHtml(item?.movies_count ?? '-')}</span><span>收藏:${this._escapeHtml(item?.collections_count ?? '-')}</span><span>浏览:${this._escapeHtml(item?.views_count ?? '-')}</span></div></div>`;
+    return `<div class="javdb-api-related"><div class="javdb-api-related-head"><span><strong>#${offset + index + 1}</strong><a href="${this._escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${this._escapeHtml(item?.name || '未命名清單')}</a></span><span>${this._escapeHtml(this._formatApiDate(item?.created_at))}</span></div> ${item?.description ? `<div class="javdb-api-related-desc">${this._renderApiLinkedText(item.description)}</div>` : ''} <div class="javdb-api-related-meta"><span>影片:${this._escapeHtml(item?.movies_count ?? '-')}</span><span>收藏:${this._escapeHtml(item?.collections_count ?? '-')}</span><span>瀏覽:${this._escapeHtml(item?.views_count ?? '-')}</span></div></div>`;
    }).join(''); },
   renderRelatedLists(lists, page, limit) {
-   const list = Array.isArray(lists) ? lists : []; const items = list.length ? this._renderApiRelatedItems(list, (page - 1) * limit) : '<div class="javdb-api-tab-empty">暂无相关清单</div>';
-   return `<div class="javdb-api-tab-items"> ${items} </div> ${this._renderApiTabFooter('lists', page + 1, list.length >= limit, '已加载全部清单', '加载更多清单')}`;
+   const list = Array.isArray(lists) ? lists : []; const items = list.length ? this._renderApiRelatedItems(list, (page - 1) * limit) : '<div class="javdb-api-tab-empty">暫無相關清單</div>';
+   return `<div class="javdb-api-tab-items"> ${items} </div> ${this._renderApiTabFooter('lists', page + 1, list.length >= limit, '已載入全部清單', '載入更多清單')}`;
   }, };
  const JavdbApiTabs = {
   _getCurrentMovieId() {
@@ -2893,7 +2893,7 @@
    if (!tabs) return;
    let badge = tabs.querySelector('.javdb-api-tab-badge');
    if (!badge) { badge = document.createElement('span'); badge.className = 'javdb-api-tab-badge'; }
-   badge.textContent = '老司机'; badge.title = '此区块已由 JAV 老司机脚本替换'; let badgeItem = tabs.querySelector('.javdb-api-tab-badge-item');
+   badge.textContent = '老司機'; badge.title = '此區塊已由 JAV 老司機腳本替換'; let badgeItem = tabs.querySelector('.javdb-api-tab-badge-item');
    if (!badgeItem) { badgeItem = document.createElement('li'); badgeItem.className = 'javdb-api-tab-badge-item'; }
    if (!badgeItem.contains(badge)) badgeItem.appendChild(badge);
    const listTab = document.querySelector('[data-movie-tab-target="listTab"]');
@@ -2907,7 +2907,7 @@
    const tabList = tabs.querySelector('ul') || tabs; let controlItem = tabs.querySelector('.javdb-api-tab-default-item');
    if (!controlItem) {
     controlItem = document.createElement('li'); controlItem.className = 'javdb-api-tab-default-item';
-    controlItem.innerHTML = `<span class="javdb-api-tab-default-control" title="设置以后进入详情页默认显示的区块"><span class="javdb-api-tab-default-label">默认</span><button type="button" class="javdb-api-tab-default-btn" data-laosiji-api-default-tab="magnets">磁力</button><button type="button" class="javdb-api-tab-default-btn" data-laosiji-api-default-tab="reviews">短评</button></span>`;
+    controlItem.innerHTML = `<span class="javdb-api-tab-default-control" title="設定後進入詳情頁預設顯示的區塊"><span class="javdb-api-tab-default-label">預設</span><button type="button" class="javdb-api-tab-default-btn" data-laosiji-api-default-tab="magnets">磁力</button><button type="button" class="javdb-api-tab-default-btn" data-laosiji-api-default-tab="reviews">短評</button></span>`;
    }
    const badgeItem = tabs.querySelector('.javdb-api-tab-badge-item');
    if (badgeItem?.parentElement) {
@@ -2947,7 +2947,7 @@
    const visibleReviewCount = tab === 'reviews' && append ? Math.max(0, parseInt(shownCount, 10) || pane.querySelectorAll('.javdb-api-review').length || 0) : 0;
    const reviewTake = append ? Math.max(1, parseInt(loadLimit, 10) || JAVDB_REVIEW_MORE_LIMIT) : JAVDB_REVIEW_INITIAL_LIMIT; const limit = tab === 'reviews' ? visibleReviewCount + reviewTake : 20;
    const interactionTask = tab === 'reviews' ? JavdbReviews.loadInteractionTemplate(movieId) : null;
-   if (!append) pane.innerHTML = this._renderApiTabLoading(tab === 'magnets' ? '正在读取磁力...' : tab === 'reviews' ? '正在读取短评...' : '正在读取相关清单...');
+   if (!append) pane.innerHTML = this._renderApiTabLoading(tab === 'magnets' ? '正在讀取磁力…' : tab === 'reviews' ? '正在讀取短評…' : '正在讀取相關清單…');
    try {
     if (tab === 'magnets') {
      const json = await Magnet.javdbApi.movieMagnets(movieId); const magnets = Array.isArray(json?.data?.magnets) ? json.data.magnets : []; pane.innerHTML = this._renderApiMagnets(magnets); pane.dataset.laosijiApiLoaded = '1';
@@ -2958,21 +2958,21 @@
      const allReviews = Array.isArray(json?.data?.reviews) ? json.data.reviews : []; const reviews = append ? allReviews.slice(visibleReviewCount, visibleReviewCount + reviewTake) : allReviews.slice(0, JAVDB_REVIEW_INITIAL_LIMIT);
      if (append) {
       pane.querySelector('.javdb-api-tab-items')?.insertAdjacentHTML('beforeend', this._renderApiReviewItems(reviews, visibleReviewCount, reviewTake));
-      this._updateApiTabFooter(pane, 'reviews', page + 1, allReviews.length >= limit && reviews.length > 0, '已加载全部短评', '加载更多短评');
+      this._updateApiTabFooter(pane, 'reviews', page + 1, allReviews.length >= limit && reviews.length > 0, '已載入全部短評', '載入更多短評');
      } else { pane.innerHTML = this._renderApiReviews(reviews, page, JAVDB_REVIEW_INITIAL_LIMIT); }
      pane.dataset.laosijiApiLoaded = '1'; interactionTask?.then(() => JavdbReviews.syncActionForms(pane)); return; }
     if (tab === 'lists') {
      const json = await Magnet.javdbApi.relatedLists(movieId, { page, limit });
      const lists = Array.isArray(json?.data?.lists) ? json.data.lists : [];
      if (append) {
-      pane.querySelector('.javdb-api-tab-items')?.insertAdjacentHTML('beforeend', this._renderApiRelatedItems(lists, (page - 1) * limit)); this._updateApiTabFooter(pane, 'lists', page + 1, lists.length >= limit, '已加载全部清单', '加载更多清单');
+      pane.querySelector('.javdb-api-tab-items')?.insertAdjacentHTML('beforeend', this._renderApiRelatedItems(lists, (page - 1) * limit)); this._updateApiTabFooter(pane, 'lists', page + 1, lists.length >= limit, '已載入全部清單', '載入更多清單');
      } else { pane.innerHTML = this._renderApiRelatedLists(lists, page, limit); }
      pane.dataset.laosijiApiLoaded = '1'; }
    } catch (err) {
-    errorLog('JavDB API tab 读取失败:', tab, err);
+    errorLog('JavDB API tab 讀取失敗:', tab, err);
     if (append) {
-     this._updateApiTabFooter(pane, tab, page, true, '', '加载失败，点击重试');
-    } else { pane.innerHTML = this._renderApiTabError(err.message || '读取失败'); } } },
+     this._updateApiTabFooter(pane, tab, page, true, '', '載入失敗，點擊重試');
+    } else { pane.innerHTML = this._renderApiTabError(err.message || '讀取失敗'); } } },
   _initApiMovieTabs() {
    const movieId = this._getCurrentMovieId(); const tabsContainer = document.getElementById('tabs-container'); const magnetsPane = document.getElementById('magnets'); const reviewsPane = document.getElementById('reviews');
    const listsPane = document.getElementById('lists');
@@ -3016,7 +3016,7 @@
     const loadMore = e.target?.closest?.('.javdb-api-tab-load-more[data-laosiji-api-load-tab]');
     if (loadMore && tabsContainer.contains(loadMore)) {
      e.preventDefault(); e.stopImmediatePropagation(); const tab = loadMore.dataset.laosijiApiLoadTab; const nextPage = parseInt(loadMore.dataset.nextPage || '2', 10) || 2; const pageSize = parseInt(loadMore.dataset.pageSize || '', 10) || null;
-     const shownCount = parseInt(loadMore.dataset.shownCount || '', 10) || null; const loadLimit = parseInt(loadMore.dataset.loadLimit || '', 10) || null; loadMore.textContent = '加载中...'; loadMore.disabled = true;
+     const shownCount = parseInt(loadMore.dataset.shownCount || '', 10) || null; const loadLimit = parseInt(loadMore.dataset.loadLimit || '', 10) || null; loadMore.textContent = '載入中...'; loadMore.disabled = true;
      this._loadApiMovieTab(movieId, tab, nextPage, true, pageSize, shownCount, loadLimit); return; }
     const expandReviews = e.target?.closest?.('[data-laosiji-api-expand-reviews]');
     if (expandReviews && tabsContainer.contains(expandReviews)) {
@@ -3068,7 +3068,7 @@
     if (nav.querySelector('.javdb-pagination-jump')) return;
     const list = nav.querySelector('.pagination-list'); const host = document.createElement(list ? 'li' : 'div'); host.className = list ? 'javdb-pagination-jump-item' : 'javdb-pagination-jump-item pagination-link'; const form = document.createElement('form');
     form.className = 'javdb-pagination-jump';
-    form.innerHTML = `<input class="pagination-link" type="number" min="1" step="1" inputmode="numeric" aria-label="跳转页码" placeholder="页码" value="${this._escapeHtml(this._paginationCurrentPage(nav))}"><button class="pagination-link" type="submit">跳转</button>`;
+    form.innerHTML = `<input class="pagination-link" type="number" min="1" step="1" inputmode="numeric" aria-label="跳轉頁碼" placeholder="頁碼" value="${this._escapeHtml(this._paginationCurrentPage(nav))}"><button class="pagination-link" type="submit">跳轉</button>`;
     form.addEventListener('submit', e => {
      e.preventDefault(); const input = form.querySelector('input'); const page = Math.max(1, parseInt(input?.value || '1', 10) || 1); location.href = this._paginationPageUrl(page);
     });
@@ -3123,7 +3123,7 @@
    const run = promise => {
     Promise.resolve(promise).catch(err => {
      if (token !== this._customPageSpaToken) return;
-     errorLog('JavDB 自造页渲染失败:', err);
+     errorLog('JavDB 自訂頁面渲染失敗:', err);
     }); };
    let painted = false;
    if (is123Av) {
@@ -3174,12 +3174,12 @@
    const rows = Array.isArray(detail.rows) ? detail.rows : [];
    const rowsHtml = rows.filter(row => row && (row.html || row.value)).map(row => `<div class="panel-block"><strong>${escapeHtml(row.label)}:</strong>&nbsp;<span class="value">${row.html || escapeHtml(row.value)}</span></div>`).join('');
    const tags = Array.isArray(detail.tags) && detail.tags.length
-    ? `<div class="panel-block"><strong>标签:</strong>&nbsp;<span class="value">${detail.tags.map(tag => `<span class="javdb-123av-fc2-detail-chip">${escapeHtml(tag)}</span>`).join('')}</span></div>`
+    ? `<div class="panel-block"><strong>標籤:</strong>&nbsp;<span class="value">${detail.tags.map(tag => `<span class="javdb-123av-fc2-detail-chip">${escapeHtml(tag)}</span>`).join('')}</span></div>`
     : '';
    const cover = detail.cover
     ? `<a data-fancybox="gallery" href="${escapeHtml(detail.cover)}"><img src="${escapeHtml(detail.cover)}" class="video-cover" alt="${escapeHtml(detail.title)}"></a>`
-    : '<span class="javdb-123av-fc2-detail-empty">未找到封面</span>';
-   return `<div class="video-detail javdb-api-detail javdb-123av-fc2-unified-detail" data-javdb-api-detail="1" data-laosiji-code="${escapeHtml(detail.code)}" data-laosiji-123av-fc2-detail-site="${escapeHtml(site)}"><h2 class="title is-4 javdb-api-detail-title" data-laosiji-code="${escapeHtml(detail.code)}"><strong>${escapeHtml(detail.code)}</strong><span class="javdb-api-detail-title-separator" aria-hidden="true"> - </span><strong class="current-title">${escapeHtml(detail.title)}</strong></h2><div class="javdb-123av-fc2-overview"><div class="columns is-desktop jav-flex-container" data-laosiji-123av-fc2-layout-site="${escapeHtml(site)}"><div class="column column-video-cover javdb-fc2-cover-column">${cover}</div><div class="column column-video-info"><nav class="panel movie-panel-info"><div class="panel-block first-block"><strong>番号:</strong>&nbsp;<span class="value">${escapeHtml(detail.code)}</span></div> ${rowsHtml}${tags} </nav></div></div></div> ${samplesHtml} <section class="javdb-fc2-detail-magnet"><h2 class="javdb-fc2-detail-magnet-title">磁力聚合</h2><div class="javdb-fc2-detail-magnet-body"></div></section></div>`;
+    : '<span class="javdb-123av-fc2-detail-empty">找不到封面</span>';
+   return `<div class="video-detail javdb-api-detail javdb-123av-fc2-unified-detail" data-javdb-api-detail="1" data-laosiji-code="${escapeHtml(detail.code)}" data-laosiji-123av-fc2-detail-site="${escapeHtml(site)}"><h2 class="title is-4 javdb-api-detail-title" data-laosiji-code="${escapeHtml(detail.code)}"><strong>${escapeHtml(detail.code)}</strong><span class="javdb-api-detail-title-separator" aria-hidden="true"> - </span><strong class="current-title">${escapeHtml(detail.title)}</strong></h2><div class="javdb-123av-fc2-overview"><div class="columns is-desktop jav-flex-container" data-laosiji-123av-fc2-layout-site="${escapeHtml(site)}"><div class="column column-video-cover javdb-fc2-cover-column">${cover}</div><div class="column column-video-info"><nav class="panel movie-panel-info"><div class="panel-block first-block"><strong>番號:</strong>&nbsp;<span class="value">${escapeHtml(detail.code)}</span></div> ${rowsHtml}${tags} </nav></div></div></div> ${samplesHtml} <section class="javdb-fc2-detail-magnet"><h2 class="javdb-fc2-detail-magnet-title">磁力聚合</h2><div class="javdb-fc2-detail-magnet-body"></div></section></div>`;
   }
   return { installStyles, render, escapeHtml };
  })();
@@ -3208,7 +3208,7 @@
     ? `https://c0.jdbstatic.com/thumbs/${id.slice(0, 2).toLowerCase()}/${encodeURIComponent(id)}.jpg`
     : this._imageUrl(movie?.thumb_url); },
   _renderNavLinks(active = '') {
-   return `<a class="javdb-content-nav-link ${active === 'reviews' ? 'is-active' : ''}" href="${this._contentUrl()}">看短评</a>`;
+   return `<a class="javdb-content-nav-link ${active === 'reviews' ? 'is-active' : ''}" href="${this._contentUrl()}">看短評</a>`;
   },
   _installStyle() {
    injectStyle('javdb-content-shell-style',`.javdb-content-nav-link{display:inline-flex!important;align-items:center!important;min-height:40px!important;padding:0 12px!important;border-bottom:2px solid transparent!important;color:#4b5563!important;text-decoration:none!important;white-space:nowrap!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#0f766e!important;color:#0f766e!important;background:rgba(13,148,136,.06)!important}#navbar-menu-user .javdb-content-nav-link{display:flex!important;align-items:center!important;height:52px!important;min-height:52px!important;border-bottom:0!important;color:#38bdf8!important;font-weight:400!important;line-height:1.5!important;box-sizing:border-box!important;position:relative!important}#navbar-menu-user .javdb-content-nav-link::after{content:''!important;position:absolute!important;left:12px!important;right:12px!important;bottom:0!important;height:2px!important;background:transparent!important}#navbar-menu-user .javdb-content-nav-link:hover,#navbar-menu-user .javdb-content-nav-link.is-active{color:#facc15!important;background:rgba(255,255,255,.12)!important}#navbar-menu-user .javdb-content-nav-link:hover::after,#navbar-menu-user .javdb-content-nav-link.is-active::after{background:#facc15!important}.javdb-content-mobile-nav-link{display:none!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#eef3f4!important}html.laosiji-content-route body>section .container{max-width:1024px!important;margin:0 auto!important;padding:32px 42px 64px!important;background:#fbfcfd!important}.javdb-content-shell{--javdb-content-ink:#182230;--javdb-content-muted:#5f6b7a;--javdb-content-line:#d9e0e7;max-width:940px!important;margin:32px auto 56px!important;color:var(--javdb-content-ink)!important}.javdb-content-shell-head{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:16px!important;flex-wrap:wrap!important;margin:0 0 24px!important;padding:0 0 18px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-shell-title{color:var(--javdb-content-ink)!important;font-size:31px!important;font-weight:800!important;line-height:1.2!important;letter-spacing:0!important}.javdb-content-shell-nav,.javdb-content-toolbar{display:flex!important;align-items:center!important;gap:4px!important;flex-wrap:wrap!important}.javdb-content-toolbar{gap:8px!important;margin:-6px 0 18px!important}.javdb-content-toolbar a,.javdb-content-pagination a,.javdb-content-pagination span{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:40px!important;padding:0 13px!important;border:1px solid var(--javdb-content-line)!important;border-radius:6px!important;background:transparent!important;color:#334155!important;font-size:14px!important;font-weight:700!important;line-height:1!important;text-decoration:none!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#0f766e!important;background:#ecfdf5!important;color:#0f766e!important}.javdb-content-pagination span{border-color:transparent!important;color:var(--javdb-content-muted)!important}.javdb-content-status{margin:0 0 18px!important;color:var(--javdb-content-muted)!important;font-size:14px!important;line-height:1.5!important}.javdb-content-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:0!important}.javdb-content-pagination{display:flex!important;justify-content:center!important;align-items:center!important;gap:8px!important;margin:28px 0 8px!important}.javdb-content-review-list{max-width:none!important;margin:0!important}.javdb-content-review{padding:0 0 28px!important;margin:0 0 28px!important;border-bottom:1px solid var(--javdb-content-line)!important}.javdb-content-review:last-child{border-bottom:0!important}.javdb-content-review-movie{display:flex!important;align-items:flex-start!important;gap:12px!important;margin-bottom:13px!important;color:var(--javdb-content-ink)!important;text-decoration:none!important}.javdb-content-review-movie img{width:58px!important;height:76px!important;flex:0 0 58px!important;object-fit:cover!important;border-radius:4px!important;background:#dfe7e7!important}.javdb-content-review-movie-copy{min-width:0!important;padding-top:2px!important}.javdb-content-review-movie-code{display:block!important;color:#0f766e!important;font-size:12px!important;font-weight:800!important;line-height:1.3!important}.javdb-content-review-movie strong{display:block!important;margin-top:3px!important;font-size:16px!important;line-height:1.5!important;font-weight:750!important}.javdb-content-review-movie small{display:block!important;margin-top:5px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.4!important}.javdb-content-review-head{display:flex!important;align-items:center!important;gap:9px!important;color:var(--javdb-content-muted)!important;font-size:13px!important;line-height:1.45!important}.javdb-content-review-user{color:#334155!important;font-weight:800!important}.javdb-content-review-stars{margin-left:auto!important;color:#a16207!important;font-size:15px!important;letter-spacing:2px!important;white-space:nowrap!important}.javdb-content-review-text{margin:13px 0 0!important;color:#273444!important;font-size:16px!important;line-height:1.85!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f1f5f9;--javdb-content-muted:#b0becd;--javdb-content-line:#344252}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#101820!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#17212b!important}html[data-theme="dark"] .javdb-content-toolbar a,html[data-theme="dark"] .javdb-content-pagination a,html[data-theme="dark"] .javdb-content-pagination span{color:#e2e8f0!important}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#163a36!important;color:#b9f5e7!important}html[data-theme="dark"] .javdb-content-review-user,html[data-theme="dark"] .javdb-content-review-text{color:#e2e8f0!important}html.laosiji-content-route body,html.laosiji-content-route body>section{background:#f3f1ed!important}html.laosiji-content-route body>section .container{max-width:1024px!important;padding:32px 42px 64px!important;background:#faf9f6!important}.javdb-content-shell{--javdb-content-ink:#28221f;--javdb-content-muted:#736b63;--javdb-content-line:#d8d0c7;max-width:940px!important}.javdb-content-nav-link:hover,.javdb-content-nav-link.is-active{border-bottom-color:#a63b2c!important;color:#a63b2c!important;background:#f9ece8!important}.javdb-content-toolbar a:hover,.javdb-content-toolbar a.is-active,.javdb-content-pagination a:hover{border-color:#a63b2c!important;background:#f9ece8!important;color:#8c3024!important}.javdb-content-review-movie-code{color:#a63b2c!important}.javdb-content-review-movie img{background:#ddd7cf!important}html[data-theme="dark"].laosiji-content-route body,html[data-theme="dark"].laosiji-content-route body>section{background:#1d1a18!important}html[data-theme="dark"].laosiji-content-route body>section .container{background:#25211e!important}html[data-theme="dark"] .javdb-content-shell{--javdb-content-ink:#f3eee8;--javdb-content-muted:#c3b9ae;--javdb-content-line:#4a423c}html[data-theme="dark"] .javdb-content-toolbar a:hover,html[data-theme="dark"] .javdb-content-toolbar a.is-active,html[data-theme="dark"] .javdb-content-pagination a:hover{background:#442720!important;color:#ffd8cf!important}@media (max-width:760px){html.laosiji-content-route body>section .container{padding:20px 18px 44px!important}.javdb-content-shell{margin:18px 0 32px!important}.javdb-content-shell-head{align-items:flex-start!important;margin-bottom:18px!important}.javdb-content-shell-title{font-size:27px!important}.javdb-content-toolbar{gap:6px!important;margin-bottom:16px!important}.javdb-content-toolbar a{min-height:40px!important;padding:0 10px!important}.javdb-content-review{padding-bottom:24px!important;margin-bottom:24px!important}.javdb-content-review-text{font-size:16px!important}}html[data-laosiji-mobile] #navbar-menu-user .javdb-content-nav-link{display:none!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link{display:flex!important;min-height:48px!important;padding:0 18px!important;color:#334155!important;font-weight:800!important}html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link:hover,html[data-laosiji-mobile] #navbar-menu-hero .javdb-content-mobile-nav-link.is-active{color:#a63b2c!important;background:#f9ece8!important}`);
@@ -3245,38 +3245,38 @@
     [...mobileHolder.children].reverse().forEach(link => { link.classList.add('navbar-item', 'javdb-content-mobile-nav-link'); link.dataset.laosijiContentMobileNav = '1'; mobileNavStart.insertBefore(link, mobileNavStart.firstChild); }); }
    mobileNavStart?.querySelectorAll('[data-laosiji-content-mobile-nav="1"]').forEach(syncActive); this._installOtherNavigation(); },
   _renderShell(mode, inner) {
-   const title = '看短评';
-   return `<main class="javdb-content-shell"><header class="javdb-content-shell-head"><div class="javdb-content-shell-title">${this._escapeHtml(title)}</div><nav class="javdb-content-shell-nav" aria-label="内容导航">${this._renderNavLinks(mode.kind)}</nav></header>${inner}</main>`;
+   const title = '看短評';
+   return `<main class="javdb-content-shell"><header class="javdb-content-shell-head"><div class="javdb-content-shell-title">${this._escapeHtml(title)}</div><nav class="javdb-content-shell-nav" aria-label="內容導航">${this._renderNavLinks(mode.kind)}</nav></header>${inner}</main>`;
   },
   _renderReviews(items) {
    const stars = score => { const n = Math.max(0, Math.min(5, Math.round(Number(score) || 0))); return `${'★'.repeat(n)}${'☆'.repeat(5 - n)}`; };
-   return (Array.isArray(items) ? items : []).map(item => { const movie = item?.movie || {}; return `<article class="javdb-content-review"><a class="javdb-content-review-movie" href="/v/${encodeURIComponent(movie.id || '')}" target="_blank" rel="noopener"><img loading="lazy" src="${this._escapeHtml(this._movieThumbUrl(movie))}" alt=""><span class="javdb-content-review-movie-copy"><span class="javdb-content-review-movie-code">${this._escapeHtml(movie.number || '')}</span><strong>${this._escapeHtml(movie.title || '')}</strong><small>${this._escapeHtml(movie.release_date || '')}</small></span></a><div class="javdb-content-review-head"><span class="javdb-content-review-user">${this._escapeHtml(item?.username || '匿名')}</span><span>看过 ${this._escapeHtml(item?.watched_count || 0)} 部</span><span class="javdb-content-review-stars" aria-label="${this._escapeHtml(item?.score || 0)}分">${stars(item?.score)}</span></div><p class="javdb-content-review-text">${this._escapeHtml(item?.content || '')}</p></article>`; }).join('');
+   return (Array.isArray(items) ? items : []).map(item => { const movie = item?.movie || {}; return `<article class="javdb-content-review"><a class="javdb-content-review-movie" href="/v/${encodeURIComponent(movie.id || '')}" target="_blank" rel="noopener"><img loading="lazy" src="${this._escapeHtml(this._movieThumbUrl(movie))}" alt=""><span class="javdb-content-review-movie-copy"><span class="javdb-content-review-movie-code">${this._escapeHtml(movie.number || '')}</span><strong>${this._escapeHtml(movie.title || '')}</strong><small>${this._escapeHtml(movie.release_date || '')}</small></span></a><div class="javdb-content-review-head"><span class="javdb-content-review-user">${this._escapeHtml(item?.username || '匿名')}</span><span>看過 ${this._escapeHtml(item?.watched_count || 0)} 部</span><span class="javdb-content-review-stars" aria-label="${this._escapeHtml(item?.score || 0)}分">${stars(item?.score)}</span></div><p class="javdb-content-review-text">${this._escapeHtml(item?.content || '')}</p></article>`; }).join('');
   },
   _pagination(mode, hasNext) {
-   const previous = mode.page > 1 ? `<a href="${this._contentUrl({ page: mode.page - 1, period: mode.period })}">上一页</a>` : '';
-   const next = hasNext ? `<a href="${this._contentUrl({ page: mode.page + 1, period: mode.period })}">下一页</a>` : '';
-   return `<div class="javdb-content-pagination">${previous}<span>第 ${mode.page} 页</span>${next}</div>`;
+   const previous = mode.page > 1 ? `<a href="${this._contentUrl({ page: mode.page - 1, period: mode.period })}">上一頁</a>` : '';
+   const next = hasNext ? `<a href="${this._contentUrl({ page: mode.page + 1, period: mode.period })}">下一頁</a>` : '';
+   return `<div class="javdb-content-pagination">${previous}<span>第 ${mode.page} 頁</span>${next}</div>`;
   },
   async _initContentPage() {
    const href = location.href; const mode = this._getContentMode();
    if (!mode) return false;
    const container = document.querySelector('body > section > div, .section .container');
    if (!container) return false;
-   document.documentElement.classList.add('laosiji-content-route'); this._installStyle(); const title = '看短评';
-   const periodLinks = ['latest', 'weekly', 'monthly', 'quarterly', 'yearly', 'all'].map(period => `<a class="${mode.period === period ? 'is-active' : ''}" href="${this._contentUrl({ period })}">${period === 'latest' ? '最新' : period === 'weekly' ? '上周热评' : period === 'monthly' ? '月度热评' : period === 'quarterly' ? '季度热评' : period === 'yearly' ? '年度热评' : '全部热评'}</a>`).join('');
-   const toolbar = periodLinks ? `<nav class="javdb-content-toolbar" aria-label="短评筛选">${periodLinks}</nav>` : '';
-   container.innerHTML = this._renderShell(mode, `${toolbar}<div class="javdb-content-status" aria-live="polite">正在读取${title}...</div><div class="javdb-content-grid"></div><div class="javdb-content-list"></div><div class="javdb-content-pagination"></div>`);
+   document.documentElement.classList.add('laosiji-content-route'); this._installStyle(); const title = '看短評';
+   const periodLinks = ['latest', 'weekly', 'monthly', 'quarterly', 'yearly', 'all'].map(period => `<a class="${mode.period === period ? 'is-active' : ''}" href="${this._contentUrl({ period })}">${period === 'latest' ? '最新' : period === 'weekly' ? '上周熱評' : period === 'monthly' ? '月度熱評' : period === 'quarterly' ? '季度熱評' : period === 'yearly' ? '年度熱評' : '全部熱評'}</a>`).join('');
+   const toolbar = periodLinks ? `<nav class="javdb-content-toolbar" aria-label="短評篩選">${periodLinks}</nav>` : '';
+   container.innerHTML = this._renderShell(mode, `${toolbar}<div class="javdb-content-status" aria-live="polite">正在載入${title}...</div><div class="javdb-content-grid"></div><div class="javdb-content-list"></div><div class="javdb-content-pagination"></div>`);
    const status = container.querySelector('.javdb-content-status');
    try {
     const json = await Magnet.javdbApi.hotReviews({ period: mode.period, page: mode.page, limit: 20 });
     if (location.href !== href) return true;
-    if (json.success !== 1) throw new Error(json.message || json.action || `${title}读取失败`);
+    if (json.success !== 1) throw new Error(json.message || json.action || `${title}讀取失敗`);
     const items = json?.data?.reviews || []; const grid = container.querySelector('.javdb-content-grid'); const list = container.querySelector('.javdb-content-list'); grid.remove();
     list.innerHTML = `<section class="javdb-content-review-list">${this._renderReviews(items)}</section>`;
-    status.textContent = items.length ? `已加载 ${items.length} 条${title}` : `暂无${title}`;
+    status.textContent = items.length ? `已載入 ${items.length} 筆${title}` : `暫無${title}`;
     container.querySelector('.javdb-content-pagination').outerHTML = this._pagination(mode, items.length >= 20);
    } catch (error) {
-    status.textContent = error.message || `${title}读取失败`;
+    status.textContent = error.message || `${title}讀取失敗`;
     status.classList.add('is-error'); }
    this.installNavigation(); return true; }, };
  const JavdbAppCover = (() => {
@@ -3606,8 +3606,8 @@
   function updateButton(button, active, mode) {
    button.classList.toggle('is-selected', active); button.setAttribute('aria-pressed', String(active));
    button.title = active
-    ? `当前已按${mode}排序；再次点击恢复网站顺序`
-    : `按${mode}排序当前页；无限滚动的新内容仅在本批内排序`;
+    ? `目前已依${mode}排序；再次點擊可還原網站排序`
+    : `依${mode}排序目前頁面；無限捲動載入的新內容僅在本批次排序`;
   }
   function canReorderLoaded(list, state) {
    return !!state.mode && InfiniteScroll?.state?.site === 'javdb' && InfiniteScroll.state.container === list && !!list.querySelector(':scope > .item[data-laosiji-infinite-item="1"]'); }
@@ -3615,7 +3615,7 @@
    let button = document.querySelector('[data-laosiji-reorder-loaded]'); const floatButtons = document.querySelector('.float-buttons');
    if (!canReorderLoaded(list, state) || !floatButtons) { button?.remove(); return; }
    if (!button) {
-    button = document.createElement('button'); button.type = 'button'; button.className = 'javdb-loaded-reorder-btn'; button.dataset.laosijiReorderLoaded = '1'; button.textContent = '重排已加载内容';
+    button = document.createElement('button'); button.type = 'button'; button.className = 'javdb-loaded-reorder-btn'; button.dataset.laosijiReorderLoaded = '1'; button.textContent = '重新排序已載入內容';
     button.addEventListener('click', () => {
      const control = activeControl(state.mode);
      if (!control) return;
@@ -3623,7 +3623,7 @@
      window.scrollTo({ top, behavior: 'auto' });
     }); }
    const control = activeControl(state.mode); floatButtons.insertBefore(button, floatButtons.querySelector('.material-scrolltop'));
-   button.title = `按${control?.text || '当前'}排序重排所有已加载内容，并返回列表顶部`;
+   button.title = `依${control?.text || '目前'}排序所有已載入內容，並返回列表頂端`;
   }
   function installControl(list, state) {
    const buttons = ensureSortButtons(list);
@@ -4098,11 +4098,11 @@
         function responseError(response) {
             if (!response?.ok) {
                 const status = Number(response?.status) || 0;
-                if (status === 403) return new Error('123AV 请求被拒绝（403），请稍后重试。');
-                if (status === 429) return new Error('123AV 请求过于频繁（429），请稍后重试。');
-                if (response?.error?.kind === 'timeout') return new Error('123AV 请求超时。');
-                if (response?.error?.kind === 'abort') return new Error('请求已取消。');
-                return new Error(`123AV 请求失败${status ?`（${status}）` : ''}。`);
+                if (status === 403) return new Error('123AV 請求被拒絕（403），請稍后重試。');
+                if (status === 429) return new Error('123AV 請求過于頻繁（429），請稍后重試。');
+                if (response?.error?.kind === 'timeout') return new Error('123AV 請求逾時。');
+                if (response?.error?.kind === 'abort') return new Error('請求已取消。');
+                return new Error(`123AV 請求失敗${status ?`（${status}）` : ''}。`);
             }
             return null;
         }
@@ -4137,12 +4137,12 @@
             const response = await request;
             activeRequests.delete(request);
 
-            if (generation !== renderGeneration) throw new Error('请求已被新页面替换。');
+            if (generation !== renderGeneration) throw new Error('請求已被新頁面替換。');
             const error = responseError(response);
             if (error) throw error;
             const data = parseDocument(parseHTML(response.responseText || ''), url);
 
-            if (data.blocked) throw new Error('123AV 返回了验证页面，请稍后重试。');
+            if (data.blocked) throw new Error('123AV 返回了驗證頁面，請稍后重試。');
             writeCache(url, data);
             return data;
         }
@@ -4221,7 +4221,7 @@
             if (error) throw error;
             const doc = parseHTML(response.responseText || '');
             const detail = parseDetailDocument(doc, url);
-            if (!detail.code || !detail.rawTitle) throw new Error('\u0031\u0032\u0033AV \u8fd4\u56de\u4e86\u9a8c\u8bc1\u9875\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002');
+            if (!detail.code || !detail.rawTitle) throw new Error('123AV 回傳驗證頁面，請稍後再試。');
             writeCache(url, detail);
             return detail;
         }
@@ -4360,7 +4360,7 @@
             const actresses = [
                 ...directActresses,
                 ...structuredActresses,
-                ...collectByHint(['actress', 'actor', 'performer', '\u5973\u512a', '\u5973\u6f14\u5458']),
+                ...collectByHint(['actress', 'actor', 'performer', '\u5973\u512a', '女演員']),
                 ...collectBySelector('[class*="actress"] a, [class*="actor"] a, [class*="performer"] a, [data-actress] a'),
             ];
             const sellers = [
@@ -4483,7 +4483,7 @@
   function renderPagination(route, data) {
    const links = [];
    const add = (page, label, className = '') => links.push(`<a class="${className}" href="${routeUrl({ ...route, page })}">${label}</a>`);
-   if (route.page > 1) add(route.page - 1, '上一页');
+   if (route.page > 1) add(route.page - 1, '上一頁');
    const start = Math.max(1, route.page - 2); const end = data.totalPages ? Math.min(data.totalPages, route.page + 2) : route.page + (data.nextUrl ? 1 : 0);
    for (let page = start; page <= end; page += 1) add(page, page, page === route.page ? 'is-active' : '');
    if (data.nextUrl) add(route.page + 1, '下一页');
@@ -4506,7 +4506,7 @@
    JavdbFc2DetailRenderer.installStyles(); JavdbApiShellStyles.installDetailShell?.();
    injectStyle('javdb-123av-fc2-detail-style',`.javdb-123av-fc2-detail-status{padding:12px!important;border:1px solid #e2e8f0!important;border-radius:7px!important;background:#f8fafc!important;color:#475569!important;font-size:13px!important;font-weight:700!important}.javdb-123av-fc2-detail-status.is-error{border-color:#fecaca!important;background:#fff1f2!important;color:#be123c!important}`);
    if (site === 'javlib') injectStyle('javlib-123av-fc2-detail-layout-style', '#leftmenu{display:none!important}#rightcolumn{margin:0!important;width:100%!important;float:none!important}');
-   container.innerHTML =`<div class="javdb-123av-fc2-detail-shell" data-laosiji-123av-fc2-detail-site="${site}"><div class="javdb-123av-fc2-detail-head"><div class="javdb-123av-fc2-detail-kicker">123AV-FC2 统一详情</div><div class="javdb-123av-fc2-detail-actions"><a href="${escapeHtml(routeUrl({ ...route, detail: '' }))}">返回列表</a></div></div><div class="javdb-123av-fc2-detail-status">正在加载 123AV 详情...</div></div>`;
+   container.innerHTML =`<div class="javdb-123av-fc2-detail-shell" data-laosiji-123av-fc2-detail-site="${site}"><div class="javdb-123av-fc2-detail-head"><div class="javdb-123av-fc2-detail-kicker">123AV-FC2 統一詳情</div><div class="javdb-123av-fc2-detail-actions"><a href="${escapeHtml(routeUrl({ ...route, detail: '' }))}">返回列表</a></div></div><div class="javdb-123av-fc2-detail-status">正在載入 123AV 詳情...</div></div>`;
    return { container, status: container.querySelector('.javdb-123av-fc2-detail-status') }; }
   function renderSupplementInfoHtml(data) {
    const names = items => (Array.isArray(items) ? items : []).map(item => {
@@ -4521,14 +4521,14 @@
     .map(tag =>`<span class="javdb-123av-fc2-detail-chip">${escapeHtml(tag)}</span>`)
     .join('');
    return [
-    actresses ?`<div class="panel-block" data-123av-supplement-info="1"><strong>女优:</strong>&nbsp;<span class="value">${actresses}</span></div>` : '',
-    sellerHtml ?`<div class="panel-block" data-123av-supplement-info="1"><strong>销售者:</strong>&nbsp;<span class="value">${sellerHtml}</span></div>` : '',
-    tags ?`<div class="panel-block" data-123av-supplement-info="1"><strong>标签:</strong>&nbsp;<span class="value">${tags}</span></div>` : '',
+    actresses ?`<div class="panel-block" data-123av-supplement-info="1"><strong>女優:</strong>&nbsp;<span class="value">${actresses}</span></div>` : '',
+    sellerHtml ?`<div class="panel-block" data-123av-supplement-info="1"><strong>銷售者:</strong>&nbsp;<span class="value">${sellerHtml}</span></div>` : '',
+    tags ?`<div class="panel-block" data-123av-supplement-info="1"><strong>標籤:</strong>&nbsp;<span class="value">${tags}</span></div>` : '',
    ].join(''); }
   function renderSupplementHtml(data) {
    if (!Array.isArray(data.samples) || !data.samples.length) return '';
-   const samples = data.samples.map((sample, index) =>`<a class="tile-item" href="${escapeHtml(sample.url)}" data-caption="${escapeHtml(`\u5267\u7167 ${index + 1}`)}"><img loading="lazy" src="${escapeHtml(sample.thumb)}" alt="\u5267\u7167 ${index + 1}"></a>`).join('');
-   return`<section class="javdb-fc2-detail-samples-section" data-123av-detail-stills="1"><h2 class="javdb-fc2-detail-sample-heading">剧照</h2><div class="tile-images preview-images">${samples}</div></section>`;
+   const samples = data.samples.map((sample, index) =>`<a class="tile-item" href="${escapeHtml(sample.url)}" data-caption="${escapeHtml(`劇照 ${index + 1}`)}"><img loading="lazy" src="${escapeHtml(sample.thumb)}" alt="劇照 ${index + 1}"></a>`).join('');
+   return`<section class="javdb-fc2-detail-samples-section" data-123av-detail-stills="1"><h2 class="javdb-fc2-detail-sample-heading">劇照</h2><div class="tile-images preview-images">${samples}</div></section>`;
   }
   function renderDetailHtml(detail, site = 'javdb') {
    return JavdbFc2DetailRenderer.render({
@@ -4536,17 +4536,17 @@
     title: detail.title,
     cover: detail.cover,
     rows: [
-     { label: '类型', value: detail.type },
-     { label: '发布日期', value: detail.releaseDate },
+     { label: '類型', value: detail.type },
+     { label: '發布日期', value: detail.releaseDate },
      { label: '制作商', value: detail.maker },
-     { label: '统计', value: detail.stats.join(' / ') }, ],
+     { label: '統計', value: detail.stats.join(' / ') }, ],
     tags: detail.genres,
    }, { site }); }
   function normalizeDetailInfoLabels(root) {
    const numberBlock = root?.querySelector('.movie-panel-info .first-block'); const numberLabel = numberBlock?.querySelector('strong');
-   if (numberLabel) numberLabel.textContent = '\u756a\u53f7:';
+   if (numberLabel) numberLabel.textContent = '番號：';
    const magnetTitle = root?.querySelector('.javdb-fc2-detail-magnet-title');
-   if (magnetTitle) magnetTitle.textContent = '\u78c1\u529b\u805a\u5408';
+   if (magnetTitle) magnetTitle.textContent = '磁力聚合';
   }
   function mountStandaloneMagnet(root, avid, site = 'javdb') {
    const body = root?.querySelector('.javdb-fc2-detail-magnet-body');
@@ -4601,7 +4601,7 @@
    if (!container) return null;
    if (isJavLib) { injectStyle('javlib-123av-fc2-layout-style', '#leftmenu{display:none!important}'); }
    injectStyle('javdb-123av-fc2-style',`html[data-laosiji-123av-fc2="1"] #search-bar-container{display:none!important}.javdb-123av-fc2-shell{margin-top:10px!important}.javdb-123av-fc2-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;margin:8px 0 12px!important}.javdb-123av-fc2-title{color:#1e293b!important;font-size:18px!important;font-weight:850!important}.javdb-123av-fc2-sort-links{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;margin:0 0 10px!important}.javdb-123av-fc2-sort-links a{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:30px!important;padding:5px 11px!important;border:1px solid #dbe3ef!important;border-radius:7px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;text-decoration:none!important;cursor:pointer!important}.javdb-123av-fc2-sort-links a.is-active{border-color:#60a5fa!important;background:#eff6ff!important;color:#1d4ed8!important}.javdb-123av-fc2-filter-form{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;margin:8px 0 12px!important}.javdb-123av-fc2-filter-form input,.javdb-123av-fc2-filter-form select{min-width:0!important;min-height:32px!important;padding:5px 9px!important;border:1px solid #cbd5e1!important;border-radius:6px!important;background:#fff!important;color:#334155!important;font-size:12px!important}.javdb-123av-fc2-filter-form input{flex:1 1 220px!important}.javdb-123av-fc2-filter-form select{flex:0 1 128px!important}.javdb-123av-fc2-filter-form button{min-height:32px!important;padding:5px 12px!important;border:1px solid #dbe3ef!important;border-radius:7px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important}.javdb-123av-fc2-pagination a{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:30px!important;padding:5px 11px!important;border:1px solid #dbe3ef!important;border-radius:7px!important;background:#fff!important;color:#334155!important;font-size:12px!important;font-weight:800!important;text-decoration:none!important;cursor:pointer!important}.javdb-123av-fc2-pagination a.is-active{border-color:#60a5fa!important;background:#eff6ff!important;color:#1d4ed8!important}.javdb-123av-fc2-status{margin:10px 0!important;padding:10px 12px!important;border:1px solid #e2e8f0!important;border-radius:8px!important;background:#f8fafc!important;color:#475569!important;font-size:13px!important;font-weight:700!important}.javdb-123av-fc2-status.is-error{border-color:#fecaca!important;background:#fff1f2!important;color:#be123c!important}.javdb-123av-fc2-pagination{display:flex!important;justify-content:center!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important;margin:16px 0 8px!important}html[data-theme="dark"] .javdb-123av-fc2-title{color:#e5e7eb!important}html[data-theme="dark"] .javdb-123av-fc2-sort-links a,html[data-theme="dark"] .javdb-123av-fc2-filter-form input,html[data-theme="dark"] .javdb-123av-fc2-filter-form select,html[data-theme="dark"] .javdb-123av-fc2-filter-form button,html[data-theme="dark"] .javdb-123av-fc2-pagination a{border-color:#475569!important;background:#252525!important;color:#e5e7eb!important}`);
-   container.innerHTML =`<div class="javdb-123av-fc2-shell"><div class="javdb-123av-fc2-head"><div class="javdb-123av-fc2-title">123AV-FC2</div></div><nav class="javdb-123av-fc2-sort-links" aria-label="排序方式"> ${Object.entries(SORTS).map(([key, value]) => `<a class="${key === route.sort ? 'is-active' : ''}" href="${routeUrl({ ...route, sort: key, page: 1 })}">${value.label}</a>`).join('')} </nav><div class="javdb-123av-fc2-status">正在加载 123AV 数据...</div><form class="javdb-123av-fc2-filter-form"><input name="query" type="search" value="${escapeHtml(route.query)}" placeholder="\u641c\u7d22 FC2 \u756a\u53f7\u6216\u6807\u9898"><select name="type" aria-label="\u7c7b\u578b">${renderOptions(TYPES, route.type)}</select><select name="year" aria-label="\u5e74\u4efd">${renderYearOptions(route.year)}</select><select name="actress" aria-label="\u5973\u6f14\u5458">${renderOptions(ACTRESS_MODES, route.actress)}</select><select name="sort" aria-label="\u6392\u5e8f">${renderOptions(Object.entries(SORTS).map(([value, item]) => ({ value, label: item.label })), route.sort)}</select><button type="submit">\u641c\u7d22</button></form> ${isJavBus
+   container.innerHTML =`<div class="javdb-123av-fc2-shell"><div class="javdb-123av-fc2-head"><div class="javdb-123av-fc2-title">123AV-FC2</div></div><nav class="javdb-123av-fc2-sort-links" aria-label="排序方式"> ${Object.entries(SORTS).map(([key, value]) => `<a class="${key === route.sort ? 'is-active' : ''}" href="${routeUrl({ ...route, sort: key, page: 1 })}">${value.label}</a>`).join('')} </nav><div class="javdb-123av-fc2-status">正在載入 123AV 資料...</div><form class="javdb-123av-fc2-filter-form"><input name="query" type="search" value="${escapeHtml(route.query)}" placeholder="搜尋 FC2 番號或標題"><select name="type" aria-label="類型">${renderOptions(TYPES, route.type)}</select><select name="year" aria-label="年份">${renderYearOptions(route.year)}</select><select name="actress" aria-label="女演員">${renderOptions(ACTRESS_MODES, route.actress)}</select><select name="sort" aria-label="排序">${renderOptions(Object.entries(SORTS).map(([value, item]) => ({ value, label: item.label })), route.sort)}</select><button type="submit">搜尋</button></form> ${isJavBus
                         ? '<div id="waterfall" class="javbus-123av-fc2-list"></div>'
                         : isJavLib
                             ? '<div class="videothumblist"><div class="videos javlib-123av-fc2-list"></div></div>'
@@ -4637,7 +4637,7 @@
      if (generation !== renderGeneration) return;
      shell.list.innerHTML = renderItems(data.items, site);
      shell.status.textContent = data.items.length
-      ?`已加载 ${data.items.length} 条 123AV-FC2 数据${data.totalPages ? `，共 ${data.totalPages} 页` : ''}`                        : '没有查询到 123AV-FC2 数据。';
+      ?`已載入 ${data.items.length} 筆 123AV-FC2 資料${data.totalPages ? `，共 ${data.totalPages} 頁` : ''}`                        : '查無 123AV-FC2 資料。';
      shell.pagination.innerHTML = renderPagination(route, data);
      if (site === 'javbus') {
       SiteJavBus._initListPage(); PageZoom.apply('javbus');
@@ -4648,7 +4648,7 @@
      Runtime.refreshListPage();
     } catch (error) {
      if (generation !== renderGeneration || /请求已被新页面替换|请求已取消/.test(error.message)) return;
-     shell.status.classList.add('is-error'); shell.status.textContent = error.message || '123AV 请求失败。'; }
+     shell.status.classList.add('is-error'); shell.status.textContent = error.message || '123AV 請求失敗。'; }
    })();
    return true; }
   function installLink() {
@@ -4662,7 +4662,7 @@
     if (className) clone.className = className;
     const label = clone.querySelector('span') || clone; label.textContent = '123AV-FC2';
     clone.href = routeUrl({ page: 1 });
-    clone.title = '使用 123AV-FC2 来源'; return clone; };
+    clone.title = '使用 123AV-FC2 來源'; return clone; };
    const category = document.querySelector('#navbar-menu-hero .navbar-start > .navbar-item.has-dropdown'); const categoryTrigger = category?.querySelector(':scope > a.navbar-link[href="/tags?c10=1"]');
    const dropdown = category?.querySelector(':scope > .navbar-dropdown.is-boxed'); const source = [...(dropdown?.children || [])].find(child => child.matches?.('a.navbar-item[href]') && isFc2Link(child));
    document.querySelectorAll('.main-nav [data-laosiji123av-fc2-link="1"]').forEach(link => link.remove());
@@ -4748,7 +4748,7 @@
      highestIndex = index; } }
    hls.currentLevel = highestIndex; hls.nextLevel = highestIndex; }
   function describePlaybackError(error, result = null) {
-   const details = error && typeof error === 'object' ? [error.message, error.details, error.type, error.code, error.url, error.status].filter(Boolean).join(' ') : String(error || '未知错误');
+   const details = error && typeof error === 'object' ? [error.message, error.details, error.type, error.code, error.url, error.status].filter(Boolean).join(' ') : String(error || '未知錯誤');
    return result?.slug ? `${result.slug}: ${details}` : details;
   }
   function handlePlaybackError(state, error) {
@@ -4820,7 +4820,7 @@
    if (!button) return;
    const label = document.createElement('span'); label.className = 'laosiji-full-video-status'; button.appendChild(label); button.classList.add('laosiji-full-video-loading'); state.statusLabel = label;
    const update = () => {
-    label.textContent = `${source} 正在加载播放器 ${Math.max(0, Math.ceil((deadline - Date.now()) / 1000))}秒`;
+    label.textContent = `${source} 正在載入播放器 ${Math.max(0, Math.ceil((deadline - Date.now()) / 1000))}秒`;
     state.anchor.setAttribute('aria-label', label.textContent); };
    update(); state.statusTimer = setInterval(update, 250); }
   async function probeSource(source, task, onProbe, currentGeneration, timeout = SOURCE_TIMEOUT_MS) {
@@ -4897,7 +4897,7 @@
    mounted = null; }
   function fail(state, error) {
    if (state !== mounted || state.failed || (!state.loading && !state.player)) return;
-   state.failed = true; state.lastError = describePlaybackError(error, state.result); errorLog('完整视频播放失败:', describePlaybackError(error, state.result)); destroyPlayer(); restoreCover(state); Utils.showToast('完整视频播放失败', '无法加载视频，请稍后重试', 3500); }
+   state.failed = true; state.lastError = describePlaybackError(error, state.result); errorLog('完整影片播放失敗:', describePlaybackError(error, state.result)); destroyPlayer(); restoreCover(state); Utils.showToast('完整影片播放失敗', '無法載入影片，請稍後再試', 3500); }
   async function startPlayback(state) {
    if (state.loading || state.player) return { ok: false, reason: '播放器正在加载或已经挂载' };
    state.failed = false; state.loading = true; state.anchor.setAttribute('aria-busy', 'true'); const currentGeneration = ++generation;
@@ -4916,7 +4916,7 @@
     close.addEventListener('click', () => { stopPlayback(state); });
     player.appendChild(close);
     if (state.javlib) state.image.style.setProperty('display', 'none', 'important');
-    state.anchor.replaceWith(player); state.player = player; state.video = video; state.result = result; video.addEventListener('error', () => handlePlaybackError(state, new Error('视频元素加载失败')));
+    state.anchor.replaceWith(player); state.player = player; state.video = video; state.result = result; video.addEventListener('error', () => handlePlaybackError(state, new Error('影片元素載入失敗')));
     const needsHls = result.type !== 'video' && result.type !== 'iframe' && !result.url; const runtime = createTrailerHlsRuntime(); const HlsClass = needsHls ? await runtime.loadHlsLibrary() : null;
     if (currentGeneration !== generation || state !== mounted) return;
     let alternateIndex = 0; let attachHlsSource = null;
@@ -4958,7 +4958,7 @@
      if (state.alternateLoading) return true;
      const nextSource = result.alternatives?.[alternateIndex++];
      if (nextSource && currentGeneration === generation && state === mounted) {
-      state.alternateLoading = true; errorLog('完整视频播放尝试备用清单:', describePlaybackError(error, result));
+      state.alternateLoading = true; errorLog('完整影片播放嘗試備用清單:', describePlaybackError(error, result));
       const alternateResult = result.type === 'video' ? { ...result, url: nextSource, alternatives: [] } : { ...result, type: 'hls', hls: nextSource, alternatives: [] };
       attachResult(alternateResult); return true; }
      return loadNextSource(); };
@@ -4978,7 +4978,7 @@
        if (data?.fatal && hls === activeHls) {
         state.alternateLoading = false;
         handlePlaybackError(state, {
-         message: data.details || 'HLS 加载失败',
+         message: data.details || 'HLS 載入失敗',
          details: data.networkDetails?.status ? `HTTP ${data.networkDetails.status}` : '',
          type: data.type || '',
          code: data.networkDetails?.status || '',
@@ -5129,7 +5129,7 @@
    const searchStart = searchMenu.querySelector('.navbar-start');
    if (!search.dataset.laosijiTopSearch) { search.dataset.laosijiTopSearch = '1'; search.classList.add('javdb-top-search'); }
    const searchInput = search.querySelector('#video-search');
-   if (searchInput) searchInput.placeholder = '输入番号，演员名等关键字进行搜索';
+   if (searchInput) searchInput.placeholder = '輸入番號或演員名稱等關鍵字進行搜尋';
    const searchTooltips = [ ['#button-advanced-search', '进阶检索'], ['#button-search-image', '以图片识别演员或影片'] ];
    searchTooltips.forEach(([selector, title]) => {
     const button = search.querySelector(selector);
@@ -5167,7 +5167,7 @@
    this._insertActorBlacklistButton(); Javdb123AvFc2.installLink();
    if (Javdb123AvFc2.init()) return;
    if (this._getContentMode?.()) {
-    this._initContentPage().catch(err => { errorLog('JavDB 短评自造页渲染失败:', err); });
+    this._initContentPage().catch(err => { errorLog('JavDB 短評自訂頁面渲染失敗:', err); });
     return; }
    this._initPaginationJump();
    if (!location.pathname.startsWith('/v/')) { this._initListPage(); this._insertResourceNav(); return; }
@@ -5196,21 +5196,21 @@
     if (!control) return false;
     control.classList.add('javdb-actor-blacklist-control');
     if (control.querySelector('.javdb-actor-blacklist-btn')) return true;
-    const button = document.createElement('a'); button.href = 'javascript:void(0)'; button.className = 'button is-warning button-blacklist-actor javdb-actor-blacklist-btn'; button.title = '屏蔽该演员的所有作品';
+    const button = document.createElement('a'); button.href = 'javascript:void(0)'; button.className = 'button is-warning button-blacklist-actor javdb-actor-blacklist-btn'; button.title = '屏蔽該演員的所有作品';
     const syncButtonState = () => {
      const blocked = resourceApi.isActorBlacklisted?.(actorId); button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.classList.toggle('is-danger', !!blocked); button.classList.toggle('is-warning', !blocked); };
     syncButtonState();
     button.addEventListener('click', async event => {
      event.preventDefault(); event.stopPropagation();
      if (button.dataset.loading === '1') return;
-     button.dataset.loading = '1'; button.setAttribute('aria-busy', 'true'); button.classList.add('is-loading'); button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名单...' : '正在读取作品...'; let feedback;
+     button.dataset.loading = '1'; button.setAttribute('aria-busy', 'true'); button.classList.add('is-loading'); button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名單…' : '正在讀取作品…'; let feedback;
      try {
       const actorName = document.querySelector('.actor-section-name, .movie-panel-info a[href*="/actors/"], .avatar-box .photo-info .pb10')?.textContent?.replace(/\s+/g, ' ').trim() || actorId; feedback = Utils.createActorBlacklistFeedback(actorName);
       const blocked = await resourceApi.toggleActorBlacklist(actorId, { actorId, name: actorName, aliases: actorName ? [actorName] : [] }, feedback.onProgress);
       button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.classList.toggle('is-danger', blocked); button.classList.toggle('is-warning', !blocked); feedback.showResult(blocked); document.dispatchEvent(new CustomEvent('laosiji-resource-blacklist-changed'));
      } catch (error) {
       if (feedback) feedback.showFailure(error);
-      else Utils.showToast('黑名单操作失败', error?.message || '资源库写入失败', 3500);
+      else Utils.showToast('黑名單操作失敗', error?.message || '資源庫寫入失敗', 3500);
      } finally {
       syncButtonState(); button.removeAttribute('aria-busy'); button.classList.remove('is-loading'); delete button.dataset.loading; }
     });
@@ -5247,7 +5247,7 @@
    const existingResourceNavItem = document.querySelector('.javdb-resource-nav-item');
    if (navList && !existingResourceNavItem) {
     const item = document.createElement('li'); item.className = 'javdb-resource-nav-item';
-    item.innerHTML = `<a href="javascript:void(0)" class="javdb-resource-nav-main" data-resource-entry="manager" title="打开资源管理"><span>资源管理</span></a><a href="javascript:void(0)" data-resource-entry="history" title="打开鉴定记录"><span>鉴定记录</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-works" title="打开作品黑名单"><span>屏蔽列表</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-actors" title="打开演员黑名单"><span>演员黑名单</span></a>`;
+    item.innerHTML = `<a href="javascript:void(0)" class="javdb-resource-nav-main" data-resource-entry="manager" title="打開資源管理"><span>資源管理</span></a><a href="javascript:void(0)" data-resource-entry="history" title="打開鑒定記錄"><span>鑒定記錄</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-works" title="打開作品黑名單"><span>屏蔽列表</span></a><a href="javascript:void(0)" data-resource-entry="blacklist-actors" title="打開演員黑名單"><span>演員黑名單</span></a>`;
     item.querySelector('[data-resource-entry="manager"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('actors'); });
     item.querySelector('[data-resource-entry="history"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('history'); });
     item.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('blacklist', 'works'); });
@@ -5280,7 +5280,7 @@
    const createWorkShortcuts = className => {
     const shortcuts = document.createElement('div');
     shortcuts.className = `button-group ${className}`;
-    shortcuts.innerHTML = `<div class="buttons has-addons"><a class="button is-small is-warning" href="javascript:void(0)" data-resource-entry="works-favorite" title="查看作品库中已收藏的作品">已收藏</a><a class="button is-small is-success" href="javascript:void(0)" data-resource-entry="works-downloaded" title="查看作品库中已下载的作品">已下载</a><a class="button is-small is-info" href="javascript:void(0)" data-resource-entry="works-watched" title="查看作品库中已观看的作品">已观看</a></div>`;
+    shortcuts.innerHTML = `<div class="buttons has-addons"><a class="button is-small is-warning" href="javascript:void(0)" data-resource-entry="works-favorite" title="查看作品庫中已收藏的作品">已收藏</a><a class="button is-small is-success" href="javascript:void(0)" data-resource-entry="works-downloaded" title="查看作品庫中已下載的作品">已下載</a><a class="button is-small is-info" href="javascript:void(0)" data-resource-entry="works-watched" title="查看作品庫中已觀看的作品">已觀看</a></div>`;
     shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'favorite'); });
     shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'downloaded'); });
     shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', event => { event.preventDefault(); resourceApi.open('works', 'actors', 'watched'); });
@@ -5292,14 +5292,14 @@
    if (customShell) {
     const customHead = customShell.querySelector('.javdb-123av-fc2-head, .javdb-api-shell-head'); const hasNativeResourceNav = !!navList?.querySelector('.javdb-resource-nav-item');
     if (customHead && !hasNativeResourceNav && !customShell.querySelector('.javdb-resource-custom-links')) {
-     customHead.insertAdjacentHTML('afterend', `<div class="javdb-resource-custom-links"><button type="button" data-resource-entry="manager">资源管理</button><button type="button" data-resource-entry="history">鉴定记录</button><button type="button" data-resource-entry="blacklist-works">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors">演员黑名单</button></div>`);
+     customHead.insertAdjacentHTML('afterend', `<div class="javdb-resource-custom-links"><button type="button" data-resource-entry="manager">資源管理</button><button type="button" data-resource-entry="history">鑒定記錄</button><button type="button" data-resource-entry="blacklist-works">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors">演員黑名單</button></div>`);
      const links = customHead.nextElementSibling; links.querySelector('[data-resource-entry="manager"]').addEventListener('click', () => resourceApi.open('actors'));
      links.querySelector('[data-resource-entry="history"]').addEventListener('click', () => resourceApi.open('history')); links.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', () => resourceApi.open('blacklist', 'works'));
      links.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', () => resourceApi.open('blacklist', 'actors')); }
     if (!customShell.querySelector('.javdb-resource-custom-shortcuts')) {
      const links = customShell.querySelector('.javdb-resource-custom-links');
      if (!links) return;
-     links.insertAdjacentHTML('afterend', `<div class="javdb-resource-custom-shortcuts"><button type="button" data-resource-entry="works-favorite">已收藏</button><button type="button" data-resource-entry="works-downloaded">已下载</button><button type="button" data-resource-entry="works-watched">已观看</button></div>`);
+     links.insertAdjacentHTML('afterend', `<div class="javdb-resource-custom-shortcuts"><button type="button" data-resource-entry="works-favorite">已收藏</button><button type="button" data-resource-entry="works-downloaded">已下載</button><button type="button" data-resource-entry="works-watched">已觀看</button></div>`);
      const shortcuts = links.nextElementSibling; shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'favorite'));
      shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'downloaded'));
      shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'watched')); } }
@@ -5307,12 +5307,12 @@
     const list = document.querySelector('.movie-list'); const host = list?.parentElement || document.querySelector('body > section .container');
     if (host && !host.querySelector('.javdb-resource-advanced-search-links')) {
      const links = document.createElement('div'); links.className = 'javdb-resource-advanced-search-links javdb-resource-custom-links';
-     links.innerHTML = '<button type="button" data-resource-entry="manager">资源管理</button><button type="button" data-resource-entry="history">鉴定记录</button><button type="button" data-resource-entry="blacklist-works">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors">演员黑名单</button>';
+     links.innerHTML = '<button type="button" data-resource-entry="manager">資源管理</button><button type="button" data-resource-entry="history">鑒定記錄</button><button type="button" data-resource-entry="blacklist-works">屏蔽列表</button><button type="button" data-resource-entry="blacklist-actors">演員黑名單</button>';
      links.querySelector('[data-resource-entry="manager"]').addEventListener('click', () => resourceApi.open('actors')); links.querySelector('[data-resource-entry="history"]').addEventListener('click', () => resourceApi.open('history'));
      links.querySelector('[data-resource-entry="blacklist-works"]').addEventListener('click', () => resourceApi.open('blacklist', 'works'));
      links.querySelector('[data-resource-entry="blacklist-actors"]').addEventListener('click', () => resourceApi.open('blacklist', 'actors')); host.insertBefore(links, list || null); const shortcuts = document.createElement('div');
      shortcuts.className = 'javdb-resource-advanced-search-shortcuts javdb-resource-custom-shortcuts';
-     shortcuts.innerHTML = '<button type="button" data-resource-entry="works-favorite">已收藏</button><button type="button" data-resource-entry="works-downloaded">已下载</button><button type="button" data-resource-entry="works-watched">已观看</button>';
+     shortcuts.innerHTML = '<button type="button" data-resource-entry="works-favorite">已收藏</button><button type="button" data-resource-entry="works-downloaded">已下載</button><button type="button" data-resource-entry="works-watched">已觀看</button>';
      shortcuts.querySelector('[data-resource-entry="works-favorite"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'favorite'));
      shortcuts.querySelector('[data-resource-entry="works-downloaded"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'downloaded'));
      shortcuts.querySelector('[data-resource-entry="works-watched"]').addEventListener('click', () => resourceApi.open('works', 'actors', 'watched')); host.insertBefore(shortcuts, list || null); } } },
@@ -5357,7 +5357,7 @@
   _insertTopSettingsButton() {
    const navbarEnd = document.querySelector('#navbar-menu-user .navbar-end');
    if (!navbarEnd || navbarEnd.querySelector('.javdb-top-settings-btn')) return;
-   const btn = document.createElement('a'); btn.href = 'javascript:void(0)'; btn.className = 'navbar-item javdb-top-settings-btn'; btn.textContent = '\u8001\u53f8\u673a\u8bbe\u7f6e'; btn.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
+   const btn = document.createElement('a'); btn.href = 'javascript:void(0)'; btn.className = 'navbar-item javdb-top-settings-btn'; btn.textContent = '老司機設定'; btn.title = '開啟老司機設定';
    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget); });
    const userMenu = navbarEnd.querySelector('a[href="/users/profile"]')?.closest('.navbar-item.has-dropdown'); navbarEnd.insertBefore(btn, userMenu || null);
    injectStyle('javdb-top-settings-style',`#navbar-menu-user .javdb-top-settings-btn{color:#2563eb!important;font-weight:700!important}#navbar-menu-user .javdb-top-settings-btn:hover{color:#1d4ed8!important;background:rgba(37,99,235,.08)!important}`);
@@ -5436,7 +5436,7 @@
   formatDate(value) { return SiteJavDB._formatApiDate(value); },
   renderLinkedText(value) { return SiteJavDB._renderApiLinkedText(value); },
   renderDefaultToggle() {
-   return `<label class="javdb-api-review-default-toggle" title="控制以后进入详情页时短评默认展开或折叠"><input type="checkbox" data-laosiji-review-default-expanded="1"${CFG.reviewsDefaultExpanded ? ' checked' : ''}><span class="javdb-api-review-default-switch"></span><span>默认展开</span></label><label class="javdb-api-review-font-size" title="调整短评与清单字号"><span>字号</span><select data-laosiji-review-font-size="1"><option value="small"${CFG.reviewFontSize === 'small' ? ' selected' : ''}>小</option><option value="medium"${CFG.reviewFontSize === 'medium' ? ' selected' : ''}>中</option><option value="large"${CFG.reviewFontSize === 'large' ? ' selected' : ''}>大</option></select></label>`;
+   return `<label class="javdb-api-review-default-toggle" title="控制進入詳情頁時是否預設展開短評"><input type="checkbox" data-laosiji-review-default-expanded="1"${CFG.reviewsDefaultExpanded ? ' checked' : ''}><span class="javdb-api-review-default-switch"></span><span>預設展開</span></label><label class="javdb-api-review-font-size" title="調整短評與清單字級"><span>字級</span><select data-laosiji-review-font-size="1"><option value="small"${CFG.reviewFontSize === 'small' ? ' selected' : ''}>小</option><option value="medium"${CFG.reviewFontSize === 'medium' ? ' selected' : ''}>中</option><option value="large"${CFG.reviewFontSize === 'large' ? ' selected' : ''}>大</option></select></label>`;
   },
   reviewFontSizeValue() { return ({ small: '15px', medium: '17px', large: '19px' })[CFG.reviewFontSize] || '17px'; },
   applyFontSize() {
@@ -5446,10 +5446,10 @@
    root.querySelectorAll?.('[data-laosiji-review-font-size]').forEach(select => { select.value = CFG.reviewFontSize; });
    this.applyFontSize(); },
   renderCollapsed() {
-   return `<div class="javdb-api-review-default-row"> ${this.renderDefaultToggle()} </div><button type="button" class="javdb-api-review-toggle" data-laosiji-api-expand-reviews="1">展开短评</button>`;
+   return `<div class="javdb-api-review-default-row"> ${this.renderDefaultToggle()} </div><button type="button" class="javdb-api-review-toggle" data-laosiji-api-expand-reviews="1">展開短評</button>`;
   },
   renderCollapseBar() {
-   return `<div class="javdb-api-review-collapse-bar"> ${this.renderDefaultToggle()} <button type="button" class="javdb-api-review-collapse" data-laosiji-api-collapse-reviews="1">收起短评</button></div>`;
+   return `<div class="javdb-api-review-collapse-bar"> ${this.renderDefaultToggle()} <button type="button" class="javdb-api-review-collapse" data-laosiji-api-collapse-reviews="1">收起短評</button></div>`;
   },
   parseNativeInteractionTemplate(doc, movieId, origin = location.origin) {
    const expectedMovieId = String(movieId || '').trim();
@@ -5498,7 +5498,7 @@
      if (!response?.loadstuts || response.status < 200 || response.status >= 400) return null;
      const html = response.responseText || ''; const doc = new DOMParser().parseFromString(html, 'text/html'); return this.parseNativeInteractionTemplate(doc, key);
     } catch (error) {
-     errorLog('JavDB 短评互动表单读取失败:', error); return null; }
+     errorLog('JavDB 短评互动表单讀取失敗:', error); return null; }
    })();
    state.promise = task.then(template => {
     if (this.interactionState === state) state.template = template;
@@ -5541,7 +5541,7 @@
      : '';
     const actions = interactionContext && this.interactionState?.template ? this.renderActionForms(safeId, likesCount, liked, this.interactionState.template) : interactionContext ? '<template data-laosiji-review-actions="1"></template>' : '';
     const likeCount = !interactionContext && Number(likesCount) > 0
-     ? `<span class="javdb-api-review-like-count" title="点赞数">${this.escapeHtml(likesCount)}</span>`
+     ? `<span class="javdb-api-review-like-count" title="點贊數">${this.escapeHtml(likesCount)}</span>`
      : '';
     return `<dt class="review-item javdb-api-review javdb-api-review-native"${reviewAttrs}><div class="review-title javdb-api-review-head"> ${actions} ${likeCount} ${this.escapeHtml(item?.username || '匿名')}&nbsp; ${this.renderStars(item?.score)}&nbsp; <span class="time">${this.escapeHtml(this.formatDate(item?.created_at))}</span></div><div class="content javdb-api-review-content"><p>${this.renderLinkedText(item?.content || '')}</p></div></dt>`;
    }).join(''); }, };
@@ -5575,7 +5575,7 @@
     const name = savedName && savedName !== actorId ? savedName : pageName || savedName || actorId; return String(name).replace(/\s*所演出的影片\s*$/i, '').replace(/\s+/g, ' ').trim(); };
    const button = document.createElement('button'); button.type = 'button'; button.dataset.resourceActorBlacklist = '1'; button.className = 'javlib-actor-blacklist-btn';
    const syncButtonState = () => {
-    const blocked = !!resourceApi.isActorBlacklisted?.(actorId); button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.title = blocked ? '移出演员黑名单' : '屏蔽该演员的所有作品'; button.classList.toggle('is-active', blocked); };
+    const blocked = !!resourceApi.isActorBlacklisted?.(actorId); button.textContent = blocked ? '移出黑名单' : '加入黑名单'; button.title = blocked ? '移出演員黑名單' : '封鎖該演員的所有作品'; button.classList.toggle('is-active', blocked); };
    const onStateChange = () => {
     if (!button.isConnected) {
      window.removeEventListener('laosiji-resource-state-ready', onStateChange); window.removeEventListener('laosiji-resource-state-changed', onStateChange);
@@ -5585,7 +5585,7 @@
    button.addEventListener('click', async event => {
     event.preventDefault(); event.stopPropagation();
     if (button.dataset.loading === '1') return;
-    button.dataset.loading = '1'; button.disabled = true; button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名单...' : '正在读取作品...'; let feedback;
+    button.dataset.loading = '1'; button.disabled = true; button.textContent = resourceApi.isActorBlacklisted?.(actorId) ? '正在移出黑名單…' : '正在讀取作品…'; let feedback;
     try {
      const actorName = getActorName(); feedback = Utils.createActorBlacklistFeedback(actorName);
      const blocked = await resourceApi.toggleActorBlacklist(actorId, {
@@ -5595,7 +5595,7 @@
      feedback.showResult(blocked);
     } catch (error) {
      if (feedback) feedback.showFailure(error);
-     else Utils.showToast('黑名单操作失败', error?.message || '资源库写入失败', 3500);
+     else Utils.showToast('黑名單操作失敗', error?.message || '資源庫寫入失敗', 3500);
     } finally {
      button.disabled = false; delete button.dataset.loading; syncButtonState(); }
    });
@@ -5620,7 +5620,7 @@
   _insertTopNavigationDropdown() {
    const source = document.querySelector('#leftmenu .menul1'); const advSearch = document.querySelector('#topmenu .advsearch');
    if (!source || !advSearch || advSearch.querySelector('.javlib-top-nav-menu')) return;
-   const lang = String(document.documentElement.lang || '').toLowerCase(); const label = lang.startsWith('en') ? 'Site Nav' : lang.startsWith('ja') ? 'ナビ' : /tw|zh$/.test(lang) ? '站點導航' : '站点导航'; const menu = document.createElement('span');
+   const lang = String(document.documentElement.lang || '').toLowerCase(); const label = lang.startsWith('en') ? 'Site Nav' : lang.startsWith('ja') ? 'ナビ' : /tw|zh$/.test(lang) ? '站點導航' : '站點導航'; const menu = document.createElement('span');
    menu.className = 'javlib-top-nav-menu';
    menu.innerHTML = `<a class="javlib-top-nav-trigger" href="javascript:void(0)"> ${label} ▾</a><div class="javlib-top-nav-dropdown" role="menu"></div>`;
    menu.addEventListener('mousedown', e => {
@@ -5640,14 +5640,14 @@
    }) || dropdown.querySelector('.javlib-top-nav-section');
    const movieLinks = movieSection?.querySelector('.javlib-top-nav-links');
    if (movieLinks && !movieLinks.querySelector('.javlib-123av-fc2-link')) {
-    const link = document.createElement('a'); link.href = '/cn/main.php?laosiji_123av_fc2=1'; link.className = 'javlib-top-nav-link javlib-123av-fc2-link'; link.title = '打开 123AV-FC2'; link.textContent = '123AV-FC2'; movieLinks.appendChild(link); }
+    const link = document.createElement('a'); link.href = '/cn/main.php?laosiji_123av_fc2=1'; link.className = 'javlib-top-nav-link javlib-123av-fc2-link'; link.title = '打開 123AV-FC2'; link.textContent = '123AV-FC2'; movieLinks.appendChild(link); }
    advSearch.append(document.createTextNode(' '), menu);
    injectStyle('javlib-top-nav-style',`#leftmenu{display:none!important}#rightcolumn{margin:0!important;width:100%!important;float:none!important}#topmenu .advsearch{position:relative!important;white-space:nowrap!important}.javlib-top-nav-menu{position:relative!important;display:inline-block!important;vertical-align:middle!important;margin-left:8px!important;z-index:10010!important}.javlib-top-nav-trigger{display:inline-flex!important;align-items:center!important;height:24px!important;padding:0 10px!important;border:1px solid #93c5fd!important;border-radius:999px!important;background:#eff6ff!important;color:#1d4ed8!important;font-size:14px!important;font-weight:800!important;line-height:24px!important;text-decoration:none!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.82),0 3px 9px rgba(37,99,235,.12)!important}.javlib-top-nav-menu:hover .javlib-top-nav-trigger,.javlib-top-nav-menu:focus-within .javlib-top-nav-trigger{background:#dbeafe!important;border-color:#60a5fa!important;color:#1e40af!important}.javlib-top-nav-dropdown{position:absolute!important;top:100%!important;left:0!important;display:none!important;min-width:280px!important;max-width:min(560px,86vw)!important;padding:18px 10px 10px!important;border:1px solid #cbd5e1!important;border-radius:8px!important;background:linear-gradient(to bottom,rgba(255,255,255,0) 0,rgba(255,255,255,0) 8px,rgba(255,255,255,.98) 8px)!important;box-shadow:0 16px 36px rgba(15,23,42,.18)!important;box-sizing:border-box!important;white-space:normal!important;background-clip:padding-box!important}.javlib-top-nav-menu:hover .javlib-top-nav-dropdown,.javlib-top-nav-menu:focus-within .javlib-top-nav-dropdown{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important}.javlib-top-nav-title{margin-bottom:6px!important;color:#0f172a!important;font-size:14px!important;font-weight:900!important}.javlib-top-nav-links{display:grid!important;gap:4px!important}.javlib-top-nav-link{display:block!important;min-height:22px!important;padding:3px 7px!important;border-radius:6px!important;color:#2563eb!important;font-size:14px!important;line-height:1.35!important;text-decoration:none!important}.javlib-top-nav-link:hover{background:#eff6ff!important;color:#1d4ed8!important;text-decoration:none!important}@media (max-width:720px){.javlib-top-nav-menu:hover .javlib-top-nav-dropdown,.javlib-top-nav-menu:focus-within .javlib-top-nav-dropdown{grid-template-columns:1fr!important}}`);
   },
   _insertTopSettingsButton() {
    const menu = document.querySelector('#topmenu .menutext, .menutext');
    if (!menu || menu.querySelector('.javlib-top-settings-btn')) return;
-   const btn = document.createElement('a'); btn.href = 'javascript:void(0)'; btn.className = 'javlib-top-settings-btn'; btn.textContent = '\u8001\u53f8\u673a\u8bbe\u7f6e'; btn.title = '\u6253\u5f00\u8001\u53f8\u673a\u8bbe\u7f6e';
+   const btn = document.createElement('a'); btn.href = 'javascript:void(0)'; btn.className = 'javlib-top-settings-btn'; btn.textContent = '老司機設定'; btn.title = '開啟老司機設定';
    btn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); QuickSettingsPanel.open(e.currentTarget); });
    const accountLink = menu.querySelector('a[href*="myaccount.php"]'); const sep = document.createTextNode(' | ');
    if (accountLink) {
@@ -6412,7 +6412,7 @@
    activeViewerClose?.(); const originalHtmlOverflow = document.documentElement.style.overflow; const originalBodyOverflow = document.body.style.overflow; document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
    const navigation = ViewerNavigation.create({ length: items.length, index: startIndex });
    const overlay = document.createElement('div'); overlay.className = 'jav-stills-viewer'; const top = document.createElement('div'); top.className = 'jav-stills-viewer-top'; const count = document.createElement('div');
-   count.className = 'jav-stills-viewer-count'; const close = document.createElement('button'); close.type = 'button'; close.className = 'jav-stills-viewer-close'; close.textContent = '×'; close.setAttribute('aria-label', '关闭剧照预览'); top.append(count, close);
+   count.className = 'jav-stills-viewer-count'; const close = document.createElement('button'); close.type = 'button'; close.className = 'jav-stills-viewer-close'; close.textContent = '×'; close.setAttribute('aria-label', '關閉剧照预览'); top.append(count, close);
    const body = document.createElement('div'); body.className = 'jav-stills-viewer-body'; const img = document.createElement('img'); img.className = 'jav-stills-viewer-img'; body.appendChild(img); const prev = document.createElement('button');
    prev.type = 'button'; prev.className = 'jav-stills-viewer-nav jav-stills-viewer-prev'; prev.textContent = '‹'; prev.setAttribute('aria-label', '上一张剧照'); const next = document.createElement('button'); next.type = 'button';
    next.className = 'jav-stills-viewer-nav jav-stills-viewer-next'; next.textContent = '›'; next.setAttribute('aria-label', '下一张剧照'); const caption = document.createElement('div'); caption.className = 'jav-stills-viewer-caption';
@@ -6527,7 +6527,7 @@
    if (!toolbar && nestedToolbar) { toolbar = nestedToolbar; shell.parentNode?.insertBefore(toolbar, shell); }
    if (!toolbar) {
     toolbar = document.createElement('div'); toolbar.className = 'jav-stills-toolbar';
-    toolbar.innerHTML = '<span class="jav-stills-source-switch" role="group" aria-label="剧照来源"><button type="button" data-javdb-stills-source="native" aria-pressed="false">源站</button><button type="button" data-javdb-stills-source="laosiji" aria-pressed="false">老司机</button></span>';
+    toolbar.innerHTML = '<span class="jav-stills-source-switch" role="group" aria-label="劇照來源"><button type="button" data-javdb-stills-source="native" aria-pressed="false">源站</button><button type="button" data-javdb-stills-source="laosiji" aria-pressed="false">老司機</button></span>';
     toolbar.addEventListener('click', event => {
      const target = event.target?.closest?.('[data-javdb-stills-source]');
      if (!target || !toolbar.contains(target)) return;
@@ -6559,9 +6559,9 @@
     if (image && image.src !== data.imageUrl) image.src = data.imageUrl;
     return; }
    const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-stills-trailer-tile'; button.dataset.code = data.code;
-   button.setAttribute('aria-label', `播放 ${data.code} 预告片`);
-   button.title = `播放 ${data.code} 预告片`;
-   button.innerHTML = '<img alt=""><span class="jav-stills-trailer-overlay"><span class="jav-stills-trailer-icon" aria-hidden="true">▶</span><span>预告片</span></span>'; button.querySelector('img').src = data.imageUrl;
+   button.setAttribute('aria-label', `播放 ${data.code} 預告片`);
+   button.title = `播放 ${data.code} 預告片`;
+   button.innerHTML = '<img alt=""><span class="jav-stills-trailer-overlay"><span class="jav-stills-trailer-icon" aria-hidden="true">▶</span><span>預告片</span></span>'; button.querySelector('img').src = data.imageUrl;
    button.addEventListener('click', async event => {
     event.preventDefault(); event.stopPropagation();
     if (button.dataset.loading === '1') return;
@@ -6833,7 +6833,7 @@
     if (status?.isConnected) return status;
     ensureResourceLibraryStyles(); document.querySelector('.jav-resource-actor-blacklist-status')?.remove(); status = document.createElement('aside');
     status.className = 'jav-resource-task-status jav-resource-task-status-global jav-resource-actor-blacklist-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
-    status.innerHTML = '<div class="jav-resource-task-status-head"><strong data-actor-scan-title>正在读取演员作品</strong></div><div class="jav-resource-task-status-message" data-actor-scan-message></div><div class="jav-resource-task-status-meta" data-actor-scan-meta></div><p data-actor-scan-warning>请勿刷新或关闭页面，读取完成后会自动提示。</p>';
+    status.innerHTML = '<div class="jav-resource-task-status-head"><strong data-actor-scan-title>正在載入演員作品</strong></div><div class="jav-resource-task-status-message" data-actor-scan-message></div><div class="jav-resource-task-status-meta" data-actor-scan-meta></div><p data-actor-scan-warning>請勿刷新或關閉頁面，讀取完成后會自動提示。</p>';
     document.body.appendChild(status); const otherTask = document.querySelector('#jav-resource-scheduled-task-status:not([hidden]), .jav-resource-overlay.is-background .jav-resource-task-status:not([hidden])');
     if (otherTask) {
      const base = window.matchMedia('(max-width:767px)').matches ? 10 : 24;
@@ -6845,23 +6845,23 @@
      if (details.phase === 'complete' || details.phase === 'error') { scanResult = details; return; }
      const panel = getStatus(); panel.querySelector('[data-actor-scan-message]').textContent = actorName;
      panel.querySelector('[data-actor-scan-meta]').textContent = details.fetching
-      ? `正在读取第 ${details.page} 页 · 已读取 ${details.works || 0} 部`
+      ? `正在讀取第 ${details.page} 頁 · 已讀取 ${details.works || 0} 部`
       : details.page > 0
-       ? `第 ${details.page} 页 · 已读取 ${details.works || 0} 部`
-       : '正在读取第 1 页'; },
+       ? `第 ${details.page} 頁 · 已讀取 ${details.works || 0} 部`
+       : '正在讀取第 1 頁'; },
     showResult(blocked) {
-     if (!blocked) return Utils.showToast('已移出演员黑名单', actorName);
-     const panel = getStatus(); const failed = scanResult?.phase === 'error'; panel.querySelector('[data-actor-scan-title]').textContent = failed ? '已加入黑名单，作品读取失败' : '演员黑名单添加完成';
+     if (!blocked) return Utils.showToast('已移出演員黑名單', actorName);
+     const panel = getStatus(); const failed = scanResult?.phase === 'error'; panel.querySelector('[data-actor-scan-title]').textContent = failed ? '已加入黑名單，但讀取作品失敗' : '已完成演員黑名單設定';
      panel.querySelector('[data-actor-scan-message]').textContent = failed ? scanResult.error : actorName;
-     panel.querySelector('[data-actor-scan-meta]').textContent = failed ? '请稍后在演员黑名单中继续检测作品'
-      : `读取 ${scanResult?.pages || 0} 页 · ${scanResult?.found || 0} 部作品`;
+     panel.querySelector('[data-actor-scan-meta]').textContent = failed ? '請稍後至演員黑名單繼續檢查作品'
+      : `讀取 ${scanResult?.pages || 0} 頁 · ${scanResult?.found || 0} 部作品`;
      panel.querySelector('[data-actor-scan-warning]').hidden = true; panel.classList.toggle('is-complete', !failed); panel.classList.toggle('is-error', failed); setTimeout(() => panel.remove(), failed ? 6000 : 4000); },
     showFailure(error) {
-     status?.remove(); Utils.showToast('黑名单操作失败', error?.message || '资源库写入失败', 3500); }, }; },
+     status?.remove(); Utils.showToast('黑名單操作失敗', error?.message || '資源庫寫入失敗', 3500); }, }; },
   showToast(title, message = '', duration = 2000, action = null) {
    document.querySelector('.jav-jump-toast')?.remove(); const toast = document.createElement('div');
    const raw = `${title || ''} ${message || ''}`;
-   const tone = /失败|错误|无法|不可用|未登录|异常|失效/i.test(raw) ? 'error' : /频繁|限流/i.test(raw) ? 'warning' : /成功|完成|已复制|已加入|已移出|已取消|已关联|已上传|已读取|已覆盖|已清理|已更新/i.test(raw) ? 'success' : 'info';
+   const tone = /失败|错误|无法|不可用|未登入|异常|失效/i.test(raw) ? 'error' : /频繁|限流/i.test(raw) ? 'warning' : /成功|完成|已复制|已加入|已移出|已取消|已关联|已上传|已读取|已覆盖|已清理|已更新/i.test(raw) ? 'success' : 'info';
    toast.className = `jav-jump-toast is-${tone}`;
    const dismiss = () => {
     if (!toast.isConnected) return;
@@ -6875,7 +6875,7 @@
     actionEl.textContent = action.label; toast.appendChild(actionEl); }
    toast.appendChild(icon); toast.appendChild(body);
    if (action?.dismissible) {
-    const dismissButton = document.createElement('button'); dismissButton.type = 'button'; dismissButton.className = 'jav-jump-toast-dismiss'; dismissButton.title = '关闭提示'; dismissButton.setAttribute('aria-label', '关闭提示'); dismissButton.textContent = '×';
+    const dismissButton = document.createElement('button'); dismissButton.type = 'button'; dismissButton.className = 'jav-jump-toast-dismiss'; dismissButton.title = '關閉提示'; dismissButton.setAttribute('aria-label', '關閉提示'); dismissButton.textContent = '×';
     dismissButton.addEventListener('click', dismiss); toast.appendChild(dismissButton); }
    document.body.appendChild(toast); requestAnimationFrame(() => toast.classList.add('show'));
    if (duration > 0) { setTimeout(dismiss, duration); }
@@ -6958,10 +6958,10 @@
      container.remove(); toolbar.remove(); closeButton.remove(); document.removeEventListener('keydown', escHandler); document.documentElement.style.overflow = originalHtmlOverflow; document.body.style.overflow = originalBodyOverflow;
      if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
     } };
-   const closeButton = createButton('关闭', '', 'close', (e) => {
+   const closeButton = createButton('關閉', '', 'close', (e) => {
     e.stopPropagation(); closeOverlay();
    });
-   closeButton.type = 'button'; closeButton.setAttribute('aria-label', '关闭图片预览'); closeButton.title = '关闭图片预览'; container.onclick = closeOverlay;
+   closeButton.type = 'button'; closeButton.setAttribute('aria-label', '關閉图片预览'); closeButton.title = '關閉圖片預覽'; container.onclick = closeOverlay;
    const escHandler = (e) => {
     if (e.key === 'Escape') { closeOverlay(); }
    };
@@ -6988,7 +6988,7 @@
       if (r.status >= 200 && r.status < 300 && r.responseText) {
        try {
         Function(`${r.responseText}\n//# sourceURL=${HLS_SCRIPT_URL}`).call(globalThis);
-       } catch (err) { errorLog('TrailerResolver:HLS hls.js 执行失败', err); } }
+       } catch (err) {        errorLog('TrailerResolver:HLS hls.js 執行失敗', err); } }
       resolve(getHlsClass()); },
      onerror: () => resolve(getHlsClass()),
      ontimeout: () => resolve(getHlsClass())
@@ -7097,19 +7097,19 @@
   header.className = 'trailer-header'; const title = document.createElement('div'); title.className = 'trailer-title';
   title.innerHTML =`<span>🎞️</span><span class="trailer-code"> ${code} </span><span class="trailer-source"> ${source} </span>`;
   const sourceBadge = title.querySelector('.trailer-source'); const closeBtn = document.createElement('button'); closeBtn.className = 'jav-player-close'; closeBtn.type = 'button'; closeBtn.innerHTML = TRAILER_CLOSE_ICON;
-  closeBtn.setAttribute('aria-label', '关闭预告片'); header.appendChild(title); header.appendChild(closeBtn); const screen = document.createElement('div'); screen.className = 'trailer-screen';
+  closeBtn.setAttribute('aria-label', '關閉预告片'); header.appendChild(title); header.appendChild(closeBtn); const screen = document.createElement('div'); screen.className = 'trailer-screen';
   if (isIframe) screen.classList.add('is-iframe');
   const fallbackStatus = document.createElement('div'); fallbackStatus.className = 'trailer-fallback-status'; const volumeIndicator = document.createElement('div'); volumeIndicator.className = 'trailer-volume-indicator';
-  const playBtn = document.createElement('button'); playBtn.className = 'trailer-control-btn trailer-play-btn'; playBtn.type = 'button'; playBtn.innerHTML = TRAILER_PAUSE_ICON; playBtn.title = '播放/暂停'; const volumeBtn = document.createElement('button');
-  volumeBtn.className = 'trailer-control-btn trailer-volume-btn'; volumeBtn.type = 'button'; volumeBtn.innerHTML = TRAILER_VOLUME_ICON; volumeBtn.title = '静音/取消静音'; const volumeWrap = document.createElement('div'); volumeWrap.className = 'trailer-volume-wrap';
+  const playBtn = document.createElement('button'); playBtn.className = 'trailer-control-btn trailer-play-btn'; playBtn.type = 'button'; playBtn.innerHTML = TRAILER_PAUSE_ICON; playBtn.title = '播放/暫停'; const volumeBtn = document.createElement('button');
+  volumeBtn.className = 'trailer-control-btn trailer-volume-btn'; volumeBtn.type = 'button'; volumeBtn.innerHTML = TRAILER_VOLUME_ICON; volumeBtn.title = '靜音/取消靜音'; const volumeWrap = document.createElement('div'); volumeWrap.className = 'trailer-volume-wrap';
   const volumePopover = document.createElement('div'); volumePopover.className = 'trailer-volume-popover'; const volumeRail = document.createElement('div'); volumeRail.className = 'trailer-volume-rail'; const volumeFill = document.createElement('div');
   volumeFill.className = 'trailer-volume-fill'; const volumeThumb = document.createElement('div'); volumeThumb.className = 'trailer-volume-thumb'; const volumeSlider = document.createElement('input'); volumeSlider.className = 'trailer-volume-slider';
   volumeSlider.type = 'range'; volumeSlider.min = '0'; volumeSlider.max = '100'; volumeSlider.step = '1'; volumeSlider.value = '35'; volumeSlider.title = '音量'; volumeRail.appendChild(volumeFill); volumeRail.appendChild(volumeThumb);
   volumePopover.appendChild(volumeRail); volumePopover.appendChild(volumeSlider); volumeWrap.appendChild(volumeBtn); volumeWrap.appendChild(volumePopover); const currentTimeText = document.createElement('span'); currentTimeText.className = 'trailer-time';
   currentTimeText.textContent = '00:00'; const durationText = document.createElement('span'); durationText.className = 'trailer-time'; durationText.textContent = '00:00'; const progress = document.createElement('input');
-  progress.className = 'trailer-progress'; progress.type = 'range'; progress.min = '0'; progress.max = '1000'; progress.step = '1'; progress.value = '0'; progress.title = '播放进度'; const fullscreenBtn = document.createElement('button');
-  fullscreenBtn.className = 'trailer-control-btn trailer-fullscreen-btn'; fullscreenBtn.type = 'button'; fullscreenBtn.innerHTML = TRAILER_FULLSCREEN_ENTER_ICON; fullscreenBtn.title = '全屏'; fullscreenBtn.setAttribute('aria-label', '全屏');
-  const sizeBtn = document.createElement('button'); sizeBtn.className = 'trailer-control-btn trailer-size-btn'; sizeBtn.type = 'button'; sizeBtn.innerHTML = TRAILER_SIZE_ICON; sizeBtn.title = '切换宽屏播放'; sizeBtn.setAttribute('aria-label', '切换宽屏播放');
+  progress.className = 'trailer-progress'; progress.type = 'range'; progress.min = '0'; progress.max = '1000'; progress.step = '1'; progress.value = '0'; progress.title = '播放進度'; const fullscreenBtn = document.createElement('button');
+  fullscreenBtn.className = 'trailer-control-btn trailer-fullscreen-btn'; fullscreenBtn.type = 'button'; fullscreenBtn.innerHTML = TRAILER_FULLSCREEN_ENTER_ICON; fullscreenBtn.title = '全屏'; fullscreenBtn.setAttribute('aria-label', '全螢幕');
+  const sizeBtn = document.createElement('button'); sizeBtn.className = 'trailer-control-btn trailer-size-btn'; sizeBtn.type = 'button'; sizeBtn.innerHTML = TRAILER_SIZE_ICON; sizeBtn.title = '切換寬屏播放'; sizeBtn.setAttribute('aria-label', '切换宽屏播放');
   return { overlay, modal, header, sourceBadge, closeBtn, screen, fallbackStatus, volumeIndicator, playBtn, volumeBtn, volumeWrap, volumeRail, volumeSlider, currentTimeText, durationText, progress, sizeBtn, fullscreenBtn }; }
  function createTrailerPlaybackControls({
   getVideo, isSeekingByProgress, getFooter, screen, playBtn, volumeBtn,
@@ -7308,14 +7308,14 @@
     if (overlayClosed || !video || sourceFallbackInProgress) return;
     if (playbackStarted && reason !== 'timeout' && reason !== 'hls') return;
     if (normalizedSourceName() !== 'JavTrailers' && fallbackIndex < fallbackUrls.length - 1) {
-     fallbackIndex += 1; activeUrl = fallbackUrls[fallbackIndex]; sourceLink.href = activeUrl; destroyActiveHls(); setFallbackStatus('当前画质加载失败，正在切换备用画质...'); attachVideoSrc(activeUrl); video.load?.();
+     fallbackIndex += 1; activeUrl = fallbackUrls[fallbackIndex]; sourceLink.href = activeUrl; destroyActiveHls(); setFallbackStatus('目前畫質載入失敗，正在切換至備用畫質…'); attachVideoSrc(activeUrl); video.load?.();
      video.play().catch(() => {});
      schedulePlaybackGuard(reason); return; }
     if (typeof fallbackResolver !== 'function') return;
     const failedSource = normalizedSourceName();
     if (!failedSource || failedSources.has(failedSource)) return;
     failedSources.add(failedSource); sourceFallbackInProgress = true;
-    setFallbackStatus(`${failedSource} 加载失败，正在切换备用来源...`);
+    setFallbackStatus(`${failedSource} 載入失敗，正在切換至備用來源…`);
     destroyActiveHls();
     try {
      const result = await fallbackResolver([...failedSources]);
@@ -7326,7 +7326,7 @@
      video.play().catch(() => {});
      schedulePlaybackGuard('fallback');
     } catch (error) {
-     errorLog('TrailerResolver 播放失败回落异常', error); setFallbackStatus('备用来源切换失败', true);
+     errorLog('TrailerResolver 播放失敗回退異常', error); setFallbackStatus('備用來源切換失敗', true);
     } finally {
      sourceFallbackInProgress = false; } };
    const { getHlsClass, loadHlsLibrary, createHlsLoader } = createTrailerHlsRuntime();
@@ -7395,7 +7395,7 @@
     const retryFailedFragment = () => {
      if (overlayClosed || video?._hls !== hls || fragmentRetryCount >= maxFragmentRetries) return false;
      fragmentRetryCount += 1; clearTimeout(playbackReadyTimer);
-     setFallbackStatus(`分片加载失败，正在重试 (${fragmentRetryCount}/${maxFragmentRetries})...`);
+     setFallbackStatus(`片段載入失敗，正在重試 (${fragmentRetryCount}/${maxFragmentRetries})…`);
      hls.stopLoad?.(); clearTimeout(hlsRetryTimer);
      hlsRetryTimer = setTimeout(() => {
       hlsRetryTimer = null;
@@ -7420,7 +7420,7 @@
     });
     hls.on(HlsClass.Events.ERROR, (_, data) => {
      if (!data?.fatal) return;
-     errorLog('TrailerResolver:HLS 播放失败', data);
+     errorLog('TrailerResolver:HLS 播放失敗', data);
      const isFragmentNetworkError = (
       data.type === HlsClass.ErrorTypes?.NETWORK_ERROR || data.type === 'networkError'
      ) && ( data.details === HlsClass.ErrorDetails?.FRAG_LOAD_ERROR || data.details === 'fragLoadError' );
@@ -7451,14 +7451,14 @@
    const attachVideoSrc = (src) => {
     if (!src) return;
     sourceLoadGeneration += 1;
-    setFallbackStatus(`正在加载 ${normalizedSourceName() || '预告片'}...`);
+    setFallbackStatus(`正在載入 ${normalizedSourceName() || '預告片'}…`);
     if (isHlsSource(src)) attachM3u8Src(src);
     else attachMp4Src(src);
     schedulePlaybackGuard('timeout'); };
    const initTrailerVideo = (src) => {
     if (!src) return;
     const generation = ++sourceLoadGeneration;
-    setFallbackStatus(`正在加载 ${normalizedSourceName() || '预告片'}...`);
+    setFallbackStatus(`正在載入 ${normalizedSourceName() || '預告片'}…`);
     schedulePlaybackGuard('timeout');
     if (generation !== sourceLoadGeneration) return;
     if (!isHlsSource(src)) { attachMp4Src(src); return; }
@@ -7919,7 +7919,7 @@
     }
     debugLog('javstore: 所有候选页均无预览图'); return null;
    } catch (e) {
-    debugLog('javstore 获取失败', e); return null; } },
+    debugLog('javstore 取得失敗', e); return null; } },
   async _extractImgFromDetail(detailUrl, code) {
    try {
     const detailHtml = await Utils.request(detailUrl); const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
@@ -7936,7 +7936,7 @@
      return this.normalizePreviewUrl(src.replace(/_s\.jpg$/, '_l.jpg'), detailUrl); }
     return null;
    } catch (e) {
-    debugLog('javstore: 详情页请求失败', detailUrl, e.message); return null; } },
+    debugLog('javstore: 详情页請求失敗', detailUrl, e.message); return null; } },
   async projectjav(code) {
    code = this.lookupCode(code);
    try {
@@ -7954,8 +7954,8 @@
        if (r.status >= 200 && r.status < 400) resolve(r);
        else reject(new Error(`HTTP ${r.status}`));
       },
-      onerror: (e) => { debugLog('[projectjav] 网络错误', e); reject(new Error('请求失败')); },
-      ontimeout: () => { debugLog('[projectjav] 请求超时'); reject(new Error('请求超时')); }
+      onerror: (e) => { debugLog('[projectjav] 網路錯誤', e); reject(new Error('請求失敗')); },
+      ontimeout: () => { debugLog('[projectjav] 請求逾時'); reject(new Error('請求逾時')); }
      });
     });
     const searchUrl =`https://projectjav.com/?searchTerm=${encodeURIComponent(code)}`;
@@ -7967,7 +7967,7 @@
      const allMovieLinks = [...searchDoc.querySelectorAll('a[href*="/movie/"]')];
      debugLog(`[projectjav] /movie/ 链接数: ${allMovieLinks.length}`);
      allMovieLinks.slice(0, 5).forEach(a => debugLog('  ', a.getAttribute('href'))); const firstLink = allMovieLinks[0]?.getAttribute('href') || '';
-     if (!firstLink) { debugLog('[projectjav] 无结果，页面标题:', searchDoc.title); debugLog('[projectjav] 页面前800字符:', searchHtml.slice(0, 800)); return null; }
+     if (!firstLink) {      debugLog('[projectjav] 查無結果，頁面標題:', searchDoc.title); debugLog('[projectjav] 頁面前800字元:', searchHtml.slice(0, 800)); return null; }
      detailUrl = firstLink.startsWith('http') ? firstLink :`https://projectjav.com${firstLink}`;
     }
     debugLog('[projectjav] 详情页:', detailUrl); const detailRes = finalSearchUrl === detailUrl ? searchRes : await request(detailUrl); const detailHtml = detailRes.responseText || ''; const finalDetailUrl = detailRes.finalUrl || detailUrl;
@@ -7985,7 +7985,7 @@
       const src = (thumbImg.getAttribute('src') || '').replace(/\?.*$/, '');
       if (src) return this.normalizePreviewUrl(src, finalDetailUrl);
      } }
-    debugLog('[projectjav] 详情页未找到图片，页面标题:', detailDoc.title); return null;
+    debugLog('[projectjav] 詳情頁找不到圖片，頁面標題:', detailDoc.title); return null;
    } catch (e) {
     debugLog('[projectjav] 异常:', e.message); return null; } },
   async get(code) {
@@ -8007,19 +8007,19 @@
    const result = await this.get(code);
    if (result.url) {
     Utils.showOverlay(result.url, code, result.source);
-   } else { Utils.showToast('未找到预览图', '已尝试所有可用来源，请稍后重试', 2600); } } };
+   } else { Utils.showToast('未找到预览图', '已尝试所有可用来源，請稍後再試', 2600); } } };
  const ListPreview = (() => {
   let magnetOverlay = null;
   const ACTIONS = [
    { key: 'magnet', name: 'magnet', title: '磁力', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="tool-svg" viewBox="0 0 1000 1000"><path d="M420 80c-160 18-300 88-410 200v210h230V300c55-45 120-72 200-80h140v-140H420zM760 80v140h140V80H760zM10 510v210c110 112 250 182 410 200h160V780H440c-80-8-145-35-200-80V510H10zM760 780v140h140V780H760z"/></svg>' },
-   { key: 'trailer', name: 'trailer', title: '预告片', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="tool-svg" viewBox="0 0 16 16"><path d="M2 2.8A1.8 1.8 0 0 1 3.8 1h8.4A1.8 1.8 0 0 1 14 2.8v10.4a1.8 1.8 0 0 1-1.8 1.8H3.8A1.8 1.8 0 0 1 2 13.2V2.8zm1 1.7h10V2.8a.8.8 0 0 0-.8-.8H3.8a.8.8 0 0 0-.8.8v1.7zm10 1H3v5h10v-5zm0 6H3v1.7c0 .44.36.8.8.8h8.4c.44 0 .8-.36.8-.8v-1.7zM6.4 6.45a.45.45 0 0 1 .47.02l2.35 1.35a.45.45 0 0 1 0 .78L6.87 9.95A.45.45 0 0 1 6.2 9.56V6.84c0-.17.08-.32.2-.39z"/></svg>' },
-   { key: 'preview', name: 'picture', title: '预览图', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="tool-svg" viewBox="0 0 16 16"><path d="M6 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"></path><path d="M2 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2H2zm12 1a1 1 0 0 1 1 1v6.5l-3.78-1.95a.5.5 0 0 0-.57.1l-3.71 3.7-2.66-1.77a.5.5 0 0 0-.63.06L1 12V3a1 1 0 0 1 1-1h12z"></path></svg>' },
+   { key: 'trailer', name: 'trailer', title: '預告片', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="tool-svg" viewBox="0 0 16 16"><path d="M2 2.8A1.8 1.8 0 0 1 3.8 1h8.4A1.8 1.8 0 0 1 14 2.8v10.4a1.8 1.8 0 0 1-1.8 1.8H3.8A1.8 1.8 0 0 1 2 13.2V2.8zm1 1.7h10V2.8a.8.8 0 0 0-.8-.8H3.8a.8.8 0 0 0-.8.8v1.7zm10 1H3v5h10v-5zm0 6H3v1.7c0 .44.36.8.8.8h8.4c.44 0 .8-.36.8-.8v-1.7zM6.4 6.45a.45.45 0 0 1 .47.02l2.35 1.35a.45.45 0 0 1 0 .78L6.87 9.95A.45.45 0 0 1 6.2 9.56V6.84c0-.17.08-.32.2-.39z"/></svg>' },
+   { key: 'preview', name: 'picture', title: '預覽圖', svg: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="tool-svg" viewBox="0 0 16 16"><path d="M6 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"></path><path d="M2 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2H2zm12 1a1 1 0 0 1 1 1v6.5l-3.78-1.95a.5.5 0 0 0-.57.1l-3.71 3.7-2.66-1.77a.5.5 0 0 0-.63.06L1 12V3a1 1 0 0 1 1-1h12z"></path></svg>' },
   ];
   const QUICK_MENU_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="tool-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M0 0h1024v1024H0z" fill="none"/><path fill="currentColor" d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8m-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8m0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8M142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7"/></svg>';
   const QUICK_MENU_ITEMS = [
-   { key: 'copy-code', label: '\u590d\u5236\u756a\u53f7', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M20 2H10c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m0 12H10V4h10zM14 20H4V10h2V8H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-2h-2zM12 6h6v2h-6zm0 4h6v2h-6z"/></svg>' },
-   { key: 'download-cover', label: '\u4e0b\u8f7d\u9ad8\u6e05\u5c01\u9762', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M0 0h12v12H0z" fill="none"/><path fill="currentColor" d="M8.5 5C6.57 5 5 6.57 5 8.5S6.57 12 8.5 12 12 10.43 12 8.5 10.43 5 8.5 5m1.85 4.35-1.5 1.5s-.1.08-.16.11c-.06.02-.12.04-.19.04s-.13-.01-.19-.04a.4.4 0 0 1-.16-.11l-1.5-1.5c-.2-.2-.2-.51 0-.71s.51-.2.71 0l.65.65V6.5c0-.28.22-.5.5-.5s.5.22.5.5v2.79l.65-.65c.2-.2.51-.2.71 0s.2.51 0 .71zM4.05 9c.04.35.11.68.23 1 .12-.32.19-.65.23-1H3c-1.65 0-3-1.35-3-3 0-1.49 1.1-2.74 2.53-2.96C2.76 2.33 4.23 1 6 1s3.24 1.32 3.47 3.04v.08A4.4 4.4 0 0 0 8.5 4h-.05A2.51 2.51 0 0 0 6 1.99a2.5 2.5 0 0 0-2.5 2.5c0 .28-.22.5-.5.5-1.1 0-2 .9-2 2s.9 2 2 2h1.05z"/></svg>' },
-   { key: 'download-portrait-cover', label: '\u4e0b\u8f7d\u7ad6\u7248\u9ad8\u6e05\u5c01\u9762', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M7 2.9h10v18.2H7z"/><path fill="currentColor" d="M12 6.5a.9.9 0 0 1 .9.9v6.03l1.56-1.56a.9.9 0 1 1 1.27 1.27l-3.1 3.1a.9.9 0 0 1-1.27 0l-3.1-3.1a.9.9 0 1 1 1.27-1.27l1.57 1.56V7.4a.9.9 0 0 1 .9-.9"/></svg>' },
+   { key: 'copy-code', label: '複製番號', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M20 2H10c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m0 12H10V4h10zM14 20H4V10h2V8H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-2h-2zM12 6h6v2h-6zm0 4h6v2h-6z"/></svg>' },
+   { key: 'download-cover', label: '下載高清封面', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M0 0h12v12H0z" fill="none"/><path fill="currentColor" d="M8.5 5C6.57 5 5 6.57 5 8.5S6.57 12 8.5 12 12 10.43 12 8.5 10.43 5 8.5 5m1.85 4.35-1.5 1.5s-.1.08-.16.11c-.06.02-.12.04-.19.04s-.13-.01-.19-.04a.4.4 0 0 1-.16-.11l-1.5-1.5c-.2-.2-.2-.51 0-.71s.51-.2.71 0l.65.65V6.5c0-.28.22-.5.5-.5s.5.22.5.5v2.79l.65-.65c.2-.2.51-.2.71 0s.2.51 0 .71zM4.05 9c.04.35.11.68.23 1 .12-.32.19-.65.23-1H3c-1.65 0-3-1.35-3-3 0-1.49 1.1-2.74 2.53-2.96C2.76 2.33 4.23 1 6 1s3.24 1.32 3.47 3.04v.08A4.4 4.4 0 0 0 8.5 4h-.05A2.51 2.51 0 0 0 6 1.99a2.5 2.5 0 0 0-2.5 2.5c0 .28-.22.5-.5.5-1.1 0-2 .9-2 2s.9 2 2 2h1.05z"/></svg>' },
+   { key: 'download-portrait-cover', label: '下載直式高清封面', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M7 2.9h10v18.2H7z"/><path fill="currentColor" d="M12 6.5a.9.9 0 0 1 .9.9v6.03l1.56-1.56a.9.9 0 1 1 1.27 1.27l-3.1 3.1a.9.9 0 0 1-1.27 0l-3.1-3.1a.9.9 0 1 1 1.27-1.27l1.57 1.56V7.4a.9.9 0 0 1 .9-.9"/></svg>' },
   ]; QUICK_MENU_ITEMS.find(item => item.key === 'download-portrait-cover').icon = QUICK_MENU_ITEMS.find(item => item.key === 'download-cover').icon;
   function enabled() { return GM_getValue('list_preview_quick_enabled', true); }
   function ensureStyle() {
@@ -8120,23 +8120,23 @@
   }
   async function runQuickMenuAction(action, code, card, item) {
    if (!code) return;
-   if (action === 'copy-code') { GM_setClipboard(code); showQuickMenuToast('\u5df2\u590d\u5236\u756a\u53f7', code); return; }
+   if (action === 'copy-code') { GM_setClipboard(code); showQuickMenuToast('\u5df2複製番號', code); return; }
    const portrait = action === 'download-portrait-cover';
    if (action !== 'download-cover' && !portrait) return;
-   if (!Utils.isEligibleDmmCoverCode(code)) { showQuickMenuToast('\u65e0\u6cd5\u4e0b\u8f7d\u5c01\u9762', '\u8be5\u756a\u53f7\u4e0d\u652f\u6301 DMM \u9ad8\u6e05\u5c01\u9762'); return; }
+   if (!Utils.isEligibleDmmCoverCode(code)) { showQuickMenuToast('無法下載封面', '此番號不支援 DMM 高清封面'); return; }
    item.disabled = true;
-   showQuickMenuToast('\u6b63\u5728\u83b7\u53d6\u5c01\u9762', portrait ? '\u6b63\u5728\u6821\u9a8c\u7ad6\u7248\u9ad8\u6e05\u5c01\u9762\uff0c\u8bf7\u7a0d\u7b49' : '\u6700\u9ad8\u652f\u6301 2K\uff0c\u56fe\u7247\u8f83\u5927\uff0c\u8bf7\u7a0d\u7b49');
+   showQuickMenuToast('正在取得封面', portrait ? '正在確認直式高清封面，請稍候' : '最高支援 2K，圖片較大，請稍候');
    try {
     const result = await Trailer.fromJavxyCover(code);
     if (result?.banned) return;
     const url = result?.found && (portrait ? (result.highPortraitCover || result.portraitCover) : (result.url || result.highCover || result.cover));
-    if (!url) { showQuickMenuToast('\u672a\u627e\u5230\u5c01\u9762', portrait ? '\u8be5\u756a\u53f7\u6ca1\u6709\u53ef\u7528\u7684 DMM \u7ad6\u7248\u5c01\u9762' : '\u8be5\u756a\u53f7\u6ca1\u6709\u53ef\u7528\u7684 DMM \u5c01\u9762'); return; }
+    if (!url) { showQuickMenuToast('找不到封面', portrait ? '此番號沒有可用的 DMM 直式封面' : '此番號沒有可用的 DMM 封面'); return; }
     const fileName =`${code.replace(/[^a-z0-9_-]/gi, '_')}${portrait ? '-poster' : '-cover'}.jpg`;
     GM_download({ url, name: fileName, saveAs: false,
-     onload: () => showQuickMenuToast('\u5c01\u9762\u4e0b\u8f7d\u5b8c\u6210', fileName),
-     onerror: () => showQuickMenuToast('\u5c01\u9762\u4e0b\u8f7d\u5931\u8d25', '\u8bf7\u68c0\u67e5\u7f51\u7edc\u6216\u91cd\u8bd5') });
+     onload: () => showQuickMenuToast('封面下載完成', fileName),
+     onerror: () => showQuickMenuToast('封面下載失敗', '請檢查網路連線或重試') });
    } catch (error) {
-    debugLog('DMM 封面检查失败:', error); showQuickMenuToast('\u5c01\u9762\u4e0b\u8f7d\u5931\u8d25', '\u8bf7\u68c0\u67e5\u7f51\u7edc\u6216\u91cd\u8bd5');
+    debugLog('DMM 封面檢查失敗:', error); showQuickMenuToast('封面下載失敗', '請檢查網路連線或重試');
    } finally {
     item.disabled = false; } }
   function closeQuickMenu(menu) {
@@ -8159,7 +8159,7 @@
   }
   function createDetailCoverMenu(code, host = null) {
    const menu = document.createElement('span'); menu.className = 'jav-card-quick-menu jav-detail-cover-menu'; menu.dataset.code = code;
-   menu.innerHTML =`<button type="button" class="jav-card-quick-btn jav-detail-quick-btn jav-card-quick-menu-trigger" title="\u4e0b\u8f7d\u9ad8\u6e05\u5c01\u9762" aria-label="\u4e0b\u8f7d\u9ad8\u6e05\u5c01\u9762" aria-haspopup="menu" aria-expanded="false">${QUICK_MENU_ITEMS.find(item => item.key === 'download-cover').icon}</button><span class="jav-card-quick-menu-popover" hidden role="menu"></span>`;
+   menu.innerHTML =`<button type="button" class="jav-card-quick-btn jav-detail-quick-btn jav-card-quick-menu-trigger" title="下載高清封面" aria-label="下載高清封面" aria-haspopup="menu" aria-expanded="false">${QUICK_MENU_ITEMS.find(item => item.key === 'download-cover').icon}</button><span class="jav-card-quick-menu-popover" hidden role="menu"></span>`;
    const popover = menu.querySelector('.jav-card-quick-menu-popover'); menu.__quickMenuPopover = popover;
    QUICK_MENU_ITEMS.filter(item => item.key === 'download-cover' || item.key === 'download-portrait-cover').forEach(item => {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-card-quick-menu-item'; button.dataset.quickAction = item.key;
@@ -8187,7 +8187,7 @@
     existing.querySelectorAll('[data-quick-action="download-cover"], [data-quick-action="download-portrait-cover"]').forEach(coverItem => { coverItem.hidden = !Utils.isEligibleDmmCoverCode(code); });
     actions.appendChild(existing); return existing; }
    const menu = document.createElement('span'); menu.className = 'jav-card-quick-menu'; menu.dataset.code = code;
-   menu.innerHTML =`<button type="button" class="jav-card-quick-btn jav-card-quick-menu-trigger" title="\u9996\u9875\u5feb\u6377\u529f\u80fd" aria-label="\u9996\u9875\u5feb\u6377\u529f\u80fd" aria-haspopup="menu" aria-expanded="false">${QUICK_MENU_ICON}</button><span class="jav-card-quick-menu-popover" hidden role="menu"></span>`;
+   menu.innerHTML =`<button type="button" class="jav-card-quick-btn jav-card-quick-menu-trigger" title="首頁快捷功能" aria-label="首頁快捷功能" aria-haspopup="menu" aria-expanded="false">${QUICK_MENU_ICON}</button><span class="jav-card-quick-menu-popover" hidden role="menu"></span>`;
    const popover = menu.querySelector('.jav-card-quick-menu-popover'); menu.__quickMenuPopover = popover;
    QUICK_MENU_ITEMS.forEach(item => {
     const button = document.createElement('button');
@@ -8310,7 +8310,7 @@
    if (!menu || menu.dataset.resourceMenuVersion !== '3') {
     if (menu) { closeResourceMenu(menu); menu.remove(); }
     menu = document.createElement('span'); menu.className = 'jav-card-resource-menu'; menu.dataset.resourceMenuVersion = '3';
-    menu.innerHTML = '<button type="button" class="jav-card-quick-btn jav-card-resource-menu-trigger" title="鉴定处理" aria-label="鉴定处理" aria-haspopup="menu" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="resource-menu-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M42.238 6.426c4.8 0 7.238 2.34 7.333 6.979l.003.286V42.31c0 4.731-2.34 7.167-7.045 7.262l-.29.003H13.784c-4.777 0-7.259-2.318-7.356-6.977l-.003-.288V13.69c0-4.754 2.386-7.168 7.07-7.262l.29-.003zm-.07 3.773H13.855c-2.268 0-3.57 1.164-3.652 3.448l-.004.232V42.12c0 2.359 1.23 3.598 3.433 3.676l.223.004h28.313c2.245 0 3.547-1.164 3.629-3.448l.004-.232V13.88c0-2.359-1.23-3.676-3.412-3.676zM33 38a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zm8-7a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zM14.1 14.239c1.465-1.645 3.856-1.652 5.31-.02l.24.277l.198.248l.162.216l.18.259l.156.262l.073-.13l.127-.2l.126-.18l.077-.103l.182-.234l.107-.13l.246-.285c1.448-1.627 3.844-1.625 5.31.02s1.42 4.202.017 5.961l-.304.367l-.376.43l-.432.477l-.716.77l-.75.787l-.958.985l-.677.679l-.512.497l-.125.114c-1.043.921-1.761.897-2.72.096l-.18-.158l-.237-.225l-.808-.799l-.891-.904l-.962-1l-.378-.403l-.535-.581l-.475-.534l-.27-.319q-.124-.15-.223-.279c-1.444-1.875-1.447-4.316.018-5.961"/></svg></button><span class="jav-card-resource-menu-popover" hidden role="menu"></span>';
+    menu.innerHTML = '<button type="button" class="jav-card-quick-btn jav-card-resource-menu-trigger" title="鑒定處理" aria-label="鑒定處理" aria-haspopup="menu" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" class="resource-menu-icon" viewBox="0 0 56 56" aria-hidden="true"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M42.238 6.426c4.8 0 7.238 2.34 7.333 6.979l.003.286V42.31c0 4.731-2.34 7.167-7.045 7.262l-.29.003H13.784c-4.777 0-7.259-2.318-7.356-6.977l-.003-.288V13.69c0-4.754 2.386-7.168 7.07-7.262l.29-.003zm-.07 3.773H13.855c-2.268 0-3.57 1.164-3.652 3.448l-.004.232V42.12c0 2.359 1.23 3.598 3.433 3.676l.223.004h28.313c2.245 0 3.547-1.164 3.629-3.448l.004-.232V13.88c0-2.359-1.23-3.676-3.412-3.676zM33 38a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zm8-7a2 2 0 1 1 0 4H15a2 2 0 1 1 0-4zM14.1 14.239c1.465-1.645 3.856-1.652 5.31-.02l.24.277l.198.248l.162.216l.18.259l.156.262l.073-.13l.127-.2l.126-.18l.077-.103l.182-.234l.107-.13l.246-.285c1.448-1.627 3.844-1.625 5.31.02s1.42 4.202.017 5.961l-.304.367l-.376.43l-.432.477l-.716.77l-.75.787l-.958.985l-.677.679l-.512.497l-.125.114c-1.043.921-1.761.897-2.72.096l-.18-.158l-.237-.225l-.808-.799l-.891-.904l-.962-1l-.378-.403l-.535-.581l-.475-.534l-.27-.319q-.124-.15-.223-.279c-1.444-1.875-1.447-4.316.018-5.961"/></svg></button><span class="jav-card-resource-menu-popover" hidden role="menu"></span>';
     const popover = menu.querySelector('.jav-card-resource-menu-popover'); menu.__resourcePopover = popover;
     Object.entries(RESOURCE_FLAG_LABELS).forEach(([flag, labels]) => { const button = document.createElement('button'); button.type = 'button'; button.className = 'jav-card-resource-menu-item'; button.dataset.resourceWorkFlag = flag; button.textContent = labels[0]; popover.appendChild(button); });
     menu.querySelector('.jav-card-resource-menu-trigger').addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); toggleResourceMenu(menu); }, true);
@@ -8516,7 +8516,7 @@
    ]).then(cover => {
     writePan115CoverCache(normalized, cover); return cover;
    }).catch(error => {
-    errorLog('115 封面并发查询失败:', normalized, error); writePan115CoverCache(normalized, ''); return '';
+    errorLog('115 封面并发查詢失敗:', normalized, error); writePan115CoverCache(normalized, ''); return '';
    }).finally(() => pan115CoverPending.delete(normalized));
    pan115CoverPending.set(normalized, task); return task; }
   function titleTargets(cover) {
@@ -8632,11 +8632,11 @@
    let wrap = document.querySelector('.jav-detail-preview-wrap');
    if (!wrap) {
     wrap = document.createElement('div'); wrap.className = 'jav-detail-preview-wrap'; wrap.dataset.code = code; wrap.dataset.state = 'loading'; const loading = document.createElement('span'); loading.className = 'jav-detail-preview-loading';
-    loading.textContent = '预览图加载中...'; wrap.appendChild(loading);
+    loading.textContent = '預覽圖載入中...'; wrap.appendChild(loading);
     if (target.anchor?.parentElement === target.slot) {
      target.slot.insertBefore(wrap, target.anchor);
     } else { target.slot.insertBefore(wrap, target.slot.firstChild); }
-   } else { wrap.dataset.code = code; wrap.dataset.state = 'loading'; wrap.innerHTML = '<span class="jav-detail-preview-loading">预览图加载中...</span>'; }
+   } else { wrap.dataset.code = code; wrap.dataset.state = 'loading'; wrap.innerHTML = '<span class="jav-detail-preview-loading">預覽圖載入中...</span>'; }
    const result = await Thumbnail.get(code);
    if (token !== lastToken || !wrap.isConnected) return;
    if (!result?.url) {
@@ -8646,7 +8646,7 @@
     return; }
    state = { code, status: 'loaded' };
    wrap.dataset.state = 'loaded'; wrap.innerHTML = ''; const img = document.createElement('img'); img.className = 'jav-detail-preview-inline'; img.dataset.code = code; img.src = result.url; img.alt = code; img.loading = 'lazy';
-   img.referrerPolicy = 'no-referrer'; img.title = '点击查看预览图';
+   img.referrerPolicy = 'no-referrer'; img.title = '點擊查看預覽圖';
    img.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); Utils.showOverlay(result.url, code, result.source); });
    wrap.appendChild(img); }
   return { sync, remove };
@@ -8734,21 +8734,21 @@
       return this.fallbackJavxyResult(normalizedCode, rawCode, failed, { source: sources, requestID: result.requestID }); }
     });
    } else {
-    this.debug('最终未找到可用视频源', { code: this.normalize(code) });
+    this.debug('最後找不到可用影片來源', { code: this.normalize(code) });
     if (this.lastJavxyFailure === 'ip_banned') return;
-    if (this.lastJavxyFailure === 'rate_limited') { Utils.showToast('请求过于频繁', '预告片接口已触发限流，请稍后再试。', 4000); return; }
-    Utils.showToast('该番号暂时没有可播放的预告片', '', 4000); } },
+    if (this.lastJavxyFailure === 'rate_limited') { Utils.showToast('請求過於頻繁', '預告片介面已達流量限制，請稍後再試。', 4000); return; }
+    Utils.showToast('此番號暫時沒有可播放的預告片', '', 4000); } },
   async get(code, options = {}) {
    const rawCode = String(code || '').trim(); const id = this.normalize(code); const requestID = options.requestID || this.createQueryRequestID(); const cacheEnabled = Settings.getTrailerCacheEnabled(); this.lastJavxyFailure = '';
    this.debug('开始查询', { rawCode, normalized: id, cacheEnabled });
    if (Settings.getTrailerProxyPlaybackEnabled()) {
-    this.debug('已开启预告片代理播放，直接请求服务器中转', { normalized: id });
+    this.debug('已啟用預告片代理播放，直接請求伺服器中轉', { normalized: id });
     const proxied = await this.proxyJavxyPlaybackResult(id, rawCode, { requestID });
     if (proxied?.url) return proxied;
     const proxyStatus = await this.getProxyPlaybackStatus();
     if (!proxyStatus.closed) return null;
-    CFG.trailerProxyPlayback = false; Utils.showToast('服务器已关闭', '预告片中转播放已关闭，已切换为普通播放', 4000);
-    this.debug('服务器已关闭预告片中转播放，已关闭本地选项并重试普通播放', { normalized: id });
+    CFG.trailerProxyPlayback = false; Utils.showToast('伺服器已關閉', '預告片中轉播放功能已關閉，已切換為一般播放', 4000);
+    this.debug('服务器已關閉预告片中转播放，已關閉本地选项并重试普通播放', { normalized: id });
     return this.get(rawCode, { requestID }); }
    if (cacheEnabled) {
     const cached = sessionStorage.getItem(this.cacheKey(id));
@@ -8757,19 +8757,19 @@
       const cachedResult = JSON.parse(cached);
       if (cachedResult?.url) {
        if (this.isDynamicTrailer(cachedResult)) {
-        this.debug('动态预告不缓存，已清理旧缓存', { source: cachedResult.source, url: cachedResult.url });
+        this.debug('动态预告不快取，已清理旧快取', { source: cachedResult.source, url: cachedResult.url });
         sessionStorage.removeItem(this.cacheKey(id));
        } else if (this.isJpSourceTemporarilyFailed('DMM') && this.normalizeJavxySource(cachedResult.javxySource || cachedResult.source) === 'DMM') {
-        this.debug('DMM 会话内已失败，跳过旧缓存', { source: cachedResult.source, url: cachedResult.url });
+        this.debug('DMM 工作階段內已失敗，略過舊快取', { source: cachedResult.source, url: cachedResult.url });
         sessionStorage.removeItem(this.cacheKey(id));
        } else {
-        this.debug('缓存命中', { source: cachedResult.source, url: cachedResult.url });
+        this.debug('快取命中', { source: cachedResult.source, url: cachedResult.url });
         const playbackResult = this.applyQualityPreference(cachedResult);
         if (playbackResult?.url) return { ...playbackResult, requestID };
         sessionStorage.removeItem(this.cacheKey(id)); } }
      } catch {
      }
-     this.debug('缓存无效，已移除'); sessionStorage.removeItem(this.cacheKey(id)); } }
+     this.debug('快取无效，已移除'); sessionStorage.removeItem(this.cacheKey(id)); } }
    for (const resolver of this.resolverChain()) {
     const resolverName = resolver.name || 'anonymous';
     try {
@@ -8822,11 +8822,11 @@
    if (this.javxyBanPromptShown) return;
    this.javxyBanPromptShown = true;
    Utils.showToast(
-    '请求后端服务器异常',
-    '请稍后重试，或前往页面查看',
+    '請求后端伺服器異常',
+    '請稍后重試，或前往頁面檢視',
     0,
     {
-     label: '前往查看',
+     label: '前往檢視',
      url: this.javxyPageUrl(),
      dismissible: true }
    ); },
@@ -8834,8 +8834,8 @@
    if (!endpoint?.promptUpdate || ![401, 403].includes(status) || this.javxyUpdatePromptShown) return;
    this.javxyUpdatePromptShown = true;
    Utils.showToast(
-    '脚本需要更新',
-    '当前可继续使用备用预告片服务；要使用高清封面下载和完整预告播放体验，请更新脚本。',
+    '腳本需要更新',
+    '當前可繼續使用備用預告片服務；要使用高清封面下載和完整預告播放體驗，請更新腳本。',
     0,
     {
      label: '前往更新',
@@ -8879,11 +8879,11 @@
      skip,
      prefer,
      source,
-     rule: '仅跳过失败来源，后续顺序按服务端后台设置'
+     rule: '僅略過失敗來源，後續順序依伺服器端後台設定'
     }); }
    return this.fromJavxyCcCd(code, rawCode, { skip, prefer, source, playbackFallback: true, requestID: options.requestID }); },
   async proxyJavxyPlaybackResult(code, rawCode = '', options = {}) {
-   this.debug('请求预告片服务器中转播放', { code });
+   this.debug('請求預告片伺服器中轉播放', { code });
    return this.fromJavxyCcCd(code, rawCode, {
     proxyPlayback: true,
     requestID: options.requestID
@@ -9046,22 +9046,22 @@
      headers: this.javxyHeaders(endpoint.authenticated)
     });
     if (!r) {
-     this.debug('Javxy API 网络失败，尝试下一个节点', { endpoint: endpoint.label });
+     this.debug('Javxy API 網路失敗，嘗試下一個節點', { endpoint: endpoint.label });
      continue; }
     if (r.status >= 500 || r.status === 0) {
-     this.debug('Javxy API 服务异常，尝试下一个节点', { endpoint: endpoint.label, status: r.status });
+     this.debug('Javxy API 服務異常，嘗試下一個節點', { endpoint: endpoint.label, status: r.status });
      continue; }
     if (r.status === 429) {
      rateLimited = true;
-     this.debug('Javxy API 已限流，尝试下一个节点', { endpoint: endpoint.label, status: r.status });
+     this.debug('Javxy API 已限流，嘗試下一個節點', { endpoint: endpoint.label, status: r.status });
      continue; }
     if ([401, 403].includes(r.status)) {
      if (this.isJavxyIPBanned(r)) {
       this.notifyJavxyIPBanned();
-      this.debug('Javxy API IP 已被封禁，停止查询', { endpoint: endpoint.label, status: r.status });
+      this.debug('Javxy API IP 已被封禁，停止查詢', { endpoint: endpoint.label, status: r.status });
       return null; }
      this.notifyJavxyUpdateRequired(endpoint, r.status);
-     this.debug('Javxy API 被拒绝或限流，尝试下一个节点', { endpoint: endpoint.label, status: r.status });
+     this.debug('Javxy API 被拒絕或限流，嘗試下一個節點', { endpoint: endpoint.label, status: r.status });
      continue; }
     if (r.status < 200 || r.status >= 400) {
      this.debug('Javxy API 无结果，停止查询', { endpoint: endpoint.label, status: r.status });
@@ -9073,7 +9073,7 @@
     try {
      data = JSON.parse(r.responseText);
     } catch {
-     this.debug('Javxy JSON 解析失败，尝试下一个节点', { endpoint: endpoint.label });
+     this.debug('Javxy JSON 解析失敗，嘗試下一個節點', { endpoint: endpoint.label });
      continue; }
     const trailerUrl = String(data?.trailer || '').trim();
     if (!trailerUrl) {
@@ -9337,7 +9337,7 @@
   lowPriorityReason(item) {
    const name = String(item?.name || ''); const size = this.parseSize(item?.size); const previewName = /(?:^|[.\-_\s])(?:tp|trailer|sample|preview|pv|cm|予告|预告|試看|试看)(?:[.\-_\s]|$)/i.test(name);
    if (previewName) return '疑似预告/样片';
-   if (size > 0 && size < 180 * 1024 * 1024) return '小体积文件';
+   if (size > 0 && size < 180 * 1024 * 1024) return '小型檔案';
    return ''; },
   candidateRank(item) { const reason = this.lowPriorityReason(item); const size = this.parseSize(item?.size); return (reason ? 1000 : 0) - Math.min(size / (1024 ** 3), 100); },
   flattenFiles(payload) {
@@ -9366,9 +9366,9 @@
      onload: r => {
       try {
        resolve(JSON.parse(r.responseText));
-      } catch (err) { const error = new Error('115返回不是JSON，可能未登录'); error.code = 'PAN115_AUTH_REQUIRED'; reject(error); } },
-     onerror: () => reject(new Error('115请求失败')),
-     ontimeout: () => reject(new Error('115请求超时')),
+      } catch (err) { const error = new Error('115返回不是JSON，可能未登入'); error.code = 'PAN115_AUTH_REQUIRED'; reject(error); } },
+     onerror: () => reject(new Error('115請求失敗')),
+     ontimeout: () => reject(new Error('115請求逾時')),
     });
    }); },
   async searchAll(code) {
@@ -9376,7 +9376,7 @@
    for (const keyword of keywords) {
     const payload = await this.requestSearch(keyword); const state = payload?.state ?? payload?.success;
     if (state === false) {
-     const msg = payload?.error || payload?.message || payload?.errno || '115查询失败'; const error = new Error(String(msg)); error.code = 'PAN115_SEARCH_UNAVAILABLE'; throw error; }
+     const msg = payload?.error || payload?.message || payload?.errno || '115 查詢失敗'; const error = new Error(String(msg)); error.code = 'PAN115_SEARCH_UNAVAILABLE'; throw error; }
     for (const item of this.flattenFiles(payload)) {
      const key = item.pickcode || item.name;
      if (seen.has(key)) continue;
@@ -9387,7 +9387,7 @@
   async searchAllCached(code) {
    const normalized = this.normalizeKeepSeparator(code);
    if (!normalized) return [];
-   if (this.isSearchBlocked()) throw new Error('115匹配已暂停，请登录115后刷新页面或重新开启匹配');
+   if (this.isSearchBlocked()) throw new Error('115 比對已暫停，請登入 115 後重新整理頁面或重新啟動比對');
    const cached = this.getListCached(normalized);
    if (cached !== undefined) return cached;
    if (this.pendingAll.has(normalized)) return this.pendingAll.get(normalized);
@@ -9399,12 +9399,12 @@
    this.pendingAll.set(normalized, task); return task; },
   async deleteFile(fileId) {
    const fid = String(fileId || '').trim();
-   if (!fid) throw new Error('缺少115文件ID，无法删除');
-   const body = new URLSearchParams(); body.set('fid[0]', fid); body.set('ignore_warn', '1'); return this.postForm(this.deleteApi, body, '115删除'); },
+   if (!fid) throw new Error('缺少 115 檔案 ID，無法刪除');
+   const body = new URLSearchParams(); body.set('fid[0]', fid); body.set('ignore_warn', '1'); return this.postForm(this.deleteApi, body, '115刪除'); },
   async renameFile(fileId, newName) {
    const fid = String(fileId || '').trim(); const fileName = String(newName || '').trim().replace(/[\\/:*?"<>|]/g, ' ');
-   if (!fid) throw new Error('缺少115文件ID，无法改名');
-   if (!fileName) throw new Error('新文件名为空');
+   if (!fid) throw new Error('缺少 115 檔案 ID，無法變更檔名');
+   if (!fileName) throw new Error('新檔名不可為空');
    return this.postForm(this.editApi, new URLSearchParams({ fid, file_name: fileName }), '115改名'); },
   postForm(url, body, label) {
    return new Promise((resolve, reject) => {
@@ -9429,8 +9429,8 @@
       } catch (err) {
        reject(new Error(`${label}返回不是JSON`));
       } },
-     onerror: () => reject(new Error(`${label}请求失败`)),
-     ontimeout: () => reject(new Error(`${label}请求超时`)),
+     onerror: () => reject(new Error(`${label}請求失敗`)),
+     ontimeout: () => reject(new Error(`${label}請求逾時`)),
     });
    }); }, };
  const M115_RSA_N = BigInt('0x8686980c0f5a24c4b9d43020cd2c22703ff3f450756529058b1cf88f09b8602136477198a6e2683149659bd122c33592fdb5ad47944ad1ea4d36c6b172aad6338c3bb6ac6227502d010993ac967d1aef00f0c8e038de2e4d3bc2ec368af2e9f10a6f1eda4f7262f136420c07c331b871bf139f74f3010e3c4fe57df3afb71683');
@@ -9511,13 +9511,13 @@
        reject(new Error(payload.msg || payload.error || `errno:${payload.errno || response.status || 0}`));
        return; }
       const decoded = JSON.parse(m115Decode(payload.data, key)); const fileId = Object.keys(decoded)[0]; const directUrl = decoded[fileId]?.url?.url;
-      if (!directUrl) { reject(new Error('115未返回可播放直链')); return; }
+      if (!directUrl) { reject(new Error('115未返回可播放直連')); return; }
       resolve(directUrl);
      } catch (error) {
-      reject(new Error(`115直链解析失败: ${error.message}`));
+      reject(new Error(`115 直連解析失敗: ${error.message}`));
      } },
-    onerror: () => reject(new Error('115直链请求失败')),
-    ontimeout: () => reject(new Error('115直链请求超时')),
+    onerror: () => reject(new Error('115直連請求失敗')),
+    ontimeout: () => reject(new Error('115直鏈請求逾時')),
    });
   }); }
  function ensureSubtitleStyles() {
@@ -9557,8 +9557,8 @@
       try {
        resolve(JSON.parse(r.responseText || '{}'));
       } catch { reject(new Error('字幕源返回不是JSON')); } },
-     onerror: () => reject(new Error('字幕源请求失败')),
-     ontimeout: () => reject(new Error('字幕源请求超时')),
+     onerror: () => reject(new Error('字幕源請求失敗')),
+     ontimeout: () => reject(new Error('字幕源請求逾時')),
     });
    }); },
   requestText(url) {
@@ -9571,8 +9571,8 @@
       if (r.status && (r.status < 200 || r.status >= 400)) reject(new Error(`HTTP ${r.status}`));
       else resolve(r.responseText || '');
      },
-     onerror: () => reject(new Error('字幕文件请求失败')),
-     ontimeout: () => reject(new Error('字幕文件请求超时')),
+     onerror: () => reject(new Error('字幕文件請求失敗')),
+     ontimeout: () => reject(new Error('字幕文件請求逾時')),
     });
    }); },
   requestBlob(url) {
@@ -9595,11 +9595,11 @@
        const payload = r.response ?? r.responseText ?? '';
        const blob = payload instanceof Blob ? payload : new Blob([payload], { type: 'application/octet-stream' });
        finish(resolve, blob); },
-      onerror: () => fail('字幕下载失败'),
+      onerror: () => fail('字幕下載失敗'),
       ontimeout: () => fail('字幕下载超时'),
-      onabort: () => fail('字幕下载已取消'),
+      onabort: () => fail('字幕下載已取消'),
      });
-    } catch (err) { finish(reject, err instanceof Error ? err : new Error(String(err || '字幕下载失败'))); }
+    } catch (err) { finish(reject, err instanceof Error ? err : new Error(String(err || '字幕下載失敗'))); }
    }); },
   itemUrl(item) { return String(item?.url || item?.link || item?.download_url || '').trim(); },
   itemExt(item) {
@@ -9633,7 +9633,7 @@
    this.ensureStyle();
    if (this.closeOverlay) this.closeOverlay();
    const overlay = document.createElement('div'); overlay.className = 'jav-subtitle-overlay';
-   overlay.innerHTML = `<section class="jav-subtitle-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><div class="jav-subtitle-body"><div class="jav-subtitle-status">正在搜索字幕...</div></div></section>`;
+   overlay.innerHTML = `<section class="jav-subtitle-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="關閉">×</button></div><div class="jav-subtitle-body"><div class="jav-subtitle-status">正在搜尋字幕...</div></div></section>`;
    overlay.querySelector('.jav-subtitle-title').textContent = title;
    const close = () => {
     overlay.remove();
@@ -9660,21 +9660,21 @@
    items.forEach(item => {
     const row = document.createElement('div'); row.className = 'jav-subtitle-row'; const name = document.createElement('div'); name.className = 'jav-subtitle-name'; name.textContent = this.itemDisplayName(item, code); name.title = name.textContent;
     const ext = document.createElement('span'); ext.className = 'jav-subtitle-ext'; ext.textContent = this.itemExt(item) || 'file'; const actions = document.createElement('div'); actions.className = 'jav-subtitle-actions';
-    const preview = document.createElement('button'); preview.type = 'button'; preview.textContent = '预览'; preview.addEventListener('click', () => this.preview(item, code, preview)); const download = document.createElement('button'); download.type = 'button';
-    download.textContent = '下载'; download.addEventListener('click', () => this.download(item, code, download)); actions.appendChild(preview); actions.appendChild(download); row.appendChild(name); row.appendChild(ext); row.appendChild(actions);
+    const preview = document.createElement('button'); preview.type = 'button'; preview.textContent = '預覽'; preview.addEventListener('click', () => this.preview(item, code, preview)); const download = document.createElement('button'); download.type = 'button';
+    download.textContent = '下載'; download.addEventListener('click', () => this.download(item, code, download)); actions.appendChild(preview); actions.appendChild(download); row.appendChild(name); row.appendChild(ext); row.appendChild(actions);
     table.appendChild(row);
    });
    body.appendChild(table); },
   async show(code) {
    const normalized = this.normalizeCode(code);
-   if (!normalized) { Utils.showToast('无法识别番号', '没有可用于搜索字幕的番号', 2400); return; }
+   if (!normalized) { Utils.showToast('無法識別番號', '沒有可用於搜尋字幕的番號', 2400); return; }
    const overlay = this.createShell(normalized);
    try {
     const items = await this.search(normalized);
-    if (!items.length) { this.setStatus(overlay, '未找到相关字幕'); return; }
+    if (!items.length) { this.setStatus(overlay, '找不到相關字幕'); return; }
     this.renderList(overlay, normalized, items);
    } catch (err) {
-    errorLog('字幕搜索失败:', err); this.setStatus(overlay, err?.message || '字幕搜索失败'); } },
+    errorLog('字幕搜尋失敗：', err); this.setStatus(overlay, err?.message || '字幕搜尋失敗'); } },
   async withBusy(btn, text, fn) {
    const oldText = btn?.textContent || '';
    if (btn) { btn.disabled = true; btn.textContent = text; }
@@ -9685,32 +9685,32 @@
    } },
   async preview(item, code, btn) {
    const url = this.itemUrl(item); const ext = this.itemExt(item);
-   if (!url) { Utils.showToast('无法预览字幕', '字幕文件地址为空', 2400); return; }
+   if (!url) { Utils.showToast('無法預覽字幕', '字幕檔案地址為空', 2400); return; }
    if (!this.previewExts.has(ext)) {
-    Utils.showToast('暂不支持预览', `${ext || '该'} 类型可直接下载`, 2400);
+    Utils.showToast('暫不支援預覽', `${ext || '此格式'}可直接下載`, 2400);
     return; }
-   await this.withBusy(btn, '读取中', async () => {
+   await this.withBusy(btn, '讀取中', async () => {
     const text = await this.requestText(url); this.showPreview(code, this.fileName(item, code), text, item);
    }).catch(err => {
-    errorLog('字幕预览失败:', err); Utils.showToast('字幕预览失败', err?.message || '请求失败', 2800);
+    errorLog('字幕預覽失敗：', err); Utils.showToast('字幕預覽失敗', err?.message || '請求失敗', 2800);
    }); },
   async download(item, code, btn) {
    const url = this.itemUrl(item); const ext = this.itemExt(item);
-   if (!url) { Utils.showToast('无法下载字幕', '字幕文件地址为空', 2400); return; }
-   await this.withBusy(btn, '下载中', async () => {
+   if (!url) { Utils.showToast('無法下載字幕', '字幕檔案地址為空', 2400); return; }
+   await this.withBusy(btn, '下載中', async () => {
     if (this.previewExts.has(ext)) {
      const text = await this.requestText(url);
      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
      this.saveBlob(blob, this.fileName(item, code)); return; }
     const blob = await this.requestBlob(url); this.saveBlob(blob, this.fileName(item, code));
    }).catch(err => {
-    errorLog('字幕下载失败:', err); Utils.showToast('字幕下载失败', err?.message || '请求失败', 2800);
+    errorLog('字幕下載失敗：', err); Utils.showToast('字幕下載失敗', err?.message || '請求失敗', 2800);
    }); },
   saveBlob(blob, fileName) {
    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1200); },
   showPreview(code, fileName, text, item) {
    this.ensureStyle(); const overlay = document.createElement('div'); overlay.className = 'jav-subtitle-preview-overlay';
-   overlay.innerHTML = `<section class="jav-subtitle-panel jav-subtitle-preview-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="关闭">×</button></div><pre class="jav-subtitle-pre"></pre><div class="jav-subtitle-preview-footer"><button class="jav-subtitle-preview-download" type="button">下载</button></div></section>`;
+   overlay.innerHTML = `<section class="jav-subtitle-panel jav-subtitle-preview-panel" role="dialog" aria-modal="true"><div class="jav-subtitle-head"><div class="jav-subtitle-title"></div><button class="jav-subtitle-close" type="button" title="關閉">×</button></div><pre class="jav-subtitle-pre"></pre><div class="jav-subtitle-preview-footer"><button class="jav-subtitle-preview-download" type="button">下載</button></div></section>`;
    const close = () => {
     overlay.remove(); this.unlockScroll(); document.removeEventListener('keydown', onKeydown, true); };
    const onKeydown = e => {
@@ -10058,7 +10058,7 @@
    emitResourceEvent('laosiji-resource-state-changed'); return resourceWriteQueue; }
   const RESOURCE_WORK_FLAG_META = { favorite: '收藏', watched: '观看', downloaded: '下载' };
   const ACTOR_NAME_EXCLUSIONS = new Set(['有码', '无码', '欧美', '未知', '演员', '女优', '类别', '类型', 'censored', 'uncensored', 'western']);
-  ['\u6709\u7801', '\u65e0\u7801', '\u6b27\u7f8e', '\u672a\u77e5', '\u6f14\u5458', '\u5973\u4f18', '\u7c7b\u522b', '\u7c7b\u578b'].forEach(name => ACTOR_NAME_EXCLUSIONS.add(name));
+  ['\u6709\u7801', '\u65e0\u7801', '\u6b27\u7f8e', '\u672a\u77e5', '\u6f14\u5458', '\u5973\u4f18', '\u7c7b\u522b', '類型'].forEach(name => ACTOR_NAME_EXCLUSIONS.add(name));
   function normalizeActorNames(values, code = '') {
    values = (Array.isArray(values) ? values : [values]).flatMap(value => String(value || '').split(/[\u3001,\uFF0C|/]+/)); const codeKey = String(code || '').trim().toLowerCase();
    return [...new Set((Array.isArray(values) ? values : [values]).flatMap(value => String(value || '').split(/[、,，|/]+/)) .map(value => value.replace(/\s+/g, ' ').trim())
@@ -10172,7 +10172,7 @@
      onProgress?.('演员作品读取完成', { phase: 'complete', ...result });
     } catch (error) {
      errorLog('actor blacklist work sync failed:', error?.message || error);
-     onProgress?.('演员作品读取失败', { phase: 'error', error: error?.message || String(error) }); } }
+     onProgress?.('演员作品讀取失敗', { phase: 'error', error: error?.message || String(error) }); } }
    await persist(); return blocked; }
   async function syncBlacklistedActor(actorId, onProgress, operation) {
    await hydrateResourceState(); const source = getActiveSource(); const adapter = getSourceAdapter(source);
@@ -10265,7 +10265,7 @@
   function parseJavbusActorPage(html, pageUrl) {
    const doc = parseHTML(html); const cards = [...doc.querySelectorAll('#waterfall a.avatar-box[href]')];
    if (!cards.length && /driver-verify|Just a moment|cf-chl-|Cloudflare/i.test(`${doc.title || ''} ${doc.body?.textContent || ''}`)) { return { actors: [], nextUrl: '', isChallenge: true }; }
-   if (!doc.querySelector('#waterfall')) throw new Error('未找到 JavBus 收藏演员列表，请确认已登录');
+   if (!doc.querySelector('#waterfall')) throw new Error('未找到 JavBus 收藏演员列表，请確認已登录');
    const actors = []; const seen = new Set();
    cards.forEach(anchor => {
     const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); let pathname = '';
@@ -10328,13 +10328,13 @@
   async function uncollectJavbusActor(actorId, actor = {}) {
    const pageUrl = actor.url || absoluteUrl(`/${actor?.type === 'uncensored' ? 'uncensored/' : ''}star/${encodeURIComponent(actorId)}`);
    const pageResponse = await gmFetch(pageUrl, { method: 'GET', timeout: 30000 });
-   if (!pageResponse.loadstuts || !pageResponse.responseText) throw new Error(`JavBus 演员详情请求失败 HTTP ${pageResponse.status || 0}`);
+   if (!pageResponse.loadstuts || !pageResponse.responseText) throw new Error(`JavBus 演員詳情請求失敗 HTTP ${pageResponse.status || 0}`);
    const actorDoc = parseHTML(pageResponse.responseText); const firstWork = actorDoc.querySelector?.('#waterfall a.movie-box[href], #waterfall a[href*="/"]'); const detailUrl = absoluteUrl(firstWork?.getAttribute?.('href'), pageUrl);
-   if (!detailUrl) throw new Error('未找到 JavBus 演员作品详情，无法取消收藏');
+   if (!detailUrl) throw new Error('未找到 JavBus 演員作品詳情，無法取消收藏');
    const detailResponse = await gmFetch(detailUrl, { method: 'GET', timeout: 30000 });
-   if (!detailResponse.loadstuts || !detailResponse.responseText) throw new Error(`JavBus 作品详情请求失败 HTTP ${detailResponse.status || 0}`);
+   if (!detailResponse.loadstuts || !detailResponse.responseText) throw new Error(`JavBus 作品詳情請求失敗 HTTP ${detailResponse.status || 0}`);
    const favorite = parseJavbusFavoriteData(parseHTML(detailResponse.responseText), actorId);
-   if (!favorite.code || !favorite.token) throw new Error('未找到 JavBus 演员收藏参数，请确认已登录');
+   if (!favorite.code || !favorite.token) throw new Error('未找到 JavBus 演员收藏参数，请確認已登录');
    if (!favorite.isCollected) throw new Error('JavBus 演员当前未收藏，已停止切换请求');
    const endpoint = new URL('../ajax/addfavorite.php', detailUrl);
    endpoint.search = new URLSearchParams({
@@ -10351,7 +10351,7 @@
    if (!response.loadstuts) throw new Error(`JavBus 取消收藏失败 HTTP ${response.status || 0}`);
    let payload = null;
    try { payload = JSON.parse(response.responseText || 'null'); } catch (_) { throw new Error('JavBus 收藏接口返回了无法识别的响应'); }
-   if (payload?.act === 'err') throw new Error(String(payload.message || payload.msg || 'JavBus 收藏操作失败'));
+   if (payload?.act === 'err') throw new Error(String(payload.message || payload.msg || 'JavBus 收藏操作失敗'));
    if (payload && typeof payload === 'object') { actor.favoriteCode = String(payload.code || favorite.code); actor.favoriteToken = String(payload.token || favorite.token); actor.favoriteTitle = String(payload.title || ''); }
    return payload; }
   function parseJavbusWorkActors(html, pageUrl) {
@@ -10481,7 +10481,7 @@
     while (pageUrl && pages < 200 && !visited.has(pageUrl)) {
      visited.add(pageUrl); pages += 1;
      const response = await gmFetch(pageUrl, { method: 'GET', withCredentials: true, timeout: 30000 });
-     if (!response.loadstuts || !response.responseText) throw new Error(`JavLibrary 演员收藏列表请求失败 HTTP ${response.status || 0}`);
+     if (!response.loadstuts || !response.responseText) throw new Error(`JavLibrary 演員收藏清單請求失敗 HTTP ${response.status || 0}`);
      const parsed = parseJavLibraryActorPage(response.responseText, pageUrl);
      if (parsed.isChallenge) throw new Error('JavLibrary 返回了 Cloudflare 验证页面');
      const found = parsed.actors.find(item => String(item.starId).toLowerCase() === normalizedId.toLowerCase());
@@ -10638,8 +10638,8 @@
    return`Basic ${btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))}`;
   }
   function webdavTarget(config, includeFilename = true) {
-   if (!config.url) throw new Error('请先填写 WebDAV 地址');
-   try { return new URL(includeFilename ? encodeURIComponent(config.filename) : '',`${config.url.replace(/\/+$/, '')}/`).href; } catch (_) { throw new Error('WebDAV 地址格式不正确'); }
+   if (!config.url) throw new Error('請先填寫 WebDAV 位址');
+   try { return new URL(includeFilename ? encodeURIComponent(config.filename) : '',`${config.url.replace(/\/+$/, '')}/`).href; } catch (_) { throw new Error('WebDAV 位址格式不正確'); }
   }
   async function webdavRequest(method, config, body = '') {
    const response = await gmFetch(webdavTarget(config, method !== 'PROPFIND'), {
@@ -10649,7 +10649,7 @@
     timeout: 30000,
    });
    if (!response.loadstuts || response.status < 200 || response.status >= 400) {
-    const error = new Error(`WebDAV 请求失败: HTTP ${response.status || 0}`);
+    const error = new Error(`WebDAV 請求失敗: HTTP ${response.status || 0}`);
     error.status = response.status || 0; throw error; }
    return response; }
   async function webdavTest(config) { return { status: (await webdavRequest('PROPFIND', config)).status, message: '连接成功' }; }
@@ -10658,16 +10658,16 @@
    if (previous?.digest && !options.force) {
     let remoteBody = '';
     try { remoteBody = (await webdavRequest('GET', config)).responseText || ''; } catch (error) { if (error.status !== 404) throw error; }
-    if (remoteBody && await backupDigest(remoteBody) !== previous.digest) { const conflict = new Error('云端备份已在其他位置发生修改'); conflict.code = 'WEBDAV_CONFLICT'; throw conflict; }
+    if (remoteBody && await backupDigest(remoteBody) !== previous.digest) { const conflict = new Error('雲端備份已在其他位置修改'); conflict.code = 'WEBDAV_CONFLICT'; throw conflict; }
    }
    const response = await webdavRequest('PUT', config, body); saveWebdavSyncRecord(config, await backupDigest(body), 'upload');
-   return { status: response.status, message: '备份已上传' }; }
+   return { status: response.status, message: '備份已上傳' }; }
   async function webdavDownload(config) {
    const response = await webdavRequest('GET', config); const body = response.responseText || '';
    const prepared = prepareImport(JSON.parse(body || '{}'));
    saveWebdavSyncRecord(config, await backupDigest(body), 'download');
    return { fileName: config.filename, ...prepared }; }
-  async function webdavDelete(config) { return { status: (await webdavRequest('DELETE', config)).status, message: '云端备份已删除' }; }
+  async function webdavDelete(config) { return { status: (await webdavRequest('DELETE', config)).status, message: '雲端備份已刪除' }; }
   function xmlNodeText(node, localName) { return Array.from(node?.getElementsByTagName?.('*') || []).find(element => element.localName === localName)?.textContent?.trim() || ''; }
   function decodeUri(value) {
    try { return decodeURIComponent(value); } catch (_) { return value; }
@@ -10675,7 +10675,7 @@
   function parseWebdavListing(xmlText, config) {
    if (!xmlText.trim()) return [];
    const documentXml = new DOMParser().parseFromString(xmlText, 'application/xml');
-   if (documentXml.getElementsByTagName('parsererror').length) throw new Error('WebDAV 返回的目录格式无效');
+   if (documentXml.getElementsByTagName('parsererror').length) throw new Error('WebDAV 回傳的目錄格式無效');
    const base = new URL(`${config.url.replace(/\/+$/, '')}/`);
    const seen = new Set();
    return Array.from(documentXml.getElementsByTagName('*')).filter(node => node.localName === 'response').map(node => {
@@ -10699,7 +10699,7 @@
   function getRecoverySnapshot() { return recoverySnapshot; }
   function restoreRecoverySnapshot() {
    const snapshot = getRecoverySnapshot();
-   if (!snapshot) throw new Error('没有可恢复的本地快照');
+   if (!snapshot) throw new Error('沒有可還原的本機快照');
    const prepared = prepareImport(snapshot); getFullState().sources[prepared.source] = normalizeSourceState(prepared.data, prepared.source); persist(prepared.source); return getState(prepared.source); }
   function checkIntegrity() {
    const library = getState(); const issues = []; const workCodes = new Set(Object.keys(library.works)); const actorIds = new Set(Object.keys(library.actors));
@@ -10721,10 +10721,10 @@
    return { removedRecords, report: checkIntegrity() }; }
   function prepareImport(raw) {
    const payload = raw?.data && typeof raw.data === 'object' ? raw.data : raw; const errors = [];
-   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('备份内容不是对象');
-   if (raw?.format && raw.format !== BACKUP_FORMAT) throw new Error('不是老司机资源管理备份文件');
+   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('備份內容不是物件');
+   if (raw?.format && raw.format !== BACKUP_FORMAT) throw new Error('不是老司機資源管理備份檔');
    const source = normalizeSource(raw?.source) || (payload.sources ? getActiveSource() : 'javdb');
-   if (source !== getActiveSource()) throw new Error(`此备份属于 ${RESOURCE_SOURCES[source]}，请在对应站点导入`);
+   if (source !== getActiveSource()) throw new Error(`此备份属于 ${RESOURCE_SOURCES[source]}，請至對應站點匯入`);
    const sourcePayload = payload.sources && typeof payload.sources === 'object' && !Array.isArray(payload.sources) ? payload.sources[source] : payload;
    const data = { works: {}, actors: {}, relations: {}, blacklist: { actors: {}, works: {}, codeKeywords: [], titleKeywords: [] } };
    ['works', 'actors', 'relations'].forEach(kind => {
@@ -10796,7 +10796,7 @@
    const doc = parseHTML(html);
    if (isCloudflareChallengePage(doc)) return { actors: [], nextUrl: '', isChallenge: true };
    const container = doc.querySelector('#actors');
-   if (!container) throw new Error('未找到 JavDB 演员列表');
+   if (!container) throw new Error('找不到 JavDB 演員列表');
    const actors = [];
    container.querySelectorAll('.actor-box a[href*="/actors/"]').forEach(anchor => {
     const href = absoluteUrl(anchor.getAttribute('href'), pageUrl); const match = new URL(href || pageUrl).pathname.match(/\/actors\/([^/?#]+)/i); const starId = match?.[1] || ''; const infoText = anchor.querySelector('.info')?.textContent || '';
@@ -10852,10 +10852,10 @@
    } catch (_) { }
    return value || fallback; }
   function createResourceOperation() { return { cancelled: false, request: null, cancel() { this.cancelled = true; this.request?.abort?.(); } }; }
-  function createResourceLoginRequiredError() { const error = new Error('请先登录当前站点，登录后请手动重新同步收藏演员'); error.code = 'RESOURCE_LOGIN_REQUIRED'; return error; }
+  function createResourceLoginRequiredError() { const error = new Error('請先登入目前站點，登入後請手動重新同步收藏演員'); error.code = 'RESOURCE_LOGIN_REQUIRED'; return error; }
   function createResourceChallengeError() {
    const source = RESOURCE_SOURCES[getActiveSource()] || '当前站点';
-   const error = new Error(`${source} 正在进行 Cloudflare 验证，请完成验证后再同步资源`);
+   const error = new Error(`${source} 正在進行 Cloudflare 驗證，請完成驗證後再同步資源`);
    error.code = 'RESOURCE_CHALLENGE'; return error; }
   function markActorSyncSuccess() {
    if (typeof GM_setValue !== 'function') return;
@@ -10902,14 +10902,14 @@
     throwIfResourceOperationCancelled(operation); throw error; }
    if (operation && operation.request === request) operation.request = null;
    throwIfResourceOperationCancelled(operation);
-   if (!response.loadstuts || !response.responseText) throw new Error(`请求失败 HTTP ${response.status || 0}`);
+   if (!response.loadstuts || !response.responseText) throw new Error(`請求失敗 HTTP ${response.status || 0}`);
    return response.responseText; }
   async function syncActors(onProgress, operation) {
    await hydrateResourceState();
    if (isCloudflareChallengePage()) throw createResourceChallengeError();
    if (getResourceLoginState() === false) throw createResourceLoginRequiredError();
    const source = getActiveSource(); const adapter = getSourceAdapter(source);
-   if (!adapter?.getCollectionActorsUrl || !adapter.parseActorPage) throw new Error(`${RESOURCE_SOURCES[source]} 尚未支持演员同步`);
+   if (!adapter?.getCollectionActorsUrl || !adapter.parseActorPage) throw new Error(`${RESOURCE_SOURCES[source]} 尚未支援演員同步`);
    const library = getState(); const origin = location.origin; const seen = new Set(); const syncedActorIds = new Set(); let url = adapter.getCollectionActorsUrl(origin); let pages = 0; let collectionOrder = 0; const now = Date.now();
    while (url && pages < 200 && !seen.has(url)) {
     throwIfResourceOperationCancelled(operation); seen.add(url); pages += 1;
@@ -10939,10 +10939,10 @@
    await hydrateResourceState(); const source = getActiveSource(); const adapter = getSourceAdapter(source);
    if (!adapter?.getActorUrl || !adapter.parseActorProfile || !adapter.parseWorkPage) throw new Error(`${RESOURCE_SOURCES[source]} 尚未支持作品同步`);
    const library = getState(); const actor = library.actors[actorId];
-   if (!actor) throw new Error('演员记录不存在');
+   if (!actor) throw new Error('找不到演員記錄');
    const pageUrl = actor.url || adapter.getActorUrl(actorId, actor); const settings = readResourceSettings(); const fullScan = options.fullScan === true || settings.checkMode === 'full';
    const report = (message, details = {}) => onProgress?.(message, { actorId, actorName: actor.name || actorId, ...details });
-   report(`检测 ${actor.name || actorId}`, { page: 0, pages: 0, works: 0, added: 0 });
+   report(`檢查 ${actor.name || actorId}`, { page: 0, pages: 0, works: 0, added: 0 });
    const firstPageHtml = await fetchResourcePage(pageUrl, operation); const profile = adapter.parseActorProfile(firstPageHtml, pageUrl);
    if (profile.name && (!actor.name || actor.name === actorId)) actor.name = profile.name;
    if (profile.aliases.length) actor.aliases = [...new Set([...(actor.aliases || []), ...profile.aliases])];
@@ -10951,18 +10951,18 @@
    if (profile.favoriteToken) actor.favoriteToken = profile.favoriteToken;
    if (profile.favoriteTitle) actor.favoriteTitle = profile.favoriteTitle;
    const result = adapter.parseWorkPage(firstPageHtml, pageUrl);
-   if (result.isChallenge) throw new Error(`${RESOURCE_SOURCES[source]} 返回了 Cloudflare 验证页面`);
+   if (result.isChallenge) throw new Error(`${RESOURCE_SOURCES[source]} 傳回 Cloudflare 驗證頁面`);
    const now = Date.now(); let added = 0; const allWorks = result.works.slice(); let nextUrl = result.nextUrl || ''; const seenPages = new Set([pageUrl]); let pageCount = 1; let stoppedAtKnown = false;
    const firstPageKnown = result.works.some(work => library.works[work.code]);
-   report(`检测 ${actor.name || actorId} · 第 1 页 · 已读取 ${allWorks.length} 部${firstPageKnown ? ' · 已遇到已知作品' : ''}`, { page: 1, pages: 1, works: allWorks.length, stoppedAtKnown: firstPageKnown });
+   report(`檢測 ${actor.name || actorId} · 第 1 頁 · 已讀取 ${allWorks.length} 部${firstPageKnown ? ' · 已遇到已知作品' : ''}`, { page: 1, pages: 1, works: allWorks.length, stoppedAtKnown: firstPageKnown });
    if (!fullScan && firstPageKnown) { stoppedAtKnown = true; nextUrl = ''; }
    while (nextUrl && pageCount < 200 && !seenPages.has(nextUrl)) {
     seenPages.add(nextUrl); throwIfResourceOperationCancelled(operation);
-    report(`正在读取第 ${pageCount + 1} 页`, { page: pageCount + 1, pages: pageCount, works: allWorks.length, fetching: true });
+    report(`正在讀取第 ${pageCount + 1} 頁`, { page: pageCount + 1, pages: pageCount, works: allWorks.length, fetching: true });
     const nextResult = adapter.parseWorkPage(await fetchResourcePage(nextUrl, operation), nextUrl);
-    if (nextResult.isChallenge) throw new Error(`${RESOURCE_SOURCES[source]} 返回了 Cloudflare 验证页面`);
+    if (nextResult.isChallenge) throw new Error(`${RESOURCE_SOURCES[source]} 傳回 Cloudflare 驗證頁面`);
     allWorks.push(...nextResult.works); pageCount += 1; const knownOnPage = nextResult.works.some(work => library.works[work.code]);
-    report(`检测 ${actor.name || actorId} · 第 ${pageCount} 页 · 已读取 ${allWorks.length} 部${knownOnPage ? ' · 已遇到已知作品' : ''}`, { page: pageCount, pages: pageCount, works: allWorks.length, stoppedAtKnown: knownOnPage });
+    report(`檢查 ${actor.name || actorId} · 第 ${pageCount} 頁 · 已讀取 ${allWorks.length} 部${knownOnPage ? ' · 已遇到已知作品' : ''}`, { page: pageCount, pages: pageCount, works: allWorks.length, stoppedAtKnown: knownOnPage });
     if (!fullScan && knownOnPage) { stoppedAtKnown = true; break; }
     try {
      nextUrl = nextResult.nextUrl && new URL(nextResult.nextUrl).origin === location.origin ? nextResult.nextUrl : '';
@@ -10996,7 +10996,7 @@
       errors.push({ actorId, message: error?.message || String(error) });
      } finally {
       completed += 1;
-      onProgress?.(`演员检测进度 ${completed}/${ids.length} · 新增 ${added} 部`, { actorIndex: completed, actorTotal: ids.length, completed, total: ids.length, found, added, pages });
+      onProgress?.(`演員檢查進度 ${completed}/${ids.length} · 新增 ${added} 部`, { actorIndex: completed, actorTotal: ids.length, completed, total: ids.length, found, added, pages });
       if (settings.requestDelay > 0) await new Promise(resolve => setTimeout(resolve, settings.requestDelay));
      } } };
    const workers = Array.from({ length: Math.min(settings.concurrency, Math.max(ids.length, 1)) }, () => worker());
@@ -11008,21 +11008,21 @@
    if (typeof ensureResourceLibraryStyles === 'function') ensureResourceLibraryStyles();
    const status = document.createElement('aside'); status.id = 'jav-resource-scheduled-task-status'; status.className = 'jav-resource-task-status jav-resource-task-status-global'; status.setAttribute('role', 'status');
    status.setAttribute('aria-live', 'polite');
-   status.innerHTML = '<div class="jav-resource-task-status-head"><strong data-resource-task-title>资源检测进行中</strong></div><div class="jav-resource-task-status-message" data-resource-task-message></div><progress data-resource-task-progress max="1" value="0"></progress><div class="jav-resource-task-status-meta" data-resource-task-meta></div><p>请勿刷新和关闭页面，任务完成后会自动提示。</p><div class="jav-resource-task-status-actions"><button type="button" data-resource-task-stop>停止任务</button></div>';
+   status.innerHTML = '<div class="jav-resource-task-status-head"><strong data-resource-task-title>資源檢查進行中</strong></div><div class="jav-resource-task-status-message" data-resource-task-message></div><progress data-resource-task-progress max="1" value="0"></progress><div class="jav-resource-task-status-meta" data-resource-task-meta></div><p>請勿重新整理或關閉頁面，任務完成後會自動提示。</p><div class="jav-resource-task-status-actions"><button type="button" data-resource-task-stop>停止任務</button></div>';
    document.body.appendChild(status);
    status.addEventListener('click', event => {
     if (!event.target.closest('[data-resource-task-stop]')) return;
     resourceScheduledOperation?.cancel(); const button = status.querySelector('[data-resource-task-stop]');
-    if (button) { button.disabled = true; button.textContent = '正在停止...'; }
-    updateScheduledTaskStatus('正在停止演员同步...', {}, false);
+    if (button) { button.disabled = true; button.textContent = '正在停止…'; }
+    updateScheduledTaskStatus('正在停止演員同步…', {}, false);
    });
    resourceScheduledStatusEl = status; return status; }
   function updateScheduledTaskStatus(message, details = {}, completed = false) {
    const status = getScheduledTaskStatus(); const total = Number(details.total || details.actorTotal || 0); const value = Number(details.completed || details.actorIndex || 0);
-   status.querySelector('[data-resource-task-title]').textContent = completed ? '资源检测完成' : '资源检测进行中'; status.querySelector('[data-resource-task-message]').textContent = message || (completed ? '检测完成' : '正在准备任务...');
+   status.querySelector('[data-resource-task-title]').textContent = completed ? '資源檢查完成' : '資源檢查進行中'; status.querySelector('[data-resource-task-message]').textContent = message || (completed ? '檢查完成' : '正在準備任務...');
    const progress = status.querySelector('[data-resource-task-progress]'); progress.max = total || 1; progress.value = Math.min(total || 1, value); const stop = status.querySelector('[data-resource-task-stop]');
    if (stop) { stop.disabled = completed; stop.hidden = completed; }
-   status.querySelector('[data-resource-task-meta]').textContent = total ?`演员 ${Math.min(value, total)}/${total} · 第 ${details.page || 0} 页 · 已读取 ${details.works || 0} 部 · 新增 ${details.added || 0} 部` : '正在准备检测任务';
+   status.querySelector('[data-resource-task-meta]').textContent = total ?`演員 ${Math.min(value, total)}/${total} · 第 ${details.page || 0} 頁 · 已讀取 ${details.works || 0} 部 · 新增 ${details.added || 0} 部` : '正在準備檢查任務';
    status.hidden = false; status.classList.toggle('is-complete', completed); }
   function finishScheduledTask(message, details = {}) {
    updateScheduledTaskStatus(message, details, true);
@@ -11033,13 +11033,13 @@
   async function syncActorsWithStatus() {
    if (resourceScheduledOperation || activeResourceOperation) return null;
    const operation = createResourceOperation(); resourceScheduledOperation = operation;
-   updateScheduledTaskStatus('正在同步收藏演员...', { total: 0 });
+   updateScheduledTaskStatus('正在同步收藏演員…', { total: 0 });
    try {
-    const result = await syncActors((message, details = {}) => updateScheduledTaskStatus(`演员同步：${message}`, details), operation);
-    finishScheduledTask(`收藏演员同步完成：共 ${result.actors} 位演员`, { total: result.actors, completed: result.actors, actorTotal: result.actors, actorIndex: result.actors, pages: result.pages });
+   const result = await syncActors((message, details = {}) => updateScheduledTaskStatus(`演員同步：${message}`, details), operation);
+   finishScheduledTask(`收藏演員同步完成：共 ${result.actors} 位演員`, { total: result.actors, completed: result.actors, actorTotal: result.actors, actorIndex: result.actors, pages: result.pages });
     return result;
    } catch (error) {
-    finishScheduledTask(error?.message === 'RESOURCE_OPERATION_CANCELLED' ? '演员同步已停止' :`演员同步失败：${error?.message || error}`);
+    finishScheduledTask(error?.message === 'RESOURCE_OPERATION_CANCELLED' ? '演員同步已停止' :`演員同步失敗：${error?.message || error}`);
     throw error;
    } finally {
     if (resourceScheduledOperation === operation) resourceScheduledOperation = null;
@@ -11057,17 +11057,17 @@
     resourceScheduledOperation = createResourceOperation();
     try {
      if (kind === 'actors') {
-      updateScheduledTaskStatus('正在准备定时任务：同步收藏演员...', { total: 0 });
-      const result = await syncActors((message, details = {}) => updateScheduledTaskStatus(`定时任务：${message}`, details), resourceScheduledOperation);
-      finishScheduledTask(`定时演员同步完成：共 ${result.actors} 位演员`, { total: result.actors, completed: result.actors, actorTotal: result.actors, actorIndex: result.actors });
+      updateScheduledTaskStatus('正在準備定時任務：同步收藏演員…', { total: 0 });
+      const result = await syncActors((message, details = {}) => updateScheduledTaskStatus(`定時任務：${message}`, details), resourceScheduledOperation);
+      finishScheduledTask(`定時演員同步完成：共 ${result.actors} 位演員`, { total: result.actors, completed: result.actors, actorTotal: result.actors, actorIndex: result.actors });
       return result; }
      const actorTotal = Object.keys(getState().actors).length;
-     updateScheduledTaskStatus('正在准备定时任务：检测最新作品...', { total: actorTotal, actorTotal, completed: 0, actorIndex: 0 });
+     updateScheduledTaskStatus('正在準備定時任務：檢查最新作品...', { total: actorTotal, actorTotal, completed: 0, actorIndex: 0 });
      const result = await syncAllActorWorks(null, updateScheduledTaskStatus, resourceScheduledOperation);
-     finishScheduledTask(`定时作品检测完成：读取 ${result.pages} 页，新增 ${result.added} 部作品${result.errors?.length ? `，失败 ${result.errors.length} 位` : ''}`, { total: result.actors, completed: result.actors, actorTotal: result.actors, actorIndex: result.actors, page: result.pages, pages: result.pages, works: result.found, found: result.found, added: result.added });
+     finishScheduledTask(`定時作品檢查完成：讀取 ${result.pages} 頁，新增 ${result.added} 部作品${result.errors?.length ? `，失敗 ${result.errors.length} 位` : ''}`, { total: result.actors, completed: result.actors, actorTotal: result.actors, actorIndex: result.actors, page: result.pages, pages: result.pages, works: result.found, found: result.found, added: result.added });
      return result;
     } catch (error) {
-     finishScheduledTask(error?.message === 'RESOURCE_OPERATION_CANCELLED' ? '定时任务已停止' :`定时任务失败：${error?.message || error}`);
+     finishScheduledTask(error?.message === 'RESOURCE_OPERATION_CANCELLED' ? '定時任務已停止' :`定時任務失敗：${error?.message || error}`);
      return null;
     } finally {
      resourceScheduledOperation = null; resourceScheduleRunning = false; } };
@@ -11095,7 +11095,7 @@
      try {
       const result = await runScheduledResourceCheck(kind);
       if (result?.locked) { resourceScheduleTimers[kind] = setTimeout(() => restartResourceSchedule(), 60 * 1000); return; }
-     } catch (error) { finishScheduledTask(`定时任务失败：${error?.message || error}`); }
+     } catch (error) { finishScheduledTask(`定時任務失敗：${error?.message || error}`); }
      restartResourceSchedule();
     }, delay); };
    schedule('actors', settings.scheduleSyncActors, settings.scheduleActorHours); schedule('works', settings.scheduleCheckWorks, settings.scheduleWorksHours); }
@@ -11103,13 +11103,13 @@
    const adapter = getSourceAdapter(); const library = getState();
    if (adapter?.uncollectActor) return adapter.uncollectActor(actorId, library.actors[actorId] || {});
    const uncollectUrl = adapter?.getActorUncollectUrl?.(actorId) || '';
-   if (!uncollectUrl) throw new Error('当前来源尚未支持取消演员收藏');
-   if (!adapter?.getActorUncollectUrl) throw new Error('当前来源尚未支持取消演员收藏');
+   if (!uncollectUrl) throw new Error('當前來源尚未支援取消演員收藏');
+   if (!adapter?.getActorUncollectUrl) throw new Error('當前來源尚未支援取消演員收藏');
    const token = document.querySelector('meta[name="csrf-token"]')?.content;
-   if (!token) throw new Error('未找到 JavDB 授权令牌');
+   if (!token) throw new Error('找不到 JavDB 授權令牌');
    const request = gmFetch(adapter.getActorUncollectUrl(actorId), { method: 'POST', headers: { 'x-csrf-token': token }, timeout: 30000 });
    const response = await request;
-   if (!response.loadstuts) throw new Error(`取消收藏失败 HTTP ${response.status || 0}`);
+   if (!response.loadstuts) throw new Error(`取消收藏失敗 HTTP ${response.status || 0}`);
    return response; }
   function open(initialView = 'actors', initialBlacklistView = 'actors', initialWorksStatusFilter = 'all') {
    if (!isSupported()) return null;
@@ -11117,7 +11117,7 @@
    if (previousOverlay) { document.body.style.overflow = ''; document.documentElement.style.overflow = ''; }
    ensureResourceLibraryStyles(); const overlay = document.createElement('div'); overlay.id = 'jav-resource-overlay'; overlay.className = 'jav-resource-overlay'; const previousBodyOverflow = document.body.style.overflow;
    const previousDocumentOverflow = document.documentElement.style.overflow; document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden';
-   overlay.innerHTML =`<section class="jav-resource-center" role="dialog" aria-modal="true" aria-label="资源管理"><nav class="jav-resource-nav"><div class="jav-resource-brand">资源管理</div><button type="button" data-resource-view="actors" class="is-active" aria-current="page">演员库</button><button type="button" data-resource-view="works">作品库</button><button type="button" data-resource-view="history">鉴定记录</button><button type="button" data-resource-view="blacklist">黑名单</button><button type="button" data-resource-view="backup">备份与恢复</button><button type="button" data-resource-view="settings">检测设置</button><div class="jav-resource-nav-spacer"></div><button class="jav-resource-nav-close" type="button" data-resource-close="1">关闭</button></nav><main class="jav-resource-main"><header class="jav-resource-head"><div class="jav-resource-head-title">演员库</div><button class="jav-resource-head-close" type="button" data-resource-close="1" aria-label="关闭资源管理" title="关闭">×</button></header><section class="jav-resource-backup"></section></main></section><aside class="jav-resource-task-status" hidden role="status" aria-live="polite"><div class="jav-resource-task-status-head"><strong data-resource-task-title>资源检测进行中</strong><button type="button" data-resource-task-expand title="返回资源管理">展开</button></div><div class="jav-resource-task-status-message" data-resource-task-message></div><progress data-resource-task-progress max="1" value="0"></progress><div class="jav-resource-task-status-meta" data-resource-task-meta></div><p>请勿刷新和关闭页面，任务完成后会自动提示。</p><div class="jav-resource-task-status-actions"><button type="button" data-resource-task-stop>停止任务</button></div></aside>`;
+   overlay.innerHTML =`<section class="jav-resource-center" role="dialog" aria-modal="true" aria-label="資源管理"><nav class="jav-resource-nav"><div class="jav-resource-brand">資源管理</div><button type="button" data-resource-view="actors" class="is-active" aria-current="page">演員庫</button><button type="button" data-resource-view="works">作品庫</button><button type="button" data-resource-view="history">鑑定紀錄</button><button type="button" data-resource-view="blacklist">黑名單</button><button type="button" data-resource-view="backup">備份與還原</button><button type="button" data-resource-view="settings">檢查設定</button><div class="jav-resource-nav-spacer"></div><button class="jav-resource-nav-close" type="button" data-resource-close="1">關閉</button></nav><main class="jav-resource-main"><header class="jav-resource-head"><div class="jav-resource-head-title">演員庫</div><button class="jav-resource-head-close" type="button" data-resource-close="1" aria-label="關閉資源管理" title="關閉">×</button></header><section class="jav-resource-backup"></section></main></section><aside class="jav-resource-task-status" hidden role="status" aria-live="polite"><div class="jav-resource-task-status-head"><strong data-resource-task-title>資源檢查進行中</strong><button type="button" data-resource-task-expand title="返回資源管理">展開</button></div><div class="jav-resource-task-status-message" data-resource-task-message></div><progress data-resource-task-progress max="1" value="0"></progress><div class="jav-resource-task-status-meta" data-resource-task-meta></div><p>請勿重新整理或關閉頁面，任務完成後會自動提示。</p><div class="jav-resource-task-status-actions"><button type="button" data-resource-task-stop>停止任務</button></div></aside>`;
    document.body.appendChild(overlay); const backupEl = overlay.querySelector('.jav-resource-backup'); let pendingImport = null; let healthReport = null; let webdavListing = null; let webdavListingLoading = false; let webdavConflict = null;
    let webdavConflictLoading = false; let cleanupPending = false; let resourceCleanupPending = null; const validViews = new Set(['actors', 'works', 'history', 'blacklist', 'backup', 'settings']);
    const validBlacklistViews = new Set(['actors', 'works', 'keywords']); const savedViewState = readResourceViewState(); let activeView = validViews.has(initialView) ? initialView : 'actors'; let actorsFilter = 'all'; let actorsSearch = '';
@@ -11133,10 +11133,10 @@
     const progressTotal = Number(details.total || details.actorTotal || 0); const progressValue = Number(details.completed || details.actorIndex || 0); const progress = taskStatusEl.querySelector('[data-resource-task-progress]');
     const message = taskStatusEl.querySelector('[data-resource-task-message]'); const meta = taskStatusEl.querySelector('[data-resource-task-meta]'); const title = taskStatusEl.querySelector('[data-resource-task-title]');
     const stop = taskStatusEl.querySelector('[data-resource-task-stop]');
-    if (title) title.textContent = completed ? '资源检测完成' : '资源检测进行中';
-    if (message) message.textContent = operationMessage || (completed ? '检测完成' : '正在准备任务...');
+    if (title) title.textContent = completed ? '資源檢查完成' : '資源檢查進行中';
+    if (message) message.textContent = operationMessage || (completed ? '檢查完成' : '正在準備任務…');
     if (progress) { progress.max = progressTotal || 1; progress.value = Math.min(progressTotal || 1, progressValue); }
-    if (meta) meta.textContent = progressTotal ?`演员 ${Math.min(progressValue, progressTotal)}/${progressTotal} · 第 ${details.page || 0} 页 · 已读取 ${details.works || 0} 部 · 新增 ${details.added || 0} 部` : '正在准备检测任务';
+    if (meta) meta.textContent = progressTotal ?`演員 ${Math.min(progressValue, progressTotal)}/${progressTotal} · 第 ${details.page || 0} 頁 · 已讀取 ${details.works || 0} 部 · 新增 ${details.added || 0} 部` : '正在準備檢查任務';
     if (stop) { stop.disabled = completed; stop.hidden = completed; }
     taskStatusEl.hidden = false; taskStatusEl.classList.toggle('is-complete', completed); }
    function updateOperationProgress(message, details = {}) {
@@ -11179,7 +11179,7 @@
     let stop = libraryEl.querySelector('[data-resource-stop]');
     if (!operationBusy) { stop?.remove(); libraryEl.querySelector('[data-resource-background]')?.remove(); return; }
     if (!stop) {
-     stop = document.createElement('button'); stop.type = 'button'; stop.dataset.resourceStop = '1'; stop.className = 'jav-resource-operation-stop'; stop.textContent = '\u505c\u6b62\u5f53\u524d\u64cd\u4f5c';
+     stop = document.createElement('button'); stop.type = 'button'; stop.dataset.resourceStop = '1'; stop.className = 'jav-resource-operation-stop'; stop.textContent = '停止目前操作';
      libraryEl.querySelector('.jav-resource-toolbar-group')?.prepend(stop); }
     const toolbarGroup = libraryEl.querySelector('.jav-resource-toolbar-group');
     if (toolbarGroup && !toolbarGroup.querySelector('[data-resource-background]')) {
@@ -11330,10 +11330,10 @@
     const cards = pageActors.map(actor => {
      const newCount = actorNewCount(actor.starId); const avatar = resolveActorAvatar(actor); const type = actorType(actor); const aliases = Array.isArray(actor.aliases) ? actor.aliases : Array.isArray(actor.allName) ? actor.allName : [];
      const blacklisted = !!getBlacklist().actors[actor.starId];
-     return`<article class="jav-resource-card actress-card" data-star-id="${escape(actor.starId)}"><div class="actress-card__badges"><span class="jav-resource-badge jav-resource-badge-count">${newCount} 新</span><span class="jav-resource-badge jav-resource-badge-type ${escape(type)}">${typeLabel(type)}</span>${blacklisted ? '<span class="jav-resource-badge jav-resource-badge-blocked">已屏蔽作品</span>' : ''}</div><a class="actress-card__profile" href="${escape(actor.url || `/actors/${encodeURIComponent(actor.starId)}`)}" target="_blank" rel="noopener"><img class="actress-card-avatar" loading="lazy" src="${escape(avatar)}" data-resource-avatar-fallback="${escape(getActorAvatarFallback(actor.source))}" alt="${escape(actor.name)}"><span><span class="actress-card-name">${escape(actor.name)}</span><span class="actress-card-allname">${escape(aliases.slice(1).join('、') || '暂无别名')}</span></span></a><dl class="actress-card__meta"><div class="actress-card__meta-row"><dt>作品</dt><dd>${actorWorkCount(actor.starId)} 部 · 待处理 ${newCount}</dd></div><div class="actress-card__meta-row"><dt>上次检测</dt><dd>${escape(formatDate(actor.lastCheckAt || actor.lastCheckTime))}</dd></div></dl><p class="actress-card__note">${escape(newCount ? `待处理 ${newCount} 部最新作品` : '暂无待处理作品')}</p><div class="actress-card__actions"><button type="button" class="primary btn-check-actress" data-resource-check-actor="${escape(actor.starId)}">检测最新作品</button><button type="button" class="btn-view-actress-works" data-resource-actor-works="${escape(actor.starId)}">作品库</button></div></article>`;
+     return`<article class="jav-resource-card actress-card" data-star-id="${escape(actor.starId)}"><div class="actress-card__badges"><span class="jav-resource-badge jav-resource-badge-count">${newCount} 新</span><span class="jav-resource-badge jav-resource-badge-type ${escape(type)}">${typeLabel(type)}</span>${blacklisted ? '<span class="jav-resource-badge jav-resource-badge-blocked">已屏蔽作品</span>' : ''}</div><a class="actress-card__profile" href="${escape(actor.url || `/actors/${encodeURIComponent(actor.starId)}`)}" target="_blank" rel="noopener"><img class="actress-card-avatar" loading="lazy" src="${escape(avatar)}" data-resource-avatar-fallback="${escape(getActorAvatarFallback(actor.source))}" alt="${escape(actor.name)}"><span><span class="actress-card-name">${escape(actor.name)}</span><span class="actress-card-allname">${escape(aliases.slice(1).join('、') || '暫無別名')}</span></span></a><dl class="actress-card__meta"><div class="actress-card__meta-row"><dt>作品</dt><dd>${actorWorkCount(actor.starId)} 部 · 待處理 ${newCount}</dd></div><div class="actress-card__meta-row"><dt>上次檢測</dt><dd>${escape(formatDate(actor.lastCheckAt || actor.lastCheckTime))}</dd></div></dl><p class="actress-card__note">${escape(newCount ? `待處理 ${newCount} 部最新作品` : '暫無待處理作品')}</p><div class="actress-card__actions"><button type="button" class="primary btn-check-actress" data-resource-check-actor="${escape(actor.starId)}">檢測最新作品</button><button type="button" class="btn-view-actress-works" data-resource-actor-works="${escape(actor.starId)}">作品庫</button></div></article>`;
     }).join('');
-    const pagination = actors.length > actorsPageSize ?`<nav class="jav-resource-pagination" aria-label="演员库分页"><button type="button" data-resource-actors-page="${actorsPage - 1}" ${actorsPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${actorsPage} / ${totalPages} 页</span><button type="button" data-resource-actors-page="${actorsPage + 1}" ${actorsPage >= totalPages ? 'disabled' : ''}>下一页</button></nav>` : '';
-    contentEl.innerHTML =`<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" class="primary" data-resource-sync-actors="1" ${operationBusy ? 'disabled' : ''}>同步演员</button><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>检测最新作品</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-actors-search="1" value="${escape(actorsSearch)}" placeholder="搜索演员"><select data-resource-actors-filter="1"><option value="all" ${actorsFilter === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${actorsFilter === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${actorsFilter === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${actorsFilter === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${actorsFilter === 'unknown' ? 'selected' : ''}>未知</option></select><select data-resource-actors-sort="1"><option value="pending" ${actorsSort === 'pending' ? 'selected' : ''}>待处理作品</option><option value="added" ${actorsSort === 'added' ? 'selected' : ''}>最新加入</option><option value="updated" ${actorsSort === 'updated' ? 'selected' : ''}>最近更新</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${actors.length} / ${Object.keys(library.actors).length} 位演员</p><div class="jav-resource-grid">${cards || `<div class="jav-resource-empty">暂无演员，请先同步 ${escape(RESOURCE_SOURCES[getActiveSource()])} 收藏演员</div>`}</div>${pagination}</div>`;
+    const pagination = actors.length > actorsPageSize ?`<nav class="jav-resource-pagination" aria-label="演員庫分頁"><button type="button" data-resource-actors-page="${actorsPage - 1}" ${actorsPage <= 1 ? 'disabled' : ''}>上一頁</button><span>第 ${actorsPage} / ${totalPages} 頁</span><button type="button" data-resource-actors-page="${actorsPage + 1}" ${actorsPage >= totalPages ? 'disabled' : ''}>下一頁</button></nav>` : '';
+    contentEl.innerHTML =`<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" class="primary" data-resource-sync-actors="1" ${operationBusy ? 'disabled' : ''}>同步演員</button><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>檢測最新作品</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-actors-search="1" value="${escape(actorsSearch)}" placeholder="搜尋演員"><select data-resource-actors-filter="1"><option value="all" ${actorsFilter === 'all' ? 'selected' : ''}>全部類型</option><option value="uncensored" ${actorsFilter === 'uncensored' ? 'selected' : ''}>無碼</option><option value="censored" ${actorsFilter === 'censored' ? 'selected' : ''}>有碼</option><option value="western" ${actorsFilter === 'western' ? 'selected' : ''}>歐美</option><option value="unknown" ${actorsFilter === 'unknown' ? 'selected' : ''}>未知</option></select><select data-resource-actors-sort="1"><option value="pending" ${actorsSort === 'pending' ? 'selected' : ''}>待處理作品</option><option value="added" ${actorsSort === 'added' ? 'selected' : ''}>最新加入</option><option value="updated" ${actorsSort === 'updated' ? 'selected' : ''}>最近更新</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${actors.length} / ${Object.keys(library.actors).length} 位演員</p><div class="jav-resource-grid">${cards || `<div class="jav-resource-empty">暫無演員，請先同步 ${escape(RESOURCE_SOURCES[getActiveSource()])} 收藏演員</div>`}</div>${pagination}</div>`;
    }
    function renderWorks() {
     const library = getState();
@@ -11360,13 +11360,13 @@
      const names = normalizeActorNames((work.actorIds || []).map(id => library.actors[id]?.name), work.code).join('、'); const flags = workFlags(work);
      const statusMarkers = Object.entries(workFlagMeta).filter(([flag]) => flags[flag]).map(([flag, meta]) =>`<span class="jav-resource-card-marker jav-resource-card-marker-${flag}">${meta[2]}</span>`).join('');
      const flagButtons = Object.entries(workFlagMeta).map(([flag, meta]) =>`<button type="button" class="jav-resource-flag ${meta[1]}${flags[flag] ? ' is-active' : ''}" data-resource-work-flag="${flag}" data-resource-work-code="${escape(work.code)}" aria-pressed="${flags[flag]}">${flags[flag] ? meta[2] : meta[0]}</button>`).join('');
-     const flagMenu =`<div class="jav-resource-card-menu"><button type="button" class="jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">鉴定处理</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-blacklist-action" data-resource-work-blacklist="${escape(work.code)}">屏蔽作品</button></div></div>`;
-     const queryButton = work.url ?`<button type="button" class="jav-resource-history-query-actors" data-resource-work-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查询中...' : '查询演员'}</button>` : '';
+     const flagMenu =`<div class="jav-resource-card-menu"><button type="button" class="jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">鑒定處理</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-blacklist-action" data-resource-work-blacklist="${escape(work.code)}">屏蔽作品</button></div></div>`;
+     const queryButton = work.url ?`<button type="button" class="jav-resource-history-query-actors" data-resource-work-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查詢中...' : '查詢演員'}</button>` : '';
      const cover = work.cover || javdbCoverFromUrl(work.url);
-     return`<article class="jav-resource-card nv-card"><a class="nv-card__link" href="${escape(work.url || '#')}" target="_blank" rel="noopener"><div class="nv-card__cover">${cover ? `<img class="nv-cover-img" loading="lazy" src="${escape(cover)}" alt="${escape(work.code)}">` : '<div class="nv-card__empty">暂无封面</div>'}${statusMarkers ? `<div class="jav-resource-card-markers">${statusMarkers}</div>` : ''}</div><div class="nv-card__body"><div class="nv-card__title" title="${escape(work.code)}">${escape(work.code)}</div><div class="nv-card__actress" title="${escape(names || '未关联演员')}">${escape(names || '未关联演员')}</div><div class="nv-card__date-row"><div class="nv-card__date">${escape(work.publishTime || '发行时间未知')}</div><div class="nv-card__statuses"><span class="jav-resource-badge jav-resource-badge-type ${escape(work.type || 'unknown')}">${typeLabel(work.type)}</span></div></div></div></a><div class="jav-resource-card-actions jav-resource-card-actions-flags">${queryButton}${flagMenu}</div></article>`;
+     return`<article class="jav-resource-card nv-card"><a class="nv-card__link" href="${escape(work.url || '#')}" target="_blank" rel="noopener"><div class="nv-card__cover">${cover ? `<img class="nv-cover-img" loading="lazy" src="${escape(cover)}" alt="${escape(work.code)}">` : '<div class="nv-card__empty">暫無封面</div>'}${statusMarkers ? `<div class="jav-resource-card-markers">${statusMarkers}</div>` : ''}</div><div class="nv-card__body"><div class="nv-card__title" title="${escape(work.code)}">${escape(work.code)}</div><div class="nv-card__actress" title="${escape(names || '未关联演员')}">${escape(names || '未關聯演員')}</div><div class="nv-card__date-row"><div class="nv-card__date">${escape(work.publishTime || '發行時間未知')}</div><div class="nv-card__statuses"><span class="jav-resource-badge jav-resource-badge-type ${escape(work.type || 'unknown')}">${typeLabel(work.type)}</span></div></div></div></a><div class="jav-resource-card-actions jav-resource-card-actions-flags">${queryButton}${flagMenu}</div></article>`;
     }).join('');
-    const pagination = works.length > worksPageSize ?`<nav class="jav-resource-pagination" aria-label="作品库分页"><button type="button" data-resource-works-page="${worksPage - 1}" ${worksPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${worksPage} / ${totalPages} 页</span><button type="button" data-resource-works-page="${worksPage + 1}" ${worksPage >= totalPages ? 'disabled' : ''}>下一页</button></nav>` : '';
-    contentEl.innerHTML =`<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>检测全部演员</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-works-search="1" value="${escape(worksSearch)}" placeholder="搜索番号、标题或演员"><select data-resource-works-filter="1"><option value="all" ${worksFilter === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${worksFilter === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${worksFilter === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${worksFilter === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${worksFilter === 'unknown' ? 'selected' : ''}>未知</option></select><select data-resource-works-status-filter="1"><option value="all" ${worksStatusFilter === 'all' ? 'selected' : ''}>全部标记</option><option value="unmarked" ${worksStatusFilter === 'unmarked' ? 'selected' : ''}>未标记</option><option value="favorite" ${worksStatusFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${worksStatusFilter === 'watched' ? 'selected' : ''}>已观看</option><option value="downloaded" ${worksStatusFilter === 'downloaded' ? 'selected' : ''}>已下载</option></select><select data-resource-works-sort="1"><option value="published" ${worksSort === 'published' ? 'selected' : ''}>发布时间</option><option value="added" ${worksSort === 'added' ? 'selected' : ''}>加入时间</option><option value="updated" ${worksSort === 'updated' ? 'selected' : ''}>最近更新</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${works.length} / ${Object.keys(library.works).length} 部作品</p><div class="jav-resource-grid">${cards || '<div class="jav-resource-empty">暂无作品，请先检测演员最新作品</div>'}</div>${pagination}</div>`;
+    const pagination = works.length > worksPageSize ?`<nav class="jav-resource-pagination" aria-label="作品庫分頁"><button type="button" data-resource-works-page="${worksPage - 1}" ${worksPage <= 1 ? 'disabled' : ''}>上一頁</button><span>第 ${worksPage} / ${totalPages} 頁</span><button type="button" data-resource-works-page="${worksPage + 1}" ${worksPage >= totalPages ? 'disabled' : ''}>下一頁</button></nav>` : '';
+    contentEl.innerHTML =`<div class="jav-resource-library"><div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><button type="button" data-resource-check-all="1" ${operationBusy ? 'disabled' : ''}>檢測全部演員</button></div><div class="jav-resource-toolbar-group"><input type="search" data-resource-works-search="1" value="${escape(worksSearch)}" placeholder="搜尋番號、標題或演員"><select data-resource-works-filter="1"><option value="all" ${worksFilter === 'all' ? 'selected' : ''}>全部類型</option><option value="uncensored" ${worksFilter === 'uncensored' ? 'selected' : ''}>無碼</option><option value="censored" ${worksFilter === 'censored' ? 'selected' : ''}>有碼</option><option value="western" ${worksFilter === 'western' ? 'selected' : ''}>歐美</option><option value="unknown" ${worksFilter === 'unknown' ? 'selected' : ''}>未知</option></select><select data-resource-works-status-filter="1"><option value="all" ${worksStatusFilter === 'all' ? 'selected' : ''}>全部標記</option><option value="unmarked" ${worksStatusFilter === 'unmarked' ? 'selected' : ''}>未標記</option><option value="favorite" ${worksStatusFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${worksStatusFilter === 'watched' ? 'selected' : ''}>已觀看</option><option value="downloaded" ${worksStatusFilter === 'downloaded' ? 'selected' : ''}>已下載</option></select><select data-resource-works-sort="1"><option value="published" ${worksSort === 'published' ? 'selected' : ''}>發布時間</option><option value="added" ${worksSort === 'added' ? 'selected' : ''}>加入時間</option><option value="updated" ${worksSort === 'updated' ? 'selected' : ''}>最近更新</option></select></div></div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<p class="jav-resource-summary">${works.length} / ${Object.keys(library.works).length} 部作品</p><div class="jav-resource-grid">${cards || '<div class="jav-resource-empty">暫無作品，請先檢測演員最新作品</div>'}</div>${pagination}</div>`;
    }
    function renderHistory() {
     const library = getState();
@@ -11376,50 +11376,50 @@
     works = works.filter(work => !isWorkBlacklisted(work, library));
     if (historyFilter !== 'all') works = works.filter(work => workFlags(work)[historyFilter]);
     if (historySearch) works = works.filter(work =>`${work.code} ${work.title} ${workActorNames(work).join(' ')}`.toLowerCase().includes(historySearch.toLowerCase()));
-    const tabs =`<div class="jav-resource-history-tabs"><button type="button" class="${historyView === 'state' ? 'is-active' : ''}" data-history-view="state">作品状态</button><button type="button" class="${historyView === 'activity' ? 'is-active' : ''}" data-history-view="activity">操作记录</button></div>`;
+    const tabs =`<div class="jav-resource-history-tabs"><button type="button" class="${historyView === 'state' ? 'is-active' : ''}" data-history-view="state">作品狀態</button><button type="button" class="${historyView === 'activity' ? 'is-active' : ''}" data-history-view="activity">操作記錄</button></div>`;
     if (historyView === 'activity') {
      const activities = Object.values(library.works).flatMap(work => (Array.isArray(work.activity) ? work.activity : []).map(item => ({ ...item, code: work.code, title: work.title }))).sort((a, b) => b.at - a.at);
-     const rows = activities.filter(item => !historySearch ||`${item.code} ${item.title || ''}`.toLowerCase().includes(historySearch.toLowerCase())).map(item =>`<div class="jav-resource-history-row"><strong>${escape(item.code)}</strong><span>${escape(workFlagMeta[item.action]?.[item.value ? 2 : 0] || (item.action === 'blocked' ? (item.value ? '加入作品黑名单' : '移出作品黑名单') : item.action))}</span><time>${escape(formatDate(item.at))}</time></div>`).join('');
-     contentEl.innerHTML =`<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-history-toolbar"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜索番号或演员"></div><div class="jav-resource-history-list">${rows || '<div class="jav-resource-empty">暂无操作记录</div>'}</div></div>`; return;
+     const rows = activities.filter(item => !historySearch ||`${item.code} ${item.title || ''}`.toLowerCase().includes(historySearch.toLowerCase())).map(item =>`<div class="jav-resource-history-row"><strong>${escape(item.code)}</strong><span>${escape(workFlagMeta[item.action]?.[item.value ? 2 : 0] || (item.action === 'blocked' ? (item.value ? '加入作品黑名單' : '移出作品黑名單') : item.action))}</span><time>${escape(formatDate(item.at))}</time></div>`).join('');
+     contentEl.innerHTML =`<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-history-toolbar"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜尋番號或演員"></div><div class="jav-resource-history-list">${rows || '<div class="jav-resource-empty">暫無操作記錄</div>'}</div></div>`; return;
     }
     const removeTarget = historyRemoveCode ? works.find(work => work.code === historyRemoveCode) : null;
-    const removeConfirm = removeTarget ?`<div class="jav-resource-history-remove-confirm" role="dialog" aria-modal="true" aria-label="移出鉴定记录"><div class="jav-resource-history-remove-dialog"><strong>移出鉴定记录？</strong><span>仅清除该作品的鉴定状态和操作记录，作品库数据会保留。</span><div><button type="button" data-resource-history-remove-confirm="${escape(removeTarget.code)}">确认移出</button><button type="button" data-resource-history-remove-cancel="1">取消</button></div></div></div>` : '';
+    const removeConfirm = removeTarget ?`<div class="jav-resource-history-remove-confirm" role="dialog" aria-modal="true" aria-label="移出鑒定記錄"><div class="jav-resource-history-remove-dialog"><strong>移出鑒定記錄？</strong><span>僅清除該作品的鑒定狀態和操作記錄，作品庫資料會保留。</span><div><button type="button" data-resource-history-remove-confirm="${escape(removeTarget.code)}">確認移出</button><button type="button" data-resource-history-remove-cancel="1">取消</button></div></div></div>` : '';
     const rows = works.map(work => {
      const flags = workFlags(work); const names = workActorNames(work).join('、'); const needsActorRefresh = work.actorInfoVersion !== 3;
      const actorContent = needsActorRefresh && work.url
-      ?`<button type="button" class="jav-resource-history-query-actors" data-resource-history-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查询中...' : names ? '重新查询演员' : '查询演员'}</button>`                        : names
-       ?`<span class="jav-resource-history-actors">${escape(names)}</span>`                            : '<span class="jav-resource-history-muted">未找到演员</span>';
-     const statuses = Object.entries(workFlagMeta).filter(([flag]) => flags[flag]).map(([flag, meta]) =>`<span class="jav-resource-history-status-pill ${meta[1]}">${meta[2]}</span>`).join('') || '<span class="jav-resource-history-muted">无标记</span>';
+      ?`<button type="button" class="jav-resource-history-query-actors" data-resource-history-query-actors="${escape(work.code)}" ${historyActorEnrichmentScheduled.has(work.code) ? 'disabled' : ''}>${historyActorEnrichmentScheduled.has(work.code) ? '查詢中...' : names ? '重新查詢演員' : '查詢演員'}</button>`                        : names
+       ?`<span class="jav-resource-history-actors">${escape(names)}</span>`                            : '<span class="jav-resource-history-muted">找不到演員</span>';
+     const statuses = Object.entries(workFlagMeta).filter(([flag]) => flags[flag]).map(([flag, meta]) =>`<span class="jav-resource-history-status-pill ${meta[1]}">${meta[2]}</span>`).join('') || '<span class="jav-resource-history-muted">無標記</span>';
      const codeLink = work.url ?`<a class="jav-resource-history-code" href="${escape(work.url)}" target="_blank" rel="noopener" title="${escape(work.title || work.code)}">${escape(work.code)}</a>` :`<span class="jav-resource-history-code">${escape(work.code)}</span>`;
      const flagButtons = Object.entries(workFlagMeta).map(([flag, meta]) =>`<button type="button" class="jav-resource-flag ${meta[1]}${flags[flag] ? ' is-active' : ''}" data-resource-work-flag="${flag}" data-resource-work-code="${escape(work.code)}" aria-pressed="${flags[flag]}">${flags[flag] ? meta[2] : meta[0]}</button>`).join('');
-     const detail = work.url ?`<a class="jav-resource-history-detail" href="${escape(work.url)}" target="_blank" rel="noopener">详情</a>` : '<span class="jav-resource-history-muted">无链接</span>';
-     const changeMenu =`<div class="jav-resource-card-menu jav-resource-history-menu"><button type="button" class="jav-resource-history-edit jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">变更</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-history-menu-remove" data-resource-history-remove="${escape(work.code)}">移出</button></div></div>`;
+     const detail = work.url ?`<a class="jav-resource-history-detail" href="${escape(work.url)}" target="_blank" rel="noopener">詳情</a>` : '<span class="jav-resource-history-muted">無連結</span>';
+     const changeMenu =`<div class="jav-resource-card-menu jav-resource-history-menu"><button type="button" class="jav-resource-history-edit jav-resource-card-menu-trigger" data-resource-work-menu="1" aria-haspopup="menu" aria-expanded="false">變更</button><div class="jav-resource-card-menu-popover" role="menu">${flagButtons}<button type="button" class="jav-resource-history-menu-remove" data-resource-history-remove="${escape(work.code)}">移出</button></div></div>`;
      return`<tr class="jav-resource-history-table-row"><td>${codeLink}</td><td title="${escape(names)}">${actorContent}</td><td>${escape(formatHistoryDate(work.createdAt))}</td><td>${escape(formatHistoryDate(work.modifiedAt || work.activity?.[0]?.at))}</td><td>${escape(formatPublishDate(work.publishTime))}</td><td><span class="jav-resource-history-source">${escape(work.source || 'JavDB')}</span></td><td><div class="jav-resource-history-statuses">${statuses}</div></td><td><div class="jav-resource-history-actions">${changeMenu}${detail}</div></td></tr>`;
     }).join('');
-    contentEl.innerHTML =`<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜索番号或演员"><select data-resource-history-filter="1"><option value="all" ${historyFilter === 'all' ? 'selected' : ''}>所有</option><option value="favorite" ${historyFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${historyFilter === 'watched' ? 'selected' : ''}>已观看</option><option value="downloaded" ${historyFilter === 'downloaded' ? 'selected' : ''}>已下载</option></select></div></div><div class="jav-resource-history-table-wrap"><table class="jav-resource-history-table"><thead><tr><th>番号</th><th>演员</th><th>创建时间</th><th>修改时间</th><th>发行时间</th><th>来源</th><th>状态</th><th>变更</th></tr></thead><tbody>${rows || `<tr><td colspan="8"><div class="jav-resource-empty">暂无状态记录</div></td></tr>`}</tbody></table></div>${removeConfirm}</div>`;
+    contentEl.innerHTML =`<div class="jav-resource-library jav-resource-history-view">${tabs}<div class="jav-resource-toolbar"><div class="jav-resource-toolbar-group"><input type="search" data-resource-history-search="1" value="${escape(historySearch)}" placeholder="搜尋番號或演員"><select data-resource-history-filter="1"><option value="all" ${historyFilter === 'all' ? 'selected' : ''}>所有</option><option value="favorite" ${historyFilter === 'favorite' ? 'selected' : ''}>已收藏</option><option value="watched" ${historyFilter === 'watched' ? 'selected' : ''}>已觀看</option><option value="downloaded" ${historyFilter === 'downloaded' ? 'selected' : ''}>已下載</option></select></div></div><div class="jav-resource-history-table-wrap"><table class="jav-resource-history-table"><thead><tr><th>番號</th><th>演員</th><th>創建時間</th><th>修改時間</th><th>發行時間</th><th>來源</th><th>狀態</th><th>變更</th></tr></thead><tbody>${rows || `<tr><td colspan="8"><div class="jav-resource-empty">暫無狀態記錄</div></td></tr>`}</tbody></table></div>${removeConfirm}</div>`;
    }
    function renderBlacklist() {
     const library = getState(); const blacklist = getBlacklist(library);
-    const tabs =`<div class="jav-resource-history-tabs"><button type="button" class="${blacklistView === 'actors' ? 'is-active' : ''}" data-blacklist-view="actors">演员黑名单</button><button type="button" class="${blacklistView === 'works' ? 'is-active' : ''}" data-blacklist-view="works">作品黑名单</button><button type="button" class="${blacklistView === 'keywords' ? 'is-active' : ''}" data-blacklist-view="keywords">关键词屏蔽</button></div>`;
+    const tabs =`<div class="jav-resource-history-tabs"><button type="button" class="${blacklistView === 'actors' ? 'is-active' : ''}" data-blacklist-view="actors">演員黑名單</button><button type="button" class="${blacklistView === 'works' ? 'is-active' : ''}" data-blacklist-view="works">作品黑名單</button><button type="button" class="${blacklistView === 'keywords' ? 'is-active' : ''}" data-blacklist-view="keywords">關鍵詞屏蔽</button></div>`;
     if (blacklistView === 'actors') {
      const entries = Object.values(blacklist.actors).filter(actor => !blacklistSearch ||`${actor.name} ${(actor.aliases || []).join(' ')}`.toLowerCase().includes(blacklistSearch.toLowerCase()));
-     const rows = entries.map(actor =>`<div class="jav-resource-blacklist-row"><div><strong>${escape(actor.name || actor.actorId)}</strong><span>${escape(actor.actorId)} · 关联作品将自动屏蔽</span></div><div class="jav-resource-blacklist-actions"><button type="button" class="jav-resource-blacklist-check" data-resource-blacklist-check-actor="${escape(actor.actorId)}" ${operationBusy ? 'disabled' : ''}>继续检测</button><button type="button" data-resource-blacklist-remove-actor="${escape(actor.actorId)}">移出</button></div></div>`).join('');
-     contentEl.innerHTML =`<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">加入黑名单的演员，其关联作品会从作品库和鉴定记录中隐藏。</div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜索黑名单演员"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暂无演员黑名单，请在演员详情页加入</div>'}</div></div>`;
+     const rows = entries.map(actor =>`<div class="jav-resource-blacklist-row"><div><strong>${escape(actor.name || actor.actorId)}</strong><span>${escape(actor.actorId)} · 關聯作品將自動屏蔽</span></div><div class="jav-resource-blacklist-actions"><button type="button" class="jav-resource-blacklist-check" data-resource-blacklist-check-actor="${escape(actor.actorId)}" ${operationBusy ? 'disabled' : ''}>繼續檢測</button><button type="button" data-resource-blacklist-remove-actor="${escape(actor.actorId)}">移出</button></div></div>`).join('');
+     contentEl.innerHTML =`<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">加入黑名單的演員，其關聯作品會從作品庫和鑒定記錄中隱藏。</div>${operationMessage ? `<div class="jav-resource-progress">${escape(operationMessage)}</div>` : ''}<div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜尋黑名單演員"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暫無演員黑名單，請在演員詳情頁加入</div>'}</div></div>`;
      return; }
     if (blacklistView === 'works') {
      const entries = Object.values(blacklist.works).map(item => library.works[item.code] || item).filter(work => !blacklistSearch ||`${work.code} ${work.title || ''}`.toLowerCase().includes(blacklistSearch.toLowerCase()));
-     const rows = entries.map(work =>`<div class="jav-resource-blacklist-row"><div><strong>${escape(work.code)}</strong><span>${escape(work.title || '作品黑名单')} · ${escape(getWorkBlacklistReason(work, library) || '手动屏蔽')}</span></div><button type="button" data-resource-blacklist-remove-work="${escape(work.code)}">移出</button></div>`).join('');
-     contentEl.innerHTML =`<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">从作品卡片执行“屏蔽作品”后会出现在这里，移出后恢复到作品库。</div><div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜索黑名单作品"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暂无作品黑名单</div>'}</div></div>`;
+     const rows = entries.map(work =>`<div class="jav-resource-blacklist-row"><div><strong>${escape(work.code)}</strong><span>${escape(work.title || '作品黑名單')} · ${escape(getWorkBlacklistReason(work, library) || '手動屏蔽')}</span></div><button type="button" data-resource-blacklist-remove-work="${escape(work.code)}">移出</button></div>`).join('');
+     contentEl.innerHTML =`<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">從作品卡片執行“屏蔽作品”后會出現在這里，移出后還原到作品庫。</div><div class="jav-resource-toolbar"><input type="search" data-resource-blacklist-search="1" value="${escape(blacklistSearch)}" placeholder="搜尋黑名單作品"></div><div class="jav-resource-blacklist-list">${rows || '<div class="jav-resource-empty">暫無作品黑名單</div>'}</div></div>`;
      return; }
-    const codeKeywords = blacklist.codeKeywords.map(keyword =>`<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="code" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="删除番号关键词">×</button></span>`).join('');
-    const titleKeywords = blacklist.titleKeywords.map(keyword =>`<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="title" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="删除标题关键词">×</button></span>`).join('');
-    contentEl.innerHTML =`<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">命中番号或标题关键词的作品会从作品库和鉴定记录中隐藏。</div><div class="jav-resource-blacklist-keyword-form"><label>番号关键词<input type="text" data-resource-blacklist-keyword-input="code" placeholder="例如 FC2、无码"></label><button type="button" data-resource-blacklist-add-keyword="code">添加</button></div><div class="jav-resource-keyword-list">${codeKeywords || '<span class="jav-resource-blacklist-muted">暂无番号关键词</span>'}</div><div class="jav-resource-blacklist-keyword-form"><label>标题关键词<input type="text" data-resource-blacklist-keyword-input="title" placeholder="例如 字幕、合集"></label><button type="button" data-resource-blacklist-add-keyword="title">添加</button></div><div class="jav-resource-keyword-list">${titleKeywords || '<span class="jav-resource-blacklist-muted">暂无标题关键词</span>'}</div></div>`;
+    const codeKeywords = blacklist.codeKeywords.map(keyword =>`<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="code" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="刪除番號關鍵詞">×</button></span>`).join('');
+    const titleKeywords = blacklist.titleKeywords.map(keyword =>`<span class="jav-resource-keyword-chip">${escape(keyword)}<button type="button" data-resource-blacklist-remove-keyword="title" data-resource-blacklist-keyword="${escape(keyword)}" aria-label="刪除標題關鍵詞">×</button></span>`).join('');
+    contentEl.innerHTML =`<div class="jav-resource-library jav-resource-blacklist-view">${tabs}<div class="jav-resource-blacklist-intro">命中番號或標題關鍵詞的作品會從作品庫和鑒定記錄中隱藏。</div><div class="jav-resource-blacklist-keyword-form"><label>番號關鍵詞<input type="text" data-resource-blacklist-keyword-input="code" placeholder="例如 FC2、無碼"></label><button type="button" data-resource-blacklist-add-keyword="code">加入</button></div><div class="jav-resource-keyword-list">${codeKeywords || '<span class="jav-resource-blacklist-muted">暫無番號關鍵詞</span>'}</div><div class="jav-resource-blacklist-keyword-form"><label>標題關鍵詞<input type="text" data-resource-blacklist-keyword-input="title" placeholder="例如 字幕、合集"></label><button type="button" data-resource-blacklist-add-keyword="title">加入</button></div><div class="jav-resource-keyword-list">${titleKeywords || '<span class="jav-resource-blacklist-muted">暫無標題關鍵詞</span>'}</div></div>`;
    }
    function renderSettings() {
     const settings = readResourceSettings();
-    const actorScheduleOptions = RESOURCE_SCHEDULE_HOURS.map(hours =>`<option value="${hours}" ${settings.scheduleActorHours === hours ? 'selected' : ''}>${hours} 小时</option>`).join('');
-    const worksScheduleOptions = RESOURCE_SCHEDULE_HOURS.map(hours =>`<option value="${hours}" ${settings.scheduleWorksHours === hours ? 'selected' : ''}>${hours} 小时</option>`).join('');
-    contentEl.innerHTML =`<div class="jav-resource-library jav-resource-settings-view"><div class="jav-resource-settings-intro"><strong>作品检测</strong><span>增量检测遇到已知作品后停止翻页；全量校验会继续读取演员的全部分页。</span></div><div class="jav-resource-settings-form"><label class="jav-resource-setting-row"><span><strong>检测模式</strong><small>默认使用增量检测，适合日常检查新作品。</small></span><select data-resource-setting="checkMode"><option value="incremental" ${settings.checkMode === 'incremental' ? 'selected' : ''}>增量检测</option><option value="full" ${settings.checkMode === 'full' ? 'selected' : ''}>全量校验</option></select></label><label class="jav-resource-setting-row"><span><strong>并发数量</strong><small>同时检测的演员数量，范围 1-8；并发过高可能触发 CF 挑战，建议保持较低值。</small></span><input type="number" min="1" max="8" step="1" data-resource-setting="concurrency" value="${settings.concurrency}"></label><label class="jav-resource-setting-row"><span><strong>请求间隔</strong><small>每批任务完成后等待的时间，范围 0-5000 毫秒。</small></span><input type="number" min="0" max="5000" step="10" data-resource-setting="requestDelay" value="${settings.requestDelay}"></label></div><div class="jav-resource-settings-section"><strong>定时检测</strong><span>两个检测动作可以分别控制。关闭或刷新页面后当前执行会停止；重新打开支持站点后会根据保存的下次执行时间补执行，逾期会立即启动。</span></div><div class="jav-resource-settings-form"><label class="jav-resource-setting-row"><span><strong>自动同步收藏演员</strong><small>按间隔同步当前来源账号的演员收藏列表。</small></span><input type="checkbox" data-resource-setting="scheduleSyncActors" ${settings.scheduleSyncActors ? 'checked' : ''}></label><label class="jav-resource-setting-row"><span><strong>自动检测最新作品</strong><small>按间隔检测资源库演员的最新作品。</small></span><input type="checkbox" data-resource-setting="scheduleCheckWorks" ${settings.scheduleCheckWorks ? 'checked' : ''}></label><label class="jav-resource-setting-row"><span><strong>同步演员间隔</strong><small>自动同步收藏演员的执行频率。</small></span><select data-resource-setting="scheduleActorHours">${actorScheduleOptions}</select></label><label class="jav-resource-setting-row"><span><strong>检测作品间隔</strong><small>自动检测最新作品的执行频率。</small></span><select data-resource-setting="scheduleWorksHours">${worksScheduleOptions}</select></label></div><div class="jav-resource-settings-note">设置即时保存。定时任务不会跨页面刷新继续运行；检测期间请勿刷新和关闭页面。</div></div>`;
+    const actorScheduleOptions = RESOURCE_SCHEDULE_HOURS.map(hours =>`<option value="${hours}" ${settings.scheduleActorHours === hours ? 'selected' : ''}>${hours} 小時</option>`).join('');
+    const worksScheduleOptions = RESOURCE_SCHEDULE_HOURS.map(hours =>`<option value="${hours}" ${settings.scheduleWorksHours === hours ? 'selected' : ''}>${hours} 小時</option>`).join('');
+    contentEl.innerHTML =`<div class="jav-resource-library jav-resource-settings-view"><div class="jav-resource-settings-intro"><strong>作品檢查</strong><span>增量檢查遇到已知作品後會停止翻頁；完整檢查則會繼續讀取演員的所有分頁。</span></div><div class="jav-resource-settings-form"><label class="jav-resource-setting-row"><span><strong>檢查模式</strong><small>預設使用增量檢查，適合日常確認新作品。</small></span><select data-resource-setting="checkMode"><option value="incremental" ${settings.checkMode === 'incremental' ? 'selected' : ''}>增量檢查</option><option value="full" ${settings.checkMode === 'full' ? 'selected' : ''}>完整檢查</option></select></label><label class="jav-resource-setting-row"><span><strong>同時處理數</strong><small>同時檢查的演員數量，範圍 1-8；同時處理數過高可能觸發 CF 挑戰，建議保持較低值。</small></span><input type="number" min="1" max="8" step="1" data-resource-setting="concurrency" value="${settings.concurrency}"></label><label class="jav-resource-setting-row"><span><strong>請求間隔</strong><small>每批任務完成後等待的時間，範圍 0-5000 毫秒。</small></span><input type="number" min="0" max="5000" step="10" data-resource-setting="requestDelay" value="${settings.requestDelay}"></label></div><div class="jav-resource-settings-section"><strong>定時檢查</strong><span>兩項檢查工作可分別控制。關閉或重新整理頁面後，目前執行中的工作會停止；重新開啟支援的站台後，會依儲存的下次執行時間補做，逾期時會立即啟動。</span></div><div class="jav-resource-settings-form"><label class="jav-resource-setting-row"><span><strong>自動同步收藏演員</strong><small>依間隔同步目前來源帳戶的演員收藏清單。</small></span><input type="checkbox" data-resource-setting="scheduleSyncActors" ${settings.scheduleSyncActors ? 'checked' : ''}></label><label class="jav-resource-setting-row"><span><strong>自動檢查最新作品</strong><small>依間隔檢查資源庫演員的最新作品。</small></span><input type="checkbox" data-resource-setting="scheduleCheckWorks" ${settings.scheduleCheckWorks ? 'checked' : ''}></label><label class="jav-resource-setting-row"><span><strong>同步演員間隔</strong><small>自動同步收藏演員的執行頻率。</small></span><select data-resource-setting="scheduleActorHours">${actorScheduleOptions}</select></label><label class="jav-resource-setting-row"><span><strong>作品檢查間隔</strong><small>自動檢查最新作品的執行頻率。</small></span><select data-resource-setting="scheduleWorksHours">${worksScheduleOptions}</select></label></div><div class="jav-resource-settings-note">設定會即時儲存。定時任務不會在跨頁面重新整理後繼續執行；檢查期間請勿重新整理或關閉頁面。</div></div>`;
    }
    function bindActorAvatarFallbacks() {
     const images = [...(contentEl.querySelectorAll?.('.actress-card-avatar') || [])];
@@ -11430,7 +11430,7 @@
      image.addEventListener?.('error', onError, { once: true });
     }); }
    function renderActiveView() {
-    const title = activeView === 'actors' ? '演员库' : activeView === 'works' ? '作品库' : activeView === 'history' ? '鉴定记录' : activeView === 'blacklist' ? '黑名单' : activeView === 'settings' ? '检测设置' : '备份与恢复';
+    const title = activeView === 'actors' ? '演員庫' : activeView === 'works' ? '作品庫' : activeView === 'history' ? '鑑定紀錄' : activeView === 'blacklist' ? '黑名單' : activeView === 'settings' ? '檢查設定' : '備份與還原';
     overlay.querySelector('.jav-resource-head-title').textContent = title; backupEl.classList.toggle('jav-resource-backup--library', activeView === 'actors' || activeView === 'works' || activeView === 'history' || activeView === 'blacklist');
     backupEl.classList.toggle('jav-resource-backup--history', activeView === 'history');
     overlay.querySelectorAll('[data-resource-view]').forEach(button => { const active = button.dataset.resourceView === activeView; button.classList.toggle('is-active', active); button.setAttribute('aria-current', active ? 'page' : 'false'); });
@@ -11448,15 +11448,15 @@
     const blacklist = getBlacklist(library);
     const blacklistCount = selectedScope === 'blacklist-actors' ? Object.keys(blacklist.actors).length : selectedScope === 'blacklist-works' ? Object.keys(blacklist.works).length
       : selectedScope === 'blacklist-keywords' ? blacklist.codeKeywords.length + blacklist.titleKeywords.length : 0;
-    const preview = resourceCleanupPending ? selectedScope === 'history' ?`将清除 ${matches.historyCodes.length} 条鉴定记录，作品资料保留。`                    : selectedScope === 'relations' ?`将清除 ${matches.orphanRelations.length} 条孤立关联。`                        : selectedScope.startsWith('blacklist-') ?`将清除 ${blacklistCount} 条${cleanupScopeLabel(selectedScope)}。`                            :`将删除 ${matches.actorIds.length} 位演员、${matches.workCodes.length} 部作品及相关关联。` : '';
-    const pending = resourceCleanupPending ?`<div class="jav-resource-cleanup-confirm"><strong>确认清理${cleanupScopeLabel(selectedScope)}？</strong><span>${preview}此操作不可撤销，请确认已完成备份。</span><div><button type="button" data-resource-data-cleanup-confirm="1">确认清理</button><button type="button" data-resource-data-cleanup-cancel="1">取消</button></div></div>` : '';
-    return`<div class="jav-resource-data-cleanup"><div class="jav-resource-webdav-title">资源数据清理</div><p>可分别清理作品资料、演员资料、鉴定记录、黑名单分类和孤立关联。鉴定记录只清除收藏/观看/下载状态及操作记录，不删除作品资料。</p><div class="jav-resource-data-cleanup-controls"><select data-resource-data-cleanup-scope="1"><option value="works" ${selectedScope === 'works' ? 'selected' : ''}>作品资料</option><option value="actors" ${selectedScope === 'actors' ? 'selected' : ''}>演员资料</option><option value="history" ${selectedScope === 'history' ? 'selected' : ''}>鉴定记录</option><option value="blacklist-actors" ${selectedScope === 'blacklist-actors' ? 'selected' : ''}>演员黑名单</option><option value="blacklist-works" ${selectedScope === 'blacklist-works' ? 'selected' : ''}>作品黑名单</option><option value="blacklist-keywords" ${selectedScope === 'blacklist-keywords' ? 'selected' : ''}>关键词屏蔽</option><option value="relations" ${selectedScope === 'relations' ? 'selected' : ''}>孤立关联</option><option value="all" ${selectedScope === 'all' ? 'selected' : ''}>全部资源</option></select><select data-resource-data-cleanup-type="1" ${['actors', 'works'].includes(selectedScope) ? '' : 'disabled'}><option value="all" ${selectedType === 'all' ? 'selected' : ''}>全部类型</option><option value="uncensored" ${selectedType === 'uncensored' ? 'selected' : ''}>无码</option><option value="censored" ${selectedType === 'censored' ? 'selected' : ''}>有码</option><option value="western" ${selectedType === 'western' ? 'selected' : ''}>欧美</option><option value="unknown" ${selectedType === 'unknown' ? 'selected' : ''}>未知</option></select><button type="button" data-resource-data-cleanup="1">预览清理范围</button></div>${pending}</div>`;
+    const preview = resourceCleanupPending ? selectedScope === 'history' ?`將清除 ${matches.historyCodes.length} 條鑒定記錄，作品資料保留。`                    : selectedScope === 'relations' ?`將清除 ${matches.orphanRelations.length} 條孤立關聯。`                        : selectedScope.startsWith('blacklist-') ?`將清除 ${blacklistCount} 條${cleanupScopeLabel(selectedScope)}。`                            :`將刪除 ${matches.actorIds.length} 位演員、${matches.workCodes.length} 部作品及相關關聯。` : '';
+    const pending = resourceCleanupPending ?`<div class="jav-resource-cleanup-confirm"><strong>確認清理${cleanupScopeLabel(selectedScope)}？</strong><span>${preview}此操作不可撤銷，請確認已完成備份。</span><div><button type="button" data-resource-data-cleanup-confirm="1">確認清理</button><button type="button" data-resource-data-cleanup-cancel="1">取消</button></div></div>` : '';
+    return`<div class="jav-resource-data-cleanup"><div class="jav-resource-webdav-title">資源資料清理</div><p>可分別清理作品資料、演員資料、鑒定記錄、黑名單分類和孤立關聯。鑒定記錄只清除收藏/觀看/下載狀態及操作記錄，不刪除作品資料。</p><div class="jav-resource-data-cleanup-controls"><select data-resource-data-cleanup-scope="1"><option value="works" ${selectedScope === 'works' ? 'selected' : ''}>作品資料</option><option value="actors" ${selectedScope === 'actors' ? 'selected' : ''}>演員資料</option><option value="history" ${selectedScope === 'history' ? 'selected' : ''}>鑒定記錄</option><option value="blacklist-actors" ${selectedScope === 'blacklist-actors' ? 'selected' : ''}>演員黑名單</option><option value="blacklist-works" ${selectedScope === 'blacklist-works' ? 'selected' : ''}>作品黑名單</option><option value="blacklist-keywords" ${selectedScope === 'blacklist-keywords' ? 'selected' : ''}>關鍵詞屏蔽</option><option value="relations" ${selectedScope === 'relations' ? 'selected' : ''}>孤立關聯</option><option value="all" ${selectedScope === 'all' ? 'selected' : ''}>全部資源</option></select><select data-resource-data-cleanup-type="1" ${['actors', 'works'].includes(selectedScope) ? '' : 'disabled'}><option value="all" ${selectedType === 'all' ? 'selected' : ''}>全部類型</option><option value="uncensored" ${selectedType === 'uncensored' ? 'selected' : ''}>無碼</option><option value="censored" ${selectedType === 'censored' ? 'selected' : ''}>有碼</option><option value="western" ${selectedType === 'western' ? 'selected' : ''}>歐美</option><option value="unknown" ${selectedType === 'unknown' ? 'selected' : ''}>未知</option></select><button type="button" data-resource-data-cleanup="1">預覽清理範圍</button></div>${pending}</div>`;
    }
    function renderBackup() {
     const library = getState(); const recovery = getRecoverySnapshot(); const webdav = getWebdavConfig();
-    const historyLabels = { export: '本地导出', import: '本地导入', upload: '云端上传', download: '云端下载', delete: '云端删除', cleanup: '清理辅助数据', resource_cleanup: '清理资源数据' };
+    const historyLabels = { export: '本地導出', import: '本地導入', upload: '云端上傳', download: '云端下載', delete: '云端刪除', cleanup: '清理輔助資料', resource_cleanup: '清理資源資料' };
     const history = getBackupHistory();
-    backupEl.innerHTML =`<div class="jav-resource-backup-intro"><span class="jav-resource-backup-kicker">数据安全</span><h2>备份与恢复</h2><p>导出、导入和管理本地资源数据。导入会先预览，再与现有数据合并，不会静默覆盖。</p></div><div class="jav-resource-backup-stats"><div><strong>${Object.keys(library.actors).length}</strong><span>演员记录</span></div><div><strong>${Object.keys(library.works).length}</strong><span>作品记录</span></div><div><strong>${Object.keys(library.relations).length}</strong><span>关联记录</span></div></div><div class="jav-resource-backup-actions"><button type="button" data-resource-export="1">导出 JSON</button><button type="button" data-resource-import="1">选择备份文件</button><input class="jav-resource-file-input" type="file" accept="application/json,.json" data-resource-file-input="1"><span>最大支持 25 MB</span></div><div class="jav-resource-backup-tools"><button type="button" data-resource-health="1">检查数据</button><span>${healthReport ? `检查于 ${escape(formatDate(healthReport.checkedAt))}，${healthReport.issues.length ? `发现 ${healthReport.issues.length} 个问题` : '数据正常'}` : '尚未检查数据'}</span><button type="button" data-resource-recovery-restore="1" ${recovery ? '' : 'disabled'} title="用最近一次导入前自动保存的数据覆盖当前资源库">恢复导入前数据</button><span>${recovery ? `最近导入前快照：${escape(formatDate(recovery.createdAt))}` : '暂无导入前快照'}</span></div>${healthReport ? `<div class="jav-resource-health ${healthReport.issues.length ? 'has-errors' : ''}"><strong>${healthReport.issues.length ? '发现数据问题' : '数据完整性正常'}</strong><span>${healthReport.issues.length ? healthReport.issues.map(escape).join('<br>') : `已检查 ${healthReport.works} 条作品、${healthReport.actors} 条演员、${healthReport.relations} 条关联`}</span>${healthReport.issues.length ? '<button type="button" class="jav-resource-health-repair" data-resource-health-repair="1">修复数据</button>' : ''}</div>` : ''}${pendingImport ? `<div class="jav-resource-import-preview"><div class="jav-resource-backup-summary"><strong>导入预览：${escape(pendingImport.fileName || '备份文件')}</strong><span>演员 ${Object.keys(pendingImport.data.actors || {}).length}</span><span>作品 ${Object.keys(pendingImport.data.works || {}).length}</span><span>关联 ${Object.keys(pendingImport.data.relations || {}).length}</span></div>${pendingImport.errors?.length ? `<div class="jav-resource-import-errors">${pendingImport.errors.map(escape).join('<br>')}</div>` : '<div class="jav-resource-import-ok">文件格式有效，可以合并到本地资源库。</div>'}<button type="button" class="jav-resource-backup-apply" data-resource-import-apply="1" ${pendingImport.errors?.length ? 'disabled' : ''}>确认合并</button><button type="button" class="jav-resource-backup-cancel" data-resource-import-cancel="1">取消</button></div>` : ''}<div class="jav-resource-webdav"><div class="jav-resource-webdav-title">WebDAV 云端备份</div><div class="jav-resource-webdav-grid"><input type="url" placeholder="WebDAV 地址" value="${escape(webdav.url)}" data-webdav-url="1"><input type="text" placeholder="用户名" value="${escape(webdav.username)}" data-webdav-username="1"><input type="password" placeholder="密码" value="${escape(webdav.password)}" data-webdav-password="1"><input type="text" placeholder="文件名" value="${escape(webdav.filename)}" data-webdav-filename="1"></div><div class="jav-resource-webdav-actions"><button type="button" data-webdav-test="1">测试连接</button><button type="button" data-webdav-upload="1">上传备份</button><button type="button" data-webdav-download="1">下载备份</button><button type="button" data-webdav-list="1" ${webdavListingLoading ? 'disabled' : ''}>${webdavListingLoading ? '读取中...' : '云端列表'}</button><span>凭据仅保存在当前浏览器</span></div>${webdavConflict ? `<div class="jav-resource-conflict"><strong>检测到云端备份冲突</strong><span>云端文件与上次同步记录不同。请选择下载云端内容，或确认覆盖。</span><div class="jav-resource-conflict-actions"><button type="button" data-webdav-conflict-download="1" ${webdavConflictLoading ? 'disabled' : ''}>读取云端</button><button type="button" data-webdav-conflict-overwrite="1" ${webdavConflictLoading ? 'disabled' : ''}>覆盖云端</button><button type="button" data-webdav-conflict-cancel="1">取消</button></div></div>` : ''}${webdavListing ? `<div class="jav-resource-cloud-list"><div class="jav-resource-cloud-title">云端 JSON 备份</div>${webdavListing.length ? webdavListing.map(item => `<div class="jav-resource-cloud-item"><div class="jav-resource-cloud-file"><strong>${escape(item.filename)}</strong><span>${formatSize(item.size)} · ${escape(item.modifiedAt || '时间未知')}</span></div><button type="button" data-webdav-backup-download="${escape(item.filename)}">读取</button><button type="button" data-webdav-backup-delete="${escape(item.filename)}">删除</button></div>`).join('') : '<div class="jav-resource-cloud-empty">没有找到 JSON 备份</div>'}</div>` : ''}</div><div class="jav-resource-history"><div class="jav-resource-cloud-title">备份操作历史</div>${history.length ? history.map(item => `<div class="jav-resource-history-item"><span class="jav-resource-history-status ${item.status === 'success' ? 'is-ok' : item.status === 'conflict' ? 'is-conflict' : 'is-error'}">${item.status === 'success' ? '成功' : item.status === 'conflict' ? '冲突' : '失败'}</span><div class="jav-resource-history-main"><strong>${escape(historyLabels[item.action] || item.action)}${item.filename ? ` · ${escape(item.filename)}` : ''}</strong><span>${escape(item.message || '')}</span></div><time>${escape(formatDate(item.at))}</time></div>`).join('') : '<div class="jav-resource-cloud-empty">暂无操作记录</div>'}</div><div class="jav-resource-cleanup"><p>仅清理本地备份辅助数据，不会删除资源库内容或 WebDAV 配置。</p>${cleanupPending ? '<div class="jav-resource-cleanup-confirm"><strong>确认清理备份历史、冲突检测记录和本地缓存？</strong><div><button type="button" data-resource-cleanup-confirm="1">确认清理</button><button type="button" data-resource-cleanup-cancel="1">取消</button></div></div>' : '<div class="jav-resource-cleanup-actions"><button type="button" data-resource-cleanup="1">清理本地辅助数据</button></div>'}</div>`;
+    backupEl.innerHTML =`<div class="jav-resource-backup-intro"><span class="jav-resource-backup-kicker">資料安全</span><h2>備份與還原</h2><p>導出、導入和管理本地資源資料。導入會先預覽，再與現有資料合並，不會靜默覆蓋。</p></div><div class="jav-resource-backup-stats"><div><strong>${Object.keys(library.actors).length}</strong><span>演員記錄</span></div><div><strong>${Object.keys(library.works).length}</strong><span>作品記錄</span></div><div><strong>${Object.keys(library.relations).length}</strong><span>關聯記錄</span></div></div><div class="jav-resource-backup-actions"><button type="button" data-resource-export="1">導出 JSON</button><button type="button" data-resource-import="1">選擇備份檔案</button><input class="jav-resource-file-input" type="file" accept="application/json,.json" data-resource-file-input="1"><span>最大支援 25 MB</span></div><div class="jav-resource-backup-tools"><button type="button" data-resource-health="1">檢查資料</button><span>${healthReport ? `檢查于 ${escape(formatDate(healthReport.checkedAt))}，${healthReport.issues.length ? `發現 ${healthReport.issues.length} 個問題` : '資料正常'}` : '尚未檢查資料'}</span><button type="button" data-resource-recovery-restore="1" ${recovery ? '' : 'disabled'} title="用最近一次導入前自動儲存的數據覆蓋當前資源庫">還原導入前資料</button><span>${recovery ? `最近導入前快照：${escape(formatDate(recovery.createdAt))}` : '暫無導入前快照'}</span></div>${healthReport ? `<div class="jav-resource-health ${healthReport.issues.length ? 'has-errors' : ''}"><strong>${healthReport.issues.length ? '發現資料問題' : '資料完整性正常'}</strong><span>${healthReport.issues.length ? healthReport.issues.map(escape).join('<br>') : `已檢查 ${healthReport.works} 條作品、${healthReport.actors} 條演員、${healthReport.relations} 條關聯`}</span>${healthReport.issues.length ? '<button type="button" class="jav-resource-health-repair" data-resource-health-repair="1">修復資料</button>' : ''}</div>` : ''}${pendingImport ? `<div class="jav-resource-import-preview"><div class="jav-resource-backup-summary"><strong>導入預覽：${escape(pendingImport.fileName || '備份檔案')}</strong><span>演員 ${Object.keys(pendingImport.data.actors || {}).length}</span><span>作品 ${Object.keys(pendingImport.data.works || {}).length}</span><span>關聯 ${Object.keys(pendingImport.data.relations || {}).length}</span></div>${pendingImport.errors?.length ? `<div class="jav-resource-import-errors">${pendingImport.errors.map(escape).join('<br>')}</div>` : '<div class="jav-resource-import-ok">檔案格式有效，可以合並到本地資源庫。</div>'}<button type="button" class="jav-resource-backup-apply" data-resource-import-apply="1" ${pendingImport.errors?.length ? 'disabled' : ''}>確認合並</button><button type="button" class="jav-resource-backup-cancel" data-resource-import-cancel="1">取消</button></div>` : ''}<div class="jav-resource-webdav"><div class="jav-resource-webdav-title">WebDAV 云端備份</div><div class="jav-resource-webdav-grid"><input type="url" placeholder="WebDAV 位址" value="${escape(webdav.url)}" data-webdav-url="1"><input type="text" placeholder="使用者名稱" value="${escape(webdav.username)}" data-webdav-username="1"><input type="password" placeholder="密碼" value="${escape(webdav.password)}" data-webdav-password="1"><input type="text" placeholder="檔案名稱" value="${escape(webdav.filename)}" data-webdav-filename="1"></div><div class="jav-resource-webdav-actions"><button type="button" data-webdav-test="1">測試連接</button><button type="button" data-webdav-upload="1">上傳備份</button><button type="button" data-webdav-download="1">下載備份</button><button type="button" data-webdav-list="1" ${webdavListingLoading ? 'disabled' : ''}>${webdavListingLoading ? '讀取中...' : '雲端清單'}</button><span>憑據僅儲存在當前瀏覽器</span></div>${webdavConflict ? `<div class="jav-resource-conflict"><strong>檢測到云端備份沖突</strong><span>云端檔案與上次同步記錄不同。請選擇下載云端內容，或確認覆蓋。</span><div class="jav-resource-conflict-actions"><button type="button" data-webdav-conflict-download="1" ${webdavConflictLoading ? 'disabled' : ''}>讀取云端</button><button type="button" data-webdav-conflict-overwrite="1" ${webdavConflictLoading ? 'disabled' : ''}>覆蓋云端</button><button type="button" data-webdav-conflict-cancel="1">取消</button></div></div>` : ''}${webdavListing ? `<div class="jav-resource-cloud-list"><div class="jav-resource-cloud-title">云端 JSON 備份</div>${webdavListing.length ? webdavListing.map(item => `<div class="jav-resource-cloud-item"><div class="jav-resource-cloud-file"><strong>${escape(item.filename)}</strong><span>${formatSize(item.size)} · ${escape(item.modifiedAt || '時間未知')}</span></div><button type="button" data-webdav-backup-download="${escape(item.filename)}">讀取</button><button type="button" data-webdav-backup-delete="${escape(item.filename)}">刪除</button></div>`).join('') : '<div class="jav-resource-cloud-empty">沒有找到 JSON 備份</div>'}</div>` : ''}</div><div class="jav-resource-history"><div class="jav-resource-cloud-title">備份操作歷史</div>${history.length ? history.map(item => `<div class="jav-resource-history-item"><span class="jav-resource-history-status ${item.status === 'success' ? 'is-ok' : item.status === 'conflict' ? 'is-conflict' : 'is-error'}">${item.status === 'success' ? '成功' : item.status === 'conflict' ? '沖突' : '失敗'}</span><div class="jav-resource-history-main"><strong>${escape(historyLabels[item.action] || item.action)}${item.filename ? ` · ${escape(item.filename)}` : ''}</strong><span>${escape(item.message || '')}</span></div><time>${escape(formatDate(item.at))}</time></div>`).join('') : '<div class="jav-resource-cloud-empty">暫無操作記錄</div>'}</div><div class="jav-resource-cleanup"><p>僅清理本地備份輔助資料，不會刪除資源庫內容或 WebDAV 設定。</p>${cleanupPending ? '<div class="jav-resource-cleanup-confirm"><strong>確定要清除備份歷史、衝突檢查記錄和本機快取嗎？</strong><div><button type="button" data-resource-cleanup-confirm="1">確認清理</button><button type="button" data-resource-cleanup-cancel="1">取消</button></div></div>' : '<div class="jav-resource-cleanup-actions"><button type="button" data-resource-cleanup="1">清理本地輔助資料</button></div>'}</div>`;
     backupEl.insertAdjacentHTML('beforeend', renderResourceCleanup()); }
    overlay.addEventListener('wheel', event => {
     if (!event.deltaY) return;
@@ -11493,7 +11493,7 @@
      enrichWorkActors(code, work.url, { force: true }).then(updated => {
       Utils.showToast(updated ? '演员已关联' : '未找到演员', updated ? code :`${code} 未解析到演员信息`, updated ? 2200 : 3000);
      }).catch(error => {
-      Utils.showToast('演员查询失败', error.message || '请稍后重试', 3500);
+      Utils.showToast('演员查詢失敗', error.message || '請稍後再試', 3500);
      }).finally(() => {
       historyActorEnrichmentScheduled.delete(code);
       if (overlay.isConnected) renderActiveView();
@@ -11526,43 +11526,43 @@
      operationBusy = true; activeResourceOperation = createResourceOperation();
      operationProgress = { actorIndex: 0, actorTotal: 0, completed: 0, total: 0, page: 0, pages: 0, works: 0, found: 0, added: 0 };
      operationMessage = '正在同步演员...'; renderActiveView();
-     syncActors((message, details = {}) => updateOperationProgress(message, details), activeResourceOperation).then(result => { operationProgress = { ...operationProgress, actorIndex: result.actors, actorTotal: result.actors, completed: result.actors, total: result.actors, pages: result.pages }; operationMessage =`演员同步完成：${result.actors} 位演员，${result.pages} 页`; Utils.showToast('演员同步完成',`${result.actors} 位演员`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`演员同步失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); finishBackgroundTask(); });
+     syncActors((message, details = {}) => updateOperationProgress(message, details), activeResourceOperation).then(result => { operationProgress = { ...operationProgress, actorIndex: result.actors, actorTotal: result.actors, completed: result.actors, total: result.actors, pages: result.pages }; operationMessage =`演员同步完成：${result.actors} 位演员，${result.pages} 页`; Utils.showToast('演员同步完成',`${result.actors} 位演员`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`演员同步失敗：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); finishBackgroundTask(); });
      return; }
     if (event.target.closest('[data-resource-check-all]')) {
      if (operationBusy) return;
      operationBusy = true; activeResourceOperation = createResourceOperation();
      operationProgress = { actorIndex: 0, actorTotal: Object.keys(getState().actors).length, completed: 0, total: Object.keys(getState().actors).length, page: 0, pages: 0, works: 0, found: 0, added: 0 };
-     operationMessage = '正在检测演员最新作品...'; renderActiveView();
-     syncAllActorWorks(null, updateOperationProgress, activeResourceOperation).then(result => { operationProgress = { ...operationProgress, actorIndex: result.actors, actorTotal: result.actors, completed: result.actors, total: result.actors, page: result.pages, pages: result.pages, works: result.found, found: result.found, added: result.added }; operationMessage =`作品检测完成：${result.actors} 位演员，读取 ${result.pages} 页，新增 ${result.added} 部作品${result.errors?.length ? `，失败 ${result.errors.length} 位` : ''}`; Utils.showToast('作品检测完成',`新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`作品检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); finishBackgroundTask(); });
+     operationMessage = '正在檢查演員最新作品…'; renderActiveView();
+     syncAllActorWorks(null, updateOperationProgress, activeResourceOperation).then(result => { operationProgress = { ...operationProgress, actorIndex: result.actors, actorTotal: result.actors, completed: result.actors, total: result.actors, page: result.pages, pages: result.pages, works: result.found, found: result.found, added: result.added }; operationMessage =`作品檢查完成：${result.actors} 位演員，讀取 ${result.pages} 頁，新增 ${result.added} 部作品${result.errors?.length ? `，失敗 ${result.errors.length} 位` : ''}`; Utils.showToast('作品檢查完成',`新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`作品檢查失敗：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); finishBackgroundTask(); });
      return; }
     const actorCheck = event.target.closest('[data-resource-check-actor]');
     if (actorCheck) {
      if (operationBusy) return;
      operationBusy = true; activeResourceOperation = createResourceOperation();
      operationProgress = { actorIndex: 0, actorTotal: 1, completed: 0, total: 1, page: 0, pages: 0, works: 0, found: 0, added: 0 };
-     operationMessage = '正在检测演员最新作品...'; renderActiveView();
-     syncActorWorks(actorCheck.dataset.resourceCheckActor, updateOperationProgress, activeResourceOperation).then(result => { operationProgress = { ...operationProgress, actorIndex: 1, actorTotal: 1, completed: 1, total: 1, pages: result.pages, page: result.pages, works: result.found, found: result.found, added: result.added }; operationMessage =`检测完成：读取 ${result.pages} 页，发现 ${result.found} 部，新增 ${result.added} 部`; Utils.showToast('作品检测完成',`新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`检测失败：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); finishBackgroundTask(); });
+     operationMessage = '正在檢查演員最新作品…'; renderActiveView();
+     syncActorWorks(actorCheck.dataset.resourceCheckActor, updateOperationProgress, activeResourceOperation).then(result => { operationProgress = { ...operationProgress, actorIndex: 1, actorTotal: 1, completed: 1, total: 1, pages: result.pages, page: result.pages, works: result.found, found: result.found, added: result.added }; operationMessage =`檢查完成：讀取 ${result.pages} 頁，發現 ${result.found} 部，新增 ${result.added} 部`; Utils.showToast('作品檢查完成',`新增 ${result.added} 部作品`); }).catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`檢查失敗：${error.message || error}`; }).finally(() => { operationBusy = false; activeResourceOperation = null; renderActiveView(); finishBackgroundTask(); });
      return; }
     const uncollect = event.target.closest('[data-resource-uncollect-actor]');
     if (uncollect) {
      if (operationBusy) return;
      const actorId = uncollect.dataset.resourceUncollectActor; const actor = getState().actors[actorId];
-     if (!actor || !window.confirm(`确定取消收藏 ${actor.name || actorId}？`)) return;
-     operationBusy = true; operationMessage = '正在取消收藏...'; renderActiveView();
+     if (!actor || !window.confirm(`確定取消收藏 ${actor.name || actorId}？`)) return;
+     operationBusy = true; operationMessage = '正在取消收藏…'; renderActiveView();
      uncollectResourceActor(actorId).then(() => {
       const library = getState(); delete library.actors[actorId];
       Object.entries(library.relations).forEach(([key, relation]) => { if (relation.actorId === actorId) delete library.relations[key]; });
       persist(); operationMessage = ''; Utils.showToast('已取消收藏', actor.name || actorId);
-     }).catch(error => { operationMessage =`取消收藏失败：${error.message || error}`; Utils.showToast('取消收藏失败', error.message || '请稍后重试', 3500); }).finally(() => { operationBusy = false; renderActiveView(); });
+     }).catch(error => { operationMessage =`取消收藏失败：${error.message || error}`; Utils.showToast('取消收藏失败', error.message || '請稍後再試', 3500); }).finally(() => { operationBusy = false; renderActiveView(); });
      return; }
     const workBlacklist = event.target.closest('[data-resource-work-blacklist]'); const workFlag = event.target.closest('[data-resource-work-flag]');
     if (workBlacklist) {
      const code = workBlacklist.dataset.resourceWorkBlacklist; const work = getState().works[code];
      setWorkBlacklist(code, work || { code }, true);
-     persist(); Utils.showToast('已加入作品黑名单', code); renderActiveView(); return; }
+     persist(); Utils.showToast('已加入作品黑名單', code); renderActiveView(); return; }
     if (workFlag) {
-     updateWorkFlag(workFlag.dataset.resourceWorkCode, workFlag.dataset.resourceWorkFlag) .then(() => renderActiveView()) .catch(error => Utils.showToast('标记失败', error.message || '资源库写入失败', 3500)); return; }
-    if (event.target.closest('[data-resource-export]')) { const filename = downloadBackup(); recordBackupHistory('export', 'success', { filename }); Utils.showToast('备份已导出', filename); return renderBackup(); }
+     updateWorkFlag(workFlag.dataset.resourceWorkCode, workFlag.dataset.resourceWorkFlag) .then(() => renderActiveView()) .catch(error => Utils.showToast('標記失敗', error.message || '資源庫寫入失敗', 3500)); return; }
+    if (event.target.closest('[data-resource-export]')) { const filename = downloadBackup(); recordBackupHistory('export', 'success', { filename }); Utils.showToast('備份已匯出', filename); return renderBackup(); }
     if (event.target.closest('[data-resource-import]')) return backupEl.querySelector('[data-resource-file-input]')?.click();
     if (event.target.closest('[data-resource-import-cancel]')) { pendingImport = null; return renderBackup(); }
     if (event.target.closest('[data-resource-import-apply]')) {
@@ -11570,19 +11570,19 @@
      const imported = pendingImport;
      const count = kind => Object.keys(imported.data[kind] || {}).length;
      mergeImportedState({ ...imported.data, source: imported.source });
-     recordBackupHistory('import', 'success', { filename: imported.fileName, message:`演员 ${count('actors')}，作品 ${count('works')}，关联 ${count('relations')}` });
+     recordBackupHistory('import', 'success', { filename: imported.fileName, message:`演員 ${count('actors')}，作品 ${count('works')}，關聯 ${count('relations')}` });
      pendingImport = null;
-     Utils.showToast('备份已合并',`作品 ${count('works')}，演员 ${count('actors')}`);
+     Utils.showToast('備份已合併',`作品 ${count('works')}，演員 ${count('actors')}`);
      return renderBackup(); }
     if (event.target.closest('[data-resource-health]')) { healthReport = checkIntegrity(); return renderBackup(); }
-    if (event.target.closest('[data-resource-health-repair]')) { const result = repairIntegrity(); healthReport = result.report; Utils.showToast('数据修复完成',`清理异常记录 ${result.removedRecords} 条`); return renderBackup(); }
+    if (event.target.closest('[data-resource-health-repair]')) { const result = repairIntegrity(); healthReport = result.report; Utils.showToast('資料修復完成',`清理異常記錄 ${result.removedRecords} 筆`); return renderBackup(); }
     if (event.target.closest('[data-resource-recovery-restore]')) {
-     if (!window.confirm('恢复会用最近一次导入前保存的数据覆盖当前资源库。是否继续？')) return;
-     try { restoreRecoverySnapshot(); healthReport = checkIntegrity(); Utils.showToast('已恢复导入前数据', '当前资源库已回到最近一次导入前状态'); } catch (error) { Utils.showToast('恢复失败', error.message || '本地快照不可用', 3500); }
+     if (!window.confirm('還原時會以最近一次匯入前儲存的資料覆蓋目前資源庫。要繼續嗎？')) return;
+     try { restoreRecoverySnapshot(); healthReport = checkIntegrity(); Utils.showToast('已還原匯入前資料', '目前資源庫已還原至最近一次匯入前的狀態'); } catch (error) { Utils.showToast('還原失敗', error.message || '本機快照無法使用', 3500); }
      return renderBackup(); }
     if (event.target.closest('[data-resource-cleanup]')) { cleanupPending = true; return renderBackup(); }
     if (event.target.closest('[data-resource-cleanup-cancel]')) { cleanupPending = false; return renderBackup(); }
-    if (event.target.closest('[data-resource-cleanup-confirm]')) { clearAuxiliaryData(); recordBackupHistory('cleanup', 'success', { message: '已清理本地备份辅助数据' }); cleanupPending = false; Utils.showToast('清理完成', '本地备份辅助数据已清理'); return renderBackup(); }
+    if (event.target.closest('[data-resource-cleanup-confirm]')) { clearAuxiliaryData(); recordBackupHistory('cleanup', 'success', { message: '已清理本機備份輔助資料' }); cleanupPending = false; Utils.showToast('清理完成', '本機備份輔助資料已清理'); return renderBackup(); }
     if (event.target.closest('[data-resource-data-cleanup-cancel]')) { resourceCleanupPending = null; return renderBackup(); }
     if (event.target.closest('[data-resource-data-cleanup]')) {
      const scope = backupEl.querySelector('[data-resource-data-cleanup-scope]')?.value; const type = scope === 'all' ? 'all' : backupEl.querySelector('[data-resource-data-cleanup-type]')?.value;
@@ -11592,19 +11592,19 @@
      return renderBackup(); }
     if (event.target.closest('[data-resource-data-cleanup-confirm]') && resourceCleanupPending) {
      const selection = resourceCleanupPending; const result = clearResourceData(selection.scope, selection.type);
-     recordBackupHistory('resource_cleanup', 'success', { message:`${cleanupScopeLabel(selection.scope)}：演员 ${result.actors || 0}，作品 ${result.works || 0}，鉴定记录 ${result.history || 0}，关联 ${result.relations || 0}，黑名单 ${result.blacklist || 0}` });
+     recordBackupHistory('resource_cleanup', 'success', { message:`${cleanupScopeLabel(selection.scope)}：演員 ${result.actors || 0}，作品 ${result.works || 0}，鑑定紀錄 ${result.history || 0}，關聯 ${result.relations || 0}，黑名單 ${result.blacklist || 0}` });
      resourceCleanupPending = null; healthReport = null;
-     Utils.showToast('资源数据已清理',`${cleanupScopeLabel(selection.scope)}已清理`);
+     Utils.showToast('資源資料已清理',`${cleanupScopeLabel(selection.scope)}已清理`);
      return renderBackup(); }
     const checkBlacklistActor = event.target.closest('[data-resource-blacklist-check-actor]');
     if (checkBlacklistActor) {
      if (operationBusy) return;
      const actorId = checkBlacklistActor.dataset.resourceBlacklistCheckActor;
      if (!actorId || !getBlacklist().actors[actorId]) return;
-     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在继续检测演员作品...'; renderActiveView();
+     operationBusy = true; activeResourceOperation = createResourceOperation(); operationMessage = '正在繼續檢查演員作品…'; renderActiveView();
      syncBlacklistedActor(actorId, message => { operationMessage = message; renderActiveView(); }, activeResourceOperation)
-      .then(result => Utils.showToast('演员作品已更新',`发现 ${result.found} 部，新增 ${result.added} 部`))
-      .catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`继续检测失败：${error.message || error}`; Utils.showToast('演员作品检测失败', error.message || '资源库写入失败', 3500); })
+      .then(result => Utils.showToast('演員作品已更新',`發現 ${result.found} 部，新增 ${result.added} 部`))
+      .catch(error => { operationMessage = error.message === 'RESOURCE_OPERATION_CANCELLED' ? '操作已停止' :`繼續檢查失敗：${error.message || error}`; Utils.showToast('演員作品檢查失敗', error.message || '資源庫寫入失敗', 3500); })
       .finally(() => { operationBusy = false; activeResourceOperation = null; operationMessage = ''; if (overlay.isConnected) renderActiveView(); });
      return; }
     const removeActor = event.target.closest('[data-resource-blacklist-remove-actor]');
@@ -11627,25 +11627,25 @@
     const listButton = event.target.closest('[data-webdav-list]');
     if (listButton) {
      const config = readWebdavForm(); webdavListingLoading = true; renderBackup();
-     webdavList(config).then(result => { webdavListing = result.items; Utils.showToast('云端列表已更新',`找到 ${result.items.length} 个 JSON 备份`); }).catch(error => { webdavListing = null; Utils.showToast('读取云端列表失败', error.message || '请检查 WebDAV 配置', 3500); }).finally(() => { webdavListingLoading = false; renderBackup(); });
+     webdavList(config).then(result => { webdavListing = result.items; Utils.showToast('雲端清單已更新',`找到 ${result.items.length} 個 JSON 備份`); }).catch(error => { webdavListing = null; Utils.showToast('讀取雲端清單失敗', error.message || '請檢查 WebDAV 設定', 3500); }).finally(() => { webdavListingLoading = false; renderBackup(); });
      return; }
     const cloudDownload = event.target.closest('[data-webdav-backup-download]');
     if (cloudDownload) {
      const filename = cloudDownload.dataset.webdavBackupDownload;
      const config = saveWebdavConfig({ ...readWebdavForm(), filename });
-     webdavDownload(config).then(result => { pendingImport = result; recordBackupHistory('download', 'success', { filename }); Utils.showToast('云端备份已读取', '请确认导入预览内容'); }).catch(error => { recordBackupHistory('download', 'error', { filename, message: error.message }); Utils.showToast('云端备份读取失败', error.message || '请稍后重试', 3500); }).finally(renderBackup);
+     webdavDownload(config).then(result => { pendingImport = result; recordBackupHistory('download', 'success', { filename }); Utils.showToast('雲端備份已讀取', '請確認匯入預覽內容'); }).catch(error => { recordBackupHistory('download', 'error', { filename, message: error.message }); Utils.showToast('云端備份讀取失敗', error.message || '請稍后重試', 3500); }).finally(renderBackup);
      return; }
     const cloudDelete = event.target.closest('[data-webdav-backup-delete]');
     if (cloudDelete) {
      const filename = cloudDelete.dataset.webdavBackupDelete; const confirm = document.createElement('div'); confirm.className = 'jav-resource-confirm';
-     confirm.innerHTML =`<div class="jav-resource-confirm-box"><strong>删除云端备份？</strong><span>${escape(filename)} 将从 WebDAV 中删除，此操作无法撤销。</span><div><button type="button" data-confirm-delete="1">确认删除</button><button type="button" data-cancel-delete="1">取消</button></div></div>`;
+     confirm.innerHTML =`<div class="jav-resource-confirm-box"><strong>刪除雲端備份？</strong><span>${escape(filename)} 將從 WebDAV 中刪除，此操作無法撤銷。</span><div><button type="button" data-confirm-delete="1">確認刪除</button><button type="button" data-cancel-delete="1">取消</button></div></div>`;
      overlay.appendChild(confirm);
      confirm.addEventListener('click', confirmEvent => {
       if (confirmEvent.target.closest('[data-cancel-delete]')) { confirm.remove(); return; }
       if (!confirmEvent.target.closest('[data-confirm-delete]')) return;
       const config = saveWebdavConfig({ ...readWebdavForm(), filename });
       confirm.remove();
-      webdavDelete(config).then(() => { recordBackupHistory('delete', 'success', { filename }); webdavListing = webdavListing?.filter(item => item.filename !== filename) || null; Utils.showToast('云端备份已删除', filename); }).catch(error => { recordBackupHistory('delete', 'error', { filename, message: error.message }); Utils.showToast('云端备份删除失败', error.message || '请稍后重试', 3500); }).finally(renderBackup);
+      webdavDelete(config).then(() => { recordBackupHistory('delete', 'success', { filename }); webdavListing = webdavListing?.filter(item => item.filename !== filename) || null; Utils.showToast('雲端備份已刪除', filename); }).catch(error => { recordBackupHistory('delete', 'error', { filename, message: error.message }); Utils.showToast('雲端備份刪除失敗', error.message || '請稍後再試', 3500); }).finally(renderBackup);
      });
      return; }
     if (event.target.closest('[data-webdav-conflict-cancel]')) { webdavConflict = null; return renderBackup(); }
@@ -11654,13 +11654,13 @@
      const filename = webdavConflict.filename;
      const config = saveWebdavConfig({ ...readWebdavForm(), filename });
      webdavConflictLoading = true; renderBackup(); const downloadRemote = conflictAction.dataset.webdavConflictDownload;
-     const task = downloadRemote ? webdavDownload(config).then(result => { pendingImport = result; webdavConflict = null; recordBackupHistory('download', 'success', { filename }); Utils.showToast('云端备份已读取', '请确认导入预览内容'); }) : webdavUpload(config, { force: true }).then(result => { webdavConflict = null; recordBackupHistory('upload', 'success', { filename, message: '冲突后强制覆盖' }); Utils.showToast('云端备份已覆盖', result.message); });
-     task.catch(error => { recordBackupHistory(downloadRemote ? 'download' : 'upload', 'error', { filename, message: error.message }); Utils.showToast(downloadRemote ? '读取云端备份失败' : '覆盖云端备份失败', error.message || '请稍后重试', 3500); }).finally(() => { webdavConflictLoading = false; renderBackup(); });
+     const task = downloadRemote ? webdavDownload(config).then(result => { pendingImport = result; webdavConflict = null; recordBackupHistory('download', 'success', { filename }); Utils.showToast('雲端備份已讀取', '請確認匯入預覽內容'); }) : webdavUpload(config, { force: true }).then(result => { webdavConflict = null; recordBackupHistory('upload', 'success', { filename, message: '冲突后强制覆盖' }); Utils.showToast('雲端備份已覆盖', result.message); });
+     task.catch(error => { recordBackupHistory(downloadRemote ? 'download' : 'upload', 'error', { filename, message: error.message }); Utils.showToast(downloadRemote ? '讀取雲端備份失敗' : '覆蓋雲端備份失敗', error.message || '請稍後再試', 3500); }).finally(() => { webdavConflictLoading = false; renderBackup(); });
      return; }
     const action = event.target.closest('[data-webdav-test], [data-webdav-upload], [data-webdav-download]');
     if (action) {
      const config = readWebdavForm(); const kind = action.dataset.webdavTest ? 'test' : action.dataset.webdavUpload ? 'upload' : 'download'; const task = kind === 'test' ? webdavTest(config) : kind === 'upload' ? webdavUpload(config) : webdavDownload(config);
-     task.then(result => { if (kind === 'download') { pendingImport = result; recordBackupHistory('download', 'success', { filename: config.filename }); Utils.showToast('云端备份已读取', '请确认导入预览内容'); } else { if (kind === 'upload') recordBackupHistory('upload', 'success', { filename: config.filename }); Utils.showToast(kind === 'upload' ? '备份已上传' : 'WebDAV 连接成功', result.message); } }).catch(error => { if (kind === 'upload' && error.code === 'WEBDAV_CONFLICT') { webdavConflict = { filename: config.filename }; recordBackupHistory('upload', 'conflict', { filename: config.filename, message: error.message }); } else if (kind === 'download' || kind === 'upload') recordBackupHistory(kind, 'error', { filename: config.filename, message: error.message }); Utils.showToast(kind === 'upload' && error.code === 'WEBDAV_CONFLICT' ? '检测到云端冲突' : kind === 'download' ? '云端备份读取失败' : 'WebDAV 操作失败', error.message || '请检查地址和凭据', 3500); }).finally(renderBackup);
+     task.then(result => { if (kind === 'download') { pendingImport = result; recordBackupHistory('download', 'success', { filename: config.filename }); Utils.showToast('雲端備份已讀取', '請確認匯入預覽內容'); } else { if (kind === 'upload') recordBackupHistory('upload', 'success', { filename: config.filename }); Utils.showToast(kind === 'upload' ? '備份已上傳' : 'WebDAV 連線成功', result.message); } }).catch(error => { if (kind === 'upload' && error.code === 'WEBDAV_CONFLICT') { webdavConflict = { filename: config.filename }; recordBackupHistory('upload', 'conflict', { filename: config.filename, message: error.message }); } else if (kind === 'download' || kind === 'upload') recordBackupHistory(kind, 'error', { filename: config.filename, message: error.message }); Utils.showToast(kind === 'upload' && error.code === 'WEBDAV_CONFLICT' ? '偵測到雲端衝突' : kind === 'download' ? '雲端備份讀取失敗' : 'WebDAV 操作失敗', error.message || '請檢查位址和憑證', 3500); }).finally(renderBackup);
     }
    });
    overlay.addEventListener('change', event => {
@@ -11673,7 +11673,7 @@
       nextValues.scheduleEnabled = syncActorsEnabled || checkWorksEnabled; }
      saveResourceSettings(nextValues);
      if (key === 'scheduleSyncActors' || key === 'scheduleCheckWorks' || key === 'scheduleActorHours' || key === 'scheduleWorksHours') restartResourceSchedule();
-     Utils.showToast('检测设置已保存', key === 'scheduleEnabled' && !setting.checked ? '定时检测已关闭' : '设置已即时生效', 1800); return; }
+     Utils.showToast('檢查設定已儲存', key === 'scheduleEnabled' && !setting.checked ? '定期檢查已關閉' : '設定已立即生效', 1800); return; }
     const actorFilter = event.target.closest('[data-resource-actors-filter]');
     if (actorFilter) { actorsFilter = actorFilter.value; actorsPage = 1; return renderActiveView(); }
     const actorSort = event.target.closest('[data-resource-actors-sort]');
@@ -11694,9 +11694,9 @@
     pendingImport = { fileName: file.name, data: { works: {}, actors: {}, relations: {} }, errors: [] };
     if (file.size > MAX_IMPORT_BYTES) { pendingImport.errors.push('文件超过 25 MB 限制'); return renderBackup(); }
     file.text().then(text => {
-     try { pendingImport = { fileName: file.name, ...prepareImport(JSON.parse(text)) }; } catch (error) { pendingImport.errors = [error.message || '备份文件解析失败']; }
+     try { pendingImport = { fileName: file.name, ...prepareImport(JSON.parse(text)) }; } catch (error) { pendingImport.errors = [error.message || '備份檔案解析失敗']; }
      renderBackup();
-    }).catch(() => { pendingImport.errors = ['备份文件读取失败']; renderBackup(); });
+    }).catch(() => { pendingImport.errors = ['備份檔案讀取失敗']; renderBackup(); });
    });
    overlay.addEventListener('input', event => {
     const actorSearch = event.target.closest('[data-resource-actors-search]');
@@ -12012,7 +12012,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
  function addSubtitleBtn(code, container, useCapture = false) {
   if (!GM_getValue('btn_show_subtitle', true)) return;
   const btn = Utils.createBtn('📝 字幕', '#0f766e', async () => {
-   const oldText = btn.textContent; btn.textContent = '📝 搜索中...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.72';
+   const oldText = btn.textContent; btn.textContent = '📝 搜尋中…'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.72';
    try {
     await Subtitle.show(code);
    } finally {
@@ -12049,14 +12049,14 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    accent: defaultEngine.color,
    mainBtn,
    subButtons,
-   toggleTitle: '展开搜索引擎',
+   toggleTitle: '展开搜尋引擎',
   })); }
  function addSettingsBtn(container, useCapture = false) {
   if (!container || container.querySelector('.jav-settings-btn')) return;
-  const btn = Utils.createBtn('⚙️ 设置', '#475569', () => {
+  const btn = Utils.createBtn('⚙️ 設定', '#475569', () => {
    SettingsPanel.open();
   }, useCapture);
-  btn.classList.add('jav-settings-btn'); btn.title = '打开老司机设置'; container.appendChild(btn); }
+  btn.classList.add('jav-settings-btn'); btn.title = '打開老司機設定'; container.appendChild(btn); }
  function addJumpLineBreak(container) {
   const lineBreak = document.createElement('span'); lineBreak.className = 'jav-jump-line-break'; lineBreak.style.cssText = 'flex-basis:100%;height:0;padding:0;margin:0;'; container.appendChild(lineBreak); }
  let pan115ChooserOverlay = null;
@@ -12111,9 +12111,9 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   return button; }
  function confirmPan115Action(options = {}) {
   return new Promise(resolve => {
-   const overlay = pan115Node('div', 'jav-pan115-confirm-overlay'); const dialog = pan115Node('div', 'jav-pan115-confirm', null, overlay); pan115Node('div', 'jav-pan115-confirm-title', options.title || '确认操作', dialog);
+   const overlay = pan115Node('div', 'jav-pan115-confirm-overlay'); const dialog = pan115Node('div', 'jav-pan115-confirm', null, overlay); pan115Node('div', 'jav-pan115-confirm-title', options.title || '確認操作', dialog);
    pan115Node('div', 'jav-pan115-confirm-message', options.message || '', dialog); const actions = pan115Node('div', 'jav-pan115-confirm-actions', null, dialog);
-   const cancel = pan115Button(options.cancelText || '取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(false)); const confirm = pan115Button(options.confirmText || '确认', 'jav-pan115-confirm-ok', actions, () => cleanup(true));
+   const cancel = pan115Button(options.cancelText || '取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(false)); const confirm = pan115Button(options.confirmText || '確認', 'jav-pan115-confirm-ok', actions, () => cleanup(true));
    const cleanup = value => {
     overlay.remove(); document.removeEventListener('keydown', onKeydown, true); resolve(value); };
    const onKeydown = event => {
@@ -12129,8 +12129,8 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   return new Promise(resolve => {
    const overlay = pan115Node('div', 'jav-pan115-confirm-overlay jav-pan115-rename-overlay'); const dialog = pan115Node('div', 'jav-pan115-confirm jav-pan115-rename-dialog', null, overlay);
    pan115Node('div', 'jav-pan115-confirm-title', options.title || '手动改名', dialog); const input = pan115Node('input', 'jav-pan115-rename-input', null, dialog); input.className = 'jav-pan115-rename-input'; input.type = 'text'; input.value = options.value || '';
-   input.placeholder = '输入新的 115 文件名'; pan115Node('div', 'jav-pan115-rename-hint', options.hint || '确认后会直接改名，请保留正确扩展名。', dialog); const actions = pan115Node('div', 'jav-pan115-confirm-actions', null, dialog);
-   pan115Button('取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(null)); pan115Button('确认改名', 'jav-pan115-confirm-ok jav-pan115-rename-ok', actions, () => submit());
+   input.placeholder = '輸入新的 115 檔案名稱稱'; pan115Node('div', 'jav-pan115-rename-hint', options.hint || '確認後將直接變更檔名，請保留正確的副檔名。', dialog); const actions = pan115Node('div', 'jav-pan115-confirm-actions', null, dialog);
+   pan115Button('取消', 'jav-pan115-confirm-cancel', actions, () => cleanup(null)); pan115Button('確認改名', 'jav-pan115-confirm-ok jav-pan115-rename-ok', actions, () => submit());
    const cleanup = value => {
     overlay.remove(); document.removeEventListener('keydown', onKeydown, true); resolve(value); };
    const submit = () => cleanup(input.value.trim() || null);
@@ -12148,16 +12148,16 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
  async function renamePan115Candidate(context, newName, button) {
   const { match, matches, normalized, code, nameNode, trigger } = context;
   const nextName = String(newName || '').trim();
-  if (!match.fileId) { notify('115 改名失败', '115 搜索结果未返回文件ID，无法改名'); return false; }
+  if (!match.fileId) { notify('115 變更檔名失敗', '115 搜尋結果未回傳檔案 ID，無法變更檔名'); return false; }
   if (!nextName) return false;
-  if (nextName === match.name) { notify('115 改名', '新旧文件名一致，已跳过'); return false; }
+  if (nextName === match.name) { notify('115 改名', '新舊檔名相同，已略過'); return false; }
   const oldText = button.textContent; button.disabled = true; button.textContent = '改名中';
   try {
    await Pan115.renameFile(match.fileId, nextName); match.name = nextName;
    if (nameNode) { nameNode.textContent = nextName; nameNode.title = nextName; }
    Pan115.clearCached(normalized || code); refreshPan115ControlsForCode(normalized || code, matches, trigger); notify('115 改名成功', nextName); return true;
   } catch (error) {
-   errorLog('115改名失败:', error); notify('115 改名失败', error?.message || '改名请求失败'); return false;
+   errorLog('115變更檔名失敗:', error); notify('115 變更檔名失敗', error?.message || '變更檔名請求失敗'); return false;
   } finally {
    button.disabled = false; button.textContent = oldText; } }
  function createPan115CandidateAction(action, context) {
@@ -12184,32 +12184,32 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
     className: 'jav-pan115-candidate-rename',
     label: '改名',
     disabled: ({ match }) => !match.fileId,
-    title: ({ match }) => match.fileId ? '手动修改 115 文件名' : '115 搜索结果未返回文件ID，无法改名',
+    title: ({ match }) => match.fileId ? '手動修改 115 檔案名稱' : '115 搜尋結果未回傳檔案 ID，無法變更檔名',
     async run(context, button) {
      const nextName = await promptPan115Rename({ value: context.match.name || '' });
      await renamePan115Candidate(context, nextName, button); }, },
    {
     key: 'delete',
     className: 'jav-pan115-candidate-delete',
-    label: '删除',
+    label: '刪除',
     disabled: ({ match }) => !match.fileId,
-    title: ({ match }) => match.fileId ? '删除此 115 文件' : '115 搜索结果未返回文件ID，无法删除',
+    title: ({ match }) => match.fileId ? '刪除這個 115 檔案' : '115 搜尋結果未回傳檔案 ID，無法刪除',
     async run({ match, matches, normalized, code, row, refreshDesc, trigger }, button) {
      if (!match.fileId) return;
      const confirmed = await confirmPan115Action({
-      title: '删除 115 文件',
-      message:`确定删除这个文件吗？\n\n${match.name || match.fileId}`,
-      confirmText: '删除',
+      title: '刪除 115 檔案',
+      message:`確定要刪除這個檔案嗎？\n\n${match.name || match.fileId}`,
+      confirmText: '刪除',
      });
      if (!confirmed) return;
-     button.disabled = true; button.textContent = '删除中';
+     button.disabled = true; button.textContent = '刪除中';
      try {
       await Pan115.deleteFile(match.fileId); const pos = matches.indexOf(match);
       if (pos >= 0) matches.splice(pos, 1);
-      Pan115.clearCached(normalized || code); row.remove(); refreshDesc(); refreshPan115ControlsForCode(normalized || code, matches, trigger); notify('115 删除成功', match.name || '文件已删除');
+      Pan115.clearCached(normalized || code); row.remove(); refreshDesc(); refreshPan115ControlsForCode(normalized || code, matches, trigger); notify('115 刪除成功', match.name || '檔案已刪除');
       if (!matches.length) closePan115Chooser();
      } catch (error) {
-      errorLog('115删除失败:', error); notify('115 删除失败', error?.message || '删除请求失败'); button.disabled = false; button.textContent = '删除'; } }, }, ]; }
+      errorLog('115 刪除失敗:', error); notify('115 刪除失敗', error?.message || '刪除請求失敗'); button.disabled = false; button.textContent = '刪除'; } }, }, ]; }
  function openPan115Chooser(code, value, trigger = null) {
   const matches = normalizePan115Matches(value);
   if (!matches.length) return;
@@ -12222,10 +12222,10 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   const titleWrap = document.createElement('div'); header.appendChild(titleWrap); const title = document.createElement('div'); title.className = 'jav-pan115-chooser-title';
   title.textContent =`${normalized || code} 的 115 匹配`;
   titleWrap.appendChild(title); const desc = document.createElement('div'); desc.className = 'jav-pan115-chooser-desc'; titleWrap.appendChild(desc); const close = document.createElement('button'); close.type = 'button';
-  close.className = 'jav-pan115-chooser-close'; close.textContent = '×'; close.title = '关闭'; close.addEventListener('click', closePan115Chooser, true); header.appendChild(close); const list = document.createElement('div');
+  close.className = 'jav-pan115-chooser-close'; close.textContent = '×'; close.title = '關閉'; close.addEventListener('click', closePan115Chooser, true); header.appendChild(close); const list = document.createElement('div');
   list.className = 'jav-pan115-candidate-list'; dialog.appendChild(list);
   const refreshDesc = () => {
-   desc.textContent =`共 ${matches.length} 个候选，可选择播放或管理文件。`;
+   desc.textContent =`共 ${matches.length} 個候選項，可選擇播放或管理檔案。`;
   };
   refreshDesc();
   matches.forEach((match, index) => {
@@ -12234,7 +12234,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    list.appendChild(row); const main = document.createElement('div'); main.className = 'jav-pan115-candidate-main'; row.appendChild(main); const name = document.createElement('div'); name.className = 'jav-pan115-candidate-name';
    name.textContent = match.name ||`候选 ${index + 1}`;
    name.title = match.name || ''; main.appendChild(name); const meta = document.createElement('div'); meta.className = 'jav-pan115-candidate-meta';
-   meta.textContent = [match.sizeText || Pan115.formatSize(match.size), match.lowPriorityReason].filter(Boolean).join(' · ') || '未返回文件大小'; main.appendChild(meta); const actions = document.createElement('div');
+   meta.textContent = [match.sizeText || Pan115.formatSize(match.size), match.lowPriorityReason].filter(Boolean).join(' · ') || '未回傳檔案大小'; main.appendChild(meta); const actions = document.createElement('div');
    actions.className = 'jav-pan115-candidate-actions'; row.appendChild(actions);
    getPan115CandidateActions().forEach(action => { actions.appendChild(createPan115CandidateAction(action, { match, matches, normalized, code, row, nameNode: name, metaNode: meta, refreshDesc, trigger })); });
   });
@@ -12253,15 +12253,15 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    if (!Pan115.enabled() || !list.length || !marker.parentNode) return;
    const btn = createPan115MatchButton(list, normalized, '115播放', useCapture); marker.parentNode.insertBefore(btn, marker);
   }).catch(err => {
-   errorLog('115自动查询失败:', err);
+   errorLog('115自动查詢失敗:', err);
   }).finally(() => { marker.remove(); }); }
  async function playPan115Pot(pickcode, title, button = null) {
   if (button?.dataset.pan115Loading === '1') return;
   if (button) { button.dataset.pan115Loading = '1'; button.setAttribute('aria-busy', 'true'); }
   try {
-   await Pan115.playPotPlayer(pickcode, title); notify('PotPlayer', '已发送 115 直链，正在启动播放器');
+   await Pan115.playPotPlayer(pickcode, title); notify('PotPlayer', '已傳送 115 直連，正在啟動播放器');
   } catch (error) {
-   errorLog('PotPlayer 播放失败:', error); notify('PotPlayer 播放失败', error?.message || '无法获取 115 直链');
+   errorLog('PotPlayer 播放失敗:', error); notify('PotPlayer 播放失敗', error?.message || '無法取得 115 直連');
   } finally {
    if (button) { delete button.dataset.pan115Loading; button.removeAttribute('aria-busy'); }
   } }
@@ -12317,11 +12317,11 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
       if (anchor.isConnected) SiteManager.insertPan115ListBadge(anchor, matches, code);
      } catch (err) {
       if (anchor.isConnected && !Pan115.isSearchBlocked?.()) delete anchor.dataset.pan115Checked;
-      errorLog('115列表单项查询失败:', err); } } };
+      errorLog('115列表单项查詢失敗:', err); } } };
    const isJavdbApiList = !!document.querySelector('.javdb-api-shell .movie-list'); const workerCount = Math.min(4, targets.length);
    await Promise.all(Array.from({ length: workerCount }, worker));
   } catch (err) {
-   errorLog('115列表自动查询失败:', err);
+   errorLog('115列表自动查詢失敗:', err);
   } finally {
    pan115ListRunning = false;
    if (Pan115.enabled() && !Pan115.isSearchBlocked?.() && !document.querySelector('#jav-resource-overlay') && SiteManager.collectPan115ListTargets().length) schedulePan115ListBadges();
@@ -12406,8 +12406,8 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    const lang = String(target || '').toLowerCase();
    if (lang === 'en') return type === 'error' ? 'Title translation failed' : 'Translating title...';
    if (lang === 'ko') return type === 'error' ? '제목 번역 실패' : '제목 번역 중...';
-   if (lang === 'zh-tw') return type === 'error' ? '翻譯標題失敗' : '翻譯標題中...';
-   return type === 'error' ? '翻译标题失败' : '翻译标题中...'; }
+   if (lang === 'zh-tw') return type === 'error' ? '標題翻譯失敗' : '正在翻譯標題...';
+   return type === 'error' ? '標題翻譯失敗' : '正在翻譯標題...'; }
   function getLocalStorage() {
    try {
     const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : globalThis; return pageWindow?.localStorage || null;
@@ -12476,7 +12476,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
     row.dataset.state = 'loaded'; row.className = 'jav-title-translation'; row.textContent = translated;
    } catch (err) {
     if (row.dataset.translateId !== id) return;
-    row.dataset.state = 'error'; row.className = 'jav-title-translation is-error'; row.textContent = translateMessage(target, 'error'); errorLog('翻译标题失败:', err); } }
+    row.dataset.state = 'error'; row.className = 'jav-title-translation is-error'; row.textContent = translateMessage(target, 'error'); errorLog('翻譯標題失敗：', err); } }
   function listModeEnabled(mode = CFG.titleTranslate) { return mode === 'list' || mode === 'all'; }
   function getCurrentListSite() {
    const host = location.hostname;
@@ -12533,7 +12533,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
     record.element.textContent = record.outputText; record.state = 'translated';
    } catch (err) {
     if (!isCurrentRecord(record)) return;
-    record.state = 'failed'; errorLog('列表标题翻译失败:', err); } }
+    record.state = 'failed'; errorLog('列表標題翻譯失敗:', err); } }
   function drainQueue() {
    if (!listModeEnabled()) return;
    while (activeRequests < MAX_CONCURRENT && queue.length) {
@@ -12671,7 +12671,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
     accent: defaultEngine.color,
     mainBtn: mainSearchBtn,
     subButtons,
-    toggleTitle: '展开搜索引擎',
+    toggleTitle: '展开搜尋引擎',
     stretchSubButtons: false,
    }));
   } else {
@@ -12782,7 +12782,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    if (this.restoreEnabled()) {
     try {
      this.restoreSnapshot(this.state);
-    } catch (err) { errorLog('瀑布流快照恢复失败:', err); }
+    } catch (err) { errorLog('瀑布流快照還原失敗：', err); }
    } else { this.clearSnapshot(this.state); }
    this.hidePagination(); this.createSentinel(); this.observe();
    if (this.restoreEnabled()) this.restoreScroll();
@@ -12874,7 +12874,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    const payload = { site: this.state.site, nextUrl: this.state.nextUrl || '', done: !!this.state.done, scrollY: this.pendingScrollY ?? window.scrollY ?? 0, items, savedAt: Date.now() };
    try {
     sessionStorage.setItem(key, JSON.stringify(payload));
-   } catch (err) { errorLog('瀑布流快照保存失败:', err); } },
+   } catch (err) { errorLog('瀑布流快照儲存失敗:', err); } },
   scheduleSnapshotSave() {
    if (!this.state || !this.restoreEnabled()) return;
    this.pendingScrollY = window.scrollY || 0; },
@@ -12883,7 +12883,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
    if (y <= 0) return;
    setTimeout(() => window.scrollTo(window.scrollX || 0, y), 0); setTimeout(() => window.scrollTo(window.scrollX || 0, y), 120); },
   createSentinel() {
-   const sentinel = document.createElement('div'); sentinel.className = 'jav-infinite-sentinel'; sentinel.textContent = '继续滚动加载下一页';
+   const sentinel = document.createElement('div'); sentinel.className = 'jav-infinite-sentinel'; sentinel.textContent = '繼續捲動以載入下一頁';
    sentinel.addEventListener('click', () => {
     if (sentinel.classList.contains('is-error')) this.loadNext();
    });
@@ -12939,7 +12939,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
       imgs.forEach(img => { if (!img.getAttribute('loading')) img.setAttribute('loading', 'lazy'); });
      } catch (e) {}
      SiteManager.decorateInfiniteScrollItem(this.state.site, adopted); addedItems.push(adopted); added += 1;
-    } catch (err) { errorLog('追加单项失败:', err); }
+    } catch (err) { errorLog('追加單項失敗：', err); }
    });
    if (this.state.site === 'javdb' && addedItems.length) { JavdbListScoreSort.sync(container, addedItems); }
    return added; },
@@ -12967,9 +12967,9 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
     state.emptyStreak = added ? 0 : (state.emptyStreak + 1);
     if (!state.nextUrl || state.emptyStreak >= 3) {
      state.done = true; state.observer?.disconnect(); this.setStatus('已经到底了', 'is-done'); this.saveSnapshot();
-    } else { this.setStatus('继续滚动加载下一页'); }
+    } else { this.setStatus('繼續捲動以載入下一頁'); }
    } catch (err) {
-    errorLog('瀑布流加载失败:', err); this.setStatus('加载失败，点击重试', 'is-error');
+    errorLog('瀑布流載入失敗:', err); this.setStatus('載入失敗，点击重试', 'is-error');
    } finally {
     if (state.abortRequest) state.abortRequest = null;
     if (this.isCurrent(state, generation)) state.loading = false;
@@ -12977,7 +12977,7 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   reflow() {
    try {
     this.state.container = SiteManager.reflowInfiniteScroll(this.state.site, this.state.container);
-   } catch (err) { errorLog('瀑布流重排失败:', err); }
+   } catch (err) { errorLog('瀑布流重新排序失敗：', err); }
    window.dispatchEvent(new Event('resize')); }, };
  Core.expose('__LAOSIJI_INFINITE_SCROLL__', InfiniteScroll); let pan115ListTimer = null;
  function schedulePan115ListBadges() {
