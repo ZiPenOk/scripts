@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.2.3
+// @version      2.2.4
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -93,6 +93,8 @@
 // @include      /^https://(?:[^/]+\.)?imgo\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?sht-link\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?shentai-anime\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?ria-kurumi\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?cn1min\.[^/]+/.*$/
 
 // @run-at       document-end
 // @grant        unsafeWindow
@@ -440,6 +442,20 @@
                 })
             }
         })
+    })
+
+    // imgbob 系图床（ria-kurumi.vip、cn1min.com 等）：/upload/ib/<file> 会 301 跳到
+    // 原图，可直接使用；/upload/<file> 与 /upload/en/<file> 是查看页，需要抓页面解析出原图。
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min)\.[a-z]+\/upload\/ib\/[^\/?#]+$/i, null, (url, callback) => {
+        callback(url)
+    })
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min)\.[a-z]+\/upload\/(?:en\/)?[^\/?#]+$/i, callback => {
+        const img = document.querySelector('.fileviewer-file img') ||
+                    document.querySelector('#fileOriginalModal img')
+        if(img && img.src) callback(img.src)
+    }, async (url, callback) => {
+        const src = parseStorageImage(await doGetHtml(url), url)
+        if(src) callback(src)
     })
 
     // ==================== 统一图床站点配置 ====================
