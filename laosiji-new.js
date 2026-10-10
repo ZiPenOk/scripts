@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.9.0.1
-// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、115改名与删除操作、完整正片播放、多画质预告片与预览图、高清2K封面下载、JavDB 无水印封面、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序；支持 JavBus、JavDB、JavLibrary 分站独立的资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
+// @version      2.9.1
+// @description  JAV 站点浏览与资源管理增强：统一处理 JavBus、JavDB、JavLibrary 的番号识别、详情页与列表页操作、支持自调整页面布局比例；提供磁力聚合、115 匹配播放、115改名与删除操作、完整正片播放、多画质预告片播放与下载、三源预览图、高清2K封面下载、JavDB 无水印封面、跨站搜索跳转、标题翻译、卡片布局、页面缩放、移动端适配、剧照浏览、瀑布流和 JavDB 评分评价排序；支持 JavBus、JavDB、JavLibrary 分站独立的资源管理中心，管理演员、作品、鉴定记录、黑名单及本地/WebDAV 备份恢复，并为 Sukebei、MissAV、Jable、123AV、Emby 等站点提供快捷入口。
 // @author       ZiPenOk
 // @icon         https://cloudflare-imgbed-5nw.pages.dev/file/1778560196416_laosiji.png
 // @match        https://www.javlibrary.com/*
@@ -75,7 +75,7 @@
    return url.searchParams.get('laosiji_123av_fc2') === '1';
   } catch (_) { return false; } }
  function isCustomSpaUrl(urlLike) { return isJavdbCustomSpaUrl(urlLike) || is123AvFc2SpaUrl(urlLike); }
- const SCRIPT_VERSION = '2.9.0.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
+ const SCRIPT_VERSION = '2.9.1'; const DEBUG_LOG = false; const ERROR_LOG = true; const PAGE_ZOOM_DEFAULT = 86; const PAGE_ZOOM_LOW_RES_DEFAULT = 100; const PAGE_ZOOM_2K_WIDTH = 2560;
  const getPageZoomDefault = () => {
   const screenLongSide = Math.max(window.screen?.width || 0, window.screen?.height || 0); return screenLongSide && screenLongSide < PAGE_ZOOM_2K_WIDTH ? PAGE_ZOOM_LOW_RES_DEFAULT : PAGE_ZOOM_DEFAULT; };
  const JAVDB_REVIEW_INITIAL_LIMIT = 6; const JAVDB_REVIEW_MORE_LIMIT = 20;
@@ -3568,7 +3568,7 @@
  }
  injectStyle('ui-core-ui-style',`.preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:2147483647;display:flex;overflow:auto;cursor:zoom-out;backdrop-filter:blur(5px)}.preview-img{border-radius:4px;margin:auto;cursor:zoom-in;max-width:95vw;max-height:95vh;object-fit:contain;display:block;box-shadow:0 0 20px rgba(0,0,0,0.5)}.preview-img.zoomed{max-width:none;max-height:none;cursor:zoom-out}a:focus:not(:focus-visible),button:focus:not(:focus-visible),[role="button"]:focus:not(:focus-visible),input[type="button"]:focus:not(:focus-visible),input[type="submit"]:focus:not(:focus-visible){outline:none!important}#navbar,#topmenu,#navbar-menu-user,body>.navbar{z-index:100!important}.jav-card-grid{--jav-card-title-size:15px;--jav-card-title-line-height:1.5;--jav-card-title-lines:2;position:relative!important;z-index:0!important;isolation:isolate!important;display:grid!important;grid-template-columns:repeat(var(--jav-card-columns,5),minmax(0,1fr))!important;gap:14px 6px!important;align-items:stretch!important;width:100%!important;box-sizing:border-box!important}.jav-card{float:none!important;display:block!important;width:auto!important;height:100%!important;max-height:none!important;min-width:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;text-align:left!important;position:relative!important;background:#fff!important;border:1px solid #e5e7eb!important;border-radius:0!important;overflow:visible!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important}.jav-card:hover,.jav-card.jav-card-menu-active{border-color:rgba(37,99,235,.35)!important;box-shadow:0 10px 24px rgba(15,23,42,.16)!important;transform:translateY(-4px)!important;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important}.jav-card-link{display:flex!important;flex-direction:column!important;height:100%!important;max-height:none!important;overflow:visible!important;color:#2563eb!important;text-decoration:none!important}.jav-card-link:visited{color:#64748b!important}.jav-card-cover{display:block!important;position:relative!important;flex:0 0 auto!important;width:100%!important;height:auto!important;aspect-ratio:800 / 538!important;overflow:visible!important;background:#f1f5f9!important;border-bottom:1px solid #f1f5f9!important}.jav-card-image{display:block!important;position:absolute!important;inset:auto!important;left:50%!important;top:50%!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center center!important;background:transparent!important;border:0!important;transform:none!important;translate:-50% -50%!important;scale:1!important;transform-origin:center center!important}.jav-card-cover>:not(img){z-index:2!important}.jav-card-title{width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;text-align:left!important;white-space:normal!important;word-break:break-word!important}.jav-jump-btn-group{margin-top:8px;margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.jav-jump-btn-group.fc2cmadb-jump-group{margin-top:10px;margin-bottom:8px;position:relative!important;z-index:100001!important}.jav-jump-btn-group .jav-fc2cma-btn{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif!important;font-variant-emoji:text}.emby-fix{width:100%!important;flex-basis:100%!important;clear:both!important;margin-top:8px!important;margin-bottom:4px!important}.mini-switch{width:40px;height:20px;appearance:none;background:#e0e0e0;border-radius:20px;position:relative;cursor:pointer;outline:none;transition:background 0.2s}.mini-switch:checked{background:#4CAF50}.mini-switch::before{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:white;top:2px;left:2px;transition:left 0.2s}.mini-switch:checked::before{left:calc(100% - 18px)}@keyframes btnSlideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}.jav-jump-btn-group a{transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease;animation:btnSlideIn 0.3s ease-out}.jav-jump-btn-group a:hover{background:var(--jav-btn-hover-bg,#f8fafc)!important;transform:translateY(-1px)!important;filter:none!important;box-shadow:0 5px 14px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)!important;text-decoration:none!important}@keyframes menuFadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}.search-menu{position:relative;display:inline-flex;align-items:stretch;border-radius:7px}.search-main-btn{padding-right:11px!important;border-radius:7px 0 0 7px!important}.search-toggle-btn{position:static;width:34px;height:30px;padding:0!important;margin:0 0 0 -1px!important;display:inline-flex!important;align-items:center;justify-content:center;flex-shrink:0;font-size:12px!important;line-height:1;opacity:1;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 10%,#ffffff)!important;color:var(--jav-btn-accent,#64748b)!important;border:1px solid color-mix(in srgb,var(--jav-btn-accent,#64748b) 26%,#ffffff)!important;border-radius:0 7px 7px 0!important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.7)!important;cursor:pointer;touch-action:manipulation}.search-toggle-btn:hover{filter:none;background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 18%,#ffffff)!important}.search-toggle-btn.is-open{background:color-mix(in srgb,var(--jav-btn-accent,#64748b) 22%,#ffffff)!important}.search-toggle-btn .search-arrow{display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;line-height:1;transform:none;transition:transform .16s ease;pointer-events:none}.search-toggle-btn.is-open .search-arrow{transform:rotate(180deg)}.search-submenu{position:absolute;top:calc(100%+4px);left:0;display:none;flex-direction:column;gap:4px;padding:4px;background:rgba(255,255,255,0.95);border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:10000;min-width:120px;backdrop-filter:blur(5px)}.search-submenu.is-open{display:flex}.search-submenu a{transition:all 0.2s ease;box-shadow:0 2px 4px rgba(0,0,0,0.1)!important}.search-submenu a:hover{transform:translateX(5px) scale(1.02);filter:brightness(1.1)}.jav-pan115-badge{display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:22px!important;padding:0 7px;margin-right:6px;position:static!important;top:auto!important;transform:none!important;border-radius:6px;background:#bbf7d0;border:1px solid #22c55e;color:#065f46;font-size:12px!important;font-weight:800;line-height:22px!important;text-decoration:none;box-sizing:border-box;vertical-align:middle;box-shadow:inset 0 1px 0 rgba(255,255,255,0.72);animation:none!important;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease!important}.jav-pan115-badge:hover{background:#86efac;color:#064e3b;text-decoration:none;box-shadow:0 4px 12px rgba(15,23,42,0.12),inset 0 1px 0 rgba(255,255,255,0.76)}span.jav-pan115-badge{cursor:pointer}.jav-pan115-chooser-overlay{position:fixed;inset:0;z-index:10000030;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.38);backdrop-filter:blur(6px)}.jav-pan115-chooser{width:min(720px,calc(100vw - 24px));max-height:min(76vh,680px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #d8dee8;border-radius:14px;background:#f8fafc;box-shadow:0 24px 70px rgba(15,23,42,0.22);color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-chooser-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:15px 16px 12px;border-bottom:1px solid #e2e8f0;background:#fff;color:#111827}.jav-pan115-chooser-title{font-size:16px;font-weight:800;line-height:1.35}.jav-pan115-chooser-desc{margin-top:4px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-chooser-close{width:30px;height:30px;flex:0 0 auto;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#475569;font-size:20px;line-height:1;cursor:pointer}.jav-pan115-candidate-list{overflow:auto;padding:10px;display:grid;gap:8px;overscroll-behavior:contain}.jav-pan115-candidate{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;box-shadow:0 4px 12px rgba(15,23,42,0.06)}.jav-pan115-candidate.is-low-priority{border-color:#e2e8f0;background:#f8fafc}.jav-pan115-candidate-name{max-width:100%;overflow:hidden;color:#0f172a;font-size:13px;font-weight:750;line-height:1.45;text-overflow:ellipsis;white-space:nowrap}.jav-pan115-candidate-meta{margin-top:3px;color:#64748b;font-size:12px;line-height:1.35}.jav-pan115-candidate-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.jav-pan115-candidate-actions button{min-width:48px;height:30px;padding:0 9px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer}.jav-pan115-candidate-play{border:1px solid #0f766e;background:#0f766e;color:#fff}.jav-pan115-candidate-rename{border:1px solid #cbd5e1;background:#f8fafc;color:#334155}.jav-pan115-candidate-delete{border:1px solid #e2e8f0;background:#fff;color:#dc2626}.jav-pan115-candidate-delete:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-candidate-actions button:disabled{border-color:#e2e8f0;background:#f8fafc;color:#94a3b8;cursor:not-allowed}.jav-pan115-confirm-overlay{position:fixed;inset:0;z-index:10000040;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,0.32);backdrop-filter:blur(5px)}.jav-pan115-confirm{width:min(420px,calc(100vw - 28px));padding:16px;border:1px solid #d8dee8;border-radius:14px;background:#fff;color:#111827;box-shadow:0 20px 54px rgba(15,23,42,0.26);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.jav-pan115-confirm-title{font-size:16px;font-weight:900;line-height:1.35}.jav-pan115-confirm-message{margin-top:8px;color:#475569;font-size:13px;line-height:1.55;white-space:pre-wrap;word-break:break-word}.jav-pan115-confirm-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.jav-pan115-confirm-actions button{min-width:70px;height:34px;padding:0 14px;border-radius:8px;font-size:13px;font-weight:850;cursor:pointer}.jav-pan115-confirm-cancel{border:1px solid #e2e8f0;background:#f8fafc;color:#475569}.jav-pan115-confirm-ok{border:1px solid #dc2626;background:#dc2626;color:#fff}.jav-pan115-rename-input{width:100%;height:38px;margin-top:12px;padding:0 10px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#111827;font-size:13px;font-weight:650;outline:none}.jav-pan115-rename-input:focus{border-color:#0f766e;box-shadow:0 0 0 3px rgba(15,118,110,0.12)}.jav-pan115-rename-hint{margin-top:7px;color:#64748b;font-size:12px;line-height:1.45}.jav-pan115-rename-ok{border-color:#0f766e!important;background:#0f766e!important;color:#fff!important}html[data-laosiji-mobile] .jav-pan115-chooser-overlay{align-items:flex-end;padding:8px}html[data-laosiji-mobile] .jav-pan115-chooser{width:100%;max-height:82dvh;border-radius:14px 14px 10px 10px}html[data-laosiji-mobile] .jav-pan115-candidate{grid-template-columns:minmax(0,1fr);align-items:stretch}html[data-laosiji-mobile] .jav-pan115-candidate-actions button{flex:1 1 0;min-height:34px}html[data-laosiji-mobile] .jav-pan115-confirm-overlay{align-items:flex-end;padding:10px}html[data-laosiji-mobile] .jav-pan115-confirm{width:100%}html[data-laosiji-mobile] .jav-pan115-confirm-actions button{flex:1 1 0;min-height:38px}.jav-infinite-sentinel{width:100%;padding:14px 0;color:#64748b;font-size:13px;font-weight:700;text-align:center;clear:both}.jav-infinite-sentinel.is-loading{color:#2563eb}.jav-infinite-sentinel.is-done{color:#94a3b8}.jav-infinite-sentinel.is-error{color:#dc2626;cursor:pointer}.button.javdb-score-sort-btn,.button.javdb-votes-sort-btn{border-color:#be123c!important;background:#be123c!important;color:#fff!important}.button.javdb-score-sort-btn:hover,.button.javdb-votes-sort-btn:hover{border-color:#e11d48!important;background:#e11d48!important}.button.javdb-score-sort-btn.is-selected,.button.javdb-votes-sort-btn.is-selected{border-color:#9f1239!important;background:#9f1239!important;box-shadow:inset 0 0 0 2px rgba(255,255,255,.58)!important}.button.javdb-score-sort-btn:focus-visible,.button.javdb-votes-sort-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}.float-buttons .javdb-loaded-reorder-btn{display:block;align-items:center;justify-content:center;min-height:36px;max-width:calc(100vw - 32px);margin:0 0 8px auto;padding:7px 11px;border:1px solid #be123c;border-radius:6px;background:#be123c;color:#fff;font-size:13px;font-weight:700;line-height:1.25;letter-spacing:0;box-shadow:0 5px 16px rgba(15,23,42,.2);cursor:pointer}.float-buttons .javdb-loaded-reorder-btn:hover{background:#e11d48;border-color:#e11d48}.float-buttons .javdb-loaded-reorder-btn:focus-visible{outline:2px solid #fecdd3;outline-offset:2px}@media (max-width:768px){.float-buttons .javdb-loaded-reorder-btn{min-height:34px;padding:7px 10px;font-size:12px}}`);
  injectStyle('ui-image-preview-style',`.preview-toolbar{position:fixed;top:20px;right:20px;display:flex;gap:8px;z-index:2147483648;background:rgba(30,30,30,0.75);backdrop-filter:blur(10px);padding:6px 12px;border-radius:30px;border:1px solid rgba(255,255,255,0.08);box-shadow:0 6px 18px rgba(0,0,0,0.25)}.preview-btn{border:none;color:#eee;font-size:13px;font-weight:450;cursor:pointer;padding:6px 14px;border-radius:24px;transition:all 0.2s ease;display:inline-flex;align-items:center;gap:6px;background:rgba(100,100,120,0.3);border:1px solid rgba(255,255,255,0.05);box-shadow:0 2px 4px rgba(0,0,0,0.1);letter-spacing:0.2px}.preview-btn:hover{background:rgba(140,140,160,0.4);transform:translateY(-2px);box-shadow:0 6px 12px rgba(0,0,0,0.2)}.preview-btn.javfree.active{background:#2ecc71;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(46,204,113,0.6);font-weight:500}.preview-btn.javstore.active{background:#e74c3c;color:white;border-color:rgba(255,255,255,0.3);box-shadow:0 0 16px rgba(231,76,60,0.6);font-weight:500}.preview-btn.action{background:rgba(100,100,120,0.3)}.preview-btn.action:hover{background:rgba(140,140,160,0.5)}.preview-btn.close{display:none;position:fixed;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));z-index:2147483648;min-width:48px;min-height:48px;padding:0 12px;background:rgba(30,30,30,0.82);border-color:rgba(255,255,255,0.28);color:#fff;touch-action:manipulation}html[data-laosiji-mobile] .preview-btn.close{display:inline-flex}.preview-btn.close:hover{background:rgba(80,80,80,0.92)}.preview-btn:active{transform:translateY(0);box-shadow:0 2px 4px rgba(0,0,0,0.15)}`);
- injectStyle('ui-trailer-player-style',`.trailer-overlay{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:34px;background:radial-gradient(circle at 50% 18%,rgba(56,189,248,0.16),transparent 32%),linear-gradient(180deg,rgba(5,7,12,0.88),rgba(0,0,0,0.96));backdrop-filter:none;cursor:default}.trailer-modal{width:min(1120px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;background:#05070c;border:1px solid rgba(255,255,255,0.12);border-radius:8px;box-shadow:0 30px 80px rgba(0,0,0,0.68),0 0 0 1px rgba(255,255,255,0.04) inset;cursor:default;animation:trailerFadeIn .18s ease-out}.trailer-modal.is-wide{width:min(1760px,max(1120px,90vw),calc(100vw - 68px))}@keyframes trailerFadeIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}.trailer-header{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 34px;background:linear-gradient(180deg,rgba(0,0,0,0.66),rgba(0,0,0,0));border:0;pointer-events:none;opacity:1;transition:opacity .18s ease,transform .18s ease}.trailer-title{min-width:0;display:flex;align-items:center;gap:10px;font:700 15px/1.3 Arial,"Microsoft YaHei",sans-serif;pointer-events:auto}.trailer-code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.4px}.trailer-source{flex-shrink:0;padding:3px 9px;border-radius:999px;color:rgba(255,255,255,0.82);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:500;backdrop-filter:blur(12px)}.jav-player-close{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;padding:0;border:0;border-radius:50%;color:#fff;background:transparent!important;line-height:0;cursor:pointer;pointer-events:auto;box-shadow:0 8px 20px rgba(0,0,0,0.22);transition:transform .15s ease,background .15s ease,box-shadow .15s ease}.jav-player-close:hover{transform:scale(1.08);background:transparent!important;box-shadow:0 10px 24px rgba(0,0,0,0.28)}.jav-player-close .trailer-control-icon{width:32px;height:32px}.trailer-screen{position:relative;aspect-ratio:16 / 9;width:100%;max-height:82vh;overflow:hidden;background:radial-gradient(circle at center,rgba(31,41,55,.75),#000 62%),#000}.trailer-screen:fullscreen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen:-webkit-full-screen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.52),rgba(0,0,0,0) 30%),linear-gradient(0deg,rgba(0,0,0,0.62),rgba(0,0,0,0) 36%)}.trailer-screen.is-iframe::before{display:none}.trailer-screen video,.trailer-screen iframe{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}.trailer-volume-indicator{position:absolute;top:62px;right:26px;z-index:5;color:#f8fafc;font:750 24px/1 Arial,"Microsoft YaHei",sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.82);opacity:0;pointer-events:none;transition:opacity .14s ease}.trailer-volume-indicator.is-visible{opacity:1}.trailer-fallback-status{position:absolute;left:18px;top:58px;z-index:5;max-width:min(520px,calc(100% - 36px));padding:7px 10px;border-radius:8px;color:rgba(255,255,255,0.9);background:rgba(10,14,22,0.68);border:1px solid rgba(255,255,255,0.16);box-shadow:0 12px 28px rgba(0,0,0,0.28);backdrop-filter:blur(14px);font:12px/1.45 Arial,"Microsoft YaHei",sans-serif;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}.trailer-fallback-status.is-visible{opacity:1;transform:translateY(0)}.trailer-quality-bar{display:flex;align-items:center;gap:8px;padding:0;background:transparent;border:none;border-radius:0;backdrop-filter:none}.trailer-quality-select{min-width:78px;max-width:140px;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.12);color:#f8fafc;outline:none;font-size:12px;line-height:28px;text-align:center;text-align-last:center;appearance:none;cursor:pointer}.trailer-quality-select option{background:#0b1020;color:#f8fafc}.trailer-footer{position:absolute;left:16px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;color:rgba(255,255,255,0.78);background:rgba(10,14,22,0.62);border:1px solid rgba(255,255,255,0.16);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,0.32);backdrop-filter:blur(16px) saturate(1.08);font:12px/1.4 Arial,"Microsoft YaHei",sans-serif;opacity:1;transform:translateY(0);transition:opacity .18s ease,transform .18s ease}.trailer-screen.is-controls-hidden{cursor:none}.trailer-screen.is-controls-hidden .trailer-header{opacity:0;transform:translateY(-8px);pointer-events:none}.trailer-screen.is-controls-hidden .trailer-footer{opacity:0;transform:translateY(10px);pointer-events:none}.trailer-control-left,.trailer-control-right{display:flex;align-items:center;gap:9px;min-width:0}.trailer-control-left{flex:1 1 auto}.trailer-control-right{flex:0 0 auto}.trailer-control-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;border:0;border-radius:999px;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font:700 13px/1 Arial,"Microsoft YaHei",sans-serif;transition:background .15s ease,transform .15s ease}.trailer-control-btn:hover{background:rgba(255,255,255,0.24);transform:translateY(-1px)}.trailer-size-btn[aria-pressed="true"]{color:#facc15;background:rgba(250,204,21,0.18)}.trailer-size-btn,.trailer-fullscreen-btn,.trailer-play-btn,.trailer-volume-btn{border-radius:0;color:#fff;background:transparent}.trailer-size-btn:hover,.trailer-fullscreen-btn:hover,.trailer-play-btn:hover,.trailer-volume-btn:hover{color:#fff;background:rgba(255,255,255,0.18);transform:translateY(-1px)}.trailer-size-btn[aria-pressed="true"]:hover,.trailer-fullscreen-btn[aria-pressed="true"]:hover{color:#facc15;background:rgba(250,204,21,0.28)}.trailer-fullscreen-btn[aria-pressed="true"]{color:#facc15;background:rgba(250,204,21,0.18)}.trailer-control-icon{width:28px;height:28px;display:block}.trailer-volume-wrap{position:relative;width:30px;height:30px;display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;box-sizing:border-box}.trailer-volume-wrap::before{content:"";position:absolute;left:50%;bottom:100%;width:46px;height:18px;transform:translateX(-50%)}.trailer-volume-popover{position:absolute;left:15px;bottom:42px;width:36px;height:126px;display:flex;align-items:center;justify-content:center;padding:12px 0;border-radius:999px;background:rgba(10,14,22,0.76);border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;box-shadow:0 14px 32px rgba(0,0,0,0.34);backdrop-filter:blur(16px) saturate(1.08);opacity:0;pointer-events:none;transform:translate(-50%,6px);transition:opacity .15s ease,transform .15s ease}.trailer-volume-wrap:hover .trailer-volume-popover{opacity:1;pointer-events:auto;transform:translate(-50%,0)}.trailer-volume-rail{position:absolute;left:50%;top:16px;bottom:16px;width:4px;transform:translateX(-50%);border-radius:999px;background:rgba(255,255,255,0.32);pointer-events:none}.trailer-volume-fill{position:absolute;left:0;right:0;bottom:0;height:var(--volume-percent,35%);border-radius:999px;background:#38bdf8}.trailer-volume-thumb{position:absolute;left:50%;bottom:var(--volume-percent,35%);width:16px;height:16px;transform:translate(-50%,50%);border-radius:50%;background:#38bdf8;border:2px solid rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.38)}.trailer-volume-slider{position:absolute;top:10px;bottom:10px;left:50%;width:16px;height:calc(100% - 20px);margin:0;transform:translateX(-50%);appearance:none;-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;background:transparent;cursor:pointer}.trailer-volume-slider::-webkit-slider-runnable-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-moz-range-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-volume-slider::-moz-range-thumb{width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-time{flex:0 0 auto;min-width:36px;color:rgba(255,255,255,0.78);font:11px/1.3 Arial,"Microsoft YaHei",sans-serif;white-space:nowrap;text-align:center}.trailer-progress{flex:1 1 160px;min-width:120px;height:32px;margin:0;border-radius:999px;accent-color:#38bdf8;cursor:pointer}`);
+ injectStyle('ui-trailer-player-style',`.trailer-overlay{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:34px;background:radial-gradient(circle at 50% 18%,rgba(56,189,248,0.16),transparent 32%),linear-gradient(180deg,rgba(5,7,12,0.88),rgba(0,0,0,0.96));backdrop-filter:none;cursor:default}.trailer-modal{width:min(1120px,94vw);max-height:92vh;display:flex;flex-direction:column;overflow:hidden;color:#f8fafc;background:#05070c;border:1px solid rgba(255,255,255,0.12);border-radius:8px;box-shadow:0 30px 80px rgba(0,0,0,0.68),0 0 0 1px rgba(255,255,255,0.04) inset;cursor:default;animation:trailerFadeIn .18s ease-out}.trailer-modal.is-wide{width:min(1760px,max(1120px,90vw),calc(100vw - 68px))}@keyframes trailerFadeIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}.trailer-header{position:absolute;top:0;left:0;right:0;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px 34px;background:linear-gradient(180deg,rgba(0,0,0,0.66),rgba(0,0,0,0));border:0;pointer-events:none;opacity:1;transition:opacity .18s ease,transform .18s ease}.trailer-title{min-width:0;display:flex;align-items:center;gap:10px;font:700 15px/1.3 Arial,"Microsoft YaHei",sans-serif;pointer-events:auto}.trailer-code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:.4px}.trailer-source{flex-shrink:0;padding:3px 9px;border-radius:999px;color:rgba(255,255,255,0.82);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);font-size:12px;font-weight:500;backdrop-filter:blur(12px)}.jav-player-close{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;padding:0;border:0;border-radius:50%;color:#fff;background:transparent!important;line-height:0;cursor:pointer;pointer-events:auto;box-shadow:0 8px 20px rgba(0,0,0,0.22);transition:transform .15s ease,background .15s ease,box-shadow .15s ease}.jav-player-close:hover{transform:scale(1.08);background:transparent!important;box-shadow:0 10px 24px rgba(0,0,0,0.28)}.jav-player-close .trailer-control-icon{width:32px;height:32px}.trailer-screen{position:relative;aspect-ratio:16 / 9;width:100%;max-height:82vh;overflow:hidden;background:radial-gradient(circle at center,rgba(31,41,55,.75),#000 62%),#000}.trailer-screen:fullscreen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen:-webkit-full-screen{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;display:flex;align-items:center;justify-content:center;background:#000}.trailer-screen::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0.52),rgba(0,0,0,0) 30%),linear-gradient(0deg,rgba(0,0,0,0.62),rgba(0,0,0,0) 36%)}.trailer-screen.is-iframe::before{display:none}.trailer-screen video,.trailer-screen iframe{position:absolute;inset:0;width:100%;height:100%;display:block;border:0;background:#000;object-fit:contain}.trailer-volume-indicator{position:absolute;top:62px;right:26px;z-index:5;color:#f8fafc;font:750 24px/1 Arial,"Microsoft YaHei",sans-serif;text-shadow:0 2px 8px rgba(0,0,0,0.82);opacity:0;pointer-events:none;transition:opacity .14s ease}.trailer-volume-indicator.is-visible{opacity:1}.trailer-fallback-status{position:absolute;left:18px;top:58px;z-index:5;max-width:min(520px,calc(100% - 36px));padding:7px 10px;border-radius:8px;color:rgba(255,255,255,0.9);background:rgba(10,14,22,0.68);border:1px solid rgba(255,255,255,0.16);box-shadow:0 12px 28px rgba(0,0,0,0.28);backdrop-filter:blur(14px);font:12px/1.45 Arial,"Microsoft YaHei",sans-serif;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .16s ease,transform .16s ease}.trailer-fallback-status.is-visible{opacity:1;transform:translateY(0)}.trailer-quality-bar{display:flex;align-items:center;gap:8px;padding:0;background:transparent;border:none;border-radius:0;backdrop-filter:none}.trailer-quality-select{min-width:78px;max-width:140px;height:30px;padding:0 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.12);color:#f8fafc;outline:none;font-size:12px;line-height:28px;text-align:center;text-align-last:center;appearance:none;cursor:pointer}.trailer-quality-select option{background:#0b1020;color:#f8fafc}.trailer-footer{position:absolute;left:16px;right:16px;bottom:16px;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;color:rgba(255,255,255,0.78);background:rgba(10,14,22,0.62);border:1px solid rgba(255,255,255,0.16);border-radius:8px;box-shadow:0 18px 40px rgba(0,0,0,0.32);backdrop-filter:blur(16px) saturate(1.08);font:12px/1.4 Arial,"Microsoft YaHei",sans-serif;opacity:1;transform:translateY(0);transition:opacity .18s ease,transform .18s ease}.trailer-screen.is-controls-hidden{cursor:none}.trailer-screen.is-controls-hidden .trailer-header{opacity:0;transform:translateY(-8px);pointer-events:none}.trailer-screen.is-controls-hidden .trailer-footer{opacity:0;transform:translateY(10px);pointer-events:none}.trailer-control-left,.trailer-control-right{display:flex;align-items:center;gap:9px;min-width:0}.trailer-control-left{flex:1 1 auto}.trailer-control-right{flex:0 0 auto}.trailer-control-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;padding:0;border:0;border-radius:999px;color:#fff;background:rgba(255,255,255,0.14);cursor:pointer;font:700 13px/1 Arial,"Microsoft YaHei",sans-serif;transition:background .15s ease,transform .15s ease}.trailer-control-btn:hover{background:rgba(255,255,255,0.24);transform:translateY(-1px)}.trailer-size-btn[aria-pressed="true"]{color:#facc15;background:rgba(250,204,21,0.18)}.trailer-size-btn,.trailer-fullscreen-btn,.trailer-play-btn,.trailer-volume-btn{border-radius:0;color:#fff;background:transparent}.trailer-size-btn:hover,.trailer-fullscreen-btn:hover,.trailer-play-btn:hover,.trailer-volume-btn:hover{color:#fff;background:rgba(255,255,255,0.18);transform:translateY(-1px)}.trailer-size-btn[aria-pressed="true"]:hover,.trailer-fullscreen-btn[aria-pressed="true"]:hover{color:#facc15;background:rgba(250,204,21,0.28)}.trailer-fullscreen-btn[aria-pressed="true"]{color:#facc15;background:rgba(250,204,21,0.18)}.trailer-control-icon{width:28px;height:28px;display:block}.trailer-volume-wrap{position:relative;width:30px;height:30px;display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;box-sizing:border-box}.trailer-volume-wrap::before{content:"";position:absolute;left:50%;bottom:100%;width:46px;height:18px;transform:translateX(-50%)}.trailer-volume-popover{position:absolute;left:15px;bottom:42px;width:36px;height:126px;display:flex;align-items:center;justify-content:center;padding:12px 0;border-radius:999px;background:rgba(10,14,22,0.76);border:1px solid rgba(255,255,255,0.16);box-sizing:border-box;box-shadow:0 14px 32px rgba(0,0,0,0.34);backdrop-filter:blur(16px) saturate(1.08);opacity:0;pointer-events:none;transform:translate(-50%,6px);transition:opacity .15s ease,transform .15s ease}.trailer-volume-wrap:hover .trailer-volume-popover{opacity:1;pointer-events:auto;transform:translate(-50%,0)}.trailer-volume-rail{position:absolute;left:50%;top:16px;bottom:16px;width:4px;transform:translateX(-50%);border-radius:999px;background:rgba(255,255,255,0.32);pointer-events:none}.trailer-volume-fill{position:absolute;left:0;right:0;bottom:0;height:var(--volume-percent,35%);border-radius:999px;background:#38bdf8}.trailer-volume-thumb{position:absolute;left:50%;bottom:var(--volume-percent,35%);width:16px;height:16px;transform:translate(-50%,50%);border-radius:50%;background:#38bdf8;border:2px solid rgba(255,255,255,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.38)}.trailer-volume-slider{position:absolute;top:10px;bottom:10px;left:50%;width:16px;height:calc(100% - 20px);margin:0;transform:translateX(-50%);appearance:none;-webkit-appearance:none;writing-mode:vertical-lr;direction:rtl;background:transparent;cursor:pointer}.trailer-volume-slider::-webkit-slider-runnable-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-moz-range-track{width:100%;height:100%;background:transparent}.trailer-volume-slider::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-volume-slider::-moz-range-thumb{width:24px;height:16px;background:transparent;border:0;box-shadow:none}.trailer-time{flex:0 0 auto;min-width:36px;color:rgba(255,255,255,0.78);font:11px/1.3 Arial,"Microsoft YaHei",sans-serif;white-space:nowrap;text-align:center}.trailer-progress{flex:1 1 160px;min-width:120px;height:32px;margin:0;border-radius:999px;accent-color:#38bdf8;cursor:pointer}.trailer-download-btn.is-busy{color:var(--javdl-accent);background:var(--javdl-accent-soft)}.trailer-download-status{display:none;flex-direction:column;gap:6px;padding:8px 12px;border-radius:10px;background:var(--javdl-status-bg);border:1px solid var(--javdl-border);color:var(--javdl-text);font:12px/1.4 Arial,"Microsoft YaHei",sans-serif;text-align:center;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .18s ease,transform .18s ease}.trailer-download-status.is-visible{display:flex;opacity:1;transform:translateY(0);pointer-events:auto}.trailer-screen .trailer-download-status{position:absolute;left:50%;bottom:78px;z-index:6;min-width:220px;max-width:min(460px,80%);transform:translate(-50%,8px)}.trailer-screen .trailer-download-status.is-visible{transform:translate(-50%,0)}.trailer-download-status-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}.trailer-download-text{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.trailer-download-background{flex:0 0 auto;border:0;padding:1px 8px;border-radius:999px;cursor:pointer;color:var(--javdl-accent-text);background:var(--javdl-accent-soft);font:11px/1.6 Arial,"Microsoft YaHei",sans-serif;white-space:nowrap}.trailer-download-background:hover{background:var(--javdl-accent-border)}.trailer-download-track{height:4px;border-radius:999px;background:var(--javdl-track);overflow:hidden}.trailer-download-fill{width:0;height:100%;border-radius:999px;background:var(--javdl-accent);transition:width .18s ease}.trailer-download-indicator{position:fixed;right:18px;bottom:18px;z-index:2147483640;width:min(300px,72vw);padding:10px 12px;display:flex;flex-direction:column;gap:8px;border-radius:12px;background:var(--javdl-status-bg);border:1px solid var(--javdl-border);box-shadow:0 12px 30px rgba(0,0,0,0.45);color:var(--javdl-text);font:12px/1.45 Arial,"Microsoft YaHei",sans-serif;opacity:0;transform:translateY(10px);pointer-events:auto;transition:opacity .2s ease,transform .2s ease}.trailer-download-indicator.is-visible{opacity:1;transform:translateY(0)}.trailer-download-indicator-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.trailer-download-indicator-title{font-weight:600;color:var(--javdl-text)}.trailer-download-indicator-action{border:0;padding:2px 8px;border-radius:6px;cursor:pointer;color:var(--javdl-text);background:var(--javdl-border);font:12px/1.6 Arial,"Microsoft YaHei",sans-serif}.trailer-download-indicator-action:hover{background:var(--javdl-accent-soft)}.trailer-download-indicator-text{color:var(--javdl-muted);word-break:break-all}.trailer-download-indicator-track{height:4px;border-radius:999px;background:var(--javdl-track);overflow:hidden}.trailer-download-indicator-fill{width:0;height:100%;border-radius:999px;background:var(--javdl-accent);transition:width .18s ease}.trailer-download-indicator.is-done .trailer-download-indicator-fill{background:var(--javdl-success)}.trailer-download-indicator.is-error{border-color:var(--javdl-danger-border)}.trailer-download-indicator.is-error .trailer-download-indicator-fill{background:var(--javdl-danger)}`);
  injectStyle('ui-toast-style',`.jav-jump-toast{position:fixed;left:50%;top:72px;z-index:2147483647;display:flex;align-items:center;gap:12px;width:fit-content;max-width:min(520px,calc(100vw - 28px));min-width:0;padding:11px 10px 11px 16px;color:#252a31;background:#fff;border:1px solid #eceef1;border-left:8px solid #4c83f1;border-radius:12px;box-shadow:0 8px 22px rgba(31,35,41,.12);font-family:Arial,"Microsoft YaHei",sans-serif;transform:translate(-50%,-12px);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease}.jav-jump-toast.show{opacity:1;transform:translate(-50%,0)}.jav-jump-toast.hide{opacity:0;transform:translate(-50%,-12px)}.jav-jump-toast-actionable{pointer-events:auto}.jav-jump-toast-icon{display:grid;place-items:center;flex:0 0 22px;width:22px;height:22px;border-radius:50%;color:#fff;background:#4c83f1;font-size:13px;font-weight:800;line-height:1}.jav-jump-toast-body{min-width:0;max-width:360px;flex:0 1 auto}.jav-jump-toast-title{margin:0;color:#252a31;font-size:13px;font-weight:600;line-height:1.4}.jav-jump-toast-message{margin:2px 0 0;color:#69727d;font-size:12px;line-height:1.4}.jav-jump-toast-action{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:28px;margin-left:4px;padding:0 8px;color:#4c83f1;background:transparent;border:0;border-radius:6px;font-size:11px;font-weight:800;line-height:1;text-decoration:none;white-space:nowrap;order:3;transition:background .15s ease,color .15s ease}.jav-jump-toast-action:hover,.jav-jump-toast-action:focus-visible{color:#245fc8;background:#edf3ff;outline:0}.jav-jump-toast-dismiss{display:grid;place-items:center;flex:0 0 24px;width:24px;height:24px;margin:0 -3px 0 0;padding:0;color:#8b949e;background:transparent;border:0;border-radius:6px;font-size:21px;font-weight:300;line-height:1;cursor:pointer;order:4}.jav-jump-toast-dismiss:hover,.jav-jump-toast-dismiss:focus-visible{color:#252a31;background:#f1f3f5;outline:0}.jav-jump-toast.is-success{border-left-color:#00cf77}.jav-jump-toast.is-success .jav-jump-toast-icon{background:#00cf77}.jav-jump-toast.is-success .jav-jump-toast-action{color:#00b968}.jav-jump-toast.is-error{border-left-color:#f3474f}.jav-jump-toast.is-error .jav-jump-toast-icon{background:#f3474f}.jav-jump-toast.is-error .jav-jump-toast-action{color:#ef3f48}.jav-jump-toast.is-warning{border-left-color:#ffc617}.jav-jump-toast.is-warning .jav-jump-toast-icon{color:#5f4b00;background:#ffc617}.jav-jump-toast.is-warning .jav-jump-toast-action{color:#d39d00}@media (max-width:560px){.jav-jump-toast{left:14px;right:14px;width:auto;max-width:none;transform:translateY(-12px)}.jav-jump-toast.show{transform:translateY(0)}.jav-jump-toast.hide{transform:translateY(-12px)}.jav-jump-toast-body{max-width:none}}`);
  injectStyle('ui-responsive-style',`html[data-laosiji-mobile]{overflow-x:hidden!important}html[data-laosiji-mobile] body{max-width:100%!important;overflow-x:hidden!important}html[data-laosiji-mobile] body[data-laosiji-javlib]{min-width:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu,html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo,html[data-laosiji-mobile] body[data-laosiji-javlib] #content,html[data-laosiji-mobile] body[data-laosiji-javlib] #rightcolumn,html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist,html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist .videos{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu{display:block!important;position:relative!important;z-index:2!important;height:auto!important;min-height:0!important;margin:0!important;padding:8px 12px!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .menutext{float:none!important;width:100%!important;min-width:0!important;height:auto!important;box-sizing:border-box!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .menutext,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar form{position:static!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar form,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar table,html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar tbody{display:block!important;width:100%!important;min-width:0!important;height:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar tr{display:flex!important;flex-wrap:wrap!important;align-items:flex-start!important;width:100%!important;min-width:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar td{display:block!important;padding:0!important;line-height:0!important;vertical-align:top!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .searchbar td:first-child{position:relative!important;flex:1 1 140px!important;height:36px!important;max-height:36px!important;min-width:0!important;overflow:hidden!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchbox{display:block!important;width:100%!important;min-width:0!important;height:36px!important;min-height:36px!important;max-height:36px!important;margin:0!important;padding:0 9px!important;border:1px solid #94a3b8!important;border-radius:0!important;outline:0!important;background:#fff!important;color:#111827!important;box-shadow:none!important;vertical-align:top!important;box-sizing:border-box!important;appearance:none!important;-webkit-appearance:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchbox:focus{border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchboxmask{position:absolute!important;top:50%!important;right:8px!important;left:8px!important;max-width:none!important;max-height:calc(100% - 8px)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;line-height:1.2!important;pointer-events:none!important;transform:translateY(-50%)!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #idsearchbutton{display:block!important;width:auto!important;height:36px!important;min-height:36px!important;margin:0 0 0 6px!important;vertical-align:top!important;box-sizing:border-box!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .advsearch{flex:1 1 100%!important;padding:7px 0 0!important;line-height:1.5!important;white-space:normal!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #topmenu .menutext{margin-top:8px!important;padding-top:8px!important;border-top:1px solid rgba(148,163,184,.28)!important;line-height:1.8!important;white-space:normal!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo{clear:both!important;position:relative!important;z-index:1!important;height:auto!important;margin:0!important;padding:8px 12px!important;overflow:visible!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo{float:none!important;width:100%!important;text-align:center!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .sitelogo img{width:min(280px,100%)!important;height:auto!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .topbanner1{display:none!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #toplogo .languagemenu{position:static!important;float:none!important;width:100%!important;margin:7px 0 0!important;text-align:center!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #content{margin:0!important;padding:0 12px 16px!important}html[data-laosiji-mobile] body[data-laosiji-javlib] #rightcolumn{float:none!important;margin:0!important}html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist .videos.javlib-card-grid{grid-template-columns:repeat(var(--jav-card-columns,1),minmax(0,1fr))!important;gap:12px 6px!important}html[data-laosiji-mobile] .jav-card-grid{grid-template-columns:repeat(var(--jav-card-columns,1),minmax(0,1fr))!important;gap:10px 6px!important}html[data-laosiji-mobile] #waterfall.javbus-card-grid{grid-template-columns:repeat(var(--jav-card-columns,1),minmax(0,1fr))!important;gap:12px 6px!important}html[data-laosiji-mobile] body .container-fluid{padding-left:12px!important;padding-right:12px!important}html[data-laosiji-mobile] .jav-card,html[data-laosiji-mobile] .jav-card:hover{transform:none!important;transition:none!important;box-shadow:0 1px 4px rgba(15,23,42,.08)!important;z-index:auto!important}html[data-laosiji-mobile] .jav-card-image,html[data-laosiji-mobile] .jav-card:hover .jav-card-image,html[data-laosiji-mobile] .jav-card-link:hover .jav-card-image{transform:none!important;translate:none!important;scale:none!important;transition:none!important}html[data-laosiji-mobile] .jav-card-cover,html[data-laosiji-mobile] .jav-card-image{height:auto!important;aspect-ratio:auto!important}html[data-laosiji-mobile] .jav-card-cover{overflow:visible!important}html[data-laosiji-mobile] .jav-card-image{position:static!important;inset:auto!important;left:auto!important;top:auto!important;width:100%!important;height:auto!important;max-width:none!important;max-height:none!important;object-fit:contain!important;object-position:center!important;background:transparent!important;transform:none!important;translate:none!important;scale:none!important}html[data-laosiji-mobile] .jav-card-title,html[data-laosiji-mobile] .javlib-card-headline,html[data-laosiji-mobile] .javdb-card-headline{height:auto!important;min-height:0!important;max-height:none!important}html[data-laosiji-mobile] .jav-flex-container,html[data-laosiji-mobile] .row.movie,html[data-laosiji-mobile] #video_jacket_info tr{display:block!important;width:100%!important;max-width:100%!important;margin:0!important}html[data-laosiji-mobile] .jav-flex-container>.column,html[data-laosiji-mobile] .row.movie>.col-md-9.screencap,html[data-laosiji-mobile] .row.movie>.col-md-3.info,html[data-laosiji-mobile] #video_jacket_info tr>td,html[data-laosiji-mobile] .jav-nong-slot{display:block!important;width:100%!important;max-width:100%!important;min-width:0!important;flex:none!important;float:none!important;box-sizing:border-box!important}html[data-laosiji-mobile] .jav-flex-container>.column,html[data-laosiji-mobile] .row.movie>.col-md-9.screencap,html[data-laosiji-mobile] .row.movie>.col-md-3.info,html[data-laosiji-mobile] #video_jacket_info tr>td{margin:0 0 14px!important;padding-left:0!important;padding-right:0!important}html[data-laosiji-mobile] .jav-flex-container .movie-panel-info,html[data-laosiji-mobile] .row.movie .info,html[data-laosiji-mobile] #video_info{width:100%!important;max-width:100%!important;overflow:visible!important;word-break:break-word!important}html[data-laosiji-mobile] .jav-flex-container img,html[data-laosiji-mobile] .row.movie .screencap img,html[data-laosiji-mobile] #video_jacket_img{width:100%!important;height:auto!important;max-width:100%!important;aspect-ratio:auto!important;object-fit:contain!important}html[data-laosiji-mobile] .jav-jump-btn-group{gap:6px!important;align-items:stretch!important}html[data-laosiji-mobile] .jav-jump-btn-group a,html[data-laosiji-mobile] .jav-jump-btn-group button{min-height:40px!important}html[data-laosiji-mobile] .search-main-btn{padding-right:11px!important;height:40px!important;min-height:40px!important;box-sizing:border-box!important;border-radius:8px 0 0 8px!important}html[data-laosiji-mobile] .search-toggle-btn{width:44px!important;height:40px!important;min-height:40px!important;box-sizing:border-box!important;border-radius:0 8px 8px 0!important;font-size:15px!important}html[data-laosiji-mobile] .search-toggle-btn .search-arrow{font-size:18px!important}html[data-laosiji-mobile] .jav-card-quick-actions{gap:4px!important}html[data-laosiji-mobile] .jav-card-quick-btn{width:40px!important;height:40px!important;min-width:40px!important;flex:0 0 40px!important;opacity:1!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-card-quick-btn:hover,html[data-laosiji-mobile] .jav-card-quick-btn:active{transform:none!important;opacity:1!important}html[data-laosiji-mobile] .jav-card-quick-btn .tool-svg{width:21px!important;height:21px!important}html[data-laosiji-mobile] .search-submenu{width:min(176px,calc(100vw - 16px))!important;min-width:0!important;max-width:calc(100vw - 16px)!important;box-sizing:border-box!important;overscroll-behavior:contain!important}html[data-laosiji-mobile] .search-submenu a{min-height:40px!important;display:flex!important;align-items:center!important;padding:8px 10px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-card-magnet-overlay{align-items:flex-end!important;padding:8px!important}html[data-laosiji-mobile] .jav-card-magnet-panel{width:100%!important;max-width:none!important;max-height:calc(100dvh - 8px)!important;border-radius:12px 12px 0 0!important}html[data-laosiji-mobile] .jav-card-magnet-head{min-height:52px!important;padding:8px 12px!important}html[data-laosiji-mobile] .jav-card-magnet-title{flex:1 1 auto!important}html[data-laosiji-mobile] .jav-card-magnet-close{width:44px!important;height:44px!important;flex:0 0 44px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-card-magnet-body{max-height:calc(100dvh - 64px)!important;padding:10px!important;overscroll-behavior:contain!important}html[data-laosiji-mobile] .jav-card-magnet-body>.laosiji-native-magnet-panel[data-laosiji-list-popup="1"]{margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}html[data-laosiji-mobile] .jav-card-magnet-body .jav-nong-wrapper{overflow-x:auto!important;overflow-y:hidden!important}html[data-laosiji-mobile] .jav-card-magnet-body #jav-nong-table{min-width:448px!important}html[data-laosiji-mobile] .jav-card-magnet-body #jav-nong-table .nong-head-row>th:first-child,html[data-laosiji-mobile] .jav-card-magnet-body #jav-nong-table tr>td:first-child{width:210px!important}html[data-laosiji-mobile] .preview-toolbar{top:auto!important;right:8px!important;bottom:max(8px,env(safe-area-inset-bottom))!important;left:8px!important;max-width:calc(100vw - 16px)!important;overflow-x:auto!important;justify-content:flex-start!important;gap:6px!important;padding:6px!important;border-radius:12px!important;box-sizing:border-box!important}html[data-laosiji-mobile] .preview-btn{min-height:40px!important;flex:0 0 auto!important;padding:0 10px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-subtitle-overlay,html[data-laosiji-mobile] .jav-subtitle-preview-overlay{align-items:flex-end!important;padding:8px!important}html[data-laosiji-mobile] .jav-subtitle-panel,html[data-laosiji-mobile] .jav-subtitle-preview-panel{width:100%!important;max-width:none!important;max-height:calc(100dvh - 8px)!important;border-radius:12px 12px 0 0!important}html[data-laosiji-mobile] .jav-subtitle-close{width:44px!important;height:44px!important;flex:0 0 44px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-subtitle-row{grid-template-columns:1fr!important;gap:8px!important;padding:12px!important}html[data-laosiji-mobile] .jav-subtitle-actions{justify-content:stretch!important;flex-wrap:wrap!important}html[data-laosiji-mobile] .jav-subtitle-actions button,html[data-laosiji-mobile] .jav-subtitle-preview-download{min-height:40px!important;flex:1 1 120px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-subtitle-pre{max-height:calc(100dvh - 160px)!important;min-height:180px!important}html[data-laosiji-mobile] .trailer-overlay{padding:12px!important}html[data-laosiji-mobile] .trailer-modal{width:100%!important;max-height:100dvh!important;border-radius:10px 10px 0 0!important}html[data-laosiji-mobile] .trailer-screen>video{pointer-events:none!important}html[data-laosiji-mobile] .trailer-screen{touch-action:manipulation!important}html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-header,html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-footer{z-index:4!important;opacity:1!important}html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-header{transform:translateY(0)!important;pointer-events:none!important}html[data-laosiji-mobile] .trailer-screen:not(.is-controls-hidden) .trailer-footer{transform:translateY(0)!important;pointer-events:auto!important}html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-header,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-footer{opacity:0!important}html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-header,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-header *,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-footer,html[data-laosiji-mobile] .trailer-screen.is-controls-hidden .trailer-footer *{pointer-events:none!important}html[data-laosiji-mobile] .trailer-header{gap:8px!important;padding:8px 10px 18px!important}html[data-laosiji-mobile] .trailer-title{gap:6px!important;font-size:12px!important}html[data-laosiji-mobile] .trailer-source{max-width:42vw!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}html[data-laosiji-mobile] .jav-player-close{width:36px!important;height:36px!important;line-height:36px!important}html[data-laosiji-mobile] .trailer-screen::before{background:linear-gradient(180deg,rgba(0,0,0,.38),rgba(0,0,0,0) 24%),linear-gradient(0deg,rgba(0,0,0,.42),rgba(0,0,0,0) 28%)!important}html[data-laosiji-mobile] .trailer-footer{left:8px!important;right:8px!important;bottom:8px!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:6px!important;padding:4px 6px!important}html[data-laosiji-mobile] .trailer-control-left,html[data-laosiji-mobile] .trailer-control-right{width:auto!important;gap:6px!important}html[data-laosiji-mobile] .trailer-control-left{min-width:0!important;justify-content:flex-start!important}html[data-laosiji-mobile] .trailer-control-right{flex:0 0 auto!important;justify-content:flex-end!important}html[data-laosiji-mobile] .trailer-control-btn,html[data-laosiji-mobile] .trailer-volume-wrap{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important}html[data-laosiji-mobile] .trailer-quality-select{width:58px!important;min-width:58px!important;max-width:58px!important;height:30px!important;padding:0 6px!important;font-size:11px!important}html[data-laosiji-mobile] .trailer-time{display:none!important}html[data-laosiji-mobile] .trailer-progress{position:absolute!important;left:0!important;right:0!important;bottom:100%!important;width:100%!important;min-width:0!important;height:32px!important;flex:none!important;z-index:5!important;transform:translateY(3px)!important}html[data-laosiji-mobile] .trailer-control-btn,html[data-laosiji-mobile] .trailer-quality-select,html[data-laosiji-mobile] .trailer-progress,html[data-laosiji-mobile] .trailer-volume-slider{touch-action:manipulation!important}html[data-laosiji-mobile] .trailer-volume-popover{left:50%!important;bottom:calc(100%+8px)!important;width:138px!important;height:38px!important;padding:0 12px!important;border-radius:20px!important}html[data-laosiji-mobile] .trailer-volume-rail{top:50%!important;right:12px!important;bottom:auto!important;left:12px!important;width:auto!important;height:4px!important;transform:translateY(-50%)!important}html[data-laosiji-mobile] .trailer-volume-fill{top:0!important;right:auto!important;bottom:0!important;width:var(--volume-percent,35%)!important;height:auto!important}html[data-laosiji-mobile] .trailer-volume-thumb{top:50%!important;bottom:auto!important;left:var(--volume-percent,35%)!important;transform:translate(-50%,-50%)!important}html[data-laosiji-mobile] .trailer-volume-slider{top:0!important;bottom:auto!important;left:0!important;width:100%!important;height:100%!important;transform:none!important;writing-mode:horizontal-tb!important;direction:ltr!important}html[data-laosiji-mobile] .trailer-volume-wrap:focus-within .trailer-volume-popover{opacity:1!important;pointer-events:auto!important;transform:translate(-50%,0)!important}html[data-laosiji-mobile] .jav-stills-viewer-close,html[data-laosiji-mobile] .jav-stills-viewer-nav{width:44px!important;min-width:44px!important;height:56px!important;touch-action:manipulation!important}html[data-laosiji-mobile] .jav-detail-preview-wrap,html[data-laosiji-mobile] .javlib-nong-slot.has-detail-preview-inline>.jav-detail-preview-wrap{width:100%!important;max-width:100%!important;min-width:0!important;height:auto!important;max-height:none!important}html[data-laosiji-mobile] .jav-detail-preview-inline,html[data-laosiji-mobile] .javlib-nong-slot.has-detail-preview-inline .jav-detail-preview-inline{width:100%!important;max-width:100%!important;height:auto!important;max-height:78vw!important}@media (orientation:landscape){html[data-laosiji-mobile] body[data-laosiji-javlib] .videothumblist .videos.javlib-card-grid,html[data-laosiji-mobile] .jav-card-grid,html[data-laosiji-mobile] #waterfall.javbus-card-grid{grid-template-columns:repeat(var(--jav-card-columns,2),minmax(0,1fr))!important;gap:12px 6px!important}}@media (max-width:720px){.jav-jump-toast{top:18px;width:calc(100vw - 24px);padding:13px 14px}.jav-jump-toast-action{min-height:40px}.jav-jump-toast-dismiss{flex-basis:44px;width:44px;height:44px}}`);
  const ImagePreview = {
@@ -3645,6 +3645,7 @@
  const TRAILER_VOLUME_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" class="trailer-control-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M0 0h36v36H0z" fill="none"/><path fill="#0090ff" d="M23.41 25.25a1 1 0 0 1-.54-1.85a6.21 6.21 0 0 0-.19-10.65a1 1 0 1 1 1-1.73a8.21 8.21 0 0 1 .24 14.06a1 1 0 0 1-.51.17"/><path fill="#0090ff" d="M25.62 31.18a1 1 0 0 1-.45-1.89A12.44 12.44 0 0 0 25 6.89a1 1 0 1 1 .87-1.8a14.44 14.44 0 0 1 .24 26a1 1 0 0 1-.49.09"/><path fill="#0090ff" d="M18 32.06a2 2 0 0 1-1.42-.59L9.14 24H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h5.22l7.33-7.39A2 2 0 0 1 20 6v24a2 2 0 0 1-1.24 1.85a2 2 0 0 1-.76.21M4 14v8h5.56a1 1 0 0 1 .71.3L18 30.06V6l-7.65 7.7a1 1 0 0 1-.71.3Zm14-8"/></svg>';
  const TRAILER_MUTED_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" class="trailer-control-icon" viewBox="0 0 36 36" aria-hidden="true"><path d="M0 0h36v36H0z" fill="none"/><path fill="#0090ff" d="M3.61 6.41L9.19 12H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h5.14l7.41 7.47A2 2 0 0 0 18 32a2 2 0 0 0 .76-.15A2 2 0 0 0 20 30v-7.23l5.89 5.89c-.25.15-.49.29-.75.42a1 1 0 0 0 .9 1.79a14 14 0 0 0 1.31-.75l2.28 2.28L31 31L5 5ZM18 30l-7.73-7.77a1 1 0 0 0-.71-.23H4v-8h5.64a1 1 0 0 0 .71-.3l.26-.26L18 20.81Z"/><path fill="#0090ff" d="M24.89 6.69A12.42 12.42 0 0 1 29 26.1l1.42 1.42a14.42 14.42 0 0 0-4.66-22.64a1 1 0 1 0-.87 1.8Z"/><path fill="#0090ff" d="M22.69 12.62A6.27 6.27 0 0 1 25.8 18a6.17 6.17 0 0 1-1.24 3.71L26 23.13A8.15 8.15 0 0 0 27.8 18a8.28 8.28 0 0 0-4.1-7.11a1 1 0 1 0-1 1.73Z"/><path fill="#0090ff" d="M18 6v9.15l2 2V6a2 2 0 0 0-3.42-1.41L12 9.17l1.41 1.41Z"/></svg>';
  const TRAILER_CLOSE_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" class="trailer-control-icon" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M0 0h1024v1024H0z" fill="none"/><path fill="#fff" fill-rule="evenodd" d="M512 64c247.4 0 448 200.6 448 448S759.4 960 512 960S64 759.4 64 512S264.6 64 512 64m0 76c-205.4 0-372 166.6-372 372s166.6 372 372 372s372-166.6 372-372s-166.6-372-372-372m128.013 198.826c.023.007.042.018.083.059l45.02 45.019c.04.04.05.06.058.083a.12.12 0 0 1 0 .07c-.007.022-.018.041-.059.082L557.254 512l127.861 127.862a.3.3 0 0 1 .05.06l.009.023a.12.12 0 0 1 0 .07c-.007.022-.018.041-.059.082l-45.019 45.02c-.04.04-.06.05-.083.058a.12.12 0 0 1-.07 0c-.022-.007-.041-.018-.082-.059L512 557.254L384.14 685.115c-.042.041-.06.052-.084.059a.12.12 0 0 1-.07 0c-.022-.007-.041-.018-.082-.059l-45.02-45.019a.2.2 0 0 1-.058-.083a.12.12 0 0 1 0-.07c.007-.022.018-.041.059-.082L466.745 512l-127.86-127.86a.3.3 0 0 1-.05-.061l-.009-.023a.12.12 0 0 1 0-.07c.007-.022.018-.041.059-.082l45.019-45.02c.04-.04.06-.05.083-.058a.12.12 0 0 1 .07 0c.022.007.041.018.082.059L512 466.745l127.862-127.86c.04-.041.06-.052.083-.059a.12.12 0 0 1 .07 0Z"/></svg>';
+ const TRAILER_DOWNLOAD_ICON = '<svg xmlns="http://www.w3.org/2000/svg" class="trailer-control-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M12 4.25v9.5m0 0 3.4-3.4M12 13.75 8.6 10.35"/><path d="M4.75 15.75v2a2 2 0 0 0 2 2h10.5a2 2 0 0 0 2-2v-2"/></g></svg>';
  function createTrailerPlayerView({ code, source, isIframe }) {
   const overlay = document.createElement('div'); overlay.className = 'trailer-overlay'; const modal = document.createElement('div'); modal.className = 'trailer-modal'; modal.onclick = (e) => e.stopPropagation(); const header = document.createElement('div');
   header.className = 'trailer-header'; const title = document.createElement('div'); title.className = 'trailer-title';
@@ -3663,7 +3664,17 @@
   progress.className = 'trailer-progress'; progress.type = 'range'; progress.min = '0'; progress.max = '1000'; progress.step = '1'; progress.value = '0'; progress.title = '播放进度'; const fullscreenBtn = document.createElement('button');
   fullscreenBtn.className = 'trailer-control-btn trailer-fullscreen-btn'; fullscreenBtn.type = 'button'; fullscreenBtn.innerHTML = TRAILER_FULLSCREEN_ENTER_ICON; fullscreenBtn.title = '全屏'; fullscreenBtn.setAttribute('aria-label', '全屏');
   const sizeBtn = document.createElement('button'); sizeBtn.className = 'trailer-control-btn trailer-size-btn'; sizeBtn.type = 'button'; sizeBtn.innerHTML = TRAILER_SIZE_ICON; sizeBtn.title = '切换宽屏播放'; sizeBtn.setAttribute('aria-label', '切换宽屏播放');
-  return { overlay, modal, header, sourceBadge, closeBtn, screen, fallbackStatus, volumeIndicator, playBtn, volumeBtn, volumeWrap, volumeRail, volumeSlider, currentTimeText, durationText, progress, sizeBtn, fullscreenBtn }; }
+  const downloadBtn = document.createElement('button'); downloadBtn.className = 'trailer-control-btn trailer-download-btn'; downloadBtn.type = 'button'; downloadBtn.innerHTML = TRAILER_DOWNLOAD_ICON; downloadBtn.title = '下载当前画质预告片';
+  downloadBtn.setAttribute('aria-label', '下载当前画质预告片'); const downloadStatus = document.createElement('div'); downloadStatus.className = 'trailer-download-status'; const downloadText = document.createElement('span');
+  downloadText.className = 'trailer-download-text'; const downloadTrack = document.createElement('div'); downloadTrack.className = 'trailer-download-track'; const downloadFill = document.createElement('div'); downloadFill.className = 'trailer-download-fill';
+  downloadTrack.appendChild(downloadFill); const downloadBackgroundBtn = document.createElement('button'); downloadBackgroundBtn.type = 'button'; downloadBackgroundBtn.className = 'trailer-download-background'; downloadBackgroundBtn.textContent = '后台下载';
+  downloadBackgroundBtn.hidden = true; const downloadStatusHead = document.createElement('div'); downloadStatusHead.className = 'trailer-download-status-head'; downloadStatusHead.appendChild(downloadText); downloadStatusHead.appendChild(downloadBackgroundBtn);
+  downloadStatus.appendChild(downloadStatusHead); downloadStatus.appendChild(downloadTrack);
+  return {
+   overlay, modal, header, sourceBadge, closeBtn, screen,
+   fallbackStatus, volumeIndicator, playBtn, volumeBtn, volumeWrap,
+   volumeRail, volumeSlider, currentTimeText, durationText, progress, sizeBtn, fullscreenBtn,
+   downloadBtn, downloadStatus, downloadBackgroundBtn, }; }
  function createTrailerPlaybackControls({
   getVideo, isSeekingByProgress, getFooter, screen, playBtn, volumeBtn,
   volumeSlider, volumeRail, volumeIndicator, currentTimeText, durationText, progress,
@@ -3753,6 +3764,147 @@
    if (shouldPlay) await video.play().catch(() => {});
   });
   qualityBar.appendChild(select); const initialKey = initialQuality && qualityMap[initialQuality] ? initialQuality : sortedKeys[0]; setActiveQuality(initialKey, qualityMap[initialKey]); select.value = initialKey; return qualityBar; };
+ function formatTrailerDownloadProgress(payload = {}) {
+  const formatBytes = value => {
+   const bytes = Number(value) || 0;
+   if (bytes < 1024) return`${Math.round(bytes)} B`;
+   if (bytes < 1024 * 1024) return`${(bytes / 1024).toFixed(1)} KB`;
+   return`${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+  if (payload.phase === 'playlist') return { text: '正在解析播放列表...', percent: 0 };
+  if (payload.phase === 'segments') {
+   const size = payload.bytes ?` · ${formatBytes(payload.bytes)}` : '';
+   const percent = Number(payload.percent) || 0;
+   return {
+    text:`下载中 ${percent}% · ${payload.done || 0}/${payload.total || 0} 片段${size}`,
+    percent, }; }
+  if (payload.phase === 'file') {
+   const size = payload.total
+    ?` · ${formatBytes(payload.loaded)}/${formatBytes(payload.total)}`                :` · ${formatBytes(payload.loaded)}`;
+   const percent = Number(payload.percent) || 0;
+   return { text:`下载中 ${percent}%${size}`, percent };
+  }
+  return { text: '', percent: 0 }; }
+ function createTrailerDownloadControl({
+  button, status, background = null, onStart, onCancel, onBackground,
+  idleLabel = '下载当前画质预告片', busyLabel = '取消下载',
+ }) {
+  if (!button) return null;
+  const text = status?.querySelector('.trailer-download-text') || null; const fill = status?.querySelector('.trailer-download-fill') || null; let state = 'idle'; let resetTimer = null;
+  const render = (message, percent = 0) => {
+   if (text) text.textContent = message || '';
+   if (fill) fill.style.width =`${Math.max(0, Math.min(100, Number(percent) || 0))}%`;
+   status?.classList.toggle('is-visible', Boolean(message));
+   if (background) background.hidden = !message;
+  };
+  const applyState = next => {
+   state = next; button.classList.toggle('is-busy', next === 'busy'); button.setAttribute('aria-busy', String(next === 'busy')); const label = next === 'busy' ? busyLabel : idleLabel; button.title = label; button.setAttribute('aria-label', label); };
+  const control = {
+   idle() {
+    applyState('idle'); render(''); },
+   busy(message = '准备下载...') { clearTimeout(resetTimer); applyState('busy'); render(message, 0); },
+   progress(payload = {}) {
+    if (state !== 'busy') return;
+    const view = formatTrailerDownloadProgress(payload); render(view.text, view.percent); },
+   error(message = '下载失败') {
+    applyState('idle'); render(message, 0); clearTimeout(resetTimer);
+    resetTimer = setTimeout(() => {
+     if (state === 'idle') render('');
+    }, 4000); },
+   destroy() {
+    clearTimeout(resetTimer); button.removeEventListener('click', clickHandler); background?.removeEventListener('click', backgroundHandler); button.classList.remove('is-busy'); button.setAttribute('aria-busy', 'false'); }, };
+  const clickHandler = event => {
+   event.preventDefault(); event.stopPropagation();
+   if (state === 'busy') { control.busy('正在取消下载...'); onCancel?.(); return; }
+   onStart?.(); };
+  const backgroundHandler = event => {
+   event.preventDefault(); event.stopPropagation(); onBackground?.(); };
+  button.addEventListener('click', clickHandler); background?.addEventListener('click', backgroundHandler); applyState('idle'); render(''); return control; }
+ function createTrailerDownloadIndicator({ onCancel } = {}) {
+  const root = document.createElement('div'); const head = document.createElement('div'); const title = document.createElement('span'); const action = document.createElement('button'); const text = document.createElement('div');
+  const track = document.createElement('div'); const fill = document.createElement('div'); let busy = true; let removeTimer = null; root.className = 'trailer-download-indicator'; head.className = 'trailer-download-indicator-head';
+  title.className = 'trailer-download-indicator-title'; action.className = 'trailer-download-indicator-action'; text.className = 'trailer-download-indicator-text'; track.className = 'trailer-download-indicator-track';
+  fill.className = 'trailer-download-indicator-fill'; title.textContent = '预告片下载'; action.type = 'button'; action.textContent = '取消'; text.textContent = '准备下载...'; track.appendChild(fill); head.appendChild(title); head.appendChild(action);
+  root.appendChild(head); root.appendChild(text); root.appendChild(track);
+  const remove = () => {
+   clearTimeout(removeTimer); removeTimer = null; root.remove(); };
+  const setBusy = value => {
+   busy = Boolean(value); action.textContent = busy ? '取消' : '关闭'; root.classList.toggle('is-busy', busy); };
+  const setStatus = status => {
+   root.classList.toggle('is-done', status === 'done'); root.classList.toggle('is-error', status === 'error'); };
+  const scheduleRemove = delay => {
+   clearTimeout(removeTimer); removeTimer = setTimeout(remove, delay); };
+  const clickHandler = event => {
+   event.preventDefault(); event.stopPropagation();
+   if (busy) onCancel?.();
+   else remove();
+  };
+  action.addEventListener('click', clickHandler); document.body.appendChild(root); setBusy(true);
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => root.classList.add('is-visible'));
+  else root.classList.add('is-visible');
+  return {
+   update(payload = {}) {
+    const view = formatTrailerDownloadProgress(payload); setBusy(true); setStatus(''); text.textContent = view.text || '下载中...';
+    fill.style.width =`${Math.max(0, Math.min(100, Number(view.percent) || 0))}%`;
+    root.classList.add('is-visible'); },
+   finish(message = '下载完成') {
+    setBusy(false); setStatus('done'); text.textContent = message; fill.style.width = '100%'; scheduleRemove(4000); },
+   fail(message = '下载失败') {
+    setBusy(false); setStatus('error');
+    text.textContent =`下载失败 · ${message}`;
+    scheduleRemove(8000); },
+   remove, }; }
+ const TRAILER_DOWNLOAD_PANEL_ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><path d="M12 3.75v9.5m0 0 3.4-3.4M12 13.25 8.6 9.85"/><path d="M4.75 15.5v2.25a2 2 0 0 0 2 2h10.5a2 2 0 0 0 2-2V15.5"/></g></svg>';
+ function createTrailerDownloadPanelView({ code = '', onClose = null } = {}) {
+  const overlay = document.createElement('div'); const card = document.createElement('div'); const head = document.createElement('div'); const icon = document.createElement('span'); const title = document.createElement('div');
+  const codeBadge = document.createElement('span'); const closeBtn = document.createElement('button'); const sourceRow = document.createElement('div'); const sourceLabel = document.createElement('span'); const sourceValue = document.createElement('span');
+  const qualityRow = document.createElement('div'); const qualityLabel = document.createElement('span'); const qualitySelect = document.createElement('select'); const message = document.createElement('div'); const status = document.createElement('div');
+  const statusHead = document.createElement('div'); const statusText = document.createElement('span'); const statusTrack = document.createElement('div'); const statusFill = document.createElement('div'); const backgroundBtn = document.createElement('button');
+  const foot = document.createElement('div'); const submitBtn = document.createElement('button'); overlay.className = 'jav-trailer-download-overlay'; card.className = 'jav-trailer-download-card'; card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-modal', 'true'); head.className = 'jav-trailer-download-head'; icon.className = 'jav-trailer-download-icon'; title.className = 'jav-trailer-download-title'; codeBadge.className = 'jav-trailer-download-code';
+  closeBtn.className = 'jav-trailer-download-close'; sourceRow.className = 'jav-trailer-download-row'; qualityRow.className = 'jav-trailer-download-row'; sourceLabel.className = 'jav-trailer-download-label';
+  qualityLabel.className = 'jav-trailer-download-label'; sourceValue.className = 'jav-trailer-download-source'; qualitySelect.className = 'jav-trailer-download-quality'; message.className = 'jav-trailer-download-message'; message.hidden = true;
+  status.className = 'trailer-download-status'; statusHead.className = 'trailer-download-status-head'; statusText.className = 'trailer-download-text'; statusTrack.className = 'trailer-download-track'; statusFill.className = 'trailer-download-fill';
+  backgroundBtn.className = 'trailer-download-background'; foot.className = 'jav-trailer-download-foot'; submitBtn.className = 'jav-trailer-download-submit'; icon.innerHTML = TRAILER_DOWNLOAD_PANEL_ICON; title.textContent = '预告片下载';
+  codeBadge.textContent = String(code || ''); closeBtn.type = 'button'; closeBtn.textContent = '×'; closeBtn.title = '关闭'; closeBtn.setAttribute('aria-label', '关闭'); sourceLabel.textContent = '来源'; sourceValue.textContent = '—';
+  qualityLabel.textContent = '清晰度'; qualitySelect.disabled = true; backgroundBtn.type = 'button'; backgroundBtn.textContent = '后台下载'; backgroundBtn.hidden = true; submitBtn.type = 'button'; submitBtn.textContent = '下载'; submitBtn.disabled = true;
+  statusTrack.appendChild(statusFill); statusHead.appendChild(statusText); statusHead.appendChild(backgroundBtn); status.appendChild(statusHead); status.appendChild(statusTrack); head.appendChild(icon); head.appendChild(title); head.appendChild(codeBadge);
+  head.appendChild(closeBtn); sourceRow.appendChild(sourceLabel); sourceRow.appendChild(sourceValue); qualityRow.appendChild(qualityLabel); qualityRow.appendChild(qualitySelect); foot.appendChild(submitBtn); card.appendChild(head); card.appendChild(sourceRow);
+  card.appendChild(qualityRow); card.appendChild(message); card.appendChild(status); card.appendChild(foot); overlay.appendChild(card);
+  const destroy = () => {
+   document.removeEventListener('keydown', keyHandler, true); overlay.remove(); onClose?.(); };
+  const keyHandler = event => {
+   if (event.key !== 'Escape') return;
+   event.stopPropagation(); destroy(); };
+  overlay.addEventListener('click', event => {
+   if (event.target === overlay) destroy();
+  });
+  closeBtn.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); destroy(); });
+  document.addEventListener('keydown', keyHandler, true); document.body.appendChild(overlay);
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => overlay.classList.add('is-visible'));
+  else overlay.classList.add('is-visible');
+  return {
+   root: overlay,
+   statusEl: status,
+   messageEl: message,
+   qualitySelect,
+   downloadBtn: submitBtn,
+   backgroundBtn,
+   destroy,
+   setSource(value) {
+    sourceValue.textContent = value || '—'; },
+   setQualities(list = []) {
+    const items = Array.isArray(list) ? list : []; qualitySelect.textContent = '';
+    items.forEach(item => {
+     const option = document.createElement('option'); option.value = item.key; option.textContent = item.label; qualitySelect.appendChild(option);
+    });
+    qualitySelect.disabled = items.length === 0; qualityRow.hidden = items.length === 0; submitBtn.disabled = items.length === 0; },
+   setQuality(key) {
+    const value = String(key || '');
+    if (value) qualitySelect.value = value;
+   },
+   selectedQuality() { return String(qualitySelect.value || ''); },
+   setMessage(text, tone = '') { message.textContent = text || ''; message.hidden = !text; message.classList.toggle('is-error', tone === 'error'); }, }; }
  function ensureSubtitleStyles() {
   injectStyle('jav-subtitle-style',`.jav-subtitle-overlay,.jav-subtitle-preview-overlay{position:fixed;inset:0;z-index:10000045;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(15,23,42,.58);backdrop-filter:blur(5px);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;box-sizing:border-box;overscroll-behavior:contain}.jav-subtitle-preview-overlay{z-index:10000046}.jav-subtitle-panel{width:min(780px,94vw);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;border:1px solid rgba(203,213,225,.85);border-radius:12px;background:#fff;color:#111827;box-shadow:0 24px 70px rgba(15,23,42,.38)}.jav-subtitle-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #e5e7eb;background:linear-gradient(180deg,#f8fafc 0%,#fff 100%)}.jav-subtitle-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:850}.jav-subtitle-close{width:30px;height:30px;border:0;border-radius:7px;background:#f1f5f9;color:#334155;font-size:22px;line-height:1;cursor:pointer}.jav-subtitle-close:hover{background:#e2e8f0}.jav-subtitle-body{padding:12px;overflow:auto;overscroll-behavior:contain}.jav-subtitle-status{padding:38px 14px;color:#64748b;font-size:14px;text-align:center}.jav-subtitle-table{display:flex;flex-direction:column;gap:8px}.jav-subtitle-row{display:grid;grid-template-columns:minmax(0,1fr) 72px 146px;gap:10px;align-items:center;padding:10px;border:1px solid #e5e7eb;border-radius:8px;background:#f8fafc}.jav-subtitle-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:760;color:#0f172a}.jav-subtitle-ext{justify-self:start;padding:3px 8px;border-radius:999px;background:#e0f2fe;color:#075985;font-size:12px;font-weight:800;text-transform:uppercase}.jav-subtitle-actions{display:flex;justify-content:flex-end;gap:7px}.jav-subtitle-actions button,.jav-subtitle-preview-download{height:28px;padding:0 10px;border:0;border-radius:7px;background:#0f766e;color:#fff;font-size:12px;font-weight:800;cursor:pointer}.jav-subtitle-actions button:nth-child(2){background:#2563eb}.jav-subtitle-actions button:disabled,.jav-subtitle-preview-download:disabled{opacity:.62;cursor:wait}.jav-subtitle-preview-panel{width:min(920px,94vw);max-height:88vh}.jav-subtitle-pre{margin:0;min-height:320px;max-height:70vh;overflow:auto;padding:14px 16px;background:#111827;color:#e5e7eb;font:12px/1.55 Consolas,Monaco,"Courier New",monospace;white-space:pre-wrap;word-break:break-word;overscroll-behavior:contain}.jav-subtitle-preview-footer{display:flex;justify-content:flex-end;gap:8px;padding:10px 12px;border-top:1px solid #e5e7eb;background:#f8fafc}@media (max-width:640px){.jav-subtitle-row{grid-template-columns:1fr;gap:7px}.jav-subtitle-actions{justify-content:flex-start}}`);
  }
@@ -3763,6 +3915,7 @@
   injectStyle('jav-resource-library-history-confirm',`.jav-resource-history-view{position:relative}.jav-resource-history-actions{white-space:nowrap}.jav-resource-history-actions button,.jav-resource-history-actions a{flex:0 0 auto;white-space:nowrap}.jav-resource-history-menu{display:inline-block;min-width:74px;flex:none}.jav-resource-history-menu .jav-resource-card-menu-trigger{min-width:74px}.jav-resource-history-menu .jav-resource-card-menu-popover{min-width:148px;white-space:nowrap}.jav-resource-history-menu.is-open .jav-resource-card-menu-popover{position:fixed;right:auto;bottom:auto;z-index:10000061}.jav-resource-history-menu .jav-resource-history-detail{display:flex;align-items:center;height:28px;min-width:0;padding:0 8px;color:#3197d8;font-size:11px;font-weight:800;text-decoration:none}.jav-resource-history-menu .jav-resource-history-detail:hover{background:#eff6ff;color:#1976b6}.jav-resource-history-menu-remove{width:100%;height:28px;padding:0 8px;border:1px solid #fed7aa;border-radius:5px;background:#fff7ed;color:#c2410c;font-size:11px;font-weight:800;text-align:left;cursor:pointer;white-space:nowrap}.jav-resource-history-menu-remove:hover{border-color:#fdba74;background:#ffedd5;color:#9a3412}.jav-resource-history-remove-confirm{position:absolute;inset:0;z-index:10;display:grid;place-items:center;width:auto;margin:0;padding:24px;border:0;border-radius:0;background:rgba(15,23,42,.28);color:inherit;gap:0;white-space:normal}.jav-resource-history-remove-dialog{display:block;width:min(380px,100%);padding:18px;border:1px solid #fecaca;border-radius:8px;background:#fff;color:#334155;box-shadow:0 18px 50px rgba(15,23,42,.24);gap:0}.jav-resource-history-remove-dialog strong,.jav-resource-history-remove-dialog span{display:block}.jav-resource-history-remove-dialog strong{color:#991b1b;font-size:14px}.jav-resource-history-remove-dialog span{margin-top:8px;font-size:12px;line-height:1.6}.jav-resource-history-remove-dialog div{display:flex;gap:8px;margin-top:14px}.jav-resource-history-remove-dialog button{height:30px;padding:0 11px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}.jav-resource-history-remove-dialog button:first-child{border-color:#dc2626;background:#dc2626;color:#fff}.jav-resource-history-remove-dialog button:first-child:hover{background:#b91c1c}html[data-theme="dark"] .jav-resource-history-remove-confirm{background:rgba(0,0,0,.42)}html[data-theme="dark"] .jav-resource-history-remove-dialog{border-color:#7f1d1d;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-remove-dialog strong{color:#fca5a5}html[data-theme="dark"] .jav-resource-history-remove-dialog button{border-color:#52525b;background:#18181b;color:#e4e4e7}html[data-theme="dark"] .jav-resource-history-menu-remove{border-color:#7c2d12;background:#431407;color:#fed7aa}html[data-theme="dark"] .jav-resource-history-menu .jav-resource-history-detail:hover{background:#172554;color:#93c5fd}`);
   injectStyle('jav-resource-library-card-grid',`.jav-resource-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}.actress-card .actress-card__actions{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,1.15fr);gap:5px}.actress-card .actress-card__actions button{width:100%;min-width:0;padding:0 5px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}`);
  }
+ injectStyle('ui-trailer-download-panel-style',`:root{--javdl-accent:#38bdf8;--javdl-accent-strong:#0ea5e9;--javdl-accent-text:#7dd3fc;--javdl-accent-soft:rgba(56,189,248,0.14);--javdl-accent-border:rgba(56,189,248,0.7);--javdl-accent-glow:rgba(14,165,233,0.28);--javdl-on-accent:#04121f;--javdl-surface:rgba(8,12,20,0.94);--javdl-surface-2:#101a2b;--javdl-status-bg:rgba(8,12,20,0.94);--javdl-border:rgba(148,163,184,0.32);--javdl-text:#e2e8f0;--javdl-muted:#94a3b8;--javdl-track:rgba(148,163,184,0.26);--javdl-scrim:rgba(3,6,12,0.62);--javdl-success:#22c55e;--javdl-danger:#ef4444;--javdl-danger-border:rgba(248,113,113,0.5)}.jav-trailer-download-overlay{position:fixed;inset:0;z-index:2147483610;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--javdl-scrim);backdrop-filter:blur(3px);opacity:0;transition:opacity .18s ease}.jav-trailer-download-overlay.is-visible{opacity:1}.jav-trailer-download-card{width:min(400px,94vw);display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:12px;background:var(--javdl-surface);border:1px solid var(--javdl-border);box-shadow:0 12px 30px rgba(0,0,0,0.45);color:var(--javdl-text);font:13px/1.5 Arial,"Microsoft YaHei",sans-serif;transform:translateY(10px) scale(0.98);transition:transform .2s ease}.jav-trailer-download-overlay.is-visible .jav-trailer-download-card{transform:translateY(0) scale(1)}.jav-trailer-download-head{display:flex;align-items:center;gap:10px}.jav-trailer-download-icon{width:30px;height:30px;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;background:var(--javdl-accent-soft);color:var(--javdl-accent-text)}.jav-trailer-download-icon svg{width:18px;height:18px}.jav-trailer-download-title{font-size:15px;font-weight:600;color:var(--javdl-text)}.jav-trailer-download-code{padding:2px 7px;border-radius:6px;background:var(--javdl-border);color:var(--javdl-muted);font-size:11px;font-weight:600;letter-spacing:0.03em}.jav-trailer-download-close{margin-left:auto;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:9px;cursor:pointer;background:transparent;color:var(--javdl-muted);font-size:18px;line-height:1}.jav-trailer-download-close:hover{background:var(--javdl-border);color:var(--javdl-text)}.jav-trailer-download-row{display:flex;align-items:center;gap:8px;padding-top:12px;border-top:1px solid var(--javdl-border);font-size:12px}.jav-trailer-download-label{flex:none;color:var(--javdl-muted);white-space:nowrap}.jav-trailer-download-source{color:var(--javdl-text);font-weight:500;word-break:break-all}.jav-trailer-download-quality{flex:1 1 auto;min-width:0;height:34px;padding:0 30px 0 10px;border-radius:9px;border:1px solid var(--javdl-border);background-color:var(--javdl-surface);background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 8px center;background-size:16px 16px;color:var(--javdl-text);font:13px/1.4 Arial,"Microsoft YaHei",sans-serif;appearance:none;cursor:pointer;outline:none;transition:border-color .15s ease,box-shadow .15s ease}.jav-trailer-download-quality:hover{border-color:var(--javdl-accent-border)}.jav-trailer-download-quality:focus{border-color:var(--javdl-accent-border);box-shadow:0 0 0 2px var(--javdl-accent-soft)}.jav-trailer-download-quality option{background:var(--javdl-surface-2);color:var(--javdl-text)}.jav-trailer-download-quality:disabled{cursor:not-allowed;opacity:0.55}.jav-trailer-download-message{color:var(--javdl-muted);font-size:12px}.jav-trailer-download-message.is-error{color:var(--javdl-danger)}.jav-trailer-download-card .trailer-download-status{text-align:left;margin-top:2px}.jav-trailer-download-foot{display:flex;margin-top:2px}.jav-trailer-download-submit{flex:1 1 auto;padding:10px 14px;border:0;border-radius:10px;cursor:pointer;background:linear-gradient(180deg,var(--javdl-accent),var(--javdl-accent-strong));color:var(--javdl-on-accent);font:600 13px/1.4 Arial,"Microsoft YaHei",sans-serif;box-shadow:0 6px 16px var(--javdl-accent-glow)}.jav-trailer-download-submit:hover{background:linear-gradient(180deg,var(--javdl-accent-text),var(--javdl-accent))}.jav-trailer-download-submit:disabled{cursor:not-allowed;opacity:0.5;box-shadow:none}`);
  function isPortraitCardsPageAllowed(siteId, href = location.href) {
   let url;
   try {
@@ -7921,6 +8074,465 @@
       markRequestFinished(); callbacks.onTimeout?.(stats, context, null); }
     }); } };
   return { getHlsClass, loadHlsLibrary, createHlsLoader }; }
+ const TrailerHlsPlaylist = {
+  parseAttributeList(input) {
+   const text = String(input || '');
+   const attributes = {};
+   let index = 0;
+   while (index < text.length) {
+    const equals = text.indexOf('=', index);
+    if (equals < 0) break;
+    const key = text.slice(index, equals).trim(); let cursor = equals + 1; let value = '';
+    if (text[cursor] === '"') {
+     const end = text.indexOf('"', cursor + 1); value = end < 0 ? text.slice(cursor + 1) : text.slice(cursor + 1, end); cursor = end < 0 ? text.length : end + 1;
+    } else {
+     let end = text.indexOf(',', cursor);
+     if (end < 0) end = text.length;
+     value = text.slice(cursor, end).trim(); cursor = end; }
+    if (key) attributes[key.toUpperCase()] = value;
+    const comma = text.indexOf(',', cursor);
+    if (comma < 0) break;
+    index = comma + 1; }
+   return attributes; },
+  resolveUrl(baseUrl, reference) {
+   const raw = String(reference || '').trim();
+   if (!raw) return '';
+   try {
+    return new URL(raw, baseUrl || undefined).href;
+   } catch { return raw; } },
+  hexToBytes(value) {
+   const hex = String(value || '').replace(/^0[xX]/, '').replace(/[^0-9a-fA-F]/g, ''); const bytes = new Uint8Array(Math.floor(hex.length / 2));
+   for (let index = 0; index < bytes.length; index += 1) { bytes[index] = parseInt(hex.substr(index * 2, 2), 16); }
+   return bytes; },
+  ivFromSequence(sequence) {
+   const bytes = new Uint8Array(16); let value = Math.max(0, Math.floor(Number(sequence) || 0));
+   for (let index = 15; index >= 0; index -= 1) { bytes[index] = value & 0xff; value = Math.floor(value / 256); }
+   return bytes; },
+  parseRange(value) {
+   const raw = String(value || '').trim();
+   if (!raw) return null;
+   const [lengthText, offsetText] = raw.split('@'); const length = Number(lengthText);
+   if (!Number.isFinite(length) || length <= 0) return null;
+   const offset = Number(offsetText);
+   return { length, offset: Number.isFinite(offset) && offset >= 0 ? offset : null }; },
+  parse(text, baseUrl = '') {
+   const lines = String(text || '').split(/\r?\n/); const variants = []; const segments = []; let pendingStream = null; let pendingDuration = null; let pendingRange = null; let currentKey = null; let initSegment = null; let mediaSequence = 0;
+   let targetDuration = 0; let totalDuration = 0; let hasEndList = false;
+   for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.charAt(0) === '#') {
+     if (trimmed.startsWith('#EXT-X-STREAM-INF:')) {
+      pendingStream = this.parseAttributeList(trimmed.slice('#EXT-X-STREAM-INF:'.length));
+     } else if (trimmed.startsWith('#EXTINF:')) {
+      const duration = Number(trimmed.slice('#EXTINF:'.length).split(',')[0]); pendingDuration = Number.isFinite(duration) ? duration : 0;
+     } else if (trimmed.startsWith('#EXT-X-BYTERANGE:')) {
+      pendingRange = this.parseRange(trimmed.slice('#EXT-X-BYTERANGE:'.length));
+     } else if (trimmed.startsWith('#EXT-X-KEY:')) {
+      const attributes = this.parseAttributeList(trimmed.slice('#EXT-X-KEY:'.length)); const method = String(attributes.METHOD || 'NONE').toUpperCase();
+      currentKey = method === 'NONE' ? null : {
+       method,
+       uri: this.resolveUrl(baseUrl, attributes.URI),
+       iv: attributes.IV || '', };
+     } else if (trimmed.startsWith('#EXT-X-MAP:')) {
+      const attributes = this.parseAttributeList(trimmed.slice('#EXT-X-MAP:'.length));
+      initSegment = {
+       url: this.resolveUrl(baseUrl, attributes.URI),
+       range: this.parseRange(attributes.BYTERANGE),
+       key: currentKey, };
+     } else if (trimmed.startsWith('#EXT-X-MEDIA-SEQUENCE:')) {
+      const value = Number(trimmed.slice('#EXT-X-MEDIA-SEQUENCE:'.length).trim());
+      if (Number.isFinite(value) && value >= 0) mediaSequence = value;
+     } else if (trimmed.startsWith('#EXT-X-TARGETDURATION:')) {
+      const value = Number(trimmed.slice('#EXT-X-TARGETDURATION:'.length).trim());
+      if (Number.isFinite(value)) targetDuration = value;
+     } else if (trimmed === '#EXT-X-ENDLIST') {
+      hasEndList = true; }
+     continue; }
+    const uri = this.resolveUrl(baseUrl, trimmed);
+    if (pendingStream) {
+     const resolution = String(pendingStream.RESOLUTION || '').split('x');
+     variants.push({
+      url: uri,
+      bandwidth: Number(pendingStream.BANDWIDTH) || 0,
+      width: Number(resolution[0]) || 0,
+      height: Number(resolution[1]) || 0,
+      name: pendingStream.NAME || '',
+      codecs: pendingStream.CODECS || '',
+     });
+     pendingStream = null; continue; }
+    if (pendingDuration === null) continue;
+    segments.push({
+     url: uri,
+     duration: pendingDuration,
+     range: pendingRange,
+     key: currentKey,
+     sequence: mediaSequence + segments.length,
+    });
+    totalDuration += pendingDuration; pendingDuration = null; pendingRange = null; }
+   return { type: variants.length ? 'master' : 'media', url: baseUrl, variants, segments, initSegment, mediaSequence, targetDuration, totalDuration, hasEndList, encrypted: Boolean(initSegment?.key) || segments.some(segment => segment?.key) }; },
+  pickVariant(variants, options = {}) {
+   const list = Array.isArray(variants) ? variants.filter(variant => variant?.url) : [];
+   if (!list.length) return null;
+   const preferred = Number(options.height);
+   if (!Number.isFinite(preferred) || preferred <= 0) return list[0];
+   const measured = list.filter(variant => variant.height > 0);
+   if (!measured.length) return list[0];
+   const exact = measured.find(variant => variant.height === preferred);
+   if (exact) return exact;
+   const below = measured .filter(variant => variant.height <= preferred) .sort((left, right) => right.height - left.height || right.bandwidth - left.bandwidth);
+   if (below.length) return below[0];
+   return measured.slice().sort((left, right) => left.height - right.height || left.bandwidth - right.bandwidth)[0]; }, };
+ const TrailerDownload = {
+  MAX_SEGMENTS: 2000,
+  MAX_BYTES: 512 * 1024 * 1024,
+  CONCURRENCY: 4,
+  MAX_ATTEMPTS: 3,
+  activeTask: null,
+  qualityHeights: {
+   '4k': 2160,
+   hhb: 1080,
+   '1080p': 1080,
+   hmb: 720,
+   '720p': 720,
+   mhb: 576,
+   '540p': 540,
+   mmb: 432,
+   '480p': 480,
+   '396p': 396,
+   dmb_w: 360,
+   dmb: 360,
+   '360p': 360,
+   dm_w: 288,
+   dm: 288,
+   sm_w: 240,
+   sm: 240,
+   '240p': 240, },
+  isRunning() { return Boolean(this.activeTask); },
+  cancel() {
+   const task = this.activeTask;
+   if (!task) return false;
+   task.controller.abort(); return true; },
+  kindOf(url, type) {
+   const declared = String(type || '').toLowerCase();
+   if (declared === 'iframe') return 'unsupported';
+   if (declared === 'hls' || /\.m3u8(?:[?#].*)?$/i.test(String(url || ''))) return 'hls';
+   return 'video'; },
+  qualityHeight(quality) {
+   const key = String(quality || '').trim().toLowerCase();
+   if (Number.isFinite(this.qualityHeights[key])) return this.qualityHeights[key];
+   const numeric = key.match(/(\d{3,4})/);
+   return numeric ? Number(numeric[1]) : null; },
+  qualityLabel(quality) {
+   const key = String(quality || '').trim(); const height = this.qualityHeight(key);
+   if (key.toLowerCase() === '4k') return '4K';
+   return height ? `${height}P` : key;
+  },
+  fileName({ code = '', source = '', quality = '', ext = 'mp4' } = {}) {
+   const base = [code, source, quality] .map(value => String(value || '').trim()) .filter(Boolean) .join('-') .replace(/[\\/:*?"<>|\s]+/g, '_') .replace(/_+/g, '_') .replace(/^_|_$/g, '');
+   return`${(base || 'trailer').slice(0, 80)}.${ext}`;
+  },
+  formatBytes(value) {
+   const bytes = Number(value) || 0;
+   if (bytes < 1024) return`${Math.round(bytes)} B`;
+   if (bytes < 1024 * 1024) return`${(bytes / 1024).toFixed(1)} KB`;
+   if (bytes < 1024 * 1024 * 1024) return`${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+   return`${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  },
+  toBytes(value) {
+   if (value instanceof Uint8Array) return value;
+   if (value instanceof ArrayBuffer) return new Uint8Array(value);
+   if (ArrayBuffer.isView(value)) { return new Uint8Array(value.buffer, value.byteOffset, value.byteLength); }
+   const text = String(value || ''); const bytes = new Uint8Array(text.length);
+   for (let index = 0; index < text.length; index += 1) { bytes[index] = text.charCodeAt(index) & 0xff; }
+   return bytes; },
+  rangeHeader(range) {
+   const length = Number(range?.length);
+   if (!Number.isFinite(length) || length <= 0) return '';
+   const start = Number.isFinite(Number(range?.offset)) ? Number(range.offset) : 0;
+   return`bytes=${start}-${start + length - 1}`;
+  },
+  requestBytes(url, options = {}) {
+   const { signal, range, timeout = 25000 } = options;
+   if (signal?.aborted) return Promise.reject(new Error('下载已取消'));
+   const headers = {};
+   const rangeValue = this.rangeHeader(range);
+   if (rangeValue) headers.Range = rangeValue;
+   const pending = gmFetch(url, { responseType: 'arraybuffer', timeout, headers });
+   const onAbort = () => {
+    if (typeof pending?.abort === 'function') pending.abort();
+   };
+   signal?.addEventListener?.('abort', onAbort, { once: true });
+   return pending.then(response => {
+    if (!response?.ok) {
+     const kind = response?.error?.kind;
+     if (kind === 'abort') throw new Error('下载已取消');
+     if (kind === 'timeout') throw new Error('分片请求超时');
+     if (kind === 'network') throw new Error('分片请求失败（网络错误）');
+     throw new Error(`分片请求失败（HTTP ${Number(response?.status) || 0}）`);
+    }
+    return { bytes: this.toBytes(response.response ?? response.responseText) };
+   }).finally(() => { signal?.removeEventListener?.('abort', onAbort); }); },
+  async fetchText(url, options = {}) {
+   const result = await this.requestBytes(url, options); return new TextDecoder('utf-8').decode(result.bytes); },
+  async decryptSegment(bytes, keyBytes, ivBytes) {
+   const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CBC' }, false, ['decrypt']);
+   const plain = await crypto.subtle.decrypt({ name: 'AES-CBC', iv: ivBytes }, key, bytes);
+   return new Uint8Array(plain); },
+  async fetchSegment(segment, options = {}) {
+   const { signal, loadKey } = options;
+   const result = await this.requestBytes(segment.url, { signal, range: segment.range });
+   if (!segment.key?.uri) return result.bytes;
+   if (segment.key.method && segment.key.method !== 'AES-128') {
+    throw new Error(`暂不支持 ${segment.key.method} 加密的预告片`);
+   }
+   const keyBytes = await loadKey(segment.key);
+   if (!keyBytes) return result.bytes;
+   const iv = segment.key.iv ? TrailerHlsPlaylist.hexToBytes(segment.key.iv) : TrailerHlsPlaylist.ivFromSequence(segment.sequence); return this.decryptSegment(result.bytes, keyBytes, iv); },
+  async fetchSegmentWithRetry(segment, options = {}) {
+   let lastError = null;
+   for (let attempt = 1; attempt <= this.MAX_ATTEMPTS; attempt += 1) {
+    if (options.signal?.aborted) throw new Error('下载已取消');
+    try {
+     return await this.fetchSegment(segment, options);
+    } catch (error) {
+     if (options.signal?.aborted) throw new Error('下载已取消');
+     lastError = error;
+     if (attempt < this.MAX_ATTEMPTS) { await new Promise(resolve => setTimeout(resolve, 250 * attempt)); }
+    } }
+   throw lastError instanceof Error ? lastError : new Error('分片下载失败'); },
+  saveBlob(blob, fileName) {
+   const objectUrl = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = objectUrl; anchor.download = fileName; anchor.rel = 'noopener'; anchor.style.display = 'none'; document.body.appendChild(anchor); anchor.click();
+   setTimeout(() => {
+    anchor.remove(); URL.revokeObjectURL(objectUrl);
+   }, 10000); },
+  downloadWithGmDownload(url, fileName, options = {}) {
+   const { onProgress, signal } = options;
+   return new Promise((resolve, reject) => {
+    let settled = false; let handle = null;
+    const finish = (callback, payload) => {
+     if (settled) return;
+     settled = true; signal?.removeEventListener?.('abort', onAbort); callback(payload); };
+    const onAbort = () => {
+     try {
+      handle?.abort?.();
+     } catch {
+     }
+     finish(reject, new Error('下载已取消')); };
+    try {
+     handle = GM_download({
+      url,
+      name: fileName,
+      saveAs: false,
+      onprogress: event => {
+       const loaded = Number(event?.loaded) || 0; const total = Number(event?.total) || 0;
+       onProgress?.({
+        phase: 'file',
+        loaded,
+        total,
+        bytes: loaded,
+        percent: total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0,
+       }); },
+      onload: () => finish(resolve, { bytes: Number(handle?.loaded) || 0 }),
+      onerror: () => finish(reject, new Error('下载失败，请检查网络或稍后重试')),
+      ontimeout: () => finish(reject, new Error('下载超时')),
+     });
+     signal?.addEventListener?.('abort', onAbort, { once: true });
+    } catch (error) { finish(reject, error instanceof Error ? error : new Error('下载失败')); }
+   }); },
+  async downloadSingleFile({ url, fileName, onProgress, signal }) {
+   if (typeof GM_download === 'function') {
+    const result = await this.downloadWithGmDownload(url, fileName, { onProgress, signal });
+    return { fileName, bytes: result.bytes }; }
+   const file = await this.requestBytes(url, { signal, timeout: 300000 });
+   this.saveBlob(new Blob([file.bytes], { type: 'video/mp4' }), fileName);
+   return { fileName, bytes: file.bytes.length }; },
+  normalizeRanges(segments) {
+   const cursor = new Map();
+   return segments.map(segment => {
+    if (!segment?.range) return segment;
+    const previous = cursor.get(segment.url) || 0; const offset = Number.isFinite(Number(segment.range.offset)) ? Number(segment.range.offset) : previous;
+    const range = { length: segment.range.length, offset };
+    cursor.set(segment.url, offset + range.length);
+    return { ...segment, range };
+   }); },
+  async downloadHls({ url, quality, fileNameFor, onProgress, signal }) {
+   onProgress?.({ phase: 'playlist', percent: 0 });
+   const master = TrailerHlsPlaylist.parse(await this.fetchText(url, { signal }), url);
+   let plan = master;
+   if (plan.type === 'master') {
+    const variant = TrailerHlsPlaylist.pickVariant(plan.variants, { height: this.qualityHeight(quality) });
+    if (!variant?.url) throw new Error('播放列表没有可用画质');
+    plan = TrailerHlsPlaylist.parse(await this.fetchText(variant.url, { signal }), variant.url); }
+   if (!plan.segments.length) throw new Error('播放列表没有分片');
+   if (!plan.hasEndList) throw new Error('直播中的预告片暂不支持下载');
+   if (plan.segments.length > this.MAX_SEGMENTS) {
+    throw new Error(`分片数量过多（${plan.segments.length}），已中止下载`);
+   }
+   const segments = this.normalizeRanges(plan.segments); const keyCache = new Map();
+   const loadKey = key => {
+    if (!key?.uri) return Promise.resolve(null);
+    if (!keyCache.has(key.uri)) {
+     keyCache.set(key.uri, this.requestBytes(key.uri, { signal }).then(result => {
+      if (result.bytes.length < 16) throw new Error('解密密钥无效');
+      return result.bytes.slice(0, 16);
+     })); }
+    return keyCache.get(key.uri); };
+   const chunks = [];
+   if (plan.initSegment?.url) { chunks.push(await this.fetchSegment(plan.initSegment, { signal, loadKey })); }
+   const parts = new Array(segments.length); let cursorIndex = 0; let done = 0; let received = 0;
+   const worker = async () => {
+    while (true) {
+     const index = cursorIndex; cursorIndex += 1;
+     if (index >= segments.length) return;
+     if (signal.aborted) throw new Error('下载已取消');
+     const chunk = await this.fetchSegmentWithRetry(segments[index], { signal, loadKey });
+     parts[index] = chunk; done += 1; received += chunk.length;
+     if (received > this.MAX_BYTES) throw new Error('预告片体积超出下载上限');
+     onProgress?.({
+      phase: 'segments',
+      percent: Math.round((done / segments.length) * 100),
+      done,
+      total: segments.length,
+      bytes: received,
+     }); } };
+   await Promise.all(Array.from({ length: Math.min(this.CONCURRENCY, segments.length) }, worker));
+   const isFragmentedMp4 = Boolean(plan.initSegment?.url) || /\.(?:m4s|mp4)(?:[?#].*)?$/i.test(segments[0]?.url || ''); const fileName = fileNameFor(isFragmentedMp4 ? 'mp4' : 'ts');
+   const blob = new Blob([...chunks, ...parts], { type: isFragmentedMp4 ? 'video/mp4' : 'video/mp2t' });
+   this.saveBlob(blob, fileName);
+   return { fileName, bytes: received + chunks.reduce((sum, chunk) => sum + chunk.length, 0) }; },
+  async start({ url, type = 'video', code = '', source = '', quality = '', onProgress } = {}) {
+   if (this.activeTask) throw new Error('已有下载任务正在进行');
+   const target = String(url || '').trim();
+   if (!target) throw new Error('缺少下载地址');
+   const kind = this.kindOf(target, type);
+   if (kind === 'unsupported') throw new Error('该预告片类型暂不支持下载');
+   const controller = new AbortController();
+   const task = { controller, kind, url: target };
+   this.activeTask = task; const label = this.qualityLabel(quality) || '原画';
+   const fileNameFor = ext => this.fileName({ code, source, quality: label, ext });
+   try {
+    const outcome = kind === 'hls' ? await this.downloadHls({ url: target, quality, fileNameFor, onProgress, signal: controller.signal }) : await this.downloadSingleFile({
+      url: target,
+      fileName: fileNameFor('mp4'),
+      onProgress,
+      signal: controller.signal,
+     });
+    return { ok: true, kind, ...outcome };
+   } catch (error) {
+    controller.abort(); throw error instanceof Error ? error : new Error('下载失败');
+   } finally {
+    this.activeTask = null; } }, };
+ const TrailerDownloadSession = {
+  active: null,
+  inlineControl: null,
+  indicator: null,
+  isRunning() { return Boolean(this.active); },
+  releaseIndicator() {
+   this.indicator?.remove(); this.indicator = null; },
+  ensureIndicator() {
+   if (!this.indicator) { this.indicator = createTrailerDownloadIndicator({ onCancel: () => this.cancel() }); }
+   return this.indicator; },
+  attachInline(control) {
+   this.inlineControl = control || null;
+   if (!control) return;
+   this.releaseIndicator(); control.busy('下载中...');
+   if (this.active?.progress) control.progress(this.active.progress);
+  },
+  detachInline() {
+   this.inlineControl = null;
+   if (this.active) this.ensureIndicator().update(this.active.progress || { phase: 'playlist' });
+  },
+  cancel() { return TrailerDownload.cancel(); },
+  async start(options = {}) {
+   if (this.active) return this.active.promise;
+   const session = { options, progress: null, promise: null };
+   this.active = session; session.promise = this.run(session); return session.promise; },
+  async run(session) {
+   try {
+    const result = await TrailerDownload.start({ ...session.options,
+     onProgress: payload => {
+      session.progress = payload; this.inlineControl?.progress(payload); this.indicator?.update(payload); },
+    });
+    if (this.indicator) this.indicator.finish(result?.fileName ?`已保存 ${result.fileName}` : '下载完成');
+    this.inlineControl?.idle(); Utils.showToast('预告片下载完成', result?.fileName || '', 3200); return result;
+   } catch (error) {
+    const message = error?.message || '请稍后重试';
+    if (this.indicator) this.indicator.fail(message);
+    this.inlineControl?.error(message); Utils.showToast('预告片下载失败', message, 4200); return null;
+   } finally {
+    this.active = null; this.inlineControl = null; } }, };
+ const TrailerDownloadPanel = {
+  view: null,
+  control: null,
+  code: '',
+  result: null,
+  qualities: [],
+  async open({ code, autoStart = false, quality = '' } = {}) {
+   const normalized = String(code || '').trim();
+   if (!normalized) return;
+   this.close();
+   const view = this.view = createTrailerDownloadPanelView({
+    code: normalized,
+    onClose: () => this.finalize(),
+   });
+   this.code = normalized;
+   this.control = createTrailerDownloadControl({
+    button: view.downloadBtn,
+    status: view.statusEl,
+    background: view.backgroundBtn,
+    idleLabel: '下载',
+    onStart: () => this.start(),
+    onCancel: () => TrailerDownloadSession.cancel(),
+    onBackground: () => this.background(),
+   });
+   view.setMessage('正在解析预告片...');
+   try {
+    const result = await Trailer.get(normalized);
+    if (!this.view) return;
+    if (!result?.url) throw new Error('这个番号没有可下载的预告片');
+    this.result = result; this.qualities = this.buildQualities(result); view.setSource(result.source || '预告片'); view.setQualities(this.qualities); view.setMessage(this.qualities.length > 1 ? '选择清晰度后开始下载' : '可以直接开始下载');
+    if (quality && this.qualities.some(item => item.key === quality)) view.setQuality(quality);
+    if (autoStart) this.start();
+   } catch (error) {
+    if (!this.view) return;
+    view.setMessage(error?.message || '预告片解析失败', 'error'); } },
+  buildQualities(result) {
+   const source = result?.qualities && typeof result.qualities === 'object' ? result.qualities : null; const list = [];
+   if (source) {
+    Object.keys(source) .filter(key => source[key]) .sort((left, right) => (TrailerDownload.qualityHeight(right) || 0) - (TrailerDownload.qualityHeight(left) || 0)) .forEach(key => list.push({
+      key,
+      url: source[key],
+      label: TrailerDownload.qualityLabel(key) || key,
+     })); }
+   if (!list.length && result?.url) {
+    list.push({
+     key: result.quality || '',
+     url: result.url,
+     label: TrailerDownload.qualityLabel(result.quality) || '默认画质',
+    }); }
+   return list; },
+  start(qualityKey = '') {
+   if (TrailerDownloadSession.isRunning()) { TrailerDownloadSession.attachInline(this.control); this.view?.setMessage('下载进行中，可在右下角查看进度'); return; }
+   const key = qualityKey || this.view?.selectedQuality() || ''; const entry = this.qualities.find(item => item.key === key) || this.qualities[0];
+   if (!entry) { this.view?.setMessage('没有可下载的清晰度', 'error'); return; }
+   this.view?.setMessage(''); this.control?.busy('准备下载...'); TrailerDownloadSession.attachInline(this.control);
+   TrailerDownloadSession.start({
+    url: entry.url,
+    type: this.result?.type || 'video',
+    code: this.code,
+    source: this.result?.source || '',
+    quality: entry.key,
+   }); },
+  background() {
+   if (!TrailerDownloadSession.isRunning()) return;
+   TrailerDownloadSession.detachInline(); this.view?.setMessage('已转入后台下载，可在右下角查看进度'); this.close(); },
+  close() {
+   this.view?.destroy(); this.finalize(); },
+  finalize() {
+   if (!this.view && !this.control) return;
+   if (this.control) TrailerDownloadSession.detachInline();
+   this.view = null; this.control = null; this.result = null; this.qualities = []; }, };
  const TrailerPlayer = {
   open({ code, url, type = 'video', source = '预告片', qualities = null, quality = null, urls = null, fallbackResolver = null, javxySource = null }) {
    document.querySelector('.trailer-overlay')?.remove(); const isIframe = type === 'iframe'; lockBackgroundScroll();
@@ -7928,6 +8540,7 @@
     overlay, modal, header, sourceBadge, closeBtn, screen,
     fallbackStatus, volumeIndicator, playBtn, volumeBtn, volumeWrap,
     volumeRail, volumeSlider, currentTimeText, durationText, progress, sizeBtn, fullscreenBtn,
+    downloadBtn, downloadStatus, downloadBackgroundBtn,
    } = createTrailerPlayerView({ code, source, isIframe });
    let video = null; let activeUrl = url; let activeType = type; let activeSource = source; let activeJavxySource = javxySource || source; let activeQuality = quality; let fallbackStatusTimer = null; let playbackReadyTimer = null; let hlsRetryTimer = null;
    let sourceFallbackInProgress = false; let overlayClosed = false; let playbackStarted = false; let qualityBar = null; let qualityBarMount = null; const failedSources = new Set(); let seekingByProgress = false; let footer = null;
@@ -7951,7 +8564,7 @@
    });
    let fallbackUrls = Array.isArray(urls) ? [...new Set(urls.filter(Boolean))] : [url].filter(Boolean); let fallbackIndex = Math.max(0, fallbackUrls.indexOf(url)); let sourceLoadGeneration = 0; let playbackRestoreChecked = false;
    const sourceLink = { href: activeUrl };
-   const playbackKey = (value = activeUrl) => `trailer_playback_${String(code || '').trim().toUpperCase()}_${String(value || '').slice(0, 160)}`;
+   const playbackKey = (value = activeUrl) =>`trailer_playback_${String(code || '').trim().toUpperCase()}_${String(value || '').slice(0, 160)}`;
    let playbackKeyBase = playbackKey(activeUrl);
    const readPlaybackTime = (key = playbackKeyBase) => {
     const value = Number(readSessionValue(key) || 0); return Number.isFinite(value) && value > 0 ? value : 0; };
@@ -8221,7 +8834,7 @@
      if (tryNativeHlsFallback()) return;
      handlePlaybackFailure('video');
     });
-    screen.appendChild(video); screen.appendChild(fallbackStatus); screen.appendChild(volumeIndicator); initTrailerVideo(fallbackUrls[fallbackIndex] || url);
+    screen.appendChild(video); screen.appendChild(fallbackStatus); screen.appendChild(volumeIndicator); screen.appendChild(downloadStatus); initTrailerVideo(fallbackUrls[fallbackIndex] || url);
     playBtn.addEventListener('click', e => {
      e.preventDefault(); e.stopPropagation();
      if (!video) return;
@@ -8286,8 +8899,9 @@
    footer = document.createElement('div'); footer.className = 'trailer-footer'; const footerLeft = document.createElement('div'); footerLeft.className = 'trailer-control-left';
    if (!isIframe) {
     footerLeft.appendChild(playBtn); footerLeft.appendChild(volumeWrap); footerLeft.appendChild(currentTimeText); footerLeft.appendChild(progress); footerLeft.appendChild(durationText); }
-   const footerRight = document.createElement('div'); footerRight.className = 'trailer-control-right'; qualityBarMount = footerRight; footerRight.appendChild(qualityBar); footer.appendChild(footerLeft); footerRight.appendChild(sizeBtn);
-   footerRight.appendChild(fullscreenBtn); footer.appendChild(footerRight); modal.appendChild(screen); screen.appendChild(header);
+   const footerRight = document.createElement('div'); footerRight.className = 'trailer-control-right'; qualityBarMount = footerRight; footerRight.appendChild(qualityBar);
+   if (!isIframe) footerRight.appendChild(downloadBtn);
+   footer.appendChild(footerLeft); footerRight.appendChild(sizeBtn); footerRight.appendChild(fullscreenBtn); footer.appendChild(footerRight); modal.appendChild(screen); screen.appendChild(header);
    if (!isIframe) screen.appendChild(footer);
    overlay.appendChild(modal);
    if (!isIframe) {
@@ -8312,6 +8926,29 @@
     footer.addEventListener('mouseleave', () => {
      if (!MobilePolicy.isMobile()) scheduleHideTrailerControls();
     }); }
+   const downloadControl = createTrailerDownloadControl({
+    button: downloadBtn,
+    status: downloadStatus,
+    background: downloadBackgroundBtn,
+    onStart: () => startTrailerDownload(),
+    onCancel: () => TrailerDownloadSession.cancel(),
+    onBackground: () => handoffTrailerDownloadToBackground(),
+   });
+   const handoffTrailerDownloadToBackground = () => {
+    if (!TrailerDownloadSession.isRunning()) return;
+    TrailerDownloadSession.detachInline(); downloadControl?.idle(); };
+   const startTrailerDownload = () => {
+    if (TrailerDownloadSession.isRunning()) { TrailerDownloadSession.attachInline(downloadControl); return; }
+    if (!activeUrl) { Utils.showToast('无法下载', '当前预告片地址不可用', 3000); return; }
+    TrailerDownloadSession.attachInline(downloadControl);
+    TrailerDownloadSession.start({
+     url: activeUrl,
+     type: activeType,
+     code,
+     source: activeSource,
+     quality: activeQuality,
+    }); };
+   if (TrailerDownloadSession.isRunning()) TrailerDownloadSession.attachInline(downloadControl);
    const closeOverlay = (event = null) => {
     if (event) { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); }
     overlayClosed = true; const video = overlay.querySelector('video');
@@ -8322,8 +8959,8 @@
       video._hls = null; }
      video.pause(); video.removeAttribute('src'); video.load(); }
     overlay.remove(); unlockBackgroundScroll(); window.removeEventListener('pointerdown', overlayCloseGuard, true); window.removeEventListener('mousedown', overlayCloseGuard, true); window.removeEventListener('click', overlayCloseGuard, true);
-    document.removeEventListener('keydown', escHandler, true); document.removeEventListener('fullscreenchange', syncFullscreenButton); removeMobileTapToggle(); destroyTrailerControls(); clearTimeout(fallbackStatusTimer); clearTimeout(playbackReadyTimer);
-    clearTimeout(hlsRetryTimer); hlsRetryTimer = null; };
+    document.removeEventListener('keydown', escHandler, true); document.removeEventListener('fullscreenchange', syncFullscreenButton); removeMobileTapToggle(); TrailerDownloadSession.detachInline(); downloadControl?.destroy(); destroyTrailerControls();
+    clearTimeout(fallbackStatusTimer); clearTimeout(playbackReadyTimer); clearTimeout(hlsRetryTimer); hlsRetryTimer = null; };
    const overlayCloseGuard = (event) => {
     if (!overlay.contains(event.target)) return;
     const shouldClose = event.target === overlay || event.target.closest('.jav-player-close');
@@ -8458,7 +9095,7 @@
   function normalizeBirthday(birthday) {
    const match = String(birthday || '').match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/);
    if (!match) return '';
-   return `${match[1]}.${String(match[2]).padStart(2, '0')}.${String(match[3]).padStart(2, '0')}`;
+   return`${match[1]}.${String(match[2]).padStart(2, '0')}.${String(match[3]).padStart(2, '0')}`;
   }
   function actorFacts(profile, now = new Date()) {
    const facts = []; const birthday = normalizeBirthday(profile?.birthday); const age = calculateAge(birthday, now);
@@ -8468,24 +9105,24 @@
    if (profile?.weightKg) facts.push(`${profile.weightKg}kg`);
    if (profile?.bustCm && profile?.waistCm && profile?.hipCm) facts.push(`${profile.bustCm}-${profile.waistCm}-${profile.hipCm}`);
    if (profile?.cup) facts.push(`${profile.cup}罩杯`);
-   if (profile?.bloodType) facts.push(/血$/.test(profile.bloodType) ? profile.bloodType : `${profile.bloodType}血`);
+   if (profile?.bloodType) facts.push(/血$/.test(profile.bloodType) ? profile.bloodType :`${profile.bloodType}血`);
    return facts; }
   function formatActorSummary(profile, now = new Date()) {
    if (!profile?.name) return '';
    const facts = actorFacts(profile, now);
-   return facts.length ? `${profile.name}:${facts.join(' ')}` : '';
+   return facts.length ?`${profile.name}:${facts.join(' ')}` : '';
   }
   function appendActorEntries(container, profiles) {
    (profiles || []).filter(profile => formatActorSummary(profile)).forEach((profile, index) => {
     if (index) container.appendChild(document.createTextNode('，'));
     const entry = document.createElement('span'); entry.className = 'jav-actor-entry'; const name = document.createElement('strong'); name.className = 'jav-actor-name';
-    name.textContent = `${profile.name}:`;
+    name.textContent =`${profile.name}:`;
     const facts = document.createElement('span'); facts.className = 'jav-actor-facts'; facts.textContent = actorFacts(profile).join(' '); entry.append(name, facts); container.appendChild(entry);
    }); }
   function ensureStyles() {
    if (document.getElementById('laosiji-actor-info-styles')) return;
    const style = document.createElement('style'); style.id = 'laosiji-actor-info-styles';
-   style.textContent = `.jav-actor-info .jav-actor-info-list{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}.jav-actor-info .jav-actor-entry{display:inline-flex;align-items:baseline;gap:4px;color:#657477;line-height:1.65}.jav-actor-info .jav-actor-name{color:#8c4f5d;font-weight:700}.jav-actor-info .jav-actor-facts{color:#695962;font-weight:400}.jav-actor-info .jav-actor-info-label{color:#6f7f82;font-weight:700;margin-right:8px}@media (prefers-color-scheme:dark){.jav-actor-info .jav-actor-entry{color:#c4d0ce}.jav-actor-info .jav-actor-name{color:#f0b7c4}.jav-actor-info .jav-actor-facts{color:#e0d0d5}.jav-actor-info .jav-actor-info-label{color:#b5c9c5}}`;
+   style.textContent =`.jav-actor-info .jav-actor-info-list{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px}.jav-actor-info .jav-actor-entry{display:inline-flex;align-items:baseline;gap:4px;color:#657477;line-height:1.65}.jav-actor-info .jav-actor-name{color:#8c4f5d;font-weight:700}.jav-actor-info .jav-actor-facts{color:#695962;font-weight:400}.jav-actor-info .jav-actor-info-label{color:#6f7f82;font-weight:700;margin-right:8px}@media (prefers-color-scheme:dark){.jav-actor-info .jav-actor-entry{color:#c4d0ce}.jav-actor-info .jav-actor-name{color:#f0b7c4}.jav-actor-info .jav-actor-facts{color:#e0d0d5}.jav-actor-info .jav-actor-info-label{color:#b5c9c5}}`;
    document.head.appendChild(style); }
   function uniqueNames(anchors) { return [...new Set((anchors || []).map(anchor => normalizeName(anchor.textContent)).filter(Boolean))]; }
   function findTarget() {
@@ -8513,7 +9150,7 @@
     row = document.createElement('div'); row.id = 'jav-actor-info'; row.className = 'item jav-actor-info'; const table = document.createElement('table'); const tbody = document.createElement('tbody'); const tr = document.createElement('tr');
     const label = document.createElement('td'); label.className = 'header'; label.textContent = '演员'; const value = document.createElement('td'); value.className = 'text'; const list = document.createElement('span'); list.className = 'jav-actor-info-list';
     appendActorEntries(list, profiles); value.appendChild(list); tr.append(label, value); tbody.appendChild(tr); table.appendChild(tbody); row.appendChild(table); }
-   row.dataset.actorKey = `${target.site}:${target.names.join('|')}`;
+   row.dataset.actorKey =`${target.site}:${target.names.join('|')}`;
    return row; }
   async function readCachedProfiles(names) {
    if (typeof JavxyActors !== 'object' || typeof JavxyActors.requestProfiles !== 'function') return [];
@@ -8551,7 +9188,7 @@
   async function sync() {
    if (typeof CFG !== 'undefined' && !CFG.actorInfoEnabled) { renderToken += 1; document.querySelectorAll('.jav-actor-info').forEach(node => node.remove()); return; }
    const target = findTarget(); const token = ++renderToken;
-   const actorKey = target ? `${target.site}:${target.names.join('|')}` : '';
+   const actorKey = target ?`${target.site}:${target.names.join('|')}` : '';
    document.querySelectorAll('.jav-actor-info').forEach(node => {
     if (!target || node.dataset.actorKey !== actorKey) node.remove();
    });
@@ -8572,7 +9209,7 @@
  const Thumbnail = {
   sources: ['javfree', 'projectjav', 'javstore'],
   cacheKey(code) {
-   return `thumb_cache_v3_${code}`;
+   return`thumb_cache_v3_${code}`;
   },
   lookupCode(code) {
    const text = String(code || '').trim();
@@ -8638,7 +9275,7 @@
    try {
     const normalizedCode = code.replace(/^fc2-?/i, '').replace(/-/g, '').toLowerCase();
     debugLog(`javstore: searching for code=${code}, normalized=${normalizedCode}`);
-    const searchUrl = `https://javstore.net/search?q=${encodeURIComponent(code)}`;
+    const searchUrl =`https://javstore.net/search?q=${encodeURIComponent(code)}`;
     const searchHtml = await Utils.request(searchUrl); const searchDoc = new DOMParser().parseFromString(searchHtml, 'text/html'); const candidateLinks = searchDoc.querySelectorAll('a[href*="/"]'); const detailUrls = [];
     for (const link of candidateLinks) {
      const href = link.getAttribute('href');
@@ -8702,7 +9339,7 @@
       throw new Error(`HTTP ${response.status || 0}`);
      }
      return response; };
-    const searchUrl = `https://projectjav.com/?searchTerm=${encodeURIComponent(code)}`;
+    const searchUrl =`https://projectjav.com/?searchTerm=${encodeURIComponent(code)}`;
     debugLog('[projectjav] 搜索页:', searchUrl); const searchRes = await request(searchUrl); const searchHtml = searchRes.responseText || ''; const finalSearchUrl = searchRes.finalUrl || searchUrl;
     const searchDoc = new DOMParser().parseFromString(searchHtml, 'text/html');
     let detailUrl = /\/movie\//i.test(new URL(finalSearchUrl).pathname)
@@ -8718,7 +9355,7 @@
      if (!matched) {
       debugLog(`[projectjav] 搜索结果中没有 ${code} 的影片，页面标题:`, searchDoc.title);
       debugLog('[projectjav] 页面前800字符:', searchHtml.slice(0, 800)); return null; }
-     detailUrl = matched.href.startsWith('http') ? matched.href : `https://projectjav.com${matched.href}`;
+     detailUrl = matched.href.startsWith('http') ? matched.href :`https://projectjav.com${matched.href}`;
     }
     debugLog('[projectjav] 详情页:', detailUrl); const detailRes = finalSearchUrl === detailUrl ? searchRes : await request(detailUrl); const detailHtml = detailRes.responseText || ''; const finalDetailUrl = detailRes.finalUrl || detailUrl;
     const detailDoc = new DOMParser().parseFromString(detailHtml, 'text/html');
@@ -8751,7 +9388,7 @@
     if (url) { source = src; break; }
     debugLog(`${src} 无结果，尝试下一个来源`);
    }
-   debugLog('预览图最终结果:', url ? `有图 (${source})` : '无图');
+   debugLog('预览图最终结果:', url ?`有图 (${source})` : '无图');
    if (url && cacheEnabled) { writeSessionValue(cacheKey, url); }
    return { url, source }; },
   async show(code) {
@@ -8766,7 +9403,7 @@
    const endpoints = Javxy.endpoints();
    for (const endpoint of endpoints) {
     const params = new URLSearchParams({ client: 'laosiji-new' });
-    const apiUrl = Javxy.url(endpoint, `/api/cover/${encodeURIComponent(query)}`, params);
+    const apiUrl = Javxy.url(endpoint,`/api/cover/${encodeURIComponent(query)}`, params);
     const response = await Javxy.request(apiUrl, {
      timeout: 15000,
      headers: Javxy.headers(endpoint.authenticated)
@@ -8794,6 +9431,7 @@
   const QUICK_MENU_ICON = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" class="tool-svg" viewBox="0 0 1024 1024" aria-hidden="true"><path d="M0 0h1024v1024H0z" fill="none"/><path fill="currentColor" d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8m-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8m0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8M142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7"/></svg>';
   const QUICK_MENU_ITEMS = [
    { key: 'copy-code', label: '\u590d\u5236\u756a\u53f7', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M20 2H10c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m0 12H10V4h10zM14 20H4V10h2V8H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2v-2h-2zM12 6h6v2h-6zm0 4h6v2h-6z"/></svg>' },
+   { key: 'download-trailer', label: '\u4e0b\u8f7d\u9884\u544a\u7247', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M20 10V6h-4V4h6v6zM2 10V4h6v2H4v4zm0 10v-6h2v4h4v2zm7.5-3.5v-9l7 4.5zm5.5 7.475v-2h8v2zM19 21l-4-4l1.4-1.4l1.6 1.55V13h2v4.15l1.6-1.55L23 17z"/></svg>' },
    { key: 'download-cover', label: '\u4e0b\u8f7d\u9ad8\u6e05\u5c01\u9762', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M0 0h12v12H0z" fill="none"/><path fill="currentColor" d="M8.5 5C6.57 5 5 6.57 5 8.5S6.57 12 8.5 12 12 10.43 12 8.5 10.43 5 8.5 5m1.85 4.35-1.5 1.5s-.1.08-.16.11c-.06.02-.12.04-.19.04s-.13-.01-.19-.04a.4.4 0 0 1-.16-.11l-1.5-1.5c-.2-.2-.2-.51 0-.71s.51-.2.71 0l.65.65V6.5c0-.28.22-.5.5-.5s.5.22.5.5v2.79l.65-.65c.2-.2.51-.2.71 0s.2.51 0 .71zM4.05 9c.04.35.11.68.23 1 .12-.32.19-.65.23-1H3c-1.65 0-3-1.35-3-3 0-1.49 1.1-2.74 2.53-2.96C2.76 2.33 4.23 1 6 1s3.24 1.32 3.47 3.04v.08A4.4 4.4 0 0 0 8.5 4h-.05A2.51 2.51 0 0 0 6 1.99a2.5 2.5 0 0 0-2.5 2.5c0 .28-.22.5-.5.5-1.1 0-2 .9-2 2s.9 2 2 2h1.05z"/></svg>' },
    { key: 'download-portrait-cover', label: '\u4e0b\u8f7d\u7ad6\u7248\u9ad8\u6e05\u5c01\u9762', icon: '<svg xmlns="http://www.w3.org/2000/svg" class="quick-menu-item-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M7 2.9h10v18.2H7z"/><path fill="currentColor" d="M12 6.5a.9.9 0 0 1 .9.9v6.03l1.56-1.56a.9.9 0 1 1 1.27 1.27l-3.1 3.1a.9.9 0 0 1-1.27 0l-3.1-3.1a.9.9 0 1 1 1.27-1.27l1.57 1.56V7.4a.9.9 0 0 1 .9-.9"/></svg>' },
   ]; QUICK_MENU_ITEMS.find(item => item.key === 'download-portrait-cover').icon = QUICK_MENU_ITEMS.find(item => item.key === 'download-cover').icon;
@@ -8896,6 +9534,9 @@
   }
   async function runQuickMenuAction(action, code, card, item) {
    if (!code) return;
+   if (action === 'download-trailer') {
+    TrailerDownloadPanel.open({ code });
+    return; }
    if (action === 'copy-code') { GM_setClipboard(code); showQuickMenuToast('\u5df2\u590d\u5236\u756a\u53f7', code); return; }
    const portrait = action === 'download-portrait-cover';
    if (action !== 'download-cover' && !portrait) return;
@@ -11884,14 +12525,29 @@ function bindJumpMenu(menuDiv, toggleBtn, subMenu, mainBtn = null) {
   btn.classList.add('jav-subtitle-btn'); container.appendChild(btn); }
  function addTrailerBtn(code, container, useCapture = false) {
   if (!readStoredValue('btn_show_trailer', true)) return;
-  const btn = Utils.createBtn('🎞️ 预告片', '#111827', async () => {
-   const oldText = btn.textContent; btn.textContent = '🎞️ 解析中...'; btn.style.pointerEvents = 'none'; btn.style.opacity = '0.72';
+  const accent = '#111827';
+  const playTrailer = async () => {
+   await Trailer.show(code); };
+  const mainBtn = Utils.createBtn('🎬 预告片', accent, async () => {
+   const oldText = mainBtn.textContent; mainBtn.textContent = '🎬 解析中...'; mainBtn.style.pointerEvents = 'none'; mainBtn.style.opacity = '0.72';
    try {
     await Trailer.show(code);
    } finally {
-    btn.textContent = oldText; btn.style.pointerEvents = ''; btn.style.opacity = ''; }
+    mainBtn.textContent = oldText; mainBtn.style.pointerEvents = ''; mainBtn.style.opacity = ''; }
   }, useCapture);
-  btn.classList.add('jav-trailer-btn'); container.appendChild(btn); }
+  const subButtons = [
+   Utils.createBtn('🎬 播放预告片', accent, playTrailer, useCapture),
+   Utils.createBtn('⤓ 下载预告片...', '#0f766e', () => TrailerDownloadPanel.open({ code }), useCapture),
+   Utils.createBtn('⤓ 下载最高画质', '#0f766e', () => TrailerDownloadPanel.open({ code, autoStart: true }), useCapture),
+  ]; mainBtn.classList.add('jav-trailer-btn');
+  const menu = createJumpMenu({
+   accent,
+   className: 'trailer-menu',
+   mainBtn,
+   subButtons,
+   toggleTitle: '展开预告片操作',
+  });
+  menu.classList.add('jav-trailer-btn'); container.appendChild(menu); }
  function addPreviewBtn(code, container, useCapture = false) {
   if (!readStoredValue('btn_show_preview', true)) return;
   const btn = Utils.createBtn('🖼️ 预览图', '#28a745', async () => {
