@@ -3105,7 +3105,7 @@
     }); }, };
   return { client: javdbApi, searchJavDB: _searchJavDB, parseJson, javdbMd5, normalizeMagnetFileCount, normalizeMagnetSearchKeyword, normalizeJavdbSearchKeyword, normalizeMagnetResultTitle };
  })();
- const JAVXY_DEV_API_BASE = "https://javxy.574476.xyz";
+ const JAVXY_DEV_API_BASE = "";
  const Javxy = {
   banPromptShown: false,
   updatePromptShown: false,
