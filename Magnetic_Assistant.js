@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.8
+// @version      3.5.9
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -10,6 +10,7 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
+// @grant        unsafeWindow
 // @connect      *
 // @connect      whatslink.info
 // @homepageURL  https://github.com/ZiPenOk/scripts
@@ -753,7 +754,33 @@
         });
     }
 
+    // 老司机(「JAV老司机-新」)在同一个页面时，把 115 推送整个交给它：
+    // 它负责模板目录、离线任务、清理与规范改名，这里只做失败提示。
+    function laosijiOfflineBridge() {
+        try {
+            const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+            const bridge = pageWindow.__LAOSIJI_PAN115_OFFLINE__;
+            return bridge && typeof bridge.push === 'function' ? bridge : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
     function pushTo115(link) {
+        const bridge = laosijiOfflineBridge();
+        if (bridge) {
+            const code = extractCodeFromText(link) || '';
+            Promise.resolve(bridge.push(link, { title: document.title, code }))
+                .then(result => {
+                    if (result && result.ok === false) {
+                        showToast('❌ 115 推送失败: ' + (result.message || '未知错误'), false);
+                    }
+                })
+                .catch(error => showToast('❌ 115 推送异常: ' + ((error && error.message) || error), false));
+            return;
+        }
+
+        // 老司机不在场(该站点它没匹配)时回退到直连推送。
         GM_xmlhttpRequest({
             method: 'GET',
             url: 'https://115.com/?ct=offline&ac=space&_=' + Date.now(),
