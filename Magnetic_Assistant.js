@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.9
+// @version      3.5.10
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -331,8 +331,19 @@
         return otherSelectors.some(sel => parent.querySelector(sel));
     }
 
+    // 从链接里抠番号前先清干净：%XX 先解码，再剁掉 magnet 的 info hash（十六进制
+    // 串里凑出 "201013-26" 这种假番号太容易了）。
+    function stripMagnetHash(text) {
+        const raw = String(text || '');
+        // dn= 里的空格是 %20：不先解码的话，"%20" + 后面的数字会被正则拼成一个假番号。
+        let decoded = raw;
+        try { decoded = decodeURIComponent(raw); } catch (_) {}
+        return decoded.replace(/urn:btih:[a-z0-9]+/gi, ' ');
+    }
+
     function extractCodeFromText(text) {
         if (!text) return null;
+        text = stripMagnetHash(text);
 
         const patterns = [
             /([A-Z]{2,15})-(\d{2,10})(?:-(\d+))?/i,
@@ -769,8 +780,9 @@
     function pushTo115(link) {
         const bridge = laosijiOfflineBridge();
         if (bridge) {
-            const code = extractCodeFromText(link) || '';
-            Promise.resolve(bridge.push(link, { title: document.title, code }))
+            // 番号交给老司机自己从标题/文件名里认：这条链接是 URL 编码的，从整条链接
+            // 抠番号会把 %20 和后面的数字拼成假番号（201013-26），JavDB 就查不到了。
+            Promise.resolve(bridge.push(link, { title: document.title }))
                 .then(result => {
                     if (result && result.ok === false) {
                         showToast('❌ 115 推送失败: ' + (result.message || '未知错误'), false);
