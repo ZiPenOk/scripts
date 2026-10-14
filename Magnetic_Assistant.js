@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.10
+// @version      3.5.11
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -343,6 +343,12 @@
 
     function extractCodeFromText(text) {
         if (!text) return null;
+        // 老司机（「JAV老司机-新」）在场时以它为准：同页两套正则对同一条链接会给出两个不同
+        // 番号（这里曾把 ed2k 的文件大小字段 "|1723099235|" 读成 172309-923），有桥就用桥。
+        const bridge = laosijiOfflineBridge();
+        if (bridge && typeof bridge.extractCode === 'function') {
+            return bridge.extractCode(String(text)) || null;
+        }
         text = stripMagnetHash(text);
 
         const patterns = [
