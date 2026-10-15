@@ -2778,7 +2778,7 @@ html[data-theme="dark"] .jav-card-quick-menu-popover,html[data-theme="dark"] .ja
 .torrent-list .jav-card-quick-trailer{order:2}
 .torrent-list .jav-card-quick-preview{order:3}
 .torrent-list .jav-card-quick-menu{order:4}
-.torrent-list>tbody>tr>td.text-center>.jav-sukebei-offline-115,.torrent-list>tbody>tr>td.text-center>a[href^="magnet:"],.torrent-list>tbody>tr>td.text-center>.mag-btn-group{display:inline-flex!important;align-items:center!important;justify-content:center!important;height:22px!important;line-height:1!important;vertical-align:middle!important;margin:0 2px!important}
+.torrent-list>tbody>tr>td.text-center>.jav-sukebei-offline-115,.torrent-list>tbody>tr>td.text-center>a[href^="magnet:"],.torrent-list>tbody>tr>td.text-center>a[href^="/download/"]:not([data-mag-assistant-hidden-native="1"]):not([style*="display:none"]):not([style*="display:none"]),.torrent-list>tbody>tr>td.text-center>.mag-btn-group{display:inline-flex!important;align-items:center!important;justify-content:center!important;height:22px!important;line-height:1!important;vertical-align:middle!important;margin:0 2px!important}
 .torrent-list>tbody>tr>td.text-center>.jav-sukebei-offline-115{width:22px!important;margin:0 4px 0 0!important;color:#2777f8!important;text-decoration:none!important}
 .torrent-list>tbody>tr>td.text-center>.jav-sukebei-offline-115 .tool-svg{width:16px!important;height:16px!important;display:block!important;fill:currentColor!important}
 .torrent-list .jav-sukebei-offline-115[data-loading="1"]{pointer-events:none!important;opacity:.55!important}
