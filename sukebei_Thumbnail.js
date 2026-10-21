@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.2.5
+// @version      2.2.6
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -98,6 +98,7 @@
 // @include      /^https://(?:[^/]+\.)?kr1min\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?jav1min\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?misa\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?xxxfans\.[^/]+/.*$/
 
 // @run-at       document-end
 // @grant        unsafeWindow
@@ -447,12 +448,12 @@
         })
     })
 
-    // imgbob 系图床（ria-kurumi.vip、cn1min.com、kr1min.com、jav1min.com、misa.homes 等）：/upload/ib/<file> 会 301 跳到
-    // 原图，可直接使用；/upload/<file> 与 /upload/en/<file> 是查看页，需要抓页面解析出原图。
-    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa)\.[a-z]+\/upload\/ib\/[^\/?#]+$/i, null, (url, callback) => {
+    // imgbob 系图床（ria-kurumi.vip、cn1min.com、kr1min.com、jav1min.com、misa.homes、xxxfans.org 等）：
+    // /upload/ib/<file> 会 301 跳到原图，可直接使用；/upload/<file> 与 /upload/en/<file> 是查看页，需要抓页面解析出原图。
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans)\.[a-z]+\/upload\/ib\/[^\/?#]+$/i, null, (url, callback) => {
         callback(url)
     })
-    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa)\.[a-z]+\/upload\/(?:en\/)?[^\/?#]+$/i, callback => {
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans)\.[a-z]+\/upload\/(?:en\/)?[^\/?#]+$/i, callback => {
         const img = document.querySelector('.fileviewer-file img') ||
                     document.querySelector('#fileOriginalModal img')
         if(img && img.src) callback(img.src)
