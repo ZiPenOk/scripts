@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         Emby 媒体库显示模式管理器
 // @namespace    https://github.com/ZiPenOk/scripts
-// @version      2.3.0
+// @version      2.3.1
 // @description  为 Emby Web 指定媒体库设置默认显示模式和默认排序，支持锁定、会话临时切换和完全跟随 Emby 原设置，并提供前台设置面板管理媒体库 ID。
 // @author       ZiPenOk
 // @license      MIT
 // @icon         https://emby.media/favicon.ico
 // @include      /^http:\/\/10\.10\.10\.[^/]+:8096\/web\/.*/
 // @include      /^http:\/\/10\.10\.10\.[^/]+:8097\/web\/.*/
+// @include      /^http:\/\/10\.10\.10\.[^/]+:8016\/web\/.*/
+// @include      /^http:\/\/10\.10\.10\.[^/]+:8017\/web\/.*/
 // @include      /^https:\/\/emby\.[^/]+\/web\/.*/
 // @run-at       document-start
 // @grant        GM_registerMenuCommand
