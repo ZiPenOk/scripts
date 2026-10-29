@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.2.7
+// @version      2.2.8
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -893,8 +893,7 @@
         })
 
         const CLOUD_URLS = [
-            'https://sukebei.cfyan.cc.cd',
-            'https://oc1.bigsm.art'
+            'https://sukebei.cfyan.cc.cd'
         ]
         const getThumbsFrom = (cloudUrl, ids) => {
             return new Promise((resolve, reject) => {
