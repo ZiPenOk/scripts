@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.2.9
+// @version      2.3.0
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -104,6 +104,10 @@
 // @include      /^https://(?:[^/]+\.)?2minx\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?thaiav\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?hentaishine\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?russian18\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?xteen18\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?aixxx\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?homexxx\.[^/]+/.*$/
 
 // @run-at       document-end
 // @grant        unsafeWindow
@@ -453,12 +457,12 @@
         })
     })
 
-    // imgbob 系图床（ria-kurumi.vip、cn1min.com、kr1min.com、jav1min.com、misa.homes、xxxfans.org、girlxxx.vip、bbcuck.com、2minx.com、thaiav.org、hentaishine.com 等）：
+    // imgbob 系图床（ria-kurumi.vip、cn1min.com、kr1min.com、jav1min.com、misa.homes、xxxfans.org、girlxxx.vip、bbcuck.com、2minx.com、thaiav.org、hentaishine.com、russian18.vip、xteen18.com、aixxx.vip、homexxx.vip 等）：
     // /upload/ib/<file> 会 301 跳到原图，可直接使用；/upload/<file> 与 /upload/en/<file> 是查看页，需要抓页面解析出原图。
-    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|girlxxx|bbcuck|2minx|thaiav|hentaishine)\.[a-z]+\/upload\/ib\/[^\/?#]+$/i, null, (url, callback) => {
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx)\.[a-z]+\/upload\/ib\/[^\/?#]+$/i, null, (url, callback) => {
         callback(url)
     })
-    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|girlxxx|bbcuck|2minx|thaiav|hentaishine)\.[a-z]+\/upload\/(?:en\/)?[^\/?#]+$/i, callback => {
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx)\.[a-z]+\/upload\/(?:en\/)?[^\/?#]+$/i, callback => {
         const img = document.querySelector('.fileviewer-file img') ||
                     document.querySelector('#fileOriginalModal img')
         if(img && img.src) callback(img.src)
