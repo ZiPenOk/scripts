@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.5.11
+// @version      3.6.0
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -629,53 +629,83 @@
         const group = document.createElement('span');
         group.className = 'mag-btn-group';
         group.dataset.magAssistant = '1';
-        group.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
+        group.dataset.magLink = link;
 
-        const addBtn = (type, icon, title, action) => {
+        const addBtn = (type, icon, title) => {
             const btn = document.createElement('div');
             btn.className = 'mag-btn';
+            btn.dataset.magAction = type;
             btn.innerHTML = icon;
             btn.title = title;
             btn.dataset.origIcon = icon;
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                if (type === 'check') {
-                    action(btn);
-                } else {
-                    setBtnActive(btn, group);
-                    action();
-                }
-            };
             group.appendChild(btn);
         };
 
         if (config.enableCopy) {
-            addBtn('copy', ICONS.copy, '复制链接', () => {
-                const processedLink = simplifyMagnetLink(link);
-                GM_setClipboard(processedLink, 'text');
-                if (processedLink !== link) {
-                    showToast('📋 精简链接已复制');
-                } else {
-                    showToast('📋 链接已复制');
-                }
-            });
+            addBtn('copy', ICONS.copy, '复制链接');
         }
         if (config.enableQb) {
-            addBtn('qb', ICONS.qb, '推送至 qB', () => pushToQb(link));
+            addBtn('qb', ICONS.qb, '推送至 qB');
         }
         if (config.enableBc) {
-            addBtn('bc', ICONS.bc, '推送至 BitComet', () => pushToBitComet(link));
+            addBtn('bc', ICONS.bc, '推送至 BitComet');
         }
         if (config.enable115) {
-            addBtn('115', ICONS.u115, '115 离线', () => pushTo115(link));
+            addBtn('115', ICONS.u115, '115 离线');
         }
         if (config.enableCheck) {
-            addBtn('check', ICONS.car, '验车', (btn) => handleCheckCar(link, btn));
+            addBtn('check', ICONS.car, '验车');
         }
 
         return group;
     }
 
+    function handleMagAssistantButtonClick(event) {
+        const group = event.target?.closest?.('.mag-btn-group[data-mag-assistant="1"]');
+        if (!group) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+
+        const btn = event.target?.closest?.('.mag-btn[data-mag-action]');
+        if (!btn || !group.contains(btn)) return;
+        const action = btn.dataset.magAction;
+        if (!['copy', 'qb', 'bc', '115', 'check'].includes(action)) return;
+        const link = normalizeSupportedLink(group.dataset.magLink || '');
+        if (!/^(?:magnet:\?xt=urn:btih:|ed2k:\/\/|ftp:\/\/)/i.test(link)) {
+            showToast('❌ 链接无效，无法执行操作', false);
+            return;
+        }
+
+        try {
+            if (action === 'check') {
+                handleCheckCar(link, btn);
+                return;
+            }
+            setBtnActive(btn, group);
+            if (action === 'copy') {
+                const processedLink = simplifyMagnetLink(link);
+                GM_setClipboard(processedLink, 'text');
+                showToast(processedLink !== link ? '📋 精简链接已复制' : '📋 链接已复制');
+            } else if (action === 'qb') {
+                pushToQb(link);
+            } else if (action === 'bc') {
+                pushToBitComet(link);
+            } else if (action === '115') {
+                pushTo115(link);
+            }
+        } catch (error) {
+            console.error('磁力助手按钮执行失败:', error);
+            showToast(`❌ 操作失败: ${error?.message || error}`, false);
+        }
+    }
+
+    function installMagAssistantButtonDelegation() {
+        if (window.__MAG_ASSISTANT_BUTTON_DELEGATE__) return;
+        window.__MAG_ASSISTANT_BUTTON_DELEGATE__ = handleMagAssistantButtonClick;
+        document.addEventListener('click', window.__MAG_ASSISTANT_BUTTON_DELEGATE__, true);
+    }
     function pushToQb(link) {
         GM_xmlhttpRequest({
             method: "POST",
@@ -1418,6 +1448,7 @@
         observer = new MutationObserver(() => lazyRun());
         observer.observe(document.body, { childList: true, subtree: true });
     }
+    installMagAssistantButtonDelegation();
     startObserver();
 
 })();
