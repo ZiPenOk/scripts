@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.2
+// @version      2.3.3
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -995,13 +995,10 @@
                 }
                 return null
             }
-            let promoteDetailJob = () => {}
-            let cancelDetailJob = () => false
             const markNoThumb = (link, id, report = false) => {
                 if(!link || !id) return
                 link.dataset.lmtSrc = '#'
                 link.dataset.lmtNoThumb = '1'
-                if(cancelDetailJob(link.href)) delete link.dataset.lmtQueued
                 setLocalThumb(id, NO_THUMB)
                 if(report) saveThumb(id, NO_THUMB)
             }
@@ -1043,7 +1040,6 @@
                     resolveCandidateUrl(link, url, true)
                     return
                 }
-                if(cancelDetailJob(link.href)) delete link.dataset.lmtQueued
                 placeMarker(link, url)
                 setLocalThumb(id, url)
                 preloadImage(url, 2500).then(ok => {
@@ -1056,7 +1052,7 @@
                     }
                 })
             }
-            // 查找顺序：本地缓存 → 云端 → 自动实时解析（无需手动划过）
+            // 查找顺序：本地缓存 → 云端；云端未命中时保持空白，等待 hover 按需解析
             const cloudLinks = []
             linksArr.forEach(link => {
                 if(!link.href) return
@@ -1070,42 +1066,32 @@
             })
             if(cloudLinks.length) {
                 const ids = cloudLinks.map(idOf).join(',')
-                // 等云端查询自身超时后再回退，避免固定计时器抢跑造成重复详情请求。
                 getThumbs(ids).then(thumbs => {
                     thumbs = thumbs || []
                     cloudLinks.forEach((link, i) => {
                         const url = thumbs[i]
-                        if(url) {
-                            tryPlace(link, url, idOf(link))
-                        } else {
-                            resolveLink(link) // 云端无缓存 → 自动实时解析
-                        }
+                        if(url) tryPlace(link, url, idOf(link))
+                        // 云端未命中时不主动爬取，等待用户 hover 后按需解析
                     })
                 })
             }
 
-            // 实时解析单个种子：抓详情页 → 匹配图床链接 → 入队加载
+            // 按需解析单个种子：抓详情页 → 匹配图床链接 → 入队加载
             const resolveLink = async (a, force = false) => {
                 if(!a || !a.href || a.dataset.lmtPending) return
                 if(a.dataset.lmtNoThumb === '1') return
-                if(a.dataset.lmtQueued) {
-                    if(force) promoteDetailJob(a.href)
-                    return
-                }
                 if(!force && a.dataset.lmt) return
                 if(!force && a.dataset.lmtSrc === '#') return
                 if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) return
                 if(!/.*\/view\/\d+$/.test(a.href)) return
 
-                a.dataset.lmtQueued = '1'
-                const unlock = await lock(force, a.href)
-                delete a.dataset.lmtQueued
-                if(a.dataset.lmtNoThumb === '1') { unlock(); return }
-                if(!force && a.dataset.lmt) { unlock(); return }
-                if(!force && a.dataset.lmtSrc === '#') { unlock(); return }
-                if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) { unlock(); return }
-
                 a.dataset.lmtPending = '1'
+                const unlock = await lock()
+                if(a.dataset.lmtNoThumb === '1') { unlock(); delete a.dataset.lmtPending; return }
+                if(!force && a.dataset.lmt) { unlock(); delete a.dataset.lmtPending; return }
+                if(!force && a.dataset.lmtSrc === '#') { unlock(); delete a.dataset.lmtPending; return }
+                if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) { unlock(); delete a.dataset.lmtPending; return }
+
                 let detail
                 try { detail = await getDetail(a.href) } catch(err) { unlock(); delete a.dataset.lmtPending; return }
                 unlock()
@@ -1163,78 +1149,30 @@
                     }
                 }
             }
-            // hover 仅作兜底（绝大多数已在载入时自动解析完成）
+            // hover 时按需抓取详情页并解析图床（与原版一致）
             LMT_resolveLink = resolveLink
             document.querySelector('.torrent-list').addEventListener('mouseover', (e) => resolveLink(e.target))
             createPanel()
 
-            const LOCK_LIMIT = 5; // 详情页最大并发数
-            const DETAIL_START_INTERVAL = 800; // 新请求启动间隔，避免列表页瞬间打爆 Sukebei
-            let lockCount = 0;
-            let lockSeq = 0;
-            let lockLastStart = 0;
-            let lockTimer = null;
-            let detailBackoffUntil = 0;
-            const lockList = [];
-
-            const pumpLock = () => {
-                if(lockTimer || lockCount >= LOCK_LIMIT || !lockList.length) return;
-
-                const now = Date.now();
-                const delay = Math.max(
-                    0,
-                    DETAIL_START_INTERVAL - (now - lockLastStart),
-                    detailBackoffUntil - now
-                );
-
-                lockTimer = setTimeout(() => {
-                    lockTimer = null;
-                    if(lockCount >= LOCK_LIMIT || !lockList.length) {
-                        pumpLock();
-                        return;
-                    }
-
-                    const waitFunc = lockList.shift();
-                    lockCount++;
-                    lockLastStart = Date.now();
-                    waitFunc.resolve(() => {
-                        lockCount = Math.max(0, lockCount - 1);
-                        pumpLock();
-                    });
-                    pumpLock();
-                }, delay);
-            };
-
-            promoteDetailJob = key => {
-                const index = lockList.findIndex(item => item.key === key);
-                if(index < 0) return;
-
-                const item = lockList.splice(index, 1)[0];
-                item.priority = true;
-                const insertAt = lockList.findIndex(job => !job.priority);
-                if(insertAt < 0) lockList.push(item);
-                else lockList.splice(insertAt, 0, item);
-            };
-
-            cancelDetailJob = key => {
-                const index = lockList.findIndex(item => item.key === key);
-                if(index < 0) return false;
-                lockList.splice(index, 1);
-                return true;
-            };
-
-            async function lock(priority = false, key = '') {
-                return new Promise(resolve => {
-                    const item = { resolve, key, priority, seq: ++lockSeq };
-                    if(priority) {
-                        const insertAt = lockList.findIndex(job => !job.priority);
-                        if(insertAt < 0) lockList.push(item);
-                        else lockList.splice(insertAt, 0, item);
+            // 与原版一致：详情页请求串行化，避免同时触发大量请求
+            let isLock = false
+            const lockList = []
+            async function lock() {
+                function unlock() {
+                    const waitFunc = lockList.shift()
+                    if(waitFunc) {
+                        waitFunc.resolve(unlock)
                     } else {
-                        lockList.push(item);
+                        isLock = false
                     }
-                    pumpLock();
-                });
+                }
+                if(isLock) {
+                    return new Promise(resolve => {
+                        lockList.push({ resolve })
+                    })
+                }
+                isLock = true
+                return unlock
             }
             const getDetail = url => {
                 return new Promise((resolve, reject) => {
@@ -1244,7 +1182,6 @@
                         timeout: 8000,
                         onload: res => {
                             if(res.status === 429) {
-                                detailBackoffUntil = Date.now() + 5000;
                                 reject(new Error('getDetail 429'));
                                 return;
                             }
