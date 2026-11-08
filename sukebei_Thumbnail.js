@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.3
+// @version      2.3.4
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -785,7 +785,16 @@
                     delete a.dataset.lmtStale
                     upsertThumbMarker(a, e.data.LMT)
 
-                    if(/^https?:\/\/(sukebei\.nyaa\.si\/view\/).+/g.test(a.href)) {
+                    // 详情页按当前种子 ID 回写云端；已有真实缩略图时不覆盖
+                    const detailMatch = document.location.href.match(/^https?:\/\/(?:[^/]+\.)?sukebei\.nyaa\.si\/view\/(\d+)/i)
+                    if(detailMatch) {
+                        const id = detailMatch[1]
+                        const existing = getLocalThumb(id)
+                        if(!existing || existing === NO_THUMB) {
+                            saveThumb(id, e.data.LMT)
+                            setLocalThumb(id, e.data.LMT)
+                        }
+                    } else if(/^https?:\/\/(sukebei\.nyaa\.si\/view\/).+/g.test(a.href)) {
                         const id = a.href.substr(a.href.lastIndexOf('/')+1)
                         saveThumb(id, e.data.LMT)
                         setLocalThumb(id, e.data.LMT)
