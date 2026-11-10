@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.4
+// @version      2.3.5
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -249,8 +249,20 @@
         return match ? toAbsoluteUrl(match[1], base) : null
     }
 
+    const parseHentaiCoversImage = (html, base) => {
+        if(!html) return null
+
+        const doc = new DOMParser().parseFromString(html, 'text/html')
+        const meta = doc.querySelector('meta[property="og:image"]')
+        const image = doc.querySelector('img[data-media="image"]') ||
+                      doc.querySelector('#image-main')
+        const src = (meta && meta.getAttribute('content')) ||
+                    (image && image.getAttribute('src'))
+        return toAbsoluteUrl(src, base)
+    }
+
     addHandler(/^https?:\/\/(hentai-covers\.site)\/image\/\w+/, null, async (url, callback) => {
-        callback(await doGet(url, /id="image-main" src="(.+?)"/))
+        callback(parseHentaiCoversImage(await doGetHtml(url), url))
     })
     addHandler(/^https?:\/\/(www\.dlsite\.com)\/maniax\/work\/=\/product_id\/RJ\d+.html$/, null, async (url, callback) => {
         callback(await doGet(url, /twitter:image:src" content="(.+?)"/))
