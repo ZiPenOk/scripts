@@ -1,4 +1,4 @@
-// ==UserScript==
+﻿// ==UserScript==
 // @name         JAV老司机-新
 // @namespace    https://github.com/ZiPenOk/scripts
 // @version      3.0.1.1
@@ -778,9 +778,10 @@ html[data-laosiji-mobile] #jav-settings-panel .sp-footer>.sp-btn{width:100%}
 #jav-settings-panel .sp-order-block .sp-order-item{min-width:0;padding:8px 9px;border-radius:6px;background:#f8fafc}
 @media (max-width:720px){#jav-settings-panel{width:calc(100vw - 12px);height:calc(100dvh - 12px);min-height:0;max-height:none}
     #jav-settings-panel .sp-layout{display:flex;flex-direction:column}
-    #jav-settings-panel .sp-nav{flex-direction:row;overflow-x:auto;padding:8px;border-right:0;border-bottom:1px solid #e2e8f0}
-    #jav-settings-panel .sp-nav-item{flex:0 0 112px;min-height:52px;padding:8px 9px}
-    #jav-settings-panel .sp-nav-item small{display:none}
+    #jav-settings-panel .sp-nav,html[data-laosiji-mobile] #jav-settings-panel .sp-nav{flex:0 0 auto!important;flex-shrink:0!important;display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden!important;padding:8px 10px!important;gap:8px!important;border-right:0!important;border-bottom:1px solid #e2e8f0!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important;-ms-overflow-style:none!important}
+    #jav-settings-panel .sp-nav::-webkit-scrollbar,html[data-laosiji-mobile] #jav-settings-panel .sp-nav::-webkit-scrollbar{display:none!important}
+    #jav-settings-panel .sp-nav-item,html[data-laosiji-mobile] #jav-settings-panel .sp-nav-item{flex:0 0 auto!important;flex-shrink:0!important;width:auto!important;min-width:0!important;max-width:none!important;display:inline-flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;min-height:34px!important;height:34px!important;padding:0 14px!important;white-space:nowrap!important;border-radius:17px!important;font-size:13px!important;margin:0!important}
+    #jav-settings-panel .sp-nav-item small,html[data-laosiji-mobile] #jav-settings-panel .sp-nav-item small{display:none!important}
     #jav-settings-panel .sp-content{padding:14px 12px}
     #jav-settings-panel .sp-settings-grid,#jav-settings-panel .sp-button-grid{grid-template-columns:minmax(0,1fr)}
     #jav-settings-panel .sp-full-video-controls{grid-template-columns:minmax(0,1fr)}
@@ -1249,6 +1250,14 @@ a:focus:not(:focus-visible),button:focus:not(:focus-visible),[role="button"]:foc
 .jav-card-cover>:not(img){z-index:2!important}
 .jav-card-title{width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;color:inherit!important;font-size:var(--jav-card-title-size,15px)!important;text-align:left!important;white-space:normal!important;word-break:break-word!important}
 .jav-jump-btn-group{margin-top:8px;margin-bottom:4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+@media (max-width:768px){
+    .jav-jump-btn-group{display:flex!important;flex-wrap:wrap!important;gap:6px!important;width:100%!important}
+    .jav-jump-btn-group .jav-jump-line-break{display:none!important}
+    .jav-jump-btn-group>a,.jav-jump-btn-group>button,.jav-jump-btn-group>.search-menu{flex:1 1 calc(33.333% - 6px)!important;min-width:calc(33.333% - 6px)!important;max-width:100%!important;margin:0!important;display:flex!important;justify-content:center!important;align-items:center!important;box-sizing:border-box!important;min-height:34px!important}
+    .jav-jump-btn-group>.search-menu{display:flex!important}
+    .jav-jump-btn-group>.search-menu .search-main-btn{flex:1 1 auto!important;padding:0 4px!important;justify-content:center!important;text-align:center!important}
+    .jav-jump-btn-group>.search-menu .search-toggle-btn{flex:0 0 28px!important;width:28px!important}
+}
 .jav-jump-btn-group.fc2cmadb-jump-group{margin-top:10px;margin-bottom:8px;position:relative!important;z-index:100001!important}
 .jav-jump-btn-group .jav-fc2cma-btn{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif!important;font-variant-emoji:text}
 .emby-fix{width:100%!important;flex-basis:100%!important;clear:both!important;margin-top:8px!important;margin-bottom:4px!important}
@@ -1732,7 +1741,7 @@ html[data-theme="dark"] .jav-resource-cloud-item,html[data-theme="dark"] .jav-re
     .jav-resource-nav button{flex:0 0 auto;min-height:42px;padding:0 12px;white-space:nowrap;touch-action:manipulation}
     .jav-resource-nav-spacer{display:none}
     .jav-resource-nav-close{margin-left:auto}
-    .jav-resource-head{min-height:54px;padding:11px 14px}
+    .jav-resource-head{min-height:54px;padding:11px 14px;display:none!important}
     .jav-resource-head-title{font-size:16px}
     .jav-resource-backup{padding:16px 12px}
     .jav-resource-library{padding:8px}
@@ -1837,13 +1846,34 @@ html[data-theme="dark"] .actress-card__actions .btn-view-actress-works:hover{bor
 .jav-resource-pagination{display:flex;align-items:center;justify-content:center;gap:10px;flex:0 0 auto;position:sticky;bottom:0;margin-top:12px;padding:12px 0;border-top:1px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:12px;z-index:1}
 .jav-resource-pagination button{height:30px;padding:0 10px;border:1px solid #cbd5e1;border-radius:5px;background:#fff;color:#475569;font-size:12px;font-weight:800;cursor:pointer}
 .jav-resource-pagination button:disabled{opacity:.45;cursor:not-allowed}
-@media (max-width:767px){.jav-resource-toolbar{align-items:stretch;flex-direction:column}
-    .jav-resource-toolbar select,.jav-resource-toolbar button{min-height:44px}
-    .jav-resource-grid{grid-template-columns:1fr}
+@media (max-width:767px){
+    .jav-resource-toolbar{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+    .jav-resource-toolbar-group{display:flex;align-items:center;gap:4px;flex-wrap:wrap;width:100%}
+    .jav-resource-toolbar-group:first-child>button{flex:1 1 0;min-height:30px;height:30px;padding:0 6px;font-size:11px}
+    .jav-resource-toolbar input{width:100%!important;min-width:0!important;height:30px!important;padding:0 8px!important;font-size:12px}
+    .jav-resource-toolbar select{flex:1 1 0;min-width:0!important;height:30px!important;min-height:30px!important;padding:0 6px!important;font-size:11px}
+    .jav-resource-toolbar button{min-height:30px;height:30px;padding:0 8px;font-size:11px}
+    .jav-resource-summary{margin:0 0 6px;font-size:11px}
+    .jav-resource-grid{grid-template-columns:1fr;gap:6px;padding:2px}
     .jav-resource-card-actions{flex-wrap:wrap}
     .jav-resource-task-status{right:10px;bottom:10px;width:calc(100vw - 20px)}
     .jav-resource-setting-row{align-items:flex-start;flex-direction:column;gap:10px}
     .jav-resource-setting-row select,.jav-resource-setting-row input[type=number]{width:100%}
+    .jav-resource-pagination{padding:6px 0;margin-top:6px}
+    .jav-resource-pagination button{height:28px;padding:0 8px;font-size:11px}
+    .actress-card{padding:8px 10px!important}
+    .actress-card__badges{margin-bottom:4px!important;gap:3px!important}
+    .actress-card__profile{grid-template-columns:46px minmax(0,1fr)!important;gap:8px!important}
+    .actress-card-avatar{width:46px!important;height:46px!important}
+    .actress-card-name{font-size:14px!important}
+    .actress-card-allname{margin-top:1px!important;font-size:11px!important}
+    .actress-card__meta{display:flex!important;flex-wrap:wrap!important;gap:3px 12px!important;margin:4px 0!important}
+    .actress-card__meta-row{display:inline-flex!important;grid-template-columns:none!important;gap:4px!important;font-size:11px!important}
+    .actress-card__meta-row dt{color:#94a3b8}
+    .actress-card__note{min-height:0!important;margin:0 0 4px!important;font-size:11px!important;line-height:1.2!important}
+    .actress-card__actions{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:6px!important;width:100%!important}
+    .actress-card__actions button,.actress-card__actions .jav-resource-actor-remove{width:100%!important;min-width:0!important;max-width:100%!important;min-height:28px!important;height:28px!important;padding:0 2px!important;font-size:11px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:center!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;flex:none!important}
+    body:has(.jav-resource-center) #jav-mobile-settings-entry,body:has(#jav-settings-panel) #jav-mobile-settings-entry{opacity:.12!important;pointer-events:none!important}
     }
 html[data-theme="dark"] .jav-resource-pagination{border-color:#3f3f46;background:#18181b}
 html[data-theme="dark"] .jav-resource-card{box-shadow:none}
