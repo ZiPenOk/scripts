@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.5
+// @version      2.3.7
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -155,6 +155,20 @@
         }
     }
     const handlers = []
+    const imgBobHosts = /^(?:[^/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av)\.[a-z]+$/i
+
+    const imgBobDirectUrl = url => {
+        if(!url) return null
+        let parsed
+        try { parsed = new URL(url) } catch (e) { return null }
+        if(!/^https?:$/.test(parsed.protocol) || !imgBobHosts.test(parsed.hostname)) return null
+        const match = parsed.pathname.match(/^\/(upload|t|s|h|c|i|m|img)\/(?:en\/)?([^/]+\.(?:jpe?g|png|gif|webp))$/i)
+        if(!match) return null
+        parsed.pathname = '/' + match[1] + '/ib/' + match[2]
+        parsed.hash = ''
+        return parsed.href
+    }
+
     const addHandler = (pattern, process, processNyaa) => handlers.push(new Handler(pattern, process, processNyaa))
 
     const doGet = async (url, pattern) => {
@@ -241,12 +255,52 @@
         const doc = new DOMParser().parseFromString(html, 'text/html')
         const img = doc.querySelector('.fileviewer-file img') ||
                     doc.querySelector('#fileOriginalModal img')
-        const src = img && toAbsoluteUrl(img.getAttribute('src'), base)
+        const src = img && (toAbsoluteUrl(img.getAttribute('data-src'), base) || toAbsoluteUrl(img.getAttribute('src'), base))
         if(src) return src
 
         const match = html.match(/<img[^>]+src=["'](https?:\/\/[^"']+\/Application\/storage\/app\/public\/uploads\/users\/[^"']+)["']/i) ||
-                      html.match(/<img[^>]+src=["']((?:\/uploads?)?\/Application\/storage\/app\/public\/uploads\/users\/[^"']+)["']/i)
+                      html.match(/<img[^>]+src=["']((?:\/[^"']+)?\/Application\/storage\/app\/public\/uploads\/users\/[^"']+)["']/i)
         return match ? toAbsoluteUrl(match[1], base) : null
+    }
+
+    const getDirectImageUrl = url => new Promise(resolve => {
+        GM_xmlhttpRequest({
+            method: 'GET',
+            url,
+            responseType: 'blob',
+            timeout: 10000,
+            onload: response => {
+                const header = (response.responseHeaders || '').match(/^content-type:\s*([^\r\n]+)/im)
+                const contentType = (response.response && response.response.type) || (header && header[1]) || ''
+                const finalUrl = response.finalUrl || ''
+                resolve(response.status >= 200 && response.status < 300 &&
+                    /^image\//i.test(contentType) && /^https?:\/\//i.test(finalUrl) &&
+                    /\/Application\/storage\/app\/public\/uploads\/users\//i.test(finalUrl) ? finalUrl : null)
+            },
+            onerror: () => resolve(null),
+            ontimeout: () => resolve(null)
+        })
+    })
+
+    const resolveImgBobPage = async (url, callback, attempt = 0) => {
+        const direct = imgBobDirectUrl(url)
+        if(direct) {
+            const imageUrl = await getDirectImageUrl(direct)
+            if(imageUrl) {
+                callback(imageUrl)
+                return
+            }
+        }
+        const html = await doGetHtml(url)
+        const src = parseStorageImage(html, url)
+        if(src) {
+            callback(src)
+            return
+        }
+        const refresh = getMetaRefreshUrl(html, url)
+        if(refresh && refresh !== url && attempt < 1) {
+            await resolveImgBobPage(refresh, callback, attempt + 1)
+        }
     }
 
     const parseHentaiCoversImage = (html, base) => {
@@ -479,16 +533,16 @@
 
     // imgbob 系图床（ria-kurumi.vip、cn1min.com、kr1min.com、jav1min.com、misa.homes、xxxfans.org、myfirsttime.vip、stits.vip、nudestreet.vip、girlxxx.vip、bbcuck.com、2minx.com、thaiav.org、hentaishine.com、russian18.vip、xteen18.com、aixxx.vip、homexxx.vip、tight-pussy.com、3sporn.com、housewife.homes、cute-porn.com、indianx.vip 等）：
     // /upload/ib/<file> 会 301 跳到原图，可直接使用；/upload/<file> 与 /upload/en/<file> 是查看页，需要抓页面解析出原图。tight-pussy.com 使用 /t/ 路由，3sporn.com、stits.vip 使用 /s/ 路由，housewife.homes 使用 /h/ 路由，cute-porn.com 使用 /c/ 路由，indianx.vip 使用 /i/ 路由，myfirsttime.vip 使用 /m/ 路由，nudestreet.vip 使用 /img/ 路由。
-    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx)\.[a-z]+\/(?:upload|t|s|h|c|i|m|img)\/ib\/[^\/?#]+$/i, null, (url, callback) => {
-        callback(url)
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av)\.[a-z]+\/(?:upload|t|s|h|c|i|m|img)\/ib\/[^\/?#]+(?:[?#].*)?$/i, null, async (url, callback) => {
+        const imageUrl = await getDirectImageUrl(url)
+        if(imageUrl) callback(imageUrl)
     })
-    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx)\.[a-z]+\/(?:upload|t|s|h|c|i|m|img)\/(?:en\/)?[^\/?#]+$/i, callback => {
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av)\.[a-z]+\/(?:upload|t|s|h|c|i|m|img)\/(?:en\/)?[^\/?#]+(?:[?#].*)?$/i, callback => {
         const img = document.querySelector('.fileviewer-file img') ||
                     document.querySelector('#fileOriginalModal img')
         if(img && img.src) callback(img.src)
     }, async (url, callback) => {
-        const src = parseStorageImage(await doGetHtml(url), url)
-        if(src) callback(src)
+        await resolveImgBobPage(url, callback)
     })
 
     // ==================== 统一图床站点配置 ====================
@@ -555,8 +609,7 @@
         },
         async (url, callback) => {
             try {
-                const src = parseStorageImage(await doGetHtml(url), url)
-                if (src) callback(src)
+                await resolveImgBobPage(url, callback)
             } catch (e) {
             }
         }
