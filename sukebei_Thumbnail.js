@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.7
+// @version      2.3.8
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -155,7 +155,7 @@
         }
     }
     const handlers = []
-    const imgBobHosts = /^(?:[^/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av)\.[a-z]+$/i
+    const imgBobHosts = /^(?:[^/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av|porn-pig|porn4f|hentai4f|javball|ovabee|javbee|idol69|sweetie-fox|javsunday|cnpics|fikfok|cnxx|cosplay18|kin8-av|555fap|4fuk|hentaipig|3minx|fc2ppv|xcamcovid|hentaicovid|chinese-pics|kr-av|anime-jav|hentai-sub|cosplay-xxx|gofile|xxpics|hentaixnx|blackwidof|hentai-manga|1minx|cnxxx|cosplaytele|kin8-jav|old-young|imgo|sht-link|shentai-anime)\.[a-z]+$/i
 
     const imgBobDirectUrl = url => {
         if(!url) return null
@@ -1104,6 +1104,8 @@
                 upsertThumbMarker(link, url)
             }
             // 先挂标记，校验放后台；失效时刷新缓存，不让 UI 等图片探测超时。
+            const isPreviewThumb = url => /_s\.(?:jpe?g|png|gif|webp)(?:[?#]|$)/i.test(url || '')
+            const fullSizeThumb = url => String(url || '').replace(/_s(\.(?:jpe?g|png|gif|webp)(?:[?#].*)?)$/i, '$1')
             const tryPlace = (link, url, id) => {
                 if(url === NO_THUMB) {
                     markNoThumb(link, id)
@@ -1112,6 +1114,16 @@
                 if(!isResolvedImageUrl(url) && handlerFor(url)) {
                     delLocalThumb(id)
                     resolveCandidateUrl(link, url, true)
+                    return
+                }
+                const full = fullSizeThumb(url)
+                if(full !== url) {
+                    preloadImage(full, 2500).then(ok => {
+                        const chosen = ok ? full : url
+                        placeMarker(link, chosen)
+                        setLocalThumb(id, chosen)
+                        if(ok) saveThumb(id, chosen)
+                    })
                     return
                 }
                 placeMarker(link, url)
@@ -1177,7 +1189,7 @@
 
                 let hasExternalCandidate = false
                 let imgs = detail.responseText.match(/]\((https?:\/\/[^)]+)/)
-                if(imgs && imgs[1] && imgs[1].indexOf('nyaa.si') < 0) {
+                if(imgs && imgs[1] && imgs[1].indexOf('nyaa.si') < 0 && !isPreviewThumb(imgs[1])) {
                     hasExternalCandidate = true
                     if(resolveCandidateUrl(a, imgs[1], force)) return
                 }
@@ -1192,6 +1204,7 @@
                 if(info) hrefs = [...hrefs, info[1]]
                 let comments = detail.responseText.match(/id="torrent-comment\d+">(https?:\/\/.+?)(&#10;.*)*<\/div>/)
                 if(comments) hrefs = [...hrefs, comments[1]]
+                hrefs.sort((a, b) => Number(isPreviewThumb(b)) - Number(isPreviewThumb(a)))
                 console.log('found links:', hrefs)
 
                 let flag = false
