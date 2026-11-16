@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.12
+// @version      2.3.13
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -701,6 +701,8 @@
             if(!a || !url) return
             const oldUrl = a.dataset.lmt
             a.dataset.lmt = url
+            clearTimeout(a._lmtFallbackTimer)
+            a._lmtFallbackTimer = null
 
             let span = oldUrl ? document.querySelector(`span[data-lmt="${decodeURI(oldUrl)}"]`) : null
             if(!span && a.previousElementSibling && a.previousElementSibling.dataset && a.previousElementSibling.dataset.lmt) {
@@ -1158,7 +1160,7 @@
 
             // 按需解析单个种子：抓详情页 → 匹配图床链接 → 入队加载
             const resolveLink = async (a, force = false) => {
-                if(!a || !a.href || a.dataset.lmtPending) return
+                if(!a || !a.href || a.dataset.lmtPending || a._lmtFallbackTimer) return
                 if(a.dataset.lmtNoThumb === '1') return
                 if(!force && a.dataset.lmt) return
                 if(!force && a.dataset.lmtSrc === '#') return
@@ -1181,12 +1183,9 @@
                 if(!force && a.dataset.lmtSrc === '#') return
                 if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) return
 
-                let hasExternalCandidate = false
+                let candidates = []
                 let imgs = detail.responseText.match(/]\((https?:\/\/[^)]+)/)
-                if(imgs && imgs[1] && imgs[1].indexOf('nyaa.si') < 0 && !isPreviewThumb(imgs[1])) {
-                    hasExternalCandidate = true
-                    if(resolveCandidateUrl(a, imgs[1], force)) return
-                }
+                if(imgs && imgs[1] && imgs[1].indexOf('nyaa.si') < 0) candidates.push(imgs[1])
 
                 let desc = detail.responseText.match(/<div\b[^>]*id=["']torrent-description["'][^>]*>([\s\S]*?)<\/div>/i)
                 desc = (desc ? desc[1] : detail.responseText)
@@ -1198,37 +1197,36 @@
                 if(info) hrefs = [...hrefs, info[1]]
                 let comments = detail.responseText.match(/id="torrent-comment\d+">(https?:\/\/.+?)(&#10;.*)*<\/div>/)
                 if(comments) hrefs = [...hrefs, comments[1]]
-                hrefs.sort((a, b) => Number(isPreviewThumb(b)) - Number(isPreviewThumb(a)))
-                console.log('found links:', hrefs)
-
-                let flag = false
-                for (let i in hrefs) {
-                    let href = hrefs[i]
-                    if (href.indexOf('nyaa.si') >= 0) {
-                        continue
-                    }
+                for (let href of hrefs) {
+                    if (href.indexOf('nyaa.si') >= 0) continue
                     if (href.trim() === 'https://manko.fun') {
-                        href = desc.match(/(https?:\/\/.+?)\)\]\(https:\/\/manko\.fun\)/)
-                        if(href) {
-                            href = 'https://manko.fun|' + href[1].trim()
-                        } else {
-                            continue
-                        }
+                        const match = desc.match(/(https?:\/\/.+?)\)\]\(https:\/\/manko\.fun\)/)
+                        if(!match) continue
+                        href = 'https://manko.fun|' + match[1].trim()
                     }
+                    candidates.push(href)
+                }
+                candidates = [...new Set(candidates)]
+                candidates.sort((a, b) => Number(isPreviewThumb(b)) - Number(isPreviewThumb(a)))
+                console.log('found links:', candidates)
 
-                    hasExternalCandidate = true
-                    if(resolveCandidateUrl(a, href, force)) {
-                        flag = true
-                        break
+                const tryCandidate = index => {
+                    if(index >= candidates.length) {
+                        if(candidates.length) a.dataset.lmtSrc = '#'
+                        else markNoThumb(a, idOf(a), true)
+                        return
                     }
-                }
-                if(!flag) {
-                    if(hasExternalCandidate) {
-                        a.dataset.lmtSrc = '#'
-                    } else {
-                        markNoThumb(a, idOf(a), true)
+                    if(!resolveCandidateUrl(a, candidates[index], force)) {
+                        tryCandidate(index + 1)
+                        return
                     }
+                    a._lmtFallbackTimer = setTimeout(() => {
+                        a._lmtFallbackTimer = null
+                        if(a.dataset.lmt) return
+                        tryCandidate(index + 1)
+                    }, 6000)
                 }
+                tryCandidate(0)
             }
             // hover 时按需抓取详情页并解析图床（与原版一致）
             LMT_resolveLink = resolveLink
