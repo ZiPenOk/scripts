@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.14
+// @version      2.3.15
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -266,22 +266,30 @@
     }
 
     const getDirectImageUrl = url => new Promise(resolve => {
-        GM_xmlhttpRequest({
-            method: 'GET',
-            url,
-            responseType: 'blob',
-            timeout: 10000,
-            onload: response => {
-                const header = (response.responseHeaders || '').match(/^content-type:\s*([^\r\n]+)/im)
-                const contentType = (response.response && response.response.type) || (header && header[1]) || ''
-                const finalUrl = response.finalUrl || ''
-                resolve(response.status >= 200 && response.status < 300 &&
-                    /^image\//i.test(contentType) && /^https?:\/\//i.test(finalUrl) &&
-                    /\/Application\/storage\/app\/public\/uploads\/users\//i.test(finalUrl) ? finalUrl : null)
-            },
-            onerror: () => resolve(null),
-            ontimeout: () => resolve(null)
-        })
+        let settled = false
+        const finish = value => { if(settled) return; settled = true; resolve(value) }
+        const request = method => {
+            GM_xmlhttpRequest({
+                method,
+                url,
+                ...(method === 'GET' ? { responseType: 'blob' } : {}),
+                timeout: method === 'HEAD' ? 5000 : 10000,
+                onload: response => {
+                    const header = (response.responseHeaders || '').match(/^content-type:\s*([^\r\n]+)/im)
+                    const contentType = (response.response && response.response.type) || (header && header[1]) || ''
+                    const finalUrl = response.finalUrl || ''
+                    const ok = response.status >= 200 && response.status < 300 &&
+                        /^image\//i.test(contentType) && /^https?:\/\//i.test(finalUrl) &&
+                        /\/Application\/storage\/app\/public\/uploads\/users\//i.test(finalUrl)
+                    if(ok) finish(finalUrl)
+                    else if(method === 'HEAD') request('GET')
+                    else finish(null)
+                },
+                onerror: () => method === 'HEAD' ? request('GET') : finish(null),
+                ontimeout: () => method === 'HEAD' ? request('GET') : finish(null)
+            })
+        }
+        request('HEAD')
     })
 
     const resolveImgBobPage = async (url, callback, attempt = 0) => {
