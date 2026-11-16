@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.13
+// @version      2.3.14
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -1224,7 +1224,7 @@
                         a._lmtFallbackTimer = null
                         if(a.dataset.lmt) return
                         tryCandidate(index + 1)
-                    }, 6000)
+                    }, 5000)
                 }
                 tryCandidate(0)
             }
