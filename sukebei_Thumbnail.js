@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.16
+// @version      2.3.17
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -170,6 +170,7 @@
     }
 
     const isPreviewThumb = url => /_s\.(?:jpe?g|png|gif|webp)(?:[?#]|$)/i.test(url || '')
+    const sortFullSizeFirst = urls => urls.slice().sort((a, b) => Number(isPreviewThumb(a)) - Number(isPreviewThumb(b)))
 
     const addHandler = (pattern, process, processNyaa) => handlers.push(new Handler(pattern, process, processNyaa))
 
@@ -1044,8 +1045,7 @@
                 if(!alreadyNoThumb) saveThumb(detailID, NO_THUMB)
             }
 
-            const linkList = Array.apply(null, links).filter(link => link.href)
-            linkList.sort((a, b) => Number(isPreviewThumb(b.href)) - Number(isPreviewThumb(a.href)))
+            const linkList = sortFullSizeFirst(Array.apply(null, links).filter(link => link.href))
             linkList.forEach(link => {
                 link.dataset.lmtSrc = decodeURI(link.href)
                 handlers.forEach(h => {
@@ -1205,8 +1205,7 @@
                     }
                     candidates.push(href)
                 }
-                candidates = [...new Set(candidates)]
-                candidates.sort((a, b) => Number(isPreviewThumb(b)) - Number(isPreviewThumb(a)))
+                candidates = sortFullSizeFirst([...new Set(candidates)])
                 console.log('found links:', candidates)
 
                 const tryCandidate = index => {
