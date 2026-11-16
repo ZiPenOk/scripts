@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.8
+// @version      2.3.9
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -168,6 +168,9 @@
         parsed.hash = ''
         return parsed.href
     }
+
+    const isPreviewThumb = url => /_s\.(?:jpe?g|png|gif|webp)(?:[?#]|$)/i.test(url || '')
+    const fullSizeThumb = url => String(url || '').replace(/_s(\.(?:jpe?g|png|gif|webp)(?:[?#].*)?)$/i, '$1')
 
     const addHandler = (pattern, process, processNyaa) => handlers.push(new Handler(pattern, process, processNyaa))
 
@@ -1040,16 +1043,20 @@
                 if(!alreadyNoThumb) saveThumb(detailID, NO_THUMB)
             }
 
-            for(let i = 0; i < links.length; i++) {
-                if(!links[i].href) continue
-                links[i].dataset.lmtSrc = decodeURI(links[i].href)
+            const linkList = Array.apply(null, links).filter(link => link.href)
+            const isHandledLink = link => handlers.some(h => h.canHandle(link.href))
+            const hasFullLink = linkList.some(link => isHandledLink(link) && !isPreviewThumb(link.href))
+            linkList.sort((a, b) => Number(isPreviewThumb(b.href)) - Number(isPreviewThumb(a.href)))
+            linkList.forEach(link => {
+                if(hasFullLink && isPreviewThumb(link.href)) return
+                link.dataset.lmtSrc = decodeURI(link.href)
                 handlers.forEach(h => {
-                    if(h.canHandle(links[i].href)) {
-                        links[i].dataset.lmtSrc = links[i].href.toLowerCase()
-                        addToImgQueue({href:links[i].href,handler:h})
+                    if(h.canHandle(link.href)) {
+                        link.dataset.lmtSrc = link.href.toLowerCase()
+                        addToImgQueue({href:link.href,handler:h})
                     }
                 })
-            }
+            })
 
             if(!LMT_Frame) {
                 createWrap(desc)
@@ -1104,8 +1111,7 @@
                 upsertThumbMarker(link, url)
             }
             // 先挂标记，校验放后台；失效时刷新缓存，不让 UI 等图片探测超时。
-            const isPreviewThumb = url => /_s\.(?:jpe?g|png|gif|webp)(?:[?#]|$)/i.test(url || '')
-            const fullSizeThumb = url => String(url || '').replace(/_s(\.(?:jpe?g|png|gif|webp)(?:[?#].*)?)$/i, '$1')
+
             const tryPlace = (link, url, id) => {
                 if(url === NO_THUMB) {
                     markNoThumb(link, id)
@@ -1119,10 +1125,17 @@
                 const full = fullSizeThumb(url)
                 if(full !== url) {
                     preloadImage(full, 2500).then(ok => {
-                        const chosen = ok ? full : url
-                        placeMarker(link, chosen)
-                        setLocalThumb(id, chosen)
-                        if(ok) saveThumb(id, chosen)
+                        if(ok) {
+                            placeMarker(link, full)
+                            setLocalThumb(id, full)
+                            saveThumb(id, full)
+                            return
+                        }
+                        // 同域没有原图时不要显示 _s 长缩略图，留空等待 hover 重新解析详情页。
+                        delLocalThumb(id)
+                        delete link.dataset.lmt
+                        delete link.dataset.lmtSrc
+                        link.dataset.lmtStale = '1'
                     })
                     return
                 }
