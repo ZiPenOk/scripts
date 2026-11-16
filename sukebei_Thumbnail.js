@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.3.11
+// @version      2.3.12
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -170,7 +170,6 @@
     }
 
     const isPreviewThumb = url => /_s\.(?:jpe?g|png|gif|webp)(?:[?#]|$)/i.test(url || '')
-    const fullSizeThumb = url => String(url || '').replace(/_s(\.(?:jpe?g|png|gif|webp)(?:[?#].*)?)$/i, '$1')
 
     const addHandler = (pattern, process, processNyaa) => handlers.push(new Handler(pattern, process, processNyaa))
 
@@ -702,8 +701,6 @@
             if(!a || !url) return
             const oldUrl = a.dataset.lmt
             a.dataset.lmt = url
-            if(isPreviewThumb(url)) a.dataset.lmtPreview = '1'
-            else delete a.dataset.lmtPreview
 
             let span = oldUrl ? document.querySelector(`span[data-lmt="${decodeURI(oldUrl)}"]`) : null
             if(!span && a.previousElementSibling && a.previousElementSibling.dataset && a.previousElementSibling.dataset.lmt) {
@@ -935,17 +932,6 @@
             LMT_Status.style.display = 'flex'
             movePreviewPanel(e)
 
-            if(a.dataset.lmtPreview === '1') {
-                if(LMT_resolveLink) LMT_resolveLink(a)
-                setTimeout(() => {
-                    if(LMT_panel.dataset.seq !== seq || LMT_panel.dataset.src !== url) return
-                    if(a.dataset.lmtPreview !== '1') return
-                    LMT_img.src = url
-                    LMT_img.style.display = 'block'
-                    LMT_Status.style.display = 'none'
-                }, 8000)
-                return
-            }
 
             const requestStaleRefresh = () => {
                 const now = Date.now()
@@ -1133,16 +1119,7 @@
                     resolveCandidateUrl(link, url, true)
                     return
                 }
-                const full = fullSizeThumb(url)
-                if(full !== url) {
-                    preloadImage(full, 2500).then(ok => {
-                        const chosen = ok ? full : url
-                        placeMarker(link, chosen)
-                        setLocalThumb(id, chosen)
-                        if(ok) saveThumb(id, chosen)
-                    })
-                    return
-                }
+
                 placeMarker(link, url)
                 setLocalThumb(id, url)
                 preloadImage(url, 2500).then(ok => {
@@ -1183,7 +1160,7 @@
             const resolveLink = async (a, force = false) => {
                 if(!a || !a.href || a.dataset.lmtPending) return
                 if(a.dataset.lmtNoThumb === '1') return
-                if(!force && a.dataset.lmt && a.dataset.lmtPreview !== '1') return
+                if(!force && a.dataset.lmt) return
                 if(!force && a.dataset.lmtSrc === '#') return
                 if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) return
                 if(!/.*\/view\/\d+$/.test(a.href)) return
@@ -1191,7 +1168,7 @@
                 a.dataset.lmtPending = '1'
                 const unlock = await lock()
                 if(a.dataset.lmtNoThumb === '1') { unlock(); delete a.dataset.lmtPending; return }
-                if(!force && a.dataset.lmt && a.dataset.lmtPreview !== '1') { unlock(); delete a.dataset.lmtPending; return }
+                if(!force && a.dataset.lmt) { unlock(); delete a.dataset.lmtPending; return }
                 if(!force && a.dataset.lmtSrc === '#') { unlock(); delete a.dataset.lmtPending; return }
                 if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) { unlock(); delete a.dataset.lmtPending; return }
 
@@ -1200,7 +1177,7 @@
                 unlock()
                 delete a.dataset.lmtPending
                 if(a.dataset.lmtNoThumb === '1') return
-                if(!force && a.dataset.lmt && a.dataset.lmtPreview !== '1') return
+                if(!force && a.dataset.lmt) return
                 if(!force && a.dataset.lmtSrc === '#') return
                 if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) return
 
