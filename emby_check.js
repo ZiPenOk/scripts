@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      5.7.2
+// @version      5.7.4
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅✅javrate ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -669,7 +669,81 @@
         .emby-btn-jump:visited { background: ${Config.highlightColor} !important; color: #fff !important; }
         .emby-btn-copy { background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; }
         .emby-btn-copy:visited { background: linear-gradient(135deg,#667eea,#764ba2) !important; color: #fff !important; }
+        .emby-btn-deleted { background: linear-gradient(135deg,#28a745,#1f7a33); color: #fff; cursor: default; }
         .emby-button-group { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; }
+
+        .emby-delete-modal {
+            position: fixed; inset: 0; z-index: 10020;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; background: rgba(15,23,42,.58);
+            backdrop-filter: blur(4px); opacity: 0; visibility: hidden;
+            transition: opacity .18s ease, visibility .18s ease;
+        }
+        .emby-delete-modal.open { opacity: 1; visibility: visible; }
+        .emby-delete-dialog {
+            position: relative; width: min(540px, calc(100vw - 32px));
+            max-height: min(82vh, 760px); overflow: auto;
+            padding: 24px; border: 1px solid rgba(148,163,184,.35); border-radius: 18px;
+            background: #fff; color: #1e293b;
+            box-shadow: 0 24px 70px rgba(15,23,42,.32);
+            transform: translateY(10px) scale(.98);
+            transition: transform .18s ease;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            text-align: left; line-height: 1.55;
+        }
+        .emby-delete-modal.open .emby-delete-dialog { transform: translateY(0) scale(1); }
+        .emby-delete-modal.dark .emby-delete-dialog {
+            background: #1e1e30; color: #e5e7eb; border-color: #40405a;
+        }
+        .emby-delete-close {
+            position: absolute; top: 14px; right: 14px;
+            width: 32px; height: 32px; border: 0; border-radius: 999px;
+            background: #f1f5f9; color: #64748b; cursor: pointer;
+            font-size: 22px; line-height: 30px; padding: 0;
+        }
+        .emby-delete-close:hover { background: #e2e8f0; color: #0f172a; }
+        .emby-delete-modal.dark .emby-delete-close { background: #2e2e42; color: #cbd5e1; }
+        .emby-delete-modal.dark .emby-delete-close:hover { background: #3e3e58; color: #fff; }
+        .emby-delete-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 46px; height: 46px; margin-bottom: 12px;
+            border-radius: 14px; background: #fff1f2; color: #dc3545; font-size: 24px;
+        }
+        .emby-delete-modal.dark .emby-delete-icon { background: #3a2230; }
+        .emby-delete-title { margin: 0 40px 8px 0; font-size: 20px; font-weight: 750; color: #0f172a; }
+        .emby-delete-modal.dark .emby-delete-title { color: #f8fafc; }
+        .emby-delete-message { margin: 0; font-size: 14px; color: #475569; word-break: break-word; }
+        .emby-delete-modal.dark .emby-delete-message { color: #cbd5e1; }
+        .emby-delete-paths { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; }
+        .emby-delete-modal.dark .emby-delete-paths { background: #181828; border-color: #38384f; }
+        .emby-delete-paths-title { margin-bottom: 8px; font-size: 12px; font-weight: 700; color: #64748b; }
+        .emby-delete-paths-list { display: grid; gap: 6px; }
+        .emby-delete-path {
+            padding: 7px 9px; border-radius: 8px; background: rgba(148,163,184,.12);
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+            font-size: 12px; color: #334155; word-break: break-all;
+        }
+        .emby-delete-modal.dark .emby-delete-path { background: rgba(148,163,184,.1); color: #dbe3ee; }
+        .emby-delete-warning {
+            margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+            border: 1px solid #fed7aa; background: #fff7ed; color: #9a3412;
+            font-size: 13px; line-height: 1.55;
+        }
+        .emby-delete-modal.dark .emby-delete-warning { border-color: #7c2d12; background: #331b12; color: #fdba74; }
+        .emby-delete-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+        .emby-delete-btn {
+            min-width: 92px; padding: 9px 16px; border-radius: 10px; border: 1px solid transparent;
+            font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .15s ease;
+        }
+        .emby-delete-btn.cancel { background: #f1f5f9; border-color: #dbe3ec; color: #334155; }
+        .emby-delete-btn.cancel:hover { background: #e2e8f0; }
+        .emby-delete-btn.confirm { background: #dc3545; color: #fff; }
+        .emby-delete-btn.confirm:hover { background: #bd2535; box-shadow: 0 5px 14px rgba(220,53,69,.3); }
+        .emby-delete-btn.confirm.neutral { background: #52b54b; }
+        .emby-delete-btn.confirm.neutral:hover { background: #3e9e37; box-shadow: 0 5px 14px rgba(82,181,75,.28); }
+        .emby-delete-modal.dark .emby-delete-btn.cancel { background: #2e2e42; border-color: #4a4a60; color: #e2e8f0; }
+        .emby-delete-modal.dark .emby-delete-btn.cancel:hover { background: #3e3e58; }
+        .emby-delete-dialog:focus { outline: none; }
 
         .sukebei-list-td {
             display: flex !important;
@@ -1455,6 +1529,19 @@
             this.save(cache);
         },
 
+        removeByItemId(itemId) {
+            if (!itemId) return;
+            const cache = this.load();
+            let changed = false;
+            for (const code of Object.keys(cache)) {
+                if (String(cache[code]?.itemId) === String(itemId)) {
+                    delete cache[code];
+                    changed = true;
+                }
+            }
+            if (changed) this.save(cache);
+        },
+
         clear() {
             GM_setValue(this.KEY, {});
         },
@@ -1751,33 +1838,263 @@
             });
         }
 
-        request(url) {
+        request(url, options = {}) {
+            const method = options.method || 'GET';
+            const timeout = Number.isFinite(Number(options.timeout)) ? Number(options.timeout) : 10000;
+            const headers = { accept: 'application/json', ...(options.headers || {}) };
+
             return new Promise((resolve, reject) => {
                 GM_xmlhttpRequest({
-                    method: "GET",
+                    method,
                     url,
-                    headers: { accept: "application/json" },
-                    timeout: 10000,
-                    onload: res =>
-                        res.status >= 200 && res.status < 300
-                            ? resolve(res)
-                            : reject(new Error(`HTTP 错误: ${res.status}`)),
+                    headers,
+                    timeout,
+                    onload: res => {
+                        if (res.status >= 200 && res.status < 300) {
+                            resolve(res);
+                            return;
+                        }
+
+                        let detail = '';
+                        try {
+                            const body = JSON.parse(res.responseText || '{}');
+                            detail = body.Message || body.message || '';
+                        } catch {}
+
+                        const permissionHint = res.status === 401 || res.status === 403
+                            ? '（API 密钥无删除权限）'
+                            : '';
+                        reject(new Error(`HTTP 错误: ${res.status}${permissionHint}${detail ? ' - ' + detail : ''}`));
+                    },
                     onerror: () => reject(new Error("请求错误")),
                     ontimeout: () => reject(new Error("请求超时"))
                 });
             });
         }
 
+        async getDeleteInfo(itemId) {
+            const url = `${Config.embyBaseUrl}emby/Items/${encodeURIComponent(itemId)}/DeleteInfo?api_key=${encodeURIComponent(Config.embyAPI)}`;
+            const response = await this.request(url);
+            return response.responseText ? JSON.parse(response.responseText) : {};
+        }
+
+        async deleteItem(item) {
+            if (!item?.Id) throw new Error('缺少 Emby 条目 ID');
+
+            const url = `${Config.embyBaseUrl}emby/Items/${encodeURIComponent(item.Id)}?api_key=${encodeURIComponent(Config.embyAPI)}`;
+            await this.request(url, { method: 'DELETE', timeout: 30000 });
+            EmbyCache.removeByItemId(item.Id);
+        }
+
+        showEmbyDialog(options = {}) {
+            const {
+                title = '提示',
+                message = '',
+                paths = [],
+                warning = '',
+                confirmText = '确定',
+                cancelText = '取消',
+                icon = '🗑',
+                danger = false
+            } = options;
+
+            return new Promise(resolve => {
+                const overlay = document.createElement('div');
+                overlay.className = `emby-delete-modal${Config.darkMode ? ' dark' : ''}`;
+                const titleId = `emby-delete-title-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+                overlay.innerHTML = `
+                    <div class="emby-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="${titleId}" tabindex="-1">
+                        <button type="button" class="emby-delete-close" aria-label="关闭">&times;</button>
+                        <div class="emby-delete-icon" aria-hidden="true"></div>
+                        <h3 class="emby-delete-title" id="${titleId}"></h3>
+                        <p class="emby-delete-message"></p>
+                        <div class="emby-delete-paths" hidden>
+                            <div class="emby-delete-paths-title">Emby 将按当前删除设置处理以下文件：</div>
+                            <div class="emby-delete-paths-list"></div>
+                        </div>
+                        <div class="emby-delete-warning" hidden></div>
+                        <div class="emby-delete-actions">
+                            <button type="button" class="emby-delete-btn cancel"></button>
+                            <button type="button" class="emby-delete-btn confirm"></button>
+                        </div>
+                    </div>
+                `;
+
+                const dialog = overlay.querySelector('.emby-delete-dialog');
+                const closeBtn = overlay.querySelector('.emby-delete-close');
+                const iconEl = overlay.querySelector('.emby-delete-icon');
+                const titleEl = overlay.querySelector('.emby-delete-title');
+                const messageEl = overlay.querySelector('.emby-delete-message');
+                const pathsEl = overlay.querySelector('.emby-delete-paths');
+                const pathsList = overlay.querySelector('.emby-delete-paths-list');
+                const warningEl = overlay.querySelector('.emby-delete-warning');
+                const cancelBtn = overlay.querySelector('.emby-delete-btn.cancel');
+                const confirmBtn = overlay.querySelector('.emby-delete-btn.confirm');
+
+                iconEl.textContent = icon;
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                cancelBtn.textContent = cancelText || '';
+                cancelBtn.hidden = !cancelText;
+                confirmBtn.textContent = confirmText;
+                if (!danger) confirmBtn.classList.add('neutral');
+
+                if (paths.length > 0) {
+                    paths.forEach(path => {
+                        const pathEl = document.createElement('div');
+                        pathEl.className = 'emby-delete-path';
+                        pathEl.textContent = String(path);
+                        pathsList.appendChild(pathEl);
+                    });
+                } else {
+                    pathsEl.hidden = true;
+                }
+
+                if (warning) warningEl.textContent = warning;
+                else warningEl.hidden = true;
+
+                const previousOverflow = document.body.style.overflow;
+                document.body.style.overflow = 'hidden';
+                document.body.appendChild(overlay);
+
+                let settled = false;
+                const finish = value => {
+                    if (settled) return;
+                    settled = true;
+                    document.removeEventListener('keydown', onKeyDown);
+                    document.body.style.overflow = previousOverflow;
+                    overlay.classList.remove('open');
+                    setTimeout(() => overlay.remove(), 180);
+                    resolve(value);
+                };
+                const cancel = () => finish(false);
+                const confirm = () => finish(true);
+                const onKeyDown = event => {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        cancel();
+                        return;
+                    }
+
+                    if (event.key !== 'Tab') return;
+                    const focusables = Array.from(dialog.querySelectorAll('button')).filter(el => !el.hidden);
+                    if (focusables.length === 0) return;
+                    const first = focusables[0];
+                    const last = focusables[focusables.length - 1];
+
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                };
+
+                closeBtn.addEventListener('click', cancel);
+                cancelBtn.addEventListener('click', cancel);
+                confirmBtn.addEventListener('click', confirm);
+                overlay.addEventListener('click', event => {
+                    if (event.target === overlay) cancel();
+                });
+                document.addEventListener('keydown', onKeyDown);
+
+                requestAnimationFrame(() => {
+                    overlay.classList.add('open');
+                    (cancelText ? cancelBtn : confirmBtn).focus();
+                });
+            });
+        }
+
+        async handleDeleteClick(item, jumpLink) {
+            if (!item?.Id || jumpLink.dataset.embyDeleting === '1') return;
+
+            const name = item.Name || item.Id;
+            const originalText = jumpLink.textContent;
+            jumpLink.dataset.embyDeleting = '1';
+            jumpLink.textContent = '读取中…';
+            Status.show(`⏳ 正在读取 Emby 删除信息: ${name}`);
+
+            let deleteInfo = {};
+            try {
+                deleteInfo = await this.getDeleteInfo(item.Id);
+            } catch (error) {
+                console.warn('[Emby] 获取删除信息失败，将继续显示基础确认框:', error);
+            }
+            Status.hide();
+
+            const paths = Array.isArray(deleteInfo.Paths)
+                ? deleteInfo.Paths.filter(Boolean)
+                : [];
+            const confirmed = await this.showEmbyDialog({
+                title: '从 Emby 删除',
+                message: `确定从 Emby 删除《${name}》吗？`,
+                paths,
+                warning: '此操作等同于在 Emby 页面点击删除，会触发 Emby Webhook。后续网盘联动删除由你的 Webhook 程序执行。',
+                confirmText: '确认删除',
+                cancelText: '取消',
+                icon: '🗑',
+                danger: true
+            });
+
+            if (!confirmed) {
+                jumpLink.textContent = originalText;
+                delete jumpLink.dataset.embyDeleting;
+                return;
+            }
+
+            jumpLink.textContent = '删除中…';
+            jumpLink.style.pointerEvents = 'none';
+            jumpLink.setAttribute('aria-busy', 'true');
+            Status.show(`⏳ 正在从 Emby 删除: ${name}`);
+
+            try {
+                await this.deleteItem(item);
+
+                const done = document.createElement('span');
+                done.className = `emby-btn emby-btn-deleted ${this.getBtnSizeClass()}`;
+                done.textContent = '✅ 已从 Emby 删除';
+                done.title = '删除请求已由 Emby 接受，Webhook 将由 Emby 发出';
+                jumpLink.replaceWith(done);
+                Status.success(`✅ 已从 Emby 删除: ${name}`, true);
+            } catch (error) {
+                console.error('[Emby] 删除失败:', error);
+                jumpLink.textContent = originalText;
+                jumpLink.style.pointerEvents = '';
+                delete jumpLink.dataset.embyDeleting;
+                jumpLink.removeAttribute('aria-busy');
+
+                await this.showEmbyDialog({
+                    title: '删除失败',
+                    message: String(error?.message || error),
+                    warning: '请检查 Emby API 密钥是否有管理员删除权限，以及 Emby Webhook 是否正常发送事件。',
+                    confirmText: '知道了',
+                    cancelText: null,
+                    icon: '❌',
+                    danger: false
+                });
+                Status.error(`❌ Emby 删除失败: ${error?.message || error}`, true);
+            }
+        }
+
         createLink(item) {
             if (!item) return null;
 
             const embyUrl = `${Config.embyBaseUrl}web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}`;
-
             const link = document.createElement('a');
             link.href = embyUrl;
             link.target = '_blank';
-            link.className = `emby-btn emby-btn-jump ${this.getBtnSizeClass()}`;
+            link.rel = 'noopener noreferrer';
+            link.className = `emby-btn emby-btn-jump emby-jump-link ${this.getBtnSizeClass()}`;
             link.textContent = '🎬 跳转到Emby';
+            link.title = '左键跳转 Emby；右键从 Emby 删除';
+            link.setAttribute('aria-label', '跳转到 Emby；右键点击可删除');
+            link.addEventListener('contextmenu', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.handleDeleteClick(item, link);
+            });
 
             return link;
         }
