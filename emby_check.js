@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      5.7.4
+// @version      5.8.0
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅✅javrate ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -671,6 +671,69 @@
         .emby-btn-copy:visited { background: linear-gradient(135deg,#667eea,#764ba2) !important; color: #fff !important; }
         .emby-btn-deleted { background: linear-gradient(135deg,#28a745,#1f7a33); color: #fff; cursor: default; }
         .emby-button-group { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; }
+        .emby-jump-candidate-group { display: inline-flex; align-items: stretch; vertical-align: middle; }
+        .emby-jump-candidate-group > .emby-jump-link {
+            border-radius: 6px 0 0 6px !important;
+        }
+        .emby-btn-candidate {
+            background: #334155; color: #fff;
+            border-radius: 0 6px 6px 0 !important;
+            border-left: 1px solid rgba(255,255,255,.28) !important;
+            padding-left: 8px; padding-right: 8px;
+        }
+        .emby-btn-candidate:hover { background: #475569; }
+        .emby-candidate-menu {
+            position: fixed; z-index: 10030;
+            display: block; box-sizing: border-box;
+            max-height: min(60vh, 460px); overflow: auto;
+            padding: 8px; border: 1px solid rgba(148,163,184,.42);
+            border-radius: 11px; background: #fff; color: #1e293b;
+            box-shadow: 0 18px 50px rgba(15,23,42,.28);
+            font: 12px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            text-align: left;
+        }
+        .emby-candidate-menu.dark {
+            background: #1e1e30; color: #e5e7eb;
+            border-color: #40405a;
+            box-shadow: 0 18px 50px rgba(0,0,0,.5);
+        }
+        .emby-candidate-head {
+            display: flex; align-items: baseline; justify-content: space-between;
+            gap: 12px; padding: 4px 6px 8px;
+            color: inherit; font-weight: 700;
+        }
+        .emby-candidate-head span {
+            color: #64748b; font-size: 11px; font-weight: 500;
+        }
+        .emby-candidate-menu.dark .emby-candidate-head span { color: #94a3b8; }
+        .emby-candidate-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px; border-radius: 8px;
+            color: inherit !important; text-decoration: none !important;
+        }
+        .emby-candidate-item:hover,
+        .emby-candidate-item:focus-visible {
+            background: #eef4f8; outline: none;
+        }
+        .emby-candidate-menu.dark .emby-candidate-item:hover,
+        .emby-candidate-menu.dark .emby-candidate-item:focus-visible {
+            background: #2e2e42;
+        }
+        .emby-candidate-main { min-width: 0; flex: 1; }
+        .emby-candidate-name {
+            display: block; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap; font-weight: 650;
+        }
+        .emby-candidate-path {
+            display: block; margin-top: 2px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            color: #64748b; font: 11px/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+        }
+        .emby-candidate-menu.dark .emby-candidate-path { color: #94a3b8; }
+        .emby-candidate-best {
+            flex-shrink: 0; padding: 2px 6px; border-radius: 999px;
+            background: #dcfce7; color: #166534; font-size: 10px; font-weight: 700;
+        }
 
         .emby-delete-modal {
             position: fixed; inset: 0; z-index: 10020;
@@ -1497,7 +1560,7 @@
 
     /* ========= Emby 查询缓存 ========= */
     const EmbyCache = {
-        KEY: 'emby_query_cache_v1',
+        KEY: 'emby_query_cache_v2',
         TTL: 7 * 24 * 60 * 60 * 1000, // 7天
 
         load() {
@@ -1513,11 +1576,12 @@
             return cache[code] || null;
         },
 
-        set(code, item) {
+        set(code, item, matches = []) {
             const cache = this.load();
             cache[code] = {
                 itemId: item.Id,
                 serverId: item.ServerId,
+                matches: Array.isArray(matches) ? matches : [],
                 time: Date.now()
             };
             this.save(cache);
@@ -1544,6 +1608,7 @@
 
         clear() {
             GM_setValue(this.KEY, {});
+            GM_setValue('emby_query_cache_v1', {});
         },
 
         isExpired(entry) {
@@ -1627,6 +1692,10 @@
             for (const c of tryCodes) {
                 const cached = EmbyCache.get(c);
                 if (cached && !EmbyCache.isExpired(cached)) {
+                    if (!Array.isArray(cached.matches) || cached.matches.length === 0) {
+                        EmbyCache.remove(c);
+                        continue;
+                    }
                     try {
                         const checkUrl =
                             `${Config.embyBaseUrl}emby/Items/${cached.itemId}?api_key=${Config.embyAPI}`;
@@ -1638,9 +1707,17 @@
                                 EmbyCache.remove(c);
                                 continue;
                             }
-                            return { Items: [best], _searchCode: c, _fromCache: true };
+                            return {
+                                Items: [this.attachCandidates(best, cached.matches)],
+                                _searchCode: c,
+                                _fromCache: true
+                            };
                         }
-                        return { Items: [item], _searchCode: c, _fromCache: true };
+                        return {
+                            Items: [this.attachCandidates(item, cached.matches)],
+                            _searchCode: c,
+                            _fromCache: true
+                        };
                     } catch {
                         EmbyCache.remove(c);
                     }
@@ -1655,15 +1732,20 @@
                         + `?api_key=${Config.embyAPI}`
                         + `&Recursive=true&IncludeItemTypes=Movie`
                         + `&SearchTerm=${encodeURIComponent(c)}`
-                        + `&Fields=Name,Id,ServerId`;
+                        + `&Fields=Name,Id,ServerId,Path`;
 
                     const response = await this.request(url);
                     const data = JSON.parse(response.responseText);
                     data._searchCode = c;
 
                     if (data.Items?.length) {
-                        const best = this.findBestMatch(data.Items, c, clean);
-                        if (best) EmbyCache.set(c, best);
+                        const matches = this.findMatches(data.Items, c, clean);
+                        const best = matches[0]?.item || null;
+                        if (best) {
+                            const candidates = this.toCandidateList(matches);
+                            EmbyCache.set(c, best, candidates);
+                            this.attachCandidates(best, candidates);
+                        }
                         return data;
                     }
                 } catch (e) {
@@ -1738,6 +1820,10 @@
             for (const c of tryCodes) {
                 const cached = EmbyCache.get(c);
                 if (cached && !EmbyCache.isExpired(cached)) {
+                    if (!Array.isArray(cached.matches) || cached.matches.length === 0) {
+                        EmbyCache.remove(c);
+                        continue;
+                    }
                     try {
                         const checkUrl = `${Config.embyBaseUrl}emby/Items/${cached.itemId}?api_key=${Config.embyAPI}`;
                         const res = await this.request(checkUrl);
@@ -1745,12 +1831,12 @@
 
                         if (parseUncensoredCode(clean)) {
                             const best = this.findBestMatch([item], c, code);
-                            if (best) return best;
+                            if (best) return this.attachCandidates(best, cached.matches);
                             EmbyCache.remove(c);
                             continue;
                         }
 
-                        return item;
+                        return this.attachCandidates(item, cached.matches);
                     } catch {
                         EmbyCache.remove(c);
                     }
@@ -1764,17 +1850,19 @@
                         `?api_key=${Config.embyAPI}` +
                         `&Recursive=true&IncludeItemTypes=Movie` +
                         `&SearchTerm=${encodeURIComponent(c)}` +
-                        `&Fields=Name,Id,ServerId`;
+                        `&Fields=Name,Id,ServerId,Path`;
 
                     const response = await this.request(url);
                     const data = JSON.parse(response.responseText);
                     const items = data.Items || [];
 
                     if (items.length) {
-                        const best = this.findBestMatch(items, c, code);
+                        const matches = this.findMatches(items, c, code);
+                        const best = matches[0]?.item || null;
                         if (best) {
-                            EmbyCache.set(c, best);
-                            return best;
+                            const candidates = this.toCandidateList(matches);
+                            EmbyCache.set(c, best, candidates);
+                            return this.attachCandidates(best, candidates);
                         }
                     }
                 } catch (e) {
@@ -2078,6 +2166,157 @@
             }
         }
 
+        placeCandidateMenu(menu, trigger) {
+            if (!menu || !trigger?.isConnected) return;
+
+            const margin = 8;
+            const gap = 6;
+            const rect = trigger.getBoundingClientRect();
+            const width = Math.min(560, Math.max(1, window.innerWidth - margin * 2));
+            const left = Math.min(Math.max(margin, rect.left), window.innerWidth - width - margin);
+
+            menu.style.width = `${width}px`;
+            menu.style.left = `${left}px`;
+            menu.style.top = `${rect.bottom + gap}px`;
+            menu.style.visibility = 'hidden';
+
+            requestAnimationFrame(() => {
+                if (!menu?.isConnected) return;
+                const menuRect = menu.getBoundingClientRect();
+                if (menuRect.bottom > window.innerHeight - margin) {
+                    menu.style.top = `${Math.max(margin, rect.top - menuRect.height - gap)}px`;
+                }
+                menu.style.visibility = 'visible';
+            });
+        }
+
+        bindCandidateMenu(trigger, candidates, options = {}) {
+            if (!trigger || !Array.isArray(candidates) || candidates.length < 2) return;
+
+            let menu = null;
+            let closeTimer = null;
+            let outsideHandler = null;
+            let keyHandler = null;
+
+            const clearCloseTimer = () => {
+                if (closeTimer) clearTimeout(closeTimer);
+                closeTimer = null;
+            };
+
+            const closeMenu = () => {
+                clearCloseTimer();
+                if (outsideHandler) document.removeEventListener('click', outsideHandler, true);
+                if (keyHandler) document.removeEventListener('keydown', keyHandler, true);
+                outsideHandler = null;
+                keyHandler = null;
+                menu?.remove();
+                menu = null;
+                if (options.clickToggle) trigger.setAttribute('aria-expanded', 'false');
+            };
+
+            const scheduleClose = () => {
+                clearCloseTimer();
+                closeTimer = setTimeout(closeMenu, 180);
+            };
+
+            const createMenu = () => {
+                menu = document.createElement('div');
+                menu.className = `emby-candidate-menu${Config.darkMode ? ' dark' : ''}`;
+                menu.setAttribute('role', 'menu');
+
+                const head = document.createElement('div');
+                head.className = 'emby-candidate-head';
+                head.textContent = `匹配到 ${candidates.length} 个版本`;
+                const hint = document.createElement('span');
+                hint.textContent = '选择后跳转 Emby';
+                head.appendChild(hint);
+                menu.appendChild(head);
+
+                candidates.forEach((candidate, index) => {
+                    const entry = document.createElement('a');
+                    entry.className = 'emby-candidate-item';
+                    entry.href = `${Config.embyBaseUrl}web/index.html#!/item?id=${candidate.Id}&serverId=${candidate.ServerId}`;
+                    entry.target = '_blank';
+                    entry.rel = 'noopener noreferrer';
+                    entry.setAttribute('role', 'menuitem');
+
+                    const main = document.createElement('span');
+                    main.className = 'emby-candidate-main';
+
+                    const name = document.createElement('span');
+                    name.className = 'emby-candidate-name';
+                    name.textContent = candidate.Name || candidate.Id;
+                    main.appendChild(name);
+
+                    const path = document.createElement('span');
+                    path.className = 'emby-candidate-path';
+                    path.textContent = candidate.Path || 'Emby 未返回 Path';
+                    path.title = candidate.Path || 'Emby 未返回 Path';
+                    main.appendChild(path);
+                    entry.appendChild(main);
+
+                    if (index === 0) {
+                        const best = document.createElement('span');
+                        best.className = 'emby-candidate-best';
+                        best.textContent = '最佳';
+                        entry.appendChild(best);
+                    }
+
+                    entry.addEventListener('click', () => setTimeout(closeMenu, 0));
+                    menu.appendChild(entry);
+                });
+
+                menu.addEventListener('mouseenter', clearCloseTimer);
+                menu.addEventListener('mouseleave', scheduleClose);
+                menu.addEventListener('focusin', clearCloseTimer);
+                menu.addEventListener('focusout', event => {
+                    if (!menu?.contains(event.relatedTarget) && event.relatedTarget !== trigger) {
+                        scheduleClose();
+                    }
+                });
+                document.body.appendChild(menu);
+
+                outsideHandler = event => {
+                    if (!menu?.contains(event.target) && !trigger.contains(event.target)) closeMenu();
+                };
+                keyHandler = event => {
+                    if (event.key === 'Escape') closeMenu();
+                };
+                setTimeout(() => {
+                    if (!menu) return;
+                    document.addEventListener('click', outsideHandler, true);
+                    document.addEventListener('keydown', keyHandler, true);
+                }, 0);
+            };
+
+            const openMenu = () => {
+                clearCloseTimer();
+                if (!menu) createMenu();
+                this.placeCandidateMenu(menu, trigger);
+                if (options.clickToggle) trigger.setAttribute('aria-expanded', 'true');
+            };
+
+            trigger.addEventListener('mouseenter', openMenu);
+            trigger.addEventListener('mouseleave', scheduleClose);
+            trigger.addEventListener('focus', openMenu);
+            trigger.addEventListener('blur', scheduleClose);
+            trigger.addEventListener('keydown', event => {
+                if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openMenu();
+                    menu?.querySelector('.emby-candidate-item')?.focus();
+                }
+            });
+
+            if (options.clickToggle) {
+                trigger.addEventListener('click', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openMenu();
+                });
+            }
+        }
+
         createLink(item) {
             if (!item) return null;
 
@@ -2096,7 +2335,28 @@
                 this.handleDeleteClick(item, link);
             });
 
-            return link;
+            const candidates = this.getCandidateMatches(item);
+            if (candidates.length < 2) return link;
+
+            link.title = `打开最佳匹配；共 ${candidates.length} 个版本，右侧可选择；右键可删除`;
+            link.setAttribute('aria-label', `打开最佳 Emby 匹配；共 ${candidates.length} 个版本`);
+
+            const group = document.createElement('span');
+            group.className = 'emby-jump-candidate-group';
+            group.appendChild(link);
+
+            const selector = document.createElement('button');
+            selector.type = 'button';
+            selector.className = `emby-btn emby-btn-candidate ${this.getBtnSizeClass()}`;
+            selector.textContent = `▾ ${candidates.length}`;
+            selector.title = `选择 ${candidates.length} 个匹配版本`;
+            selector.setAttribute('aria-label', `选择 ${candidates.length} 个 Emby 匹配版本`);
+            selector.setAttribute('aria-haspopup', 'menu');
+            selector.setAttribute('aria-expanded', 'false');
+            group.appendChild(selector);
+            this.bindCandidateMenu(selector, candidates, { clickToggle: true });
+
+            return group;
         }
 
         createCopyButton(code) {
@@ -2125,11 +2385,63 @@
             el.href = embyUrl;
             el.target = '_blank';
             el.textContent = 'Emby';
+            const candidates = this.getCandidateMatches(item);
+            if (candidates.length > 1) {
+                el.textContent = `Emby · ${candidates.length}`;
+                el.title = `共 ${candidates.length} 个匹配版本，点击或悬停可选择`;
+                this.bindCandidateMenu(el, candidates, { clickToggle: true });
+            }
             return el;
         }
 
-        findBestMatch(items, queryCode, originalCode) {
-            if (!items || items.length === 0) return null;
+        getCandidateMatches(item) {
+            return Array.isArray(item?._embyMatches) ? item._embyMatches : [];
+        }
+
+        toCandidateList(matches) {
+            const candidates = [];
+            const seen = new Set();
+
+            for (const match of matches || []) {
+                const item = match?.item || match;
+                const id = String(item?.Id || '');
+                if (!id || seen.has(id)) continue;
+
+                seen.add(id);
+                candidates.push({
+                    Id: id,
+                    ServerId: String(item.ServerId || ''),
+                    Name: String(item.Name || id),
+                    Path: String(item.Path || ''),
+                    score: Number(match?.score) || 0
+                });
+
+                if (candidates.length >= 10) break;
+            }
+
+            return candidates;
+        }
+
+        attachCandidates(item, candidates) {
+            if (!item) return item;
+
+            const normalized = Array.isArray(candidates) ? candidates.slice(0, 10) : [];
+            try {
+                Object.defineProperty(item, '_embyMatches', {
+                    value: normalized,
+                    writable: true,
+                    configurable: true,
+                    enumerable: false
+                });
+            } catch {
+                item._embyMatches = normalized;
+            }
+
+            return item;
+        }
+
+        findMatches(items, queryCode, originalCode) {
+            if (!items || items.length === 0) return [];
 
             const target = queryCode.trim().toUpperCase();
 
@@ -2137,12 +2449,16 @@
             // Emby 库里命名与番号完全一致，直接做大小写不敏感的完整包含匹配即可
             const isWestern = /^[A-Z]{2,20}\.\d{2}\.\d{2}\.\d{2}$/i.test(queryCode);
             if (isWestern) {
-                const exact = items.find(it => (it.Name || '').toUpperCase() === target);
-                if (exact) return exact;
+                const exact = items
+                    .map((item, index) => ({ item, index }))
+                    .filter(entry => (entry.item.Name || '').toUpperCase() === target)
+                    .map(entry => ({ item: entry.item, score: 100, index: entry.index }));
+                if (exact.length > 0) return exact;
                 // 次选：名称里包含完整番号（有时 Emby 名称带有额外描述）
-                const contains = items.find(it => (it.Name || '').toUpperCase().includes(target));
-                if (contains) return contains;
-                return null;
+                return items
+                    .map((item, index) => ({ item, index }))
+                    .filter(entry => (entry.item.Name || '').toUpperCase().includes(target))
+                    .map(entry => ({ item: entry.item, score: 85, index: entry.index }));
             }
             const targetClean = target.replace(/[-_]/g, '');
             const mainTarget = target.replace(/-\d+$/, '');
@@ -2164,10 +2480,9 @@
                 originalSuffix = originalCode.replace(/^\d{6}[-_]\d{2,3}[-_]/, '').toUpperCase();
             }
 
-            let best = null;
-            let bestScore = 0;
+            const ranked = [];
 
-            for (const it of items) {
+            items.forEach((it, index) => {
                 const name = (it.Name || '').toUpperCase();
                 const nameClean = cleanStr(name);
                 const nameAlphaNum = name.replace(/[^A-Z0-9]/g, '');
@@ -2240,13 +2555,17 @@
                     }
                 }
 
-                if (score > bestScore) {
-                    bestScore = score;
-                    best = it;
+                if (score >= 70) {
+                    ranked.push({ item: it, score, index });
                 }
-            }
+            });
 
-            return bestScore >= 70 ? best : null;
+            ranked.sort((a, b) => (b.score - a.score) || (a.index - b.index));
+            return ranked;
+        }
+
+        findBestMatch(items, queryCode, originalCode) {
+            return this.findMatches(items, queryCode, originalCode)[0]?.item || null;
         }
     }
 
