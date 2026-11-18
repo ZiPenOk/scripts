@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      5.8.0
+// @version      5.8.1
 // @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅✅javrate ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -715,9 +715,16 @@
         .emby-candidate-item:focus-visible {
             background: #eef4f8; outline: none;
         }
+        .emby-candidate-item.emby-candidate-deleting {
+            opacity: .55; pointer-events: none;
+            background: #fee2e2;
+        }
         .emby-candidate-menu.dark .emby-candidate-item:hover,
         .emby-candidate-menu.dark .emby-candidate-item:focus-visible {
             background: #2e2e42;
+        }
+        .emby-candidate-menu.dark .emby-candidate-item.emby-candidate-deleting {
+            background: #3f252d;
         }
         .emby-candidate-main { min-width: 0; flex: 1; }
         .emby-candidate-name {
@@ -1598,10 +1605,27 @@
             const cache = this.load();
             let changed = false;
             for (const code of Object.keys(cache)) {
-                if (String(cache[code]?.itemId) === String(itemId)) {
-                    delete cache[code];
-                    changed = true;
+                const entry = cache[code];
+                const matches = Array.isArray(entry?.matches) ? entry.matches : [];
+                const filtered = matches.filter(match => String(match?.Id) !== String(itemId));
+                const removedCandidate = filtered.length !== matches.length;
+                const isBest = String(entry?.itemId) === String(itemId);
+                if (!removedCandidate && !isBest) continue;
+
+                if (isBest) {
+                    if (filtered.length > 0) {
+                        entry.itemId = filtered[0].Id;
+                        entry.serverId = filtered[0].ServerId;
+                        entry.matches = filtered;
+                        entry.time = Date.now();
+                    } else {
+                        delete cache[code];
+                    }
+                } else if (removedCandidate) {
+                    entry.matches = filtered;
                 }
+
+                changed = true;
             }
             if (changed) this.save(cache);
         },
@@ -1974,6 +1998,57 @@
             EmbyCache.removeByItemId(item.Id);
         }
 
+        async deleteItemWithConfirmation(item) {
+            if (!item?.Id) return false;
+
+            const name = item.Name || item.Id;
+            Status.show(`⏳ 正在读取 Emby 删除信息: ${name}`);
+
+            let deleteInfo = {};
+            try {
+                deleteInfo = await this.getDeleteInfo(item.Id);
+            } catch (error) {
+                console.warn('[Emby] 获取删除信息失败，将继续显示基础确认框:', error);
+            }
+            Status.hide();
+
+            const paths = Array.isArray(deleteInfo.Paths)
+                ? deleteInfo.Paths.filter(Boolean)
+                : [];
+            const confirmed = await this.showEmbyDialog({
+                title: '从 Emby 删除',
+                message: `确定从 Emby 删除《${name}》吗？`,
+                paths,
+                warning: '此操作等同于在 Emby 页面点击删除，会触发 Emby Webhook。后续网盘联动删除由你的 Webhook 程序执行。',
+                confirmText: '确认删除',
+                cancelText: '取消',
+                icon: '🗑',
+                danger: true
+            });
+
+            if (!confirmed) return false;
+
+            Status.show(`⏳ 正在从 Emby 删除: ${name}`);
+            try {
+                await this.deleteItem(item);
+                Status.success(`✅ 已从 Emby 删除: ${name}`, true);
+                return true;
+            } catch (error) {
+                console.error('[Emby] 删除失败:', error);
+                await this.showEmbyDialog({
+                    title: '删除失败',
+                    message: String(error?.message || error),
+                    warning: '请检查 Emby API 密钥是否有管理员删除权限，以及 Emby Webhook 是否正常发送事件。',
+                    confirmText: '知道了',
+                    cancelText: null,
+                    icon: '❌',
+                    danger: false
+                });
+                Status.error(`❌ Emby 删除失败: ${error?.message || error}`, true);
+                return false;
+            }
+        }
+
         showEmbyDialog(options = {}) {
             const {
                 title = '提示',
@@ -2095,75 +2170,51 @@
             });
         }
 
-        async handleDeleteClick(item, jumpLink) {
+        async handleDeleteClick(item, jumpLink, options = {}) {
             if (!item?.Id || jumpLink.dataset.embyDeleting === '1') return;
 
-            const name = item.Name || item.Id;
             const originalText = jumpLink.textContent;
             jumpLink.dataset.embyDeleting = '1';
-            jumpLink.textContent = '读取中…';
-            Status.show(`⏳ 正在读取 Emby 删除信息: ${name}`);
-
-            let deleteInfo = {};
-            try {
-                deleteInfo = await this.getDeleteInfo(item.Id);
-            } catch (error) {
-                console.warn('[Emby] 获取删除信息失败，将继续显示基础确认框:', error);
-            }
-            Status.hide();
-
-            const paths = Array.isArray(deleteInfo.Paths)
-                ? deleteInfo.Paths.filter(Boolean)
-                : [];
-            const confirmed = await this.showEmbyDialog({
-                title: '从 Emby 删除',
-                message: `确定从 Emby 删除《${name}》吗？`,
-                paths,
-                warning: '此操作等同于在 Emby 页面点击删除，会触发 Emby Webhook。后续网盘联动删除由你的 Webhook 程序执行。',
-                confirmText: '确认删除',
-                cancelText: '取消',
-                icon: '🗑',
-                danger: true
-            });
-
-            if (!confirmed) {
-                jumpLink.textContent = originalText;
-                delete jumpLink.dataset.embyDeleting;
-                return;
-            }
-
-            jumpLink.textContent = '删除中…';
+            jumpLink.textContent = '处理中…';
             jumpLink.style.pointerEvents = 'none';
             jumpLink.setAttribute('aria-busy', 'true');
-            Status.show(`⏳ 正在从 Emby 删除: ${name}`);
 
-            try {
-                await this.deleteItem(item);
-
+            const deleted = await this.deleteItemWithConfirmation(item);
+            if (deleted) {
+                jumpLink.style.pointerEvents = '';
+                delete jumpLink.dataset.embyDeleting;
+                jumpLink.removeAttribute('aria-busy');
+                if (typeof options.onDeleted === 'function') {
+                    options.onDeleted(item);
+                    return;
+                }
                 const done = document.createElement('span');
                 done.className = `emby-btn emby-btn-deleted ${this.getBtnSizeClass()}`;
                 done.textContent = '✅ 已从 Emby 删除';
                 done.title = '删除请求已由 Emby 接受，Webhook 将由 Emby 发出';
                 jumpLink.replaceWith(done);
-                Status.success(`✅ 已从 Emby 删除: ${name}`, true);
-            } catch (error) {
-                console.error('[Emby] 删除失败:', error);
+            } else {
                 jumpLink.textContent = originalText;
                 jumpLink.style.pointerEvents = '';
                 delete jumpLink.dataset.embyDeleting;
                 jumpLink.removeAttribute('aria-busy');
-
-                await this.showEmbyDialog({
-                    title: '删除失败',
-                    message: String(error?.message || error),
-                    warning: '请检查 Emby API 密钥是否有管理员删除权限，以及 Emby Webhook 是否正常发送事件。',
-                    confirmText: '知道了',
-                    cancelText: null,
-                    icon: '❌',
-                    danger: false
-                });
-                Status.error(`❌ Emby 删除失败: ${error?.message || error}`, true);
             }
+        }
+
+        async handleCandidateDelete(candidate, entry, onDeleted) {
+            if (!candidate?.Id || entry?.dataset?.embyDeleting === '1') return;
+
+            entry.dataset.embyDeleting = '1';
+            entry.classList.add('emby-candidate-deleting');
+            entry.setAttribute('aria-busy', 'true');
+
+            const deleted = await this.deleteItemWithConfirmation(candidate);
+
+            delete entry.dataset.embyDeleting;
+            entry.classList.remove('emby-candidate-deleting');
+            entry.removeAttribute('aria-busy');
+
+            if (deleted && typeof onDeleted === 'function') onDeleted(candidate);
         }
 
         placeCandidateMenu(menu, trigger) {
@@ -2228,17 +2279,18 @@
                 head.className = 'emby-candidate-head';
                 head.textContent = `匹配到 ${candidates.length} 个版本`;
                 const hint = document.createElement('span');
-                hint.textContent = '选择后跳转 Emby';
+                hint.textContent = '左键跳转 · 右键删除';
                 head.appendChild(hint);
                 menu.appendChild(head);
 
                 candidates.forEach((candidate, index) => {
                     const entry = document.createElement('a');
                     entry.className = 'emby-candidate-item';
-                    entry.href = `${Config.embyBaseUrl}web/index.html#!/item?id=${candidate.Id}&serverId=${candidate.ServerId}`;
+                    entry.href = this.getItemUrl(candidate);
                     entry.target = '_blank';
                     entry.rel = 'noopener noreferrer';
                     entry.setAttribute('role', 'menuitem');
+                    entry.title = `${candidate.Path || candidate.Name || candidate.Id}\n右键删除此版本`;
 
                     const main = document.createElement('span');
                     main.className = 'emby-candidate-main';
@@ -2263,6 +2315,16 @@
                     }
 
                     entry.addEventListener('click', () => setTimeout(closeMenu, 0));
+                    entry.addEventListener('contextmenu', event => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        this.handleCandidateDelete(candidate, entry, deleted => {
+                            if (typeof options.onCandidateDeleted === 'function') {
+                                options.onCandidateDeleted(deleted);
+                            }
+                            closeMenu();
+                        });
+                    });
                     menu.appendChild(entry);
                 });
 
@@ -2290,6 +2352,10 @@
             };
 
             const openMenu = () => {
+                if (candidates.length < 2) {
+                    closeMenu();
+                    return;
+                }
                 clearCloseTimer();
                 if (!menu) createMenu();
                 this.placeCandidateMenu(menu, trigger);
@@ -2310,6 +2376,7 @@
 
             if (options.clickToggle) {
                 trigger.addEventListener('click', event => {
+                    if (candidates.length < 2) return;
                     event.preventDefault();
                     event.stopPropagation();
                     openMenu();
@@ -2317,10 +2384,32 @@
             }
         }
 
+        getItemUrl(item) {
+            if (!item?.Id) return '';
+            return `${Config.embyBaseUrl}web/index.html#!/item?id=${encodeURIComponent(item.Id)}&serverId=${encodeURIComponent(item.ServerId || '')}`;
+        }
+
+        removeCandidateFromItem(item, itemId) {
+            const candidates = this.getCandidateMatches(item);
+            const index = candidates.findIndex(candidate => String(candidate.Id) === String(itemId));
+            if (index < 0) return candidates;
+
+            candidates.splice(index, 1);
+            if (index === 0 && candidates[0]) {
+                item.Id = candidates[0].Id;
+                item.ServerId = candidates[0].ServerId;
+                item.Name = candidates[0].Name;
+                item.Path = candidates[0].Path;
+            }
+            return candidates;
+        }
+
         createLink(item) {
             if (!item) return null;
 
-            const embyUrl = `${Config.embyBaseUrl}web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}`;
+            let group = null;
+            let selector = null;
+            const embyUrl = this.getItemUrl(item);
             const link = document.createElement('a');
             link.href = embyUrl;
             link.target = '_blank';
@@ -2332,7 +2421,9 @@
             link.addEventListener('contextmenu', event => {
                 event.preventDefault();
                 event.stopPropagation();
-                this.handleDeleteClick(item, link);
+                this.handleDeleteClick(item, link, {
+                    onDeleted: deleted => this.syncLinkAfterCandidateDeleted(item, link, group, selector, deleted)
+                });
             });
 
             const candidates = this.getCandidateMatches(item);
@@ -2341,11 +2432,11 @@
             link.title = `打开最佳匹配；共 ${candidates.length} 个版本，右侧可选择；右键可删除`;
             link.setAttribute('aria-label', `打开最佳 Emby 匹配；共 ${candidates.length} 个版本`);
 
-            const group = document.createElement('span');
+            group = document.createElement('span');
             group.className = 'emby-jump-candidate-group';
             group.appendChild(link);
 
-            const selector = document.createElement('button');
+            selector = document.createElement('button');
             selector.type = 'button';
             selector.className = `emby-btn emby-btn-candidate ${this.getBtnSizeClass()}`;
             selector.textContent = `▾ ${candidates.length}`;
@@ -2354,9 +2445,43 @@
             selector.setAttribute('aria-haspopup', 'menu');
             selector.setAttribute('aria-expanded', 'false');
             group.appendChild(selector);
-            this.bindCandidateMenu(selector, candidates, { clickToggle: true });
+            this.bindCandidateMenu(selector, candidates, {
+                clickToggle: true,
+                onCandidateDeleted: deleted => this.syncLinkAfterCandidateDeleted(item, link, group, selector, deleted)
+            });
 
             return group;
+        }
+
+        syncLinkAfterCandidateDeleted(item, link, group, selector, deleted) {
+            const remaining = this.removeCandidateFromItem(item, deleted.Id);
+            link.style.pointerEvents = '';
+            delete link.dataset.embyDeleting;
+            link.removeAttribute('aria-busy');
+
+            if (remaining.length === 0) {
+                const done = document.createElement('span');
+                done.className = `emby-btn emby-btn-deleted ${this.getBtnSizeClass()}`;
+                done.textContent = '✅ Emby 条目已删除';
+                const target = group?.isConnected ? group : link;
+                target.replaceWith(done);
+                return;
+            }
+
+            link.href = this.getItemUrl(item);
+            if (remaining.length < 2) {
+                selector?.remove();
+                if (group?.isConnected) group.replaceWith(link);
+                link.title = '左键跳转 Emby；右键从 Emby 删除';
+                link.setAttribute('aria-label', '跳转到 Emby；右键点击可删除');
+                return;
+            }
+
+            selector.textContent = `▾ ${remaining.length}`;
+            selector.title = `选择 ${remaining.length} 个匹配版本`;
+            selector.setAttribute('aria-label', `选择 ${remaining.length} 个 Emby 匹配版本`);
+            link.title = `打开最佳匹配；共 ${remaining.length} 个版本，右侧可选择；右键可删除`;
+            link.setAttribute('aria-label', `打开最佳 Emby 匹配；共 ${remaining.length} 个版本`);
         }
 
         createCopyButton(code) {
@@ -2378,7 +2503,7 @@
         createBadge(item) {
             if (!item) return null;
 
-            const embyUrl = `${Config.embyBaseUrl}web/index.html#!/item?id=${item.Id}&serverId=${item.ServerId}`;
+            const embyUrl = this.getItemUrl(item);
 
             const el = document.createElement('a');
             el.className = 'emby-badge';
@@ -2389,7 +2514,25 @@
             if (candidates.length > 1) {
                 el.textContent = `Emby · ${candidates.length}`;
                 el.title = `共 ${candidates.length} 个匹配版本，点击或悬停可选择`;
-                this.bindCandidateMenu(el, candidates, { clickToggle: true });
+                this.bindCandidateMenu(el, candidates, {
+                    clickToggle: true,
+                    onCandidateDeleted: deleted => {
+                        const remaining = this.removeCandidateFromItem(item, deleted.Id);
+                        if (remaining.length === 0) {
+                            el.textContent = 'Emby 已删除';
+                            el.removeAttribute('href');
+                            el.removeAttribute('target');
+                            el.title = 'Emby 条目已删除';
+                            return;
+                        }
+
+                        el.href = this.getItemUrl(item);
+                        el.textContent = remaining.length > 1 ? `Emby · ${remaining.length}` : 'Emby';
+                        el.title = remaining.length > 1
+                            ? `共 ${remaining.length} 个匹配版本，点击或悬停可选择`
+                            : '跳转到 Emby';
+                    }
+                });
             }
             return el;
         }
