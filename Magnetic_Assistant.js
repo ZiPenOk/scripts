@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.6.0
+// @version      3.6.1
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -651,7 +651,7 @@
             addBtn('bc', ICONS.bc, '推送至 BitComet');
         }
         if (config.enable115) {
-            addBtn('115', ICONS.u115, '115 离线');
+            addBtn('115', ICONS.u115, laosijiDirectHint());
         }
         if (config.enableCheck) {
             addBtn('check', ICONS.car, '验车');
@@ -702,9 +702,37 @@
     }
 
     function installMagAssistantButtonDelegation() {
-        if (window.__MAG_ASSISTANT_BUTTON_DELEGATE__) return;
-        window.__MAG_ASSISTANT_BUTTON_DELEGATE__ = handleMagAssistantButtonClick;
-        document.addEventListener('click', window.__MAG_ASSISTANT_BUTTON_DELEGATE__, true);
+        if (!window.__MAG_ASSISTANT_BUTTON_DELEGATE__) {
+            window.__MAG_ASSISTANT_BUTTON_DELEGATE__ = handleMagAssistantButtonClick;
+            document.addEventListener('click', window.__MAG_ASSISTANT_BUTTON_DELEGATE__, true);
+        }
+        if (!window.__MAG_ASSISTANT_BUTTON_CONTEXT_DELEGATE__) {
+            window.__MAG_ASSISTANT_BUTTON_CONTEXT_DELEGATE__ = handleMagAssistantButtonContextMenu;
+            document.addEventListener('contextmenu', window.__MAG_ASSISTANT_BUTTON_CONTEXT_DELEGATE__, true);
+        }
+    }
+
+    function handleMagAssistantButtonContextMenu(event) {
+        const btn = event.target?.closest?.('.mag-btn[data-mag-action="115"]');
+        const group = btn?.closest?.('.mag-btn-group[data-mag-assistant="1"]');
+        if (!btn || !group || !group.contains(btn)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation?.();
+
+        const link = normalizeSupportedLink(group.dataset.magLink || '');
+        if (!/^(?:magnet:\?xt=urn:btih:|ed2k:\/\/|ftp:\/\/)/i.test(link)) {
+            showToast('❌ 链接无效，无法执行操作', false);
+            return;
+        }
+        try {
+            setBtnActive(btn, group);
+            pushTo115(link, { direct: true });
+        } catch (error) {
+            console.error('磁力助手 115 直推失败:', error);
+            showToast(`❌ 操作失败: ${error?.message || error}`, false);
+        }
     }
     function pushToQb(link) {
         GM_xmlhttpRequest({
@@ -803,25 +831,40 @@
 
     // 老司机(「JAV老司机-新」)在同一个页面时，把 115 推送整个交给它：
     // 它负责模板目录、离线任务、清理与规范改名，这里只做失败提示。
-    function laosijiOfflineBridge() {
+    function laosijiOfflineBridge(method = 'push') {
         try {
             const pageWindow = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
             const bridge = pageWindow.__LAOSIJI_PAN115_OFFLINE__;
-            return bridge && typeof bridge.push === 'function' ? bridge : null;
+            return bridge && typeof bridge[method] === 'function' ? bridge : null;
         } catch (_) {
             return null;
         }
     }
 
-    function pushTo115(link) {
-        const bridge = laosijiOfflineBridge();
+    function laosijiDirectHint() {
+        const bridge = laosijiOfflineBridge('pushDirect');
+        try {
+            const hint = bridge && typeof bridge.directHint === 'function' ? bridge.directHint() : '';
+            if (hint) return String(hint);
+        } catch (_) {}
+        return '115 离线（右键直接推送，跳过额外处理）';
+    }
+
+    function pushTo115(link, options = {}) {
+        const direct = options.direct === true;
+        const bridge = laosijiOfflineBridge(direct ? 'pushDirect' : 'push');
         if (bridge) {
             // 番号交给老司机自己从标题/文件名里认：这条链接是 URL 编码的，从整条链接
             // 抠番号会把 %20 和后面的数字拼成假番号（201013-26），JavDB 就查不到了。
-            Promise.resolve(bridge.push(link, { title: document.title }))
+            const context = { title: document.title };
+            if (direct) context.silent = true;
+            const task = direct ? bridge.pushDirect(link, context) : bridge.push(link, context);
+            Promise.resolve(task)
                 .then(result => {
                     if (result && result.ok === false) {
                         showToast('❌ 115 推送失败: ' + (result.message || '未知错误'), false);
+                    } else if (direct) {
+                        showToast('✅ 已直接推送至 115');
                     }
                 })
                 .catch(error => showToast('❌ 115 推送异常: ' + ((error && error.message) || error), false));
