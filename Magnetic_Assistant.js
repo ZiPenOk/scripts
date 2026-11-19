@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.6.2
+// @version      3.6.3
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -991,7 +991,7 @@
 
     const linkRegexes = {
         magnet: /magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*/g,
-        ed2k: /ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|\/?/gi,
+        ed2k: /ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}(?:\|h=[A-Z2-7]{32})?\|\/?/gi,
         ftp: /ftp:\/\/[^\s]+/g
     };
 
@@ -1006,7 +1006,7 @@
 
     function extractEd2kLink(value) {
         const decoded = decodeLinkValue(value || '');
-        const match = decoded.match(/ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|\/?/i);
+        const match = decoded.match(/ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}(?:\|h=[A-Z2-7]{32})?\|\/?/i);
         return match ? match[0] : null;
     }
 
@@ -1097,7 +1097,7 @@
         if (!parent) return null;
         const content = node.nodeValue;
 
-        const combinedRegex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}\|\/?|ftp:\/\/[^\s]+)/gi;
+        const combinedRegex = /(magnet:\?xt=urn:btih:[a-zA-Z0-9]{32,40}[^\s<>"]*|ed2k:\/\/\|file\|[^|]+\|\d+\|[a-fA-F0-9]{32}(?:\|h=[A-Z2-7]{32})?\|\/?|ftp:\/\/[^\s]+)/gi;
         if (!combinedRegex.test(content)) return null;
         combinedRegex.lastIndex = 0;
 
