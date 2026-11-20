@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.6.3
+// @version      3.6.4
 // @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
@@ -237,7 +237,9 @@
             text-decoration: underline;
         }
         .whatslink-overlay { position: fixed; inset: 0; z-index: 10000040; display: flex; align-items: center; justify-content: center; padding: 18px; background: transparent; backdrop-filter: none; }
+        .whatslink-overlay.has-empty-result { background: rgba(15,23,42,.28); backdrop-filter: blur(3px); }
         .whatslink-modal, .whatslink-modal.no-shots { position: relative; inset: auto; width: min(1140px,calc(100vw - 36px)); max-width: 1140px; height: auto; max-height: calc(100vh - 36px); display: block; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+        .whatslink-modal.no-shots { width: min(560px,calc(100vw - 36px)); max-height: calc(100vh - 36px); overflow: auto; border-radius: 16px; }
         .whatslink-gallery-scene { position: relative; inset: auto; display: grid; grid-template-rows: minmax(0,1fr) auto auto; row-gap: 3px; width: 100%; height: auto; align-items: center; justify-items: center; overflow: hidden; background: transparent; }
         .whatslink-gallery-visual { position: relative; z-index: 1; grid-row: 1; width: 100%; height: auto; min-height: 0; margin: 0 !important; display: grid; place-items: center; overflow: hidden; }
         .whatslink-gallery-hero { position: relative; z-index: 1; width: 100%; height: 100%; min-height: 0; object-fit: contain; display: block; }
@@ -251,17 +253,28 @@
         .whatslink-gallery-thumb { width: 88px; height: 50px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 3px; background: transparent; cursor: pointer; }
         .whatslink-gallery-thumb.active { border-color: #e3a05b; }
         .whatslink-gallery-thumb img { width: 100%; height: 100%; display: block; object-fit: cover; }
-        .whatslink-gallery-empty { position: absolute; z-index: 2; display: none; width: min(420px,72%); text-align: center; color: rgba(55,65,81,.78); }
-        .whatslink-modal.no-shots .whatslink-gallery-empty { display: block; }
-        .whatslink-modal.no-shots .whatslink-gallery-visual { width: 100%; height: min(460px,calc(100vh - 100px)); }
-        .whatslink-modal.no-shots .whatslink-gallery-hero, .whatslink-modal.no-shots .whatslink-gallery-arrow, .whatslink-modal.no-shots .whatslink-gallery-thumbs { display: none; }
-        .whatslink-gallery-empty-icon { width: 56px; height: 56px; margin: 0 auto 14px; display: grid; place-items: center; border: 1px solid rgba(55,65,81,.24); border-radius: 50%; color: #b45309; font-size: 24px; }
-        .whatslink-gallery-empty-title { margin-bottom: 7px; color: #374151; font-size: 17px; font-weight: 800; }
-        .whatslink-gallery-empty-text { margin: 0; font-size: 13px; line-height: 1.6; }
+        .whatslink-empty-card { overflow: hidden; border: 1px solid #dbe3ee; border-radius: 16px; background: #f8fafc; box-shadow: 0 24px 70px rgba(15,23,42,.3); }
+        .whatslink-empty-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 22px 22px 16px; border-bottom: 1px solid #e2e8f0; }
+        .whatslink-empty-head h2 { margin: 4px 0 0; color: #0f172a; font-size: 22px; line-height: 1.3; }
+        .whatslink-empty-kicker { color: #b97835; font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+        .whatslink-empty-close { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #d8e0ea; border-radius: 10px; color: #475569; background: #fff; cursor: pointer; padding: 0 0 2px; font: 23px/1 Arial,sans-serif; }
+        .whatslink-empty-close:hover { color: #0f172a; border-color: #b9c5d4; background: #f1f5f9; }
+        .whatslink-empty-summary { margin: 0; padding: 16px 22px 4px; color: #475569; font-size: 14px; line-height: 1.65; }
+        .whatslink-empty-meta { display: grid; gap: 1px; margin: 14px 22px 0; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 12px; background: #e2e8f0; }
+        .whatslink-empty-row { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 14px; padding: 11px 13px; background: #fff; }
+        .whatslink-empty-row span { color: #64748b; font-size: 12px; font-weight: 700; }
+        .whatslink-empty-row strong { min-width: 0; color: #1e293b; font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+        .whatslink-empty-hint { margin: 0; padding: 14px 22px 20px; color: #7c8798; font-size: 12px; line-height: 1.6; }
         .whatslink-loading { color: #374151; font-size: 14px; }
         @media (max-width: 768px) {
             .whatslink-overlay { padding: 10px; }
             .whatslink-modal, .whatslink-modal.no-shots { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); }
+            .whatslink-empty-head { padding: 18px 16px 14px; }
+            .whatslink-empty-head h2 { font-size: 19px; }
+            .whatslink-empty-summary { padding: 14px 16px 2px; }
+            .whatslink-empty-meta { margin: 12px 16px 0; }
+            .whatslink-empty-row { grid-template-columns: 78px minmax(0,1fr); gap: 10px; padding: 10px 11px; }
+            .whatslink-empty-hint { padding: 12px 16px 17px; }
             .whatslink-gallery-thumb { width: 60px; height: 38px; }
             .whatslink-gallery-close { top: 10px; right: 10px; width: 40px; height: 40px; }
             .whatslink-gallery-arrow { width: 32px; height: 32px; }
@@ -443,6 +456,53 @@
         overlay.className = 'whatslink-overlay';
         const modal = document.createElement('section');
         modal.className = `whatslink-modal${shots.length ? '' : ' no-shots'}`;
+        if (!shots.length) {
+            overlay.classList.add('has-empty-result');
+            modal.innerHTML = `
+                <div class="whatslink-empty-card">
+                    <header class="whatslink-empty-head">
+                        <div>
+                            <span class="whatslink-empty-kicker">验车结果</span>
+                            <h2>未发现预览截图</h2>
+                        </div>
+                        <button class="whatslink-empty-close" type="button" aria-label="关闭">×</button>
+                    </header>
+                    <p class="whatslink-empty-summary">资源信息已获取，但 Whatslink 没有返回可展示的截图。</p>
+                    <div class="whatslink-empty-meta">
+                        <div class="whatslink-empty-row">
+                            <span>资源名称</span>
+                            <strong class="whatslink-empty-name"></strong>
+                        </div>
+                        <div class="whatslink-empty-row">
+                            <span>文件数量</span>
+                            <strong>${resourceCount} 个文件</strong>
+                        </div>
+                        <div class="whatslink-empty-row">
+                            <span>资源大小</span>
+                            <strong>${resourceSize}</strong>
+                        </div>
+                    </div>
+                    <p class="whatslink-empty-hint">可以继续结合资源名称、文件数量和大小判断，无需等待截图。</p>
+                </div>
+            `;
+            modal.querySelector('.whatslink-empty-name').textContent = resourceName;
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            const closeEmpty = () => {
+                overlay.remove();
+                document.removeEventListener('keydown', onEmptyKeydown);
+            };
+            const onEmptyKeydown = event => {
+                if (event.key === 'Escape' && document.body.contains(overlay)) closeEmpty();
+            };
+            modal.querySelector('.whatslink-empty-close').addEventListener('click', closeEmpty);
+            overlay.addEventListener('click', event => {
+                if (event.target === overlay) closeEmpty();
+            });
+            overlay.addEventListener('wheel', event => event.preventDefault(), { passive: false });
+            document.addEventListener('keydown', onEmptyKeydown);
+            return;
+        }
         modal.innerHTML = `
             <div class="whatslink-gallery-scene">
                 <div class="whatslink-gallery-visual">
@@ -450,11 +510,6 @@
                     <button class="whatslink-gallery-arrow whatslink-gallery-prev" type="button" aria-label="上一张">‹</button>
                     <img class="whatslink-gallery-hero" alt="截图预览">
                     <button class="whatslink-gallery-arrow whatslink-gallery-next" type="button" aria-label="下一张">›</button>
-                    <div class="whatslink-gallery-empty">
-                        <div class="whatslink-gallery-empty-icon">?</div>
-                        <div class="whatslink-gallery-empty-title">暂无截图</div>
-                        <p class="whatslink-gallery-empty-text">当前资源没有可展示的截图，可以结合资源名称和文件数量判断。</p>
-                    </div>
                 </div>
                 <div class="whatslink-gallery-info">
                     <span class="whatslink-gallery-name"></span>
