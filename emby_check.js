@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      5.8.1
-// @description  👆👆👆在 ✅JavBus✅Javdb✅Sehuatang ✅supjav ✅Sukebei ✅✅javrate ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
+// @version      5.8.2
+// @description  👆👆👆在 ✅JavBus✅Javdb✅LTXLib✅Sehuatang ✅supjav ✅Sukebei ✅✅javrate ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
 // @match        *://javdb*.com/v/*
@@ -21,6 +21,7 @@
 // @match        *://hjd2048.com/2048/*
 // @match        *://missav.ws/*
 // @match        *://jable.tv/videos/*
+// @match        *://ltxlib.dpdns.org/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_getValue
 // @grant        GM_setValue
@@ -167,7 +168,8 @@
                 '169bbs': { list: true, detail: true },
                 'hjd2048': { list: true, detail: true },
                 'missav': { list: true, detail: true },
-                'jable': { list: true, detail: true }
+                'jable': { list: true, detail: true },
+                'ltxlib': { list: true, detail: false }
             };
             for (let site in saved) {
                 if (!(site in defaults)) {
@@ -682,6 +684,43 @@
             padding-left: 8px; padding-right: 8px;
         }
         .emby-btn-candidate:hover { background: #475569; }
+        html.laosiji-ltxlib .cover > .emby-ltxlib-action {
+            position: absolute !important;
+            left: var(--emby-ltxlib-left, 1px) !important;
+            bottom: 1px !important;
+            z-index: 6 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            min-width: 0 !important;
+            max-width: calc(100% - var(--emby-ltxlib-left, 1px) - 2px) !important;
+            margin: 0 !important;
+        }
+        html.laosiji-ltxlib .cover > .emby-ltxlib-action.emby-jump-candidate-group {
+            align-items: stretch !important;
+        }
+        html.laosiji-ltxlib .cover > .emby-ltxlib-action.emby-ltxlib-stacked {
+            bottom: calc(var(--emby-ltxlib-height, 22px) + 5px) !important;
+            max-width: calc(100% - var(--emby-ltxlib-left, 1px) - 2px) !important;
+        }
+        html.laosiji-ltxlib .cover > .emby-ltxlib-action.emby-btn,
+        html.laosiji-ltxlib .cover > .emby-ltxlib-action .emby-btn {
+            height: var(--emby-ltxlib-height, 22px) !important;
+            padding: 3px 6px !important;
+            font-size: 10px !important;
+            border-radius: 5px !important;
+        }
+        html.laosiji-ltxlib .cover > .emby-ltxlib-action > .emby-jump-link {
+            border-radius: 5px 0 0 5px !important;
+        }
+        html.laosiji-ltxlib .cover > .emby-ltxlib-action > .emby-btn-candidate {
+            border-radius: 0 5px 5px 0 !important;
+        }
+        html.laosiji-ltxlib .cover > .emby-ltxlib-action.emby-jump-link,
+        html.laosiji-ltxlib .cover > .emby-ltxlib-action .emby-jump-link {
+            min-width: 0 !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
         .emby-candidate-menu {
             position: fixed; z-index: 10030;
             display: block; box-sizing: border-box;
@@ -2404,7 +2443,7 @@
             return candidates;
         }
 
-        createLink(item) {
+        createLink(item, options = {}) {
             if (!item) return null;
 
             let group = null;
@@ -2415,7 +2454,7 @@
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
             link.className = `emby-btn emby-btn-jump emby-jump-link ${this.getBtnSizeClass()}`;
-            link.textContent = '🎬 跳转到Emby';
+            link.textContent = options.label || '🎬 跳转到Emby';
             link.title = '左键跳转 Emby；右键从 Emby 删除';
             link.setAttribute('aria-label', '跳转到 Emby；右键点击可删除');
             link.addEventListener('contextmenu', event => {
@@ -3872,6 +3911,157 @@
                 else Prompt.queryNotFound(code);
             }
         }),
+
+        ltxlib: Object.assign(Object.create(BaseProcessor), {
+            cardSelector: 'article.card[data-code]',
+
+            extractCode(card) {
+                return extractCodeFromText(card?.getAttribute?.('data-code') || '');
+            },
+
+            positionMatch(link, badge) {
+                const position = () => {
+                    if (!link.isConnected || !badge.isConnected) return;
+                    if (badge.offsetHeight > 0) {
+                        link.style.setProperty('--emby-ltxlib-height', `${badge.offsetHeight}px`);
+                    }
+                    const cover = badge.parentElement;
+                    const card = badge.closest('.laosiji-ltxlib-card') || cover.parentElement;
+                    const gap = 4;
+                    const stackWidth = 210;
+                    const horizontalLeft = Math.max(1, badge.offsetLeft + badge.offsetWidth + gap);
+                    const available = cover.clientWidth - horizontalLeft - 2;
+                    const actionWidth = Math.max(link.scrollWidth, link.offsetWidth);
+                    const stacked = card.clientWidth < stackWidth || actionWidth > available;
+                    link.classList.toggle('emby-ltxlib-stacked', stacked);
+                    link.style.setProperty(
+                        '--emby-ltxlib-left',
+                        `${stacked ? Math.max(1, badge.offsetLeft) : horizontalLeft}px`
+                    );
+                };
+                position();
+                if (typeof requestAnimationFrame === 'function') requestAnimationFrame(position);
+            },
+
+            insertMatch(card, item, code) {
+                const cover = card.querySelector('.cover');
+                const badge = cover?.querySelector(':scope > .laosiji-ltxlib-pan115-badge');
+                const existing = cover?.querySelector(':scope > .emby-ltxlib-action');
+                if (!item) {
+                    existing?.remove();
+                    card.classList.remove('emby-highlight');
+                    return false;
+                }
+                card.classList.add('emby-highlight');
+                if (!badge) {
+                    existing?.remove();
+                    return false;
+                }
+                if (cover.querySelector(':scope > .emby-btn-deleted')) return true;
+                if (existing) {
+                    if (existing.previousElementSibling !== badge) {
+                        badge.insertAdjacentElement('afterend', existing);
+                    }
+                    this.positionMatch(existing, badge);
+                    return true;
+                }
+
+                const link = this.api.createLink(item, { label: '跳转Emby' });
+                if (!link) return false;
+                link.classList.add('emby-ltxlib-action');
+                link.dataset.embyLtxlibCode = code;
+                link.addEventListener('click', event => event.stopPropagation(), true);
+                badge.insertAdjacentElement('afterend', link);
+                this.positionMatch(link, badge);
+                return true;
+            },
+
+            async processCards() {
+                if (this._ltxlibProcessing) {
+                    this._ltxlibQueued = true;
+                    return;
+                }
+                this._ltxlibProcessing = true;
+                try {
+                    const cards = document.querySelectorAll(this.cardSelector);
+                    const queued = [];
+                    const codes = [];
+
+                    cards.forEach(card => {
+                        const cover = card.querySelector('.cover');
+                        if (!cover) return;
+                        this._ltxlibResizeObserver?.observe(cover);
+
+                        const code = this.extractCode(card);
+                        if (!code) return;
+
+                        if (this._ltxlibResults.has(code)) {
+                            this.insertMatch(card, this._ltxlibResults.get(code), code);
+                            return;
+                        }
+                        if (this._ltxlibPending.has(code)) return;
+
+                        this._ltxlibPending.add(code);
+                        queued.push({ card, code });
+                        if (!codes.includes(code)) codes.push(code);
+                    });
+
+                    if (codes.length) {
+                        const items = await this.api.batchQuery(codes);
+                        codes.forEach((code, index) => {
+                            this._ltxlibResults.set(code, items[index] || null);
+                        });
+                        queued.forEach(({ card, code }) => {
+                            this.insertMatch(card, this._ltxlibResults.get(code), code);
+                        });
+                    }
+                } catch (error) {
+                    console.error('LTXLib Emby 匹配失败', error);
+                } finally {
+                    this._ltxlibPending.clear();
+                    this._ltxlibProcessing = false;
+                    if (this._ltxlibQueued) {
+                        this._ltxlibQueued = false;
+                        this.processCards();
+                    }
+                }
+            },
+
+            async process() {
+                if (!this.__siteConfig?.list) return;
+                this._ltxlibResults = new Map();
+                this._ltxlibPending = new Set();
+                this._ltxlibProcessing = false;
+                this._ltxlibQueued = false;
+                this._ltxlibResizeObserver?.disconnect();
+                this._ltxlibResizeObserver = typeof ResizeObserver === 'function'
+                    ? new ResizeObserver(entries => {
+                        entries.forEach(entry => {
+                            const cover = entry.target;
+                            const badge = cover.querySelector(':scope > .laosiji-ltxlib-pan115-badge');
+                            const action = cover.querySelector(':scope > .emby-ltxlib-action');
+                            if (badge && action) this.positionMatch(action, badge);
+                        });
+                    })
+                    : null;
+
+                await this.processCards();
+
+                let timer = null;
+                const schedule = () => {
+                    if (timer) clearTimeout(timer);
+                    timer = setTimeout(() => {
+                        timer = null;
+                        this.processCards();
+                    }, 250);
+                };
+                new MutationObserver(schedule).observe(
+                    document.documentElement || document,
+                    { childList: true, subtree: true }
+                );
+                [300, 1000, 2200].forEach(delay => setTimeout(schedule, delay));
+            }
+        }),
     };
 
     function detectSite() {
@@ -3889,6 +4079,7 @@
         if (host.includes('hjd2048.com')) return 'hjd2048';
         if (host.includes('missav.ws')) return 'missav';
         if (host.includes('jable.tv')) return 'jable';
+        if (host === 'ltxlib.dpdns.org') return 'ltxlib';
 
         return null;
     }
