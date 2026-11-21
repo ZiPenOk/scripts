@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         跳转到Emby播放(改)
 // @namespace    https://github.com/ZiPenOk
-// @version      5.8.2
+// @version      5.8.3
 // @description  👆👆👆在 ✅JavBus✅Javdb✅LTXLib✅Sehuatang ✅supjav ✅Sukebei ✅✅javrate ✅ 169bbs 高亮emby存在的视频，并提供标注一键跳转功能
 // @author       ZiPenOk
 // @match        *://www.javbus.com/*
@@ -701,6 +701,13 @@
         html.laosiji-ltxlib .cover > .emby-ltxlib-action.emby-ltxlib-stacked {
             bottom: calc(var(--emby-ltxlib-height, 22px) + 5px) !important;
             max-width: calc(100% - var(--emby-ltxlib-left, 1px) - 2px) !important;
+        }
+        html.laosiji-ltxlib .cover > .corner.laosiji-ltxlib-pending-above-score {
+            top: auto !important;
+            right: 8px !important;
+            bottom: 36px !important;
+            left: auto !important;
+            align-items: flex-end !important;
         }
         html.laosiji-ltxlib .cover > .emby-ltxlib-action.emby-btn,
         html.laosiji-ltxlib .cover > .emby-ltxlib-action .emby-btn {
@@ -3943,6 +3950,19 @@
                 if (typeof requestAnimationFrame === 'function') requestAnimationFrame(position);
             },
 
+            syncPendingPosition(card) {
+                const cover = card?.querySelector?.('.cover');
+                const corner = cover?.querySelector?.(':scope > .corner') || cover?.querySelector?.('.corner');
+                if (!cover || !corner) return;
+                const pending = [...corner.querySelectorAll('.badge')].some(badge => {
+                    const title = String(badge.getAttribute?.('title') || '');
+                    return title.includes('待确认') || String(badge.textContent || '').trim() === '待确认';
+                });
+                const occupied = !!cover.querySelector(':scope > .emby-ltxlib-action')
+                    || !!cover.querySelector(':scope > .laosiji-ltxlib-pan115-badge');
+                corner.classList.toggle('laosiji-ltxlib-pending-above-score', pending && occupied);
+            },
+
             insertMatch(card, item, code) {
                 const cover = card.querySelector('.cover');
                 const badge = cover?.querySelector(':scope > .laosiji-ltxlib-pan115-badge');
@@ -3950,11 +3970,13 @@
                 if (!item) {
                     existing?.remove();
                     card.classList.remove('emby-highlight');
+                    this.syncPendingPosition(card);
                     return false;
                 }
                 card.classList.add('emby-highlight');
                 if (!badge) {
                     existing?.remove();
+                    this.syncPendingPosition(card);
                     return false;
                 }
                 if (cover.querySelector(':scope > .emby-btn-deleted')) return true;
@@ -3963,6 +3985,7 @@
                         badge.insertAdjacentElement('afterend', existing);
                     }
                     this.positionMatch(existing, badge);
+                    this.syncPendingPosition(card);
                     return true;
                 }
 
@@ -3973,6 +3996,7 @@
                 link.addEventListener('click', event => event.stopPropagation(), true);
                 badge.insertAdjacentElement('afterend', link);
                 this.positionMatch(link, badge);
+                this.syncPendingPosition(card);
                 return true;
             },
 
@@ -4041,6 +4065,7 @@
                             const badge = cover.querySelector(':scope > .laosiji-ltxlib-pan115-badge');
                             const action = cover.querySelector(':scope > .emby-ltxlib-action');
                             if (badge && action) this.positionMatch(action, badge);
+                            this.syncPendingPosition(cover.closest('article.card') || cover.parentElement);
                         });
                     })
                     : null;
