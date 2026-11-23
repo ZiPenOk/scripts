@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.4.0
+// @version      2.6.1
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -171,6 +171,54 @@
 
     const isPreviewThumb = url => /_s\.(?:jpe?g|png|gif|webp)(?:[?#]|$)/i.test(url || '')
     const sortFullSizeFirst = urls => urls.slice().sort((a, b) => Number(isPreviewThumb(a)) - Number(isPreviewThumb(b)))
+    const extractHttpUrls = text => {
+        const source = String(text || '')
+        const starts = /https?:\/\//gi
+        const urls = []
+        let found
+
+        while((found = starts.exec(source))) {
+            const start = found.index
+            let pos = start
+            let depth = 0
+            while(pos < source.length) {
+                const ch = source[pos]
+                if(/\s/.test(ch) || ch === '"' || ch === "'" || ch === '<' || ch === '>' || ch === ']') break
+                if(ch === '(') depth++
+                else if(ch === ')') {
+                    if(depth === 0) break
+                    depth--
+                }
+                pos++
+            }
+            const url = source.slice(start, pos).replace(/[.,;:*]+$/, '')
+            if(url && !urls.includes(url)) urls.push(url)
+            starts.lastIndex = Math.max(pos, found.index + 1)
+        }
+        return urls
+    }
+    const calculatePreviewLayout = (naturalWidth, naturalHeight, maxWidth, maxHeight) => {
+        const width = Math.max(1, Number(naturalWidth) || 1)
+        const height = Math.max(1, Number(naturalHeight) || 1)
+        const availableWidth = Math.max(1, Number(maxWidth) || 1)
+        const availableHeight = Math.max(1, Number(maxHeight) || 1)
+        const long = height / width >= 1.6
+
+        if(long) {
+            return {
+                width: Math.round(Math.min(availableWidth, Math.max(280, width))),
+                height: Math.round(availableHeight),
+                long: true
+            }
+        }
+
+        const scale = Math.min(1, availableWidth / width, availableHeight / height)
+        return {
+            width: Math.round(Math.max(1, width * scale)),
+            height: Math.round(Math.max(1, height * scale)),
+            long: false
+        }
+    }
 
     const addHandler = (pattern, process, processNyaa) => handlers.push(new Handler(pattern, process, processNyaa))
 
@@ -712,17 +760,49 @@
                 span = document.createElement("span")
                 span.innerHTML='🖼️'
                 span.style.cursor = 'pointer'
+                span.style.userSelect = 'none'
+                span.title = '悬停预览，点击查看图片'
+                span.setAttribute('role', 'button')
+                span.setAttribute('aria-label', '查看图片')
+                span.addEventListener('click', e => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    if(span.dataset.lmt) openLightbox(span.dataset.lmt)
+                })
                 a.before(span)
             }
             span.dataset.lmt = url
         }
 
-        let LMT_Wrap, LMT_Frame, LMT_Loading, LMT_panel, LMT_img, LMT_Status
+        let LMT_Wrap, LMT_Frame, LMT_Loading, LMT_panel, LMT_img, LMT_Status, LMT_Hint
         let LMT_resolveLink = null
         let LMT_mouseX = 0
         let LMT_mouseY = 0
-        const panelWidth = 480
-        const panelHeight = 480
+        let panelWidth = 480
+        let panelHeight = 600
+        let LMT_previewPan = 0
+        const previewViewportBounds = () => ({
+            width: Math.max(160, Math.min(480, windowWidth - 20)),
+            height: Math.max(160, Math.min(600, windowHeight - 40))
+        })
+        const fitPreviewPanel = (naturalWidth, naturalHeight) => {
+            const bounds = previewViewportBounds()
+            const layout = calculatePreviewLayout(naturalWidth, naturalHeight, bounds.width, bounds.height)
+            panelWidth = layout.width
+            panelHeight = layout.height
+            LMT_panel.style.width = `${panelWidth}px`
+            LMT_panel.style.height = `${panelHeight}px`
+            LMT_panel.dataset.long = layout.long ? '1' : '0'
+            LMT_panel.dataset.naturalWidth = String(naturalWidth || 0)
+            LMT_panel.dataset.naturalHeight = String(naturalHeight || 0)
+            LMT_img.style.objectFit = layout.long ? 'cover' : 'contain'
+            LMT_img.style.objectPosition = layout.long ? `center ${LMT_previewPan}%` : 'center'
+            LMT_Hint.textContent = layout.long
+                ? '长图 · 滚轮浏览 · 点击 🖼️ 看完整图片'
+                : '点击 🖼️ 查看图片'
+            LMT_Hint.style.display = 'block'
+            movePreviewPanel()
+        }
         function createWrap(parent) {
             parent.parentNode.insertAdjacentHTML('afterend', '<div class="panel panel-default"><div class="panel-body" id="LMT_Wrap"></div></div>')
             LMT_Wrap = document.querySelector('#LMT_Wrap')
@@ -737,12 +817,11 @@
             LMT_panel.style.top = '-1000px'
             LMT_panel.style.left = '-1000px'
             LMT_panel.style.backgroundColor = '#f5f5f5'
-            LMT_panel.style.backgroundSize = 'contain'
             LMT_panel.style.backgroundRepeat = 'no-repeat'
             LMT_panel.style.backgroundPosition = 'center'
             LMT_panel.style.border = '1px solid #ddd'
             LMT_panel.style.borderRadius = '6px'
-            LMT_panel.style.boxShadow = '0 1px 1px rgba(0,0,0,.05)'
+            LMT_panel.style.boxShadow = '0 2px 12px rgba(0,0,0,.18)'
             LMT_panel.style.width = `${panelWidth}px`
             LMT_panel.style.height = `${panelHeight}px`
             LMT_panel.style.overflow = 'hidden'
@@ -763,6 +842,7 @@
                     LMT_Status.innerText = 'Refreshing...'
                     LMT_Status.style.display = 'flex'
                 }
+                if(LMT_Hint) LMT_Hint.style.display = 'none'
             }
             LMT_panel.appendChild(LMT_img)
 
@@ -778,13 +858,196 @@
             LMT_Status.style.color = '#777'
             LMT_Status.style.fontSize = '14px'
             LMT_Status.style.background = '#f5f5f5'
+            LMT_Status.style.zIndex = '2'
             LMT_panel.appendChild(LMT_Status)
+
+            LMT_Hint = document.createElement('div')
+            LMT_Hint.style.position = 'absolute'
+            LMT_Hint.style.right = '8px'
+            LMT_Hint.style.bottom = '8px'
+            LMT_Hint.style.maxWidth = 'calc(100% - 16px)'
+            LMT_Hint.style.padding = '4px 7px'
+            LMT_Hint.style.borderRadius = '4px'
+            LMT_Hint.style.background = 'rgba(0,0,0,.72)'
+            LMT_Hint.style.color = '#fff'
+            LMT_Hint.style.fontSize = '11px'
+            LMT_Hint.style.lineHeight = '1.35'
+            LMT_Hint.style.display = 'none'
+            LMT_Hint.style.zIndex = '3'
+            LMT_panel.appendChild(LMT_Hint)
 
             LMT_Frame = document.createElement('iframe')
             LMT_Frame.id = 'LMT_Frame'
             LMT_Frame.sandbox = 'allow-forms allow-scripts allow-same-origin'
             LMT_Frame.style.display = 'none'
             document.body.appendChild(LMT_Frame)
+        }
+
+        let LMT_lightbox, LMT_lightboxShadow, LMT_lightboxImg, LMT_lightboxStage, LMT_lightboxMeta
+        let LMT_lightboxLink, LMT_lightboxLoading, LMT_lightboxError
+        let LMT_lightboxSeq = 0
+        let LMT_lightboxNaturalWidth = 0
+        let LMT_lightboxNaturalHeight = 0
+        let LMT_lightboxMode = null
+        let LMT_bodyOverflowBeforeLightbox = ''
+        const lightboxFont = '-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif'
+
+        function ensureLightbox() {
+            if(LMT_lightbox) return
+
+            LMT_lightbox = document.createElement('div')
+            LMT_lightbox.id = 'LMT_Lightbox'
+            LMT_lightbox.style.position = 'fixed'
+            LMT_lightbox.style.inset = '0'
+            LMT_lightbox.style.zIndex = '2147483647'
+            LMT_lightbox.style.display = 'none'
+            LMT_lightboxShadow = LMT_lightbox.attachShadow({ mode: 'open' })
+            LMT_lightboxShadow.innerHTML = `
+                <style>
+                    :host { all: initial; }
+                    * { box-sizing: border-box; }
+                    .backdrop { position: fixed; inset: 0; background: rgba(6, 8, 11, .92); backdrop-filter: blur(3px); }
+                    .shell { position: fixed; inset: 0; display: flex; flex-direction: column; color: #f3f4f6; font-family: ${lightboxFont}; }
+                    .bar { position: relative; z-index: 2; flex: 0 0 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px 0 20px; background: rgba(18, 21, 26, .96); border-bottom: 1px solid rgba(255,255,255,.1); }
+                    .title-wrap { min-width: 0; }
+                    .title { font-size: 14px; font-weight: 650; line-height: 1.3; }
+                    .meta { margin-top: 3px; color: #aab3c0; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                    .actions { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+                    .actions button, .actions a { appearance: none; height: 31px; padding: 0 10px; border: 1px solid rgba(255,255,255,.14); border-radius: 6px; background: #252a32; color: #e9edf2; font: 12px/29px ${lightboxFont}; text-decoration: none; cursor: pointer; }
+                    .actions button:hover, .actions a:hover { background: #343b46; }
+                    .stage { position: relative; flex: 1 1 auto; overflow: auto; padding: 24px; text-align: center; overscroll-behavior: contain; scrollbar-color: #5c6572 #12151a; }
+                    img { display: none; max-width: none; margin: 0 auto; border-radius: 4px; box-shadow: 0 12px 50px rgba(0,0,0,.52); user-select: none; }
+                    .loading, .error { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #aeb7c4; font-size: 13px; pointer-events: none; }
+                    .error { display: none; color: #ffb4b4; }
+                    .footer { flex: 0 0 28px; display: flex; align-items: center; justify-content: center; color: #8f99a7; background: rgba(12, 14, 18, .92); font-size: 11px; }
+                </style>
+                <div class="backdrop"></div>
+                <div class="shell" role="dialog" aria-modal="true" aria-label="图片预览">
+                    <div class="bar">
+                        <div class="title-wrap">
+                            <div class="title">图片预览</div>
+                            <div class="meta">正在加载...</div>
+                        </div>
+                        <div class="actions">
+                            <a data-open href="#" target="_blank" rel="noopener noreferrer">新标签打开</a>
+                        </div>
+                    </div>
+                    <div class="stage"><img alt="预览图" title="单击切换整图与 1:1"><div class="loading">加载中...</div><div class="error">图片加载失败</div></div>
+                    <div class="footer">单击图片切换整图 / 1:1 · 滚轮滚动查看 · Esc 关闭</div>
+                </div>
+            `
+            document.body.appendChild(LMT_lightbox)
+
+            LMT_lightboxStage = LMT_lightboxShadow.querySelector('.stage')
+            LMT_lightboxStage.tabIndex = -1
+            LMT_lightboxImg = LMT_lightboxShadow.querySelector('img')
+            LMT_lightboxMeta = LMT_lightboxShadow.querySelector('.meta')
+            LMT_lightboxLink = LMT_lightboxShadow.querySelector('[data-open]')
+            LMT_lightboxLoading = LMT_lightboxShadow.querySelector('.loading')
+            LMT_lightboxError = LMT_lightboxShadow.querySelector('.error')
+
+            LMT_lightboxImg.onload = () => {
+                if(!LMT_lightboxImg.naturalWidth || !LMT_lightboxImg.naturalHeight) return
+                LMT_lightboxNaturalWidth = LMT_lightboxImg.naturalWidth
+                LMT_lightboxNaturalHeight = LMT_lightboxImg.naturalHeight
+                LMT_lightboxImg.style.display = 'block'
+                LMT_lightboxLoading.style.display = 'none'
+                LMT_lightboxError.style.display = 'none'
+                LMT_lightboxMeta.textContent = `${LMT_lightboxNaturalWidth} × ${LMT_lightboxNaturalHeight}`
+                if(!LMT_lightboxMode) LMT_lightboxMode = 'actual'
+                applyLightboxMode(LMT_lightboxMode)
+            }
+            LMT_lightboxImg.onerror = () => {
+                if(LMT_lightbox.style.display === 'none') return
+                LMT_lightboxImg.style.display = 'none'
+                LMT_lightboxLoading.style.display = 'none'
+                LMT_lightboxError.style.display = 'flex'
+            }
+            LMT_lightboxImg.addEventListener('click', e => {
+                if(e.detail > 1) return
+                toggleLightboxZoom()
+            })
+
+            LMT_lightboxShadow.querySelector('.backdrop').addEventListener('click', closeLightbox)
+            LMT_lightboxStage.addEventListener('click', e => {
+                if(e.target === LMT_lightboxStage) closeLightbox()
+            })
+            unsafeWindow.addEventListener('resize', () => {
+                if(LMT_lightbox.style.display !== 'none' && LMT_lightboxNaturalWidth) applyLightboxMode(LMT_lightboxMode)
+            })
+            document.addEventListener('keydown', e => {
+                if(LMT_lightbox.style.display === 'none') return
+                if(e.key === 'Escape') {
+                    e.preventDefault()
+                    closeLightbox()
+                }
+            }, true)
+        }
+
+        function applyLightboxMode(mode) {
+            if(!LMT_lightboxImg || !LMT_lightboxNaturalWidth || !LMT_lightboxNaturalHeight) return
+            LMT_lightboxMode = mode === 'actual' ? 'actual' : 'fit'
+            const availableWidth = Math.max(120, LMT_lightboxStage.clientWidth - 48)
+            const availableHeight = Math.max(120, LMT_lightboxStage.clientHeight - 48)
+            LMT_lightboxImg.style.maxWidth = 'none'
+            LMT_lightboxImg.style.maxHeight = 'none'
+            LMT_lightboxImg.style.cursor = LMT_lightboxMode === 'actual' ? 'zoom-out' : 'zoom-in'
+
+            if(LMT_lightboxMode === 'actual') {
+                LMT_lightboxImg.style.width = `${LMT_lightboxNaturalWidth}px`
+                LMT_lightboxImg.style.height = 'auto'
+            } else {
+                LMT_lightboxImg.style.width = 'auto'
+                LMT_lightboxImg.style.height = 'auto'
+                LMT_lightboxImg.style.maxWidth = `${availableWidth}px`
+                LMT_lightboxImg.style.maxHeight = `${availableHeight}px`
+            }
+
+            LMT_lightboxStage.scrollTop = 0
+            LMT_lightboxStage.scrollLeft = 0
+        }
+
+        function toggleLightboxZoom() {
+            if(!LMT_lightboxNaturalWidth || !LMT_lightboxNaturalHeight) return
+            applyLightboxMode(LMT_lightboxMode === 'actual' ? 'fit' : 'actual')
+        }
+
+        function openLightbox(url) {
+            if(!url) return
+            ensureLightbox()
+            hidePreviewPanel()
+
+            if(LMT_lightbox.style.display === 'none') {
+                LMT_bodyOverflowBeforeLightbox = document.body.style.overflow
+            }
+            LMT_lightbox.style.display = 'block'
+            document.body.style.overflow = 'hidden'
+
+            const seq = ++LMT_lightboxSeq
+            LMT_lightboxMode = null
+            LMT_lightboxNaturalWidth = 0
+            LMT_lightboxNaturalHeight = 0
+            LMT_lightboxMeta.textContent = '正在加载...'
+            LMT_lightboxImg.style.display = 'none'
+            LMT_lightboxImg.style.width = 'auto'
+            LMT_lightboxImg.style.height = 'auto'
+            LMT_lightboxImg.style.maxWidth = 'none'
+            LMT_lightboxImg.style.maxHeight = 'none'
+            LMT_lightboxLoading.style.display = 'flex'
+            LMT_lightboxError.style.display = 'none'
+            LMT_lightboxLink.href = url
+            LMT_lightboxImg.src = url
+
+            setTimeout(() => {
+                if(seq === LMT_lightboxSeq) LMT_lightboxStage.focus()
+            }, 0)
+        }
+
+        function closeLightbox() {
+            if(!LMT_lightbox) return
+            LMT_lightboxSeq++
+            LMT_lightbox.style.display = 'none'
+            document.body.style.overflow = LMT_bodyOverflowBeforeLightbox
         }
 
         const imgList = []
@@ -844,6 +1107,9 @@
                 const img = document.createElement('img')
                 img.src = e.data.LMT
                 img.style['max-width'] = '100%'
+                img.style.cursor = 'zoom-in'
+                img.title = '点击查看图片'
+                img.addEventListener('click', () => openLightbox(img.src))
                 LMT_Wrap.appendChild(img)
             }
             if(e.data.LMT_SRC) {
@@ -881,6 +1147,9 @@
         unsafeWindow.addEventListener('resize', function (e) {
             windowWidth = unsafeWindow.innerWidth
             windowHeight = unsafeWindow.innerHeight
+            if(LMT_panel.dataset.visible === '1' && LMT_panel.dataset.naturalWidth) {
+                fitPreviewPanel(Number(LMT_panel.dataset.naturalWidth), Number(LMT_panel.dataset.naturalHeight))
+            }
         })
         const movePreviewPanel = e => {
             if(e) {
@@ -888,24 +1157,26 @@
                 LMT_mouseY = e.clientY
             }
             if(LMT_panel.dataset.visible === '1') {
-                const offset = 20;
-                const panelRightEdge = LMT_mouseX + offset + panelWidth;
-                const panelBottomEdge = LMT_mouseY + offset + panelHeight;
+                const offset = 20
+                const currentWidth = LMT_panel.offsetWidth || panelWidth
+                const currentHeight = LMT_panel.offsetHeight || panelHeight
+                const panelRightEdge = LMT_mouseX + offset + currentWidth
+                const panelBottomEdge = LMT_mouseY + offset + currentHeight
 
-                let newLeft = LMT_mouseX + offset;
+                let newLeft = LMT_mouseX + offset
                 if(panelRightEdge > windowWidth) {
-                    newLeft = LMT_mouseX - offset - panelWidth;
+                    newLeft = LMT_mouseX - offset - currentWidth
                 }
-                newLeft = Math.max(5, Math.min(newLeft, windowWidth - panelWidth - 5));
+                newLeft = Math.max(5, Math.min(newLeft, windowWidth - currentWidth - 5))
 
-                let newTop = LMT_mouseY + offset;
+                let newTop = LMT_mouseY + offset
                 if(panelBottomEdge > windowHeight) {
-                    newTop = LMT_mouseY - offset - panelHeight;
+                    newTop = LMT_mouseY - offset - currentHeight
                 }
-                newTop = Math.max(5, Math.min(newTop, windowHeight - panelHeight - 5));
+                newTop = Math.max(5, Math.min(newTop, windowHeight - currentHeight - 5))
 
-                LMT_panel.style.left = newLeft + 'px';
-                LMT_panel.style.top = newTop + 'px';
+                LMT_panel.style.left = newLeft + 'px'
+                LMT_panel.style.top = newTop + 'px'
             }
         }
         const hidePreviewPanel = () => {
@@ -914,7 +1185,10 @@
             LMT_panel.style.left = '-1000px'
             LMT_panel.style.backgroundImage = ''
             LMT_img.style.display = 'none'
+            LMT_img.style.objectPosition = 'center'
+            LMT_previewPan = 0
             if(LMT_Status) LMT_Status.style.display = 'none'
+            if(LMT_Hint) LMT_Hint.style.display = 'none'
         }
         const showPreview = (a, e) => {
             if(!a || !a.dataset.lmt) return
@@ -924,12 +1198,15 @@
 
             const url = a.dataset.lmt
             const seq = String(Date.now()) + Math.random()
+            LMT_previewPan = 0
             LMT_panel.dataset.visible = '1'
             LMT_panel.dataset.seq = seq
             LMT_panel.dataset.activeHref = a.href || ''
             LMT_panel.dataset.src = url
             LMT_panel.style.backgroundImage = ''
             LMT_img.style.display = 'none'
+            LMT_img.style.objectPosition = 'center'
+            LMT_Hint.style.display = 'none'
             LMT_Status.innerText = a.dataset.lmtStale ? 'Refreshing...' : 'Loading...'
             LMT_Status.style.display = 'flex'
             movePreviewPanel(e)
@@ -950,6 +1227,7 @@
                 probeDone = true
                 clearTimeout(refreshTimer)
                 delete a.dataset.lmtStale
+                fitPreviewPanel(probe.naturalWidth, probe.naturalHeight)
                 LMT_img.src = url
                 LMT_img.style.display = 'block'
                 LMT_Status.style.display = 'none'
@@ -961,6 +1239,7 @@
                 a.dataset.lmtStale = '1'
                 LMT_Status.innerText = 'Refreshing...'
                 LMT_Status.style.display = 'flex'
+                LMT_Hint.style.display = 'none'
                 requestStaleRefresh()
             }
             const refreshTimer = setTimeout(() => {
@@ -969,6 +1248,7 @@
                 a.dataset.lmtStale = '1'
                 LMT_Status.innerText = 'Refreshing...'
                 LMT_Status.style.display = 'flex'
+                LMT_Hint.style.display = 'none'
                 requestStaleRefresh()
             }, 5000)
             probe.src = url
@@ -985,6 +1265,23 @@
                 hidePreviewPanel()
             }
         })
+        unsafeWindow.addEventListener('wheel', function (e) {
+            if(e.ctrlKey || LMT_panel.dataset.visible !== '1' || LMT_panel.dataset.long !== '1') return
+            const naturalWidth = Number(LMT_panel.dataset.naturalWidth || 0)
+            const naturalHeight = Number(LMT_panel.dataset.naturalHeight || 0)
+            if(!naturalWidth || !naturalHeight) return
+
+            const renderedHeight = LMT_panel.clientWidth * naturalHeight / naturalWidth
+            const overflow = renderedHeight - LMT_panel.clientHeight
+            if(overflow <= 1) return
+
+            let delta = e.deltaY
+            if(e.deltaMode === 1) delta *= 16
+            else if(e.deltaMode === 2) delta *= LMT_panel.clientHeight
+            LMT_previewPan = Math.max(0, Math.min(100, LMT_previewPan + delta / overflow * 100))
+            LMT_img.style.objectPosition = `center ${LMT_previewPan}%`
+            e.preventDefault()
+        }, { passive: false })
 
         const CLOUD_URLS = [
             'https://sukebei.cfyan.cc.cd'
@@ -1037,7 +1334,7 @@
 
             const links = desc.querySelectorAll('a')
             const detailID = href.substr(href.lastIndexOf('/')+1)
-            const externalUrls = (desc.innerHTML.match(/https?:\/\/[^\s\)"'<]+/g) || [])
+            const externalUrls = extractHttpUrls(desc.innerHTML)
                 .filter(url => url.indexOf('nyaa.si') < 0)
             if(!externalUrls.length) {
                 const alreadyNoThumb = getLocalThumb(detailID) === NO_THUMB
@@ -1183,15 +1480,18 @@
                 if(!force && a.dataset.lmtSrc && imgPending.has(a.dataset.lmtSrc)) return
 
                 let candidates = []
-                let imgs = detail.responseText.match(/]\((https?:\/\/[^)]+)/)
-                if(imgs && imgs[1] && imgs[1].indexOf('nyaa.si') < 0) candidates.push(imgs[1])
+                let imgs = detail.responseText.match(/]\((https?:\/\/[^\s]+)/)
+                if(imgs) {
+                    const imageUrls = extractHttpUrls(imgs[1])
+                    if(imageUrls[0] && imageUrls[0].indexOf('nyaa.si') < 0) candidates.push(imageUrls[0])
+                }
 
                 let desc = detail.responseText.match(/<div\b[^>]*id=["']torrent-description["'][^>]*>([\s\S]*?)<\/div>/i)
                 desc = (desc ? desc[1] : detail.responseText)
                     .replaceAll('&#10;', '\n')
                     .replaceAll(')]', ' )]')
                     .replaceAll('\*\*', ' \*\* ')
-                let hrefs = desc.match(/(https?:\/\/[^\s\)]+)/g) || []
+                let hrefs = extractHttpUrls(desc)
                 let info = detail.responseText.match(/noopener noreferrer nofollow" href="(https?:\/\/.+?)"/)
                 if(info) hrefs = [...hrefs, info[1]]
                 let comments = detail.responseText.match(/id="torrent-comment\d+">(https?:\/\/.+?)(&#10;.*)*<\/div>/)
