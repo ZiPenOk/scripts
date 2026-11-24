@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.6.1
+// @version      2.6.5
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -104,6 +104,12 @@
 // @include      /^https://(?:[^/]+\.)?nudestreet\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?girlxxx\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?bbcuck\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?italian18\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?french18\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?german18\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?colombian18\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?spanish18\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?brazilian18\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?2minx\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?thaiav\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?hentaishine\.[^/]+/.*$/
@@ -155,14 +161,14 @@
         }
     }
     const handlers = []
-    const imgBobHosts = /^(?:[^/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av|porn-pig|porn4f|hentai4f|javball|ovabee|javbee|idol69|sweetie-fox|javsunday|cnpics|fikfok|cnxx|cosplay18|kin8-av|555fap|4fuk|hentaipig|3minx|fc2ppv|xcamcovid|hentaicovid|chinese-pics|kr-av|anime-jav|hentai-sub|cosplay-xxx|gofile|xxpics|hentaixnx|blackwidof|hentai-manga|1minx|cnxxx|cosplaytele|kin8-jav|old-young|imgo|sht-link|shentai-anime)\.[a-z]+$/i
+    const imgBobHosts = /^(?:[^/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|brazilian18|british18|colombian18|french18|german18|italian18|spanish18|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av|porn-pig|porn4f|hentai4f|javball|ovabee|javbee|idol69|sweetie-fox|javsunday|cnpics|fikfok|cnxx|cosplay18|kin8-av|555fap|4fuk|hentaipig|3minx|fc2ppv|xcamcovid|hentaicovid|chinese-pics|kr-av|anime-jav|hentai-sub|cosplay-xxx|gofile|xxpics|hentaixnx|blackwidof|hentai-manga|1minx|cnxxx|cosplaytele|kin8-jav|old-young|imgo|sht-link|shentai-anime)\.[a-z]+$/i
 
     const imgBobDirectUrl = url => {
         if(!url) return null
         let parsed
         try { parsed = new URL(url) } catch (e) { return null }
         if(!/^https?:$/.test(parsed.protocol) || !imgBobHosts.test(parsed.hostname)) return null
-        const match = parsed.pathname.match(/^\/(upload|t|s|h|c|i|m|img)\/(?:en\/)?([^/]+\.(?:jpe?g|png|gif|webp))$/i)
+        const match = parsed.pathname.match(/^\/(upload|t|s|h|c|i|m|img|b|f|g)\/(?:en\/)?([^/]+\.(?:jpe?g|png|gif|webp))$/i)
         if(!match) return null
         parsed.pathname = '/' + match[1] + '/ib/' + match[2]
         parsed.hash = ''
@@ -170,6 +176,27 @@
     }
 
     const isPreviewThumb = url => /_s\.(?:jpe?g|png|gif|webp)(?:[?#]|$)/i.test(url || '')
+    const isDirectImageUrl = url => /\.(?:jpe?g|png|gif|webp)(?:[?#].*)?$/i.test(url || '')
+    const looksLikeImagePageUrl = url => {
+        try {
+            const path = new URL(url).pathname.toLowerCase()
+            return /(?:^|\/)(?:image|images|upload|img|view|viewimage|g|i|m|s|f|b|c|h|t)(?:\/|$)/.test(path)
+        } catch(e) {
+            return false
+        }
+    }
+    const failureHostFromUrl = url => {
+        try {
+            return new URL(url).hostname.toLowerCase()
+        } catch(e) {
+            return ''
+        }
+    }
+    const preferThumbUrl = (existing, incoming) => {
+        if(!incoming) return false
+        if(!existing || existing === '__NO_THUMB__') return true
+        return isPreviewThumb(existing) && !isPreviewThumb(incoming)
+    }
     const sortFullSizeFirst = urls => urls.slice().sort((a, b) => Number(isPreviewThumb(a)) - Number(isPreviewThumb(b)))
     const extractHttpUrls = text => {
         const source = String(text || '')
@@ -325,7 +352,8 @@
                 const finalUrl = response.finalUrl || ''
                 resolve(response.status >= 200 && response.status < 300 &&
                     /^image\//i.test(contentType) && /^https?:\/\//i.test(finalUrl) &&
-                    /\/Application\/storage\/app\/public\/uploads\/users\//i.test(finalUrl) ? finalUrl : null)
+                    (/\/Application\/storage\/app\/public\/uploads\/users\//i.test(finalUrl) ||
+                     /\/ib\/[^?#]+\.(?:jpe?g|png|gif|webp)(?:[?#].*)?$/i.test(finalUrl)) ? finalUrl : null)
             },
             onerror: () => resolve(null),
             ontimeout: () => resolve(null)
@@ -581,13 +609,13 @@
         })
     })
 
-    // imgbob 系图床（ria-kurumi.vip、cn1min.com、kr1min.com、jav1min.com、misa.homes、xxxfans.org、myfirsttime.vip、stits.vip、nudestreet.vip、girlxxx.vip、bbcuck.com、2minx.com、thaiav.org、hentaishine.com、russian18.vip、xteen18.com、aixxx.vip、homexxx.vip、tight-pussy.com、3sporn.com、housewife.homes、cute-porn.com、indianx.vip 等）：
-    // /upload/ib/<file> 会 301 跳到原图，可直接使用；/upload/<file> 与 /upload/en/<file> 是查看页，需要抓页面解析出原图。tight-pussy.com 使用 /t/ 路由，3sporn.com、stits.vip 使用 /s/ 路由，housewife.homes 使用 /h/ 路由，cute-porn.com 使用 /c/ 路由，indianx.vip 使用 /i/ 路由，myfirsttime.vip 使用 /m/ 路由，nudestreet.vip 使用 /img/ 路由。
-    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av)\.[a-z]+\/(?:upload|t|s|h|c|i|m|img)\/ib\/[^\/?#]+(?:[?#].*)?$/i, null, async (url, callback) => {
+    // imgbob 系图床（ria-kurumi.vip、cn1min.com、kr1min.com、jav1min.com、misa.homes、xxxfans.org、myfirsttime.vip、stits.vip、nudestreet.vip、girlxxx.vip、bbcuck.com、british18.com、italian18.com、french18.com、german18.com、colombian18.com、spanish18.vip、brazilian18.com 等）：
+    // /<route>/ib/<file> 会 301 跳到原图，或直接返回图片；/<route>/<file> 与 /<route>/en/<file> 是查看页，需要抓页面解析出原图。tight-pussy.com 使用 /t/ 路由，3sporn.com、stits.vip、spanish18.vip 使用 /s/ 路由，housewife.homes 使用 /h/ 路由，cute-porn.com、colombian18.com 使用 /c/ 路由，indianx.vip、italian18.com 使用 /i/ 路由，myfirsttime.vip 使用 /m/ 路由，nudestreet.vip 使用 /img/ 路由，british18.com、brazilian18.com 使用 /b/ 路由，french18.com 使用 /f/ 路由，german18.com 使用 /g/ 路由。
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|brazilian18|british18|colombian18|french18|german18|italian18|spanish18|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av)\.[a-z]+\/(?:upload|t|s|h|c|i|m|img|b|f|g)\/ib\/[^\/?#]+(?:[?#].*)?$/i, null, async (url, callback) => {
         const imageUrl = await getDirectImageUrl(url)
         if(imageUrl) callback(imageUrl)
     })
-    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av)\.[a-z]+\/(?:upload|t|s|h|c|i|m|img)\/(?:en\/)?[^\/?#]+(?:[?#].*)?$/i, callback => {
+    addHandler(/^https?:\/\/(?:[^\/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|brazilian18|british18|colombian18|french18|german18|italian18|spanish18|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av)\.[a-z]+\/(?:upload|t|s|h|c|i|m|img|b|f|g)\/(?:en\/)?[^\/?#]+(?:[?#].*)?$/i, callback => {
         const img = document.querySelector('.fileviewer-file img') ||
                     document.querySelector('#fileOriginalModal img')
         if(img && img.src) callback(img.src)
@@ -1118,6 +1146,7 @@
                 const a = document.querySelector(`a[data-lmt-src="${decodeURI(url_src)}"]`)
                 if(a) {
                     delete a.dataset.lmtStale
+                    delete a.dataset.lmtNoThumb
                     upsertThumbMarker(a, e.data.LMT)
 
                     // 详情页按当前种子 ID 回写云端；已有真实缩略图时不覆盖
@@ -1125,7 +1154,7 @@
                     if(detailMatch) {
                         const id = detailMatch[1]
                         const existing = getLocalThumb(id)
-                        if(!existing || existing === NO_THUMB) {
+                        if(preferThumbUrl(existing, e.data.LMT)) {
                             saveThumb(id, e.data.LMT)
                             setLocalThumb(id, e.data.LMT)
                         }
@@ -1327,6 +1356,28 @@
                 })
             })
         }
+        const saveImageFailure = (id, host, reason) => {
+            if(!id || !host) return
+            CLOUD_URLS.forEach(cloudUrl => {
+                GM_xmlhttpRequest({
+                    method: 'POST',
+                    url: `${cloudUrl}/failure/${encodeURIComponent(id)}`,
+                    data: JSON.stringify({ host: host, reason: reason || 'unsupported image host' }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                })
+            })
+        }
+        const reportedImageFailures = new Set()
+        const reportImageFailure = (id, url) => {
+            const host = failureHostFromUrl(url)
+            if(!id || !host) return
+            const key = id + '\x00' + host
+            if(reportedImageFailures.has(key)) return
+            reportedImageFailures.add(key)
+            saveImageFailure(id, host, 'unsupported image host')
+        }
 
         if(/^https?:\/\/(sukebei\.nyaa\.si\/view\/).+/g.test(href)) {
             const desc = document.querySelector('#torrent-description')
@@ -1352,6 +1403,12 @@
                     }
                 })
             })
+            externalUrls.forEach(url => {
+                const supported = handlers.some(h => h.canHandle(url))
+                if(!supported && !isDirectImageUrl(url) && looksLikeImagePageUrl(url)) {
+                    reportImageFailure(detailID, url)
+                }
+            })
 
             if(!LMT_Frame) {
                 createWrap(desc)
@@ -1363,7 +1420,8 @@
             const idOf = a => a.href.substr(a.href.lastIndexOf('/')+1)
             const isResolvedImageUrl = url => {
                 return /^data:image\//i.test(url) ||
-                       /\/Application\/storage\/app\/public\/uploads\/users\//i.test(url)
+                       /\/Application\/storage\/app\/public\/uploads\/users\//i.test(url) ||
+                       /\/ib\/[^?#]+\.(?:jpe?g|png|gif|webp)(?:[?#].*)?$/i.test(url)
             }
             const handlerFor = url => {
                 for(let i in handlers) {
@@ -1378,6 +1436,17 @@
                 setLocalThumb(id, NO_THUMB)
                 if(report) saveThumb(id, NO_THUMB)
             }
+            const acceptDirectImage = (a, url) => {
+                a.dataset.lmtSrc = url.toLowerCase()
+                if(/^data:image\//i.test(url)) {
+                    unsafeWindow.top.postMessage({"LMT": url, "LMT_SRC": url}, '*')
+                    return
+                }
+                preloadImage(url, 4500).then(ok => {
+                    if(!ok || a.dataset.lmtSrc !== url.toLowerCase()) return
+                    unsafeWindow.top.postMessage({"LMT": url, "LMT_SRC": url}, '*')
+                })
+            }
             const resolveCandidateUrl = (a, url, force = false) => {
                 if(!a || !url || url.indexOf('nyaa.si') >= 0) return false
 
@@ -1389,14 +1458,12 @@
                 }
 
                 if(h && isResolvedImageUrl(url)) {
-                    a.dataset.lmtSrc = url.toLowerCase()
-                    unsafeWindow.top.postMessage({"LMT": url, "LMT_SRC": url}, '*')
+                    acceptDirectImage(a, url)
                     return true
                 }
 
-                if(/\.(jpe?g|png|gif|webp)(?:[?#].*)?$/i.test(url)) {
-                    a.dataset.lmtSrc = url.toLowerCase()
-                    unsafeWindow.top.postMessage({"LMT": url, "LMT_SRC": url}, '*')
+                if(isDirectImageUrl(url)) {
+                    acceptDirectImage(a, url)
                     return true
                 }
 
@@ -1507,10 +1574,33 @@
                 }
                 candidates = sortFullSizeFirst([...new Set(candidates)])
 
+                let supportedCandidateCount = 0
+                const unsupportedImageUrls = []
+                candidates.forEach(url => {
+                    const looksLikePage = looksLikeImagePageUrl(url)
+                    if(handlerFor(url) || isResolvedImageUrl(url) || (isDirectImageUrl(url) && !looksLikePage)) {
+                        supportedCandidateCount++
+                    } else if(looksLikePage) {
+                        unsupportedImageUrls.push(url)
+                    }
+                })
+
+                const finishCandidates = link => {
+                    if(unsupportedImageUrls.length) {
+                        unsupportedImageUrls.forEach(url => reportImageFailure(idOf(link), url))
+                        link.dataset.lmtSrc = '#'
+                        return
+                    }
+                    if(supportedCandidateCount > 0 || candidates.length === 0) {
+                        markNoThumb(link, idOf(link), true)
+                    } else {
+                        link.dataset.lmtSrc = '#'
+                    }
+                }
+
                 const tryCandidate = index => {
                     if(index >= candidates.length) {
-                        if(candidates.length) a.dataset.lmtSrc = '#'
-                        else markNoThumb(a, idOf(a), true)
+                        finishCandidates(a)
                         return
                     }
                     if(!resolveCandidateUrl(a, candidates[index], force)) {
