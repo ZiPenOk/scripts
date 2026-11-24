@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.6.5
+// @version      2.6.6
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -312,8 +312,8 @@
         const src = img && toAbsoluteUrl(img.getAttribute('src'), base)
         if(src) return src
 
-        const match = html.match(/<img[^>]+src=["'](https?:\/\/img\d+\.(?:imagetwist|imagexport|imagenimage|imagehaha)\.[^"']+)["'][^>]*>/i) ||
-                      html.match(/<a[^>]+href=["'](https?:\/\/img\d+\.(?:imagetwist|imagexport|imagenimage|imagehaha)\.[^"']+)["'][^>]*data-fancybox/i)
+        const match = html.match(/<img[^>]+src=["'](https?:\/\/(?:[a-z0-9-]+\.)+(?:imagetwist|imagexport|imagenimage|imagehaha)\.[^"']+)["'][^>]*>/i) ||
+                      html.match(/<a[^>]+href=["'](https?:\/\/(?:[a-z0-9-]+\.)+(?:imagetwist|imagexport|imagenimage|imagehaha)\.[^"']+)["'][^>]*data-fancybox/i)
         return match ? match[1] : null
     }
 
@@ -544,17 +544,17 @@
         }
     })
     addHandler(/^https?:\/\/(imagetwist\.netlify\.app)(\/\w+)+/, async callback => {
-        const redirect = await doGet(document.location.href, /<center><a href="(https?:\/\/imagetwist\.com(\/[\w-]+)+\.jpg)"/)
+        const redirect = await doGet(document.location.href, /<center><a href="(https?:\/\/imagetwist\.com(\/[\w-]+)+\.(?:jpe?g|png|gif|webp))"/i)
         document.location.href = redirect + '#' + document.location.href
     })
-    addHandler(/^https?:\/\/(imagetwist\.com|imagexport\.com|imagenimage\.com|imagehaha\.com)(\/[\w-.]+)+\.jpg#https?:\/\/(imagetwist\.netlify\.app)(\/[\w-]+)+\.jpg/, callback => {
+    addHandler(/^https?:\/\/(imagetwist\.com|imagexport\.com|imagenimage\.com|imagehaha\.com)(\/[\w-.]+)+\.(?:jpe?g|png|gif|webp)#https?:\/\/(imagetwist\.netlify\.app)(\/[\w-]+)+\.(?:jpe?g|png|gif|webp)$/i, callback => {
         const img = document.querySelector('.img-responsive')
         if(img) {
             const referer = document.location.href.split('#')[1]
             callback(img.src, referer)
         }
     })
-    addHandler(/^https?:\/\/(imagetwist\.com|imagexport\.com|imagenimage\.com|imagehaha\.com)(\/[\w-.]+)+\.jpg$/, callback => {
+    addHandler(/^https?:\/\/(imagetwist\.com|imagexport\.com|imagenimage\.com|imagehaha\.com)(\/[\w-.]+)+\.(?:jpe?g|png|gif|webp)$/i, callback => {
         const img = document.querySelector('.img-responsive')
         if(img) {
             callback(img.src)
