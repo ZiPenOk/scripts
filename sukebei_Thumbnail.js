@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.6.6
+// @version      2.6.8
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -38,6 +38,7 @@
 // @include      /^https://(?:[^/]+\.)?imgadult\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?imgdrive\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?xxxwebdlxxx\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?skrepics\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?uvonahaze\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?firm\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?imgdawgknuttz\.[^/]+/.*$/
@@ -175,7 +176,7 @@
         return parsed.href
     }
 
-    const isPreviewThumb = url => /_s\.(?:jpe?g|png|gif|webp)(?:[?#]|$)/i.test(url || '')
+    const isPreviewThumb = url => /(?:_s|-s|_th|\.th)\.(?:jpe?g|png|gif|webp)(?:[?#]|$)/i.test(url || '')
     const isDirectImageUrl = url => /\.(?:jpe?g|png|gif|webp)(?:[?#].*)?$/i.test(url || '')
     const looksLikeImagePageUrl = url => {
         try {
@@ -393,6 +394,21 @@
         return toAbsoluteUrl(src, base)
     }
 
+    const parseSkrepicsImage = (html, base) => {
+        if(!html) return null
+
+        const doc = new DOMParser().parseFromString(html, 'text/html')
+        const meta = doc.querySelector('meta[property="og:image"]') ||
+                     doc.querySelector('meta[name="og:image"]')
+        const image = doc.querySelector('img[data-load="full"]')
+        const src = (meta && meta.getAttribute('content')) ||
+                    (image && image.getAttribute('src'))
+        if(src) return toAbsoluteUrl(src, base)
+
+        const match = html.match(/<meta[^>]+(?:property|name)=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+        return match ? toAbsoluteUrl(match[1], base) : null
+    }
+
     addHandler(/^https?:\/\/(hentai-covers\.site)\/image\/\w+/, null, async (url, callback) => {
         callback(parseHentaiCoversImage(await doGetHtml(url), url))
     })
@@ -561,6 +577,13 @@
         }
     }, async (url, callback) => {
         const src = parseImageTwistImage(await doGetHtml(url), url)
+        if(src) callback(src)
+    })
+    addHandler(/^https?:\/\/(?:[^/]+\.)?skrepics\.[^/]+\/image\/[^/?#]+/i, callback => {
+        const src = parseSkrepicsImage(document.documentElement.innerHTML, document.location.href)
+        if(src) callback(src)
+    }, async (url, callback) => {
+        const src = parseSkrepicsImage(await doGetHtml(url), url)
         if(src) callback(src)
     })
     addHandler(/^https?:\/\/hentai4free\.net(\/\w+)+/, callback => {
@@ -1403,12 +1426,15 @@
                     }
                 })
             })
-            externalUrls.forEach(url => {
-                const supported = handlers.some(h => h.canHandle(url))
-                if(!supported && !isDirectImageUrl(url) && looksLikeImagePageUrl(url)) {
-                    reportImageFailure(detailID, url)
-                }
-            })
+            const hasSupportedCandidate = externalUrls.some(url =>
+                handlers.some(h => h.canHandle(url)) || isDirectImageUrl(url))
+            if(!hasSupportedCandidate) {
+                externalUrls.forEach(url => {
+                    if(!isDirectImageUrl(url) && looksLikeImagePageUrl(url)) {
+                        reportImageFailure(detailID, url)
+                    }
+                })
+            }
 
             if(!LMT_Frame) {
                 createWrap(desc)
