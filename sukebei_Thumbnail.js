@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.6.8
+// @version      2.6.9
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -730,6 +730,7 @@
 
         // ==================== 本地缓存 + 预加载校验 ====================
         const CACHE_PREFIX = 'lmt_thumb_'
+        const SEEN_PREFIX = 'lmt_seen_'
         const CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 本地缓存有效期 7 天
         const CACHE_MAX = 2000 // 最多保留条数，超出淘汰最旧的
         const NO_THUMB = '__NO_THUMB__'
@@ -738,6 +739,14 @@
             for(let i = 0; i < localStorage.length; i++) {
                 const k = localStorage.key(i)
                 if(k && k.indexOf(CACHE_PREFIX) === 0) keys.push(k)
+            }
+            return keys
+        }
+        const seenKeys = () => {
+            const keys = []
+            for(let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i)
+                if(k && k.indexOf(SEEN_PREFIX) === 0) keys.push(k)
             }
             return keys
         }
@@ -756,8 +765,10 @@
         }
         const clearThumbCache = () => {
             const keys = cacheKeys()
+            const viewed = seenKeys()
             keys.forEach(k => localStorage.removeItem(k))
-            alert('已清空缩略图缓存，共 ' + keys.length + ' 条')
+            viewed.forEach(k => localStorage.removeItem(k))
+            alert('已清空缩略图缓存和查看状态，共 ' + keys.length + ' 条')
         }
         const getLocalThumb = id => {
             try {
@@ -796,9 +807,29 @@
             img.onerror = () => finish(false)
             img.src = url
         })
+        const markerIDFromAnchor = a => {
+            const match = String(a && a.href || '').match(/\/view\/([A-Za-z0-9_-]+)/)
+            return match ? match[1] : ''
+        }
+        const isThumbSeen = id => {
+            if(!id) return false
+            try { return localStorage.getItem(SEEN_PREFIX + id) === '1' } catch(e) { return false }
+        }
+        const markThumbSeen = id => {
+            if(!id) return
+            try { localStorage.setItem(SEEN_PREFIX + id, '1') } catch(e) {}
+        }
+        const paintThumbMarker = (span, id) => {
+            const seen = isThumbSeen(id)
+            span.textContent = seen ? '✅' : '🖼️'
+            span.title = seen ? '已查看预览，点击再次打开图片' : '悬停预览，点击查看图片'
+            span.setAttribute('aria-label', seen ? '已查看图片，再次打开' : '查看图片')
+            span.dataset.viewed = seen ? '1' : '0'
+        }
         const upsertThumbMarker = (a, url) => {
             if(!a || !url) return
             const oldUrl = a.dataset.lmt
+            const id = markerIDFromAnchor(a)
             a.dataset.lmt = url
             clearTimeout(a._lmtFallbackTimer)
             a._lmtFallbackTimer = null
@@ -809,20 +840,21 @@
             }
             if(!span) {
                 span = document.createElement("span")
-                span.innerHTML='🖼️'
                 span.style.cursor = 'pointer'
                 span.style.userSelect = 'none'
-                span.title = '悬停预览，点击查看图片'
                 span.setAttribute('role', 'button')
-                span.setAttribute('aria-label', '查看图片')
                 span.addEventListener('click', e => {
                     e.preventDefault()
                     e.stopPropagation()
+                    markThumbSeen(span.dataset.lmtId)
+                    paintThumbMarker(span, span.dataset.lmtId)
                     if(span.dataset.lmt) openLightbox(span.dataset.lmt)
                 })
                 a.before(span)
             }
+            span.dataset.lmtId = id
             span.dataset.lmt = url
+            paintThumbMarker(span, id)
         }
 
         let LMT_Wrap, LMT_Frame, LMT_Loading, LMT_panel, LMT_img, LMT_Status, LMT_Hint
