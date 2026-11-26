@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.6.10
+// @version      2.6.11
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -124,6 +124,10 @@
 // @include      /^https://(?:[^/]+\.)?housewife\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?cute-porn\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?indianx\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?african18\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?xvintage\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?cowgirl18\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?cumshotvid\.[^/]+/.*$/
 
 // @run-at       document-end
 // @grant        unsafeWindow
@@ -163,14 +167,14 @@
         }
     }
     const handlers = []
-    const imgBobHosts = /^(?:[^/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|brazilian18|british18|colombian18|french18|german18|italian18|spanish18|2minx|thaiav|hentaishine|russian18|xteen18|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av|porn-pig|porn4f|hentai4f|javball|ovabee|javbee|idol69|sweetie-fox|javsunday|cnpics|fikfok|cnxx|cosplay18|kin8-av|555fap|4fuk|hentaipig|3minx|fc2ppv|xcamcovid|hentaicovid|chinese-pics|kr-av|anime-jav|hentai-sub|cosplay-xxx|gofile|xxpics|hentaixnx|blackwidof|hentai-manga|1minx|cnxxx|cosplaytele|kin8-jav|old-young|imgo|sht-link|shentai-anime)\.[a-z]+$/i
+    const imgBobHosts = /^(?:[^/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|african18|brazilian18|british18|colombian18|cowgirl18|cumshotvid|french18|german18|italian18|spanish18|2minx|thaiav|hentaishine|russian18|xteen18|xvintage|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av|porn-pig|porn4f|hentai4f|javball|ovabee|javbee|idol69|sweetie-fox|javsunday|cnpics|fikfok|cnxx|cosplay18|kin8-av|555fap|4fuk|hentaipig|3minx|fc2ppv|xcamcovid|hentaicovid|chinese-pics|kr-av|anime-jav|hentai-sub|cosplay-xxx|gofile|xxpics|hentaixnx|blackwidof|hentai-manga|1minx|cnxxx|cosplaytele|kin8-jav|old-young|imgo|sht-link|shentai-anime)\.[a-z]+$/i
 
     const imgBobDirectUrl = url => {
         if(!url) return null
         let parsed
         try { parsed = new URL(url) } catch (e) { return null }
         if(!/^https?:$/.test(parsed.protocol) || !imgBobHosts.test(parsed.hostname)) return null
-        const match = parsed.pathname.match(/^\/(upload|t|s|h|c|i|m|img|b|f|g)\/(?:en\/)?([^/]+\.(?:jpe?g|png|gif|webp))$/i)
+        const match = parsed.pathname.match(/^\/(upload|t|s|h|c|i|m|img|b|f|g|a|x)\/(?:en\/)?([^/]+\.(?:jpe?g|png|gif|webp))$/i)
         if(!match) return null
         parsed.pathname = '/' + match[1] + '/ib/' + match[2]
         parsed.hash = ''
@@ -700,7 +704,11 @@
         'sweetie-fox\\.[a-z]+',
         'xcamcovid\\.[a-z]+',
         'xxpics\\.[a-z]+',
-        'shentai-anime\\.[a-z]+'
+        'shentai-anime\\.[a-z]+',
+        'african18\\.[a-z]+',
+        'xvintage\\.[a-z]+',
+        'cowgirl18\\.[a-z]+',
+        'cumshotvid\\.[a-z]+'
     ];
 
     const imagePattern = new RegExp(`^https?://(${imageHosts.join('|')})(/\\w+)+`, 'i');
