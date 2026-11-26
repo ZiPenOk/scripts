@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.6.9
+// @version      2.6.10
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -39,6 +39,7 @@
 // @include      /^https://(?:[^/]+\.)?imgdrive\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?xxxwebdlxxx\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?skrepics\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?orangepix\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?uvonahaze\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?firm\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?imgdawgknuttz\.[^/]+/.*$/
@@ -193,6 +194,7 @@
             return ''
         }
     }
+    const isKnownDirectImageHost = url => /^https?:\/\/(?:[^/]+\.)?(?:googleusercontent\.com|dmm\.co\.jp)(?:\/|$)/i.test(url || '')
     const preferThumbUrl = (existing, incoming) => {
         if(!incoming) return false
         if(!existing || existing === '__NO_THUMB__') return true
@@ -580,6 +582,13 @@
         if(src) callback(src)
     })
     addHandler(/^https?:\/\/(?:[^/]+\.)?skrepics\.[^/]+\/image\/[^/?#]+/i, callback => {
+        const src = parseSkrepicsImage(document.documentElement.innerHTML, document.location.href)
+        if(src) callback(src)
+    }, async (url, callback) => {
+        const src = parseSkrepicsImage(await doGetHtml(url), url)
+        if(src) callback(src)
+    })
+    addHandler(/^https?:\/\/(?:[^/]+\.)?orangepix\.[^/]+\/image\/[^/?#]+/i, callback => {
         const src = parseSkrepicsImage(document.documentElement.innerHTML, document.location.href)
         if(src) callback(src)
     }, async (url, callback) => {
@@ -1636,7 +1645,7 @@
                 const unsupportedImageUrls = []
                 candidates.forEach(url => {
                     const looksLikePage = looksLikeImagePageUrl(url)
-                    if(handlerFor(url) || isResolvedImageUrl(url) || (isDirectImageUrl(url) && !looksLikePage)) {
+                    if(handlerFor(url) || isResolvedImageUrl(url) || isKnownDirectImageHost(url) || (isDirectImageUrl(url) && !looksLikePage)) {
                         supportedCandidateCount++
                     } else if(looksLikePage) {
                         unsupportedImageUrls.push(url)
