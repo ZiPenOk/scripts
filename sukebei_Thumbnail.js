@@ -4,7 +4,7 @@
 // @description  Load image from cover/screenshot links.
 // @description:zh-CN  从封面/截图链接加载图片并显示。基于York Wang 0.9.8版本自用修改, 添加更多站点支持
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=sukebei.nyaa.si
-// @version      2.6.12
+// @version      2.6.13
 // @license      MIT
 // @author       ZiPenOk
 // @include      /^https://(?:[^/]+\.)?nyaa\.[^/]+/.*$/
@@ -128,6 +128,7 @@
 // @include      /^https://(?:[^/]+\.)?xvintage\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?cowgirl18\.[^/]+/.*$/
 // @include      /^https://(?:[^/]+\.)?cumshotvid\.[^/]+/.*$/
+// @include      /^https://(?:[^/]+\.)?giantxporn\.[^/]+/.*$/
 
 // @run-at       document-end
 // @grant        unsafeWindow
@@ -167,7 +168,7 @@
         }
     }
     const handlers = []
-    const imgBobHosts = /^(?:[^/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|african18|brazilian18|british18|colombian18|cowgirl18|cumshotvid|french18|german18|italian18|spanish18|2minx|thaiav|hentaishine|russian18|xteen18|xvintage|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av|porn-pig|porn4f|hentai4f|javball|ovabee|javbee|idol69|sweetie-fox|javsunday|cnpics|fikfok|cnxx|cosplay18|kin8-av|555fap|4fuk|hentaipig|3minx|fc2ppv|xcamcovid|hentaicovid|chinese-pics|kr-av|anime-jav|hentai-sub|cosplay-xxx|gofile|xxpics|hentaixnx|blackwidof|hentai-manga|1minx|cnxxx|cosplaytele|kin8-jav|old-young|imgo|sht-link|shentai-anime)\.[a-z]+$/i
+    const imgBobHosts = /^(?:[^/]+\.)?(?:ria-kurumi|cn1min|kr1min|jav1min|misa|xxxfans|myfirsttime|stits|nudestreet|girlxxx|bbcuck|african18|brazilian18|british18|colombian18|cowgirl18|cumshotvid|french18|german18|giantxporn|italian18|spanish18|2minx|thaiav|hentaishine|russian18|xteen18|xvintage|aixxx|homexxx|tight-pussy|3sporn|housewife|cute-porn|indianx|javtele|cn-av|porn-pig|porn4f|hentai4f|javball|ovabee|javbee|idol69|sweetie-fox|javsunday|cnpics|fikfok|cnxx|cosplay18|kin8-av|555fap|4fuk|hentaipig|3minx|fc2ppv|xcamcovid|hentaicovid|chinese-pics|kr-av|anime-jav|hentai-sub|cosplay-xxx|gofile|xxpics|hentaixnx|blackwidof|hentai-manga|1minx|cnxxx|cosplaytele|kin8-jav|old-young|imgo|sht-link|shentai-anime)\.[a-z]+$/i
 
     const imgBobDirectUrl = url => {
         if(!url) return null
@@ -708,7 +709,8 @@
         'african18\\.[a-z]+',
         'xvintage\\.[a-z]+',
         'cowgirl18\\.[a-z]+',
-        'cumshotvid\\.[a-z]+'
+        'cumshotvid\\.[a-z]+',
+        'giantxporn\\.[a-z]+',
     ];
 
     const imagePattern = new RegExp(`^https?://(${imageHosts.join('|')})(/\\w+)+`, 'i');
@@ -1578,7 +1580,7 @@
                 if(!link.href) return
                 const id = idOf(link)
                 const local = getLocalThumb(id)
-                if(local) {
+                if(local && local !== NO_THUMB) {
                     tryPlace(link, local, id)
                 } else {
                     cloudLinks.push(link)
@@ -1590,7 +1592,12 @@
                     thumbs = thumbs || []
                     cloudLinks.forEach((link, i) => {
                         const url = thumbs[i]
-                        if(url) tryPlace(link, url, idOf(link))
+                        if(url) {
+                            tryPlace(link, url, idOf(link))
+                        } else {
+                            const fallbackLocal = getLocalThumb(idOf(link))
+                            if(fallbackLocal) tryPlace(link, fallbackLocal, idOf(link))
+                        }
                         // 云端未命中时不主动爬取，等待用户 hover 后按需解析
                     })
                 })
