@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         磁力&电驴链接助手
 // @namespace    https://github.com/ZiPenOk
-// @version      3.6.4
-// @description  点击按钮显示绿色勾（验车按钮除外），支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
+// @version      3.6.5
+// @description  点击按钮显示绿色勾，支持复制（自动精简链接，保留xt和dn并提取番号）、推送到qB/115，新增磁力信息验车功能，截图轮播。
 // @icon         https://uxwing.com/wp-content/themes/uxwing/download/seo-marketing/magnet-magnetic-icon.png
 // @match        *://*/*
 // @grant        GM_xmlhttpRequest
@@ -323,15 +323,6 @@
         clickedBtn.classList.add('active');
     }
 
-    function highlightBtn(btn) {
-        const originalBg = btn.style.backgroundColor;
-        btn.style.backgroundColor = '#ffb74d';
-        btn.style.transition = 'background-color 0.2s';
-        setTimeout(() => {
-            btn.style.backgroundColor = originalBg;
-        }, 200);
-    }
-
     function hasOtherMagnetButtons(target) {
         const parent = target.parentElement;
         if (!parent) return false;
@@ -621,8 +612,7 @@
         render();
     }
 
-    async function handleCheckCar(link, btn) {
-        highlightBtn(btn);
+    async function handleCheckCar(link) {
         document.querySelector('.whatslink-overlay')?.remove();
         showToast('正在验车...');
 
@@ -729,12 +719,10 @@
         }
 
         try {
-            if (action === 'check') {
-                handleCheckCar(link, btn);
-                return;
-            }
             setBtnActive(btn, group);
-            if (action === 'copy') {
+            if (action === 'check') {
+                handleCheckCar(link);
+            } else if (action === 'copy') {
                 const processedLink = simplifyMagnetLink(link);
                 GM_setClipboard(processedLink, 'text');
                 showToast(processedLink !== link ? '📋 精简链接已复制' : '📋 链接已复制');
